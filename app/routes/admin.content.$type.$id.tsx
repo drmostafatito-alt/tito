@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
+import { getExam, listExams } from "~server/assessment/service.server";
 import {
   adminTree,
   archiveNode,
@@ -73,6 +74,12 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
   const items = type === "lesson" ? await itemsForLesson(db, params.id) : [];
   const videoMap = await videosByIds(db, items.filter((i) => i.itemType === "video" && i.videoId).map((i) => i.videoId!));
   const fileMap = await filesByIds(db, items.filter((i) => i.itemType === "file" && i.fileId).map((i) => i.fileId!));
+  const allExams = type === "lesson" ? await listExams(db, { status: "published" }) : [];
+  const examMap = new Map<string, { titleAr: string; titleEn: string }>();
+  for (const eid of new Set(items.filter((i) => i.itemType === "exam" && i.examId).map((i) => i.examId!))) {
+    const e = await getExam(db, eid);
+    if (e) examMap.set(eid, { titleAr: e.titleAr, titleEn: e.titleEn });
+  }
 
   void auth;
   return {
@@ -90,8 +97,9 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
     allVideos: allVideos.map((v) => ({ id: v.id, status: v.status, title: (v.metadata as { title?: string } | null)?.title ?? v.playbackId ?? v.id })),
     lessonItems: items.map((i) => ({
       id: i.id, itemType: i.itemType, required: i.required, sortOrder: i.sortOrder,
-      label: i.itemType === "video" ? (videoMap.get(i.videoId!)?.playbackId ?? "video") : i.itemType === "file" ? (fileMap.get(i.fileId!)?.originalFilename ?? "file") : (i.examId ?? "exam"),
+      label: i.itemType === "video" ? (videoMap.get(i.videoId!)?.playbackId ?? "video") : i.itemType === "file" ? (fileMap.get(i.fileId!)?.originalFilename ?? "file") : (examMap.get(i.examId ?? "")?.titleAr ?? i.examId ?? "exam"),
     })),
+    allExams: allExams.map((e) => ({ id: e.id, titleAr: e.titleAr, titleEn: e.titleEn })),
   };
 }
 
@@ -199,16 +207,16 @@ export async function action({ context, request, params }: Route.ActionArgs) {
       }
       case "add-item": {
         const lessonId = id;
-        const itemType = str(form, "itemType") as "video" | "file" | null;
+        const itemType = str(form, "itemType") as "video" | "file" | "exam" | null;
         if (!itemType) return { error: "validation" as const };
-        const refId = itemType === "video" ? str(form, "videoId") : str(form, "fileId");
+        const refId = itemType === "video" ? str(form, "videoId") : itemType === "file" ? str(form, "fileId") : str(form, "examId");
         if (!refId) return { error: "validation" as const };
         const maxOrder = (await itemsForLesson(db, lessonId)).reduce((m, i) => Math.max(m, i.sortOrder), -1);
         await createLessonItem(db, {
           lessonId, itemType,
           videoId: itemType === "video" ? refId : null,
           fileId: itemType === "file" ? refId : null,
-          examId: null,
+          examId: itemType === "exam" ? refId : null,
           sortOrder: maxOrder + 1,
           required: form.get("required") === "on",
         }, actor);
@@ -229,7 +237,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
-  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems } = loaderData;
+  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, allExams } = loaderData;
   const label = locale === "ar" ? String(node.titleAr ?? node.id) : String(node.titleEn ?? node.id);
 
   const input = "rounded-lg border border-slate-300 px-3 py-2";
@@ -467,6 +475,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                 <select name="itemType" className={input}>
                   <option value="video">{t(locale, "content.videoItem")}</option>
                   <option value="file">{t(locale, "content.fileItem")}</option>
+                  <option value="exam">{t(locale, "content.examItem")}</option>
                 </select>
               </label>
               <label className="grid gap-1 text-sm">
@@ -484,6 +493,15 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                   <option value="">—</option>
                   {allFiles.map((f) => (
                     <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span>{t(locale, "content.examItem")}</span>
+                <select name="examId" className={input}>
+                  <option value="">—</option>
+                  {allExams.map((e) => (
+                    <option key={e.id} value={e.id}>{locale === "ar" ? e.titleAr : e.titleEn}</option>
                   ))}
                 </select>
               </label>

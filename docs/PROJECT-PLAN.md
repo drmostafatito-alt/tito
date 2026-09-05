@@ -3,7 +3,7 @@
 > Single source of truth for **scope, phases, and process**.
 > Architecture details live in `ARCHITECTURE.md`. Decision rationale lives in `DECISIONS.md`.
 
-**Status: Phases 0–4 delivered (2026-09-05). Phase 3 = CMS / Page Builder (owner-inserted; see ADR-018 for the renumbering of the original plan); Phase 4 = student experience (progress, resume, catalog hierarchy, profile). Next: Phase 5 (assessment engine) — awaits owner go-ahead.**
+**Status: Phases 0–5 delivered (2026-09-05). Phase 3 = CMS / Page Builder (owner-inserted; see ADR-018 for the renumbering of the original plan); Phase 4 = student experience (progress, resume, catalog hierarchy, profile); Phase 5 = assessment engine (question bank, exam builder, attempt engine, auto-grading, results/review — ADR-022). Next: Phase 6 (commerce) — awaits owner go-ahead.**
 
 ---
 

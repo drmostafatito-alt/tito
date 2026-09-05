@@ -89,6 +89,14 @@ type Pages = {
   "/beacons/progress": {
     params: {};
   };
+  "/api/exam-attempt": {
+    params: {};
+  };
+  "/exams/:slug/attempt": {
+    params: {
+      "slug": string;
+    };
+  };
   "/api/mock-stream/:videoId/:file": {
     params: {
       "videoId": string;
@@ -100,6 +108,22 @@ type Pages = {
   };
   "/profile": {
     params: {};
+  };
+  "/exams": {
+    params: {};
+  };
+  "/exams/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
+  "/results": {
+    params: {};
+  };
+  "/results/:attemptId": {
+    params: {
+      "attemptId": string;
+    };
   };
   "/profile/security": {
     params: {};
@@ -147,12 +171,25 @@ type Pages = {
   "/admin/entitlements": {
     params: {};
   };
+  "/admin/assessment": {
+    params: {};
+  };
+  "/admin/assessment/questions/:id": {
+    params: {
+      "id": string;
+    };
+  };
+  "/admin/assessment/exams/:id": {
+    params: {
+      "id": string;
+    };
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/profile/security" | "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements";
+    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/api/exam-attempt" | "/exams/:slug/attempt" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/exams" | "/exams/:slug" | "/results" | "/results/:attemptId" | "/profile/security" | "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/assessment" | "/admin/assessment/questions/:id" | "/admin/assessment/exams/:id";
   };
   "routes/public/layout.tsx": {
     id: "public";
@@ -238,13 +275,21 @@ type RouteFiles = {
     id: "routes/beacons.progress";
     page: "/beacons/progress";
   };
+  "routes/api.exam-attempt.tsx": {
+    id: "routes/api.exam-attempt";
+    page: "/api/exam-attempt";
+  };
+  "routes/student/exams.$slug.attempt.tsx": {
+    id: "routes/student/exams.$slug.attempt";
+    page: "/exams/:slug/attempt";
+  };
   "routes/api.mock-stream.$videoId.$file.tsx": {
     id: "routes/api.mock-stream.$videoId.$file";
     page: "/api/mock-stream/:videoId/:file";
   };
   "routes/student/layout.tsx": {
     id: "student";
-    page: "/dashboard" | "/profile" | "/profile/security";
+    page: "/dashboard" | "/profile" | "/exams" | "/exams/:slug" | "/results" | "/results/:attemptId" | "/profile/security";
   };
   "routes/student/dashboard.tsx": {
     id: "routes/student/dashboard";
@@ -254,13 +299,29 @@ type RouteFiles = {
     id: "routes/student/profile";
     page: "/profile";
   };
+  "routes/student/exams.tsx": {
+    id: "routes/student/exams";
+    page: "/exams";
+  };
+  "routes/student/exams.$slug.tsx": {
+    id: "routes/student/exams.$slug";
+    page: "/exams/:slug";
+  };
+  "routes/student/results.tsx": {
+    id: "routes/student/results";
+    page: "/results";
+  };
+  "routes/student/results.$attemptId.tsx": {
+    id: "routes/student/results.$attemptId";
+    page: "/results/:attemptId";
+  };
   "routes/student/security.tsx": {
     id: "routes/student/security";
     page: "/profile/security";
   };
   "routes/admin/layout.tsx": {
     id: "admin-root";
-    page: "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements";
+    page: "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/assessment" | "/admin/assessment/questions/:id" | "/admin/assessment/exams/:id";
   };
   "routes/admin/home.tsx": {
     id: "routes/admin/home";
@@ -310,6 +371,18 @@ type RouteFiles = {
     id: "routes/admin.entitlements";
     page: "/admin/entitlements";
   };
+  "routes/admin.assessment.tsx": {
+    id: "routes/admin.assessment";
+    page: "/admin/assessment";
+  };
+  "routes/admin.assessment.questions.$id.tsx": {
+    id: "routes/admin.assessment.questions.$id";
+    page: "/admin/assessment/questions/:id";
+  };
+  "routes/admin.assessment.exams.$id.tsx": {
+    id: "routes/admin.assessment.exams.$id";
+    page: "/admin/assessment/exams/:id";
+  };
 };
 
 type RouteModules = {
@@ -335,10 +408,16 @@ type RouteModules = {
   "routes/files.$id": typeof import("./app/routes/files.$id.tsx");
   "routes/api.playback.$videoId": typeof import("./app/routes/api.playback.$videoId.tsx");
   "routes/beacons.progress": typeof import("./app/routes/beacons.progress.tsx");
+  "routes/api.exam-attempt": typeof import("./app/routes/api.exam-attempt.tsx");
+  "routes/student/exams.$slug.attempt": typeof import("./app/routes/student/exams.$slug.attempt.tsx");
   "routes/api.mock-stream.$videoId.$file": typeof import("./app/routes/api.mock-stream.$videoId.$file.tsx");
   "student": typeof import("./app/routes/student/layout.tsx");
   "routes/student/dashboard": typeof import("./app/routes/student/dashboard.tsx");
   "routes/student/profile": typeof import("./app/routes/student/profile.tsx");
+  "routes/student/exams": typeof import("./app/routes/student/exams.tsx");
+  "routes/student/exams.$slug": typeof import("./app/routes/student/exams.$slug.tsx");
+  "routes/student/results": typeof import("./app/routes/student/results.tsx");
+  "routes/student/results.$attemptId": typeof import("./app/routes/student/results.$attemptId.tsx");
   "routes/student/security": typeof import("./app/routes/student/security.tsx");
   "admin-root": typeof import("./app/routes/admin/layout.tsx");
   "routes/admin/home": typeof import("./app/routes/admin/home.tsx");
@@ -353,4 +432,7 @@ type RouteModules = {
   "routes/admin.files": typeof import("./app/routes/admin.files.tsx");
   "routes/admin.videos": typeof import("./app/routes/admin.videos.tsx");
   "routes/admin.entitlements": typeof import("./app/routes/admin.entitlements.tsx");
+  "routes/admin.assessment": typeof import("./app/routes/admin.assessment.tsx");
+  "routes/admin.assessment.questions.$id": typeof import("./app/routes/admin.assessment.questions.$id.tsx");
+  "routes/admin.assessment.exams.$id": typeof import("./app/routes/admin.assessment.exams.$id.tsx");
 };

@@ -57,6 +57,13 @@ export const videoSettingsSchema = z.object({
 });
 export type VideoSettings = z.infer<typeof videoSettingsSchema>;
 
+/** Phase 5 — assessment engine knobs (FEATURE-SPEC §6 attempt rules). */
+export const assessmentSettingsSchema = z.object({
+  /** Grace window (seconds) after the server deadline that absorbs network loss on submit (FEATURE-SPEC §6, default 30). */
+  graceSeconds: z.number().int().min(0).max(600).default(30),
+});
+export type AssessmentSettings = z.infer<typeof assessmentSettingsSchema>;
+
 /** Phase 3 — site identity & branding (owner brief §BRANDING). File ids reference the files table (public visibility). */
 const fileIdOrEmpty = z.string().max(36).refine((s) => s === "" || /^[0-9a-f-]{36}$/i.test(s), "file id must be a uuid").default("");
 const httpsOrEmpty = z.string().max(500).refine((s) => s === "" || /^https:\/\/[^\s]+$/i.test(s), "must be an https URL").default("");
@@ -171,6 +178,7 @@ export const settingsGroupSchemas = {
   theme: themeSettingsSchema,
   presentation: presentationSettingsSchema,
   dashboard: dashboardSettingsSchema,
+  assessment: assessmentSettingsSchema,
 } as const;
 
 export type SettingsGroupName = keyof typeof settingsGroupSchemas;
@@ -190,4 +198,5 @@ export const ADMIN_ONLY_GROUPS: SettingsGroupName[] = [
   "theme",
   "presentation",
   "dashboard",
+  "assessment",
 ];

@@ -61,6 +61,7 @@ export function SubmitButton({
   children,
   name,
   value,
+  disabled = false,
 }: {
   variant?: Variant;
   size?: Size;
@@ -68,6 +69,7 @@ export function SubmitButton({
   children: React.ReactNode;
   name?: string;
   value?: string;
+  disabled?: boolean;
 }) {
   const navigation = useNavigation();
   const submitting =
@@ -81,7 +83,7 @@ export function SubmitButton({
       name={name}
       value={value}
       className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
-      disabled={submitting}
+      disabled={submitting || disabled}
       aria-busy={submitting || undefined}
     >
       {submitting && <Spinner className="h-4 w-4" />}

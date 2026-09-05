@@ -176,7 +176,7 @@ questions        id PK · type TEXT(mcq|true_false|multi_select|essay) · stem_a
                  · subject_id FK NULL · course_id FK NULL · unit_id FK NULL · lesson_id FK NULL
                  · status TEXT(draft|in_review|published|archived) · created_by FK · reviewed_by FK NULL
                  · created_at · updated_at · deleted_at NULL
-                 idx(status,type,subject), (lesson_id), FTS5 shadow table for stem search
+                 idx(status,type,subject), (lesson_id)   (FTS5 shadow table DEFERRED — admin search uses LIKE; ADR-022)
 question_choices id PK · question_id FK · content_ar/en · is_correct INTEGER(0/1) · sort_order · feedback NULL
 tags             id PK · slug UNIQUE · label_ar/en
 question_tags    (question_id, tag_id) composite PK

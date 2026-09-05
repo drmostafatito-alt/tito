@@ -782,6 +782,120 @@ const run = async () => {
   await student.post("/profile", { form: { fullName: "طالب تجريبي", phone: "", localePref: "ar" } });
 
   // ------------------------------------------------------------------
+  console.log("\n[15] Phase 5 assessment journey: exam discovery → start → autosave → refresh → submit → grade → results → locked");
+  const EXAM_SLUG = "electrostatics-check";
+
+  // discovery + authorization gates
+  const anonExams = await anon.get("/exams");
+  check("anon GET /exams → redirect to login", anonExams.status === 302 && (anonExams.location ?? "").startsWith("/login"), `${anonExams.status} ${anonExams.location}`);
+  const examsList = await student.get("/exams");
+  check("student GET /exams → 200 + seeded exam listed", examsList.status === 200 && examsList.text.includes(`/exams/${EXAM_SLUG}`), `got ${examsList.status}`);
+  const s14Intro = await s14.get(`/exams/${EXAM_SLUG}`);
+  check("UNENTITLED student → exam intro 403 (server-side entitlement)", s14Intro.status === 403, `got ${s14Intro.status}`);
+  const studentAssessmentAdmin = await student.get("/admin/assessment");
+  check("student GET /admin/assessment → forbidden redirect (RBAC)", studentAssessmentAdmin.status === 302 && (studentAssessmentAdmin.location ?? "").includes("error=forbidden"), `${studentAssessmentAdmin.status}`);
+
+  // lesson integration: the exam item on lesson 2 links the real exam
+  const lessonWithExam = await student.get("/learn/physics-3s-full/coulomb-law");
+  check("lesson page renders the real exam link (Phase-4 placeholder replaced)", lessonWithExam.status === 200 && lessonWithExam.text.includes(`/exams/${EXAM_SLUG}`), `got ${lessonWithExam.status}`);
+
+  // intro page: policy summary + start
+  const intro = await student.get(`/exams/${EXAM_SLUG}`);
+  const introHtml = norm(intro.text);
+  check("exam intro → 200 + start button + duration policy", intro.status === 200 && introHtml.includes("ابدأ الامتحان") && introHtml.includes("المدة: 10 دقيقة"), `got ${intro.status}`);
+  const startRes = await student.post(`/exams/${EXAM_SLUG}`, { form: { _action: "start" } });
+  check("POST start → 302 to the attempt page", startRes.status === 302 && startRes.location === `/exams/${EXAM_SLUG}/attempt`, `${startRes.status} ${startRes.location ?? ""}`);
+
+  // attempt page: server-driven countdown, sanitized payload, data hooks
+  const attemptPage = await student.get(`/exams/${EXAM_SLUG}/attempt`);
+  const attemptId = (attemptPage.text.match(/data-attempt-id="([0-9a-f-]{36})"/) ?? [])[1] ?? null;
+  const questionId = (attemptPage.text.match(/data-question-id="([0-9a-f-]{36})"/) ?? [])[1] ?? null;
+  const choiceIds = [...attemptPage.text.matchAll(/data-choice-id="([0-9a-f-]{36})"/g)].map((m) => m[1]);
+  check("attempt page → 200 with attempt/question/choice hooks", attemptPage.status === 200 && Boolean(attemptId) && Boolean(questionId) && choiceIds.length >= 2, `got ${attemptPage.status} hooks=${Boolean(attemptId)}/${Boolean(questionId)}/${choiceIds.length}`);
+  check("attempt page shows a server-computed countdown (~10 min)", /(10:00|09:[0-5][0-9])/.test(attemptPage.text), "countdown missing");
+  check("attempt payload is sanitized (no isCorrect / explanation / feedback)", !attemptPage.text.includes("isCorrect") && !attemptPage.text.includes("explanation") && !attemptPage.text.includes("feedback"), "answer-key material found in attempt HTML");
+  check("attempt page renders the seeded question stem", norm(attemptPage.text).includes("قوة كولوم تتناسب"), "stem missing");
+
+  if (attemptId && questionId && choiceIds.length >= 2) {
+    // autosave (server-side truth) + duplicate-retry safety
+    const save1 = await student.post("/api/exam-attempt", { form: { _action: "save", attemptId, questionId, choiceIds: choiceIds[0] } });
+    let save1Json = {};
+    try { save1Json = JSON.parse(save1.text); } catch { /* asserted below */ }
+    check("autosave POST → {ok, version:1}", save1.status === 200 && save1Json.ok === true && save1Json.version === 1, `got ${save1.status} ${save1.text.slice(0, 80)}`);
+    const save2 = await student.post("/api/exam-attempt", { form: { _action: "save", attemptId, questionId, choiceIds: choiceIds[0] } });
+    let save2Json = {};
+    try { save2Json = JSON.parse(save2.text); } catch { /* asserted below */ }
+    check("duplicate save (retry) → version:2, no duplicate row", save2.status === 200 && save2Json.ok === true && save2Json.version === 2, `got ${save2.status}`);
+
+    // "refresh" → server restores the saved answer
+    const refreshed = await student.get(`/exams/${EXAM_SLUG}/attempt`);
+    check("refresh → saved answer restored from the server", refreshed.status === 200 && refreshed.text.includes(choiceIds[0]), "saved choice id missing after refresh");
+
+    // IDOR: grant s14 entitlement, then prove cross-student isolation by ownership (404)
+    const adminContent = await admin.get("/admin/content");
+    const subjId = extractNodeIdNear(adminContent.text, "subject", "physics-3s");
+    check("admin content tree exposes the subject id", Boolean(subjId), "subject id not found");
+    if (subjId) {
+      const grantRes = await admin.post("/admin/entitlements", { form: { _action: "grant", email: s14Email, resourceType: "subject", resourceId: subjId, days: "30", note: "smoke §15 IDOR" } });
+      check("admin grants s14 the subject (setup for IDOR check)", grantRes.status === 200, `got ${grantRes.status}`);
+      const bResult = await s14.get(`/results/${attemptId}`);
+      check("ENTITLED student B → student A's attempt result = 404 (ownership, not entitlement)", bResult.status === 404, `got ${bResult.status}`);
+      const bSave = await s14.post("/api/exam-attempt", { form: { _action: "save", attemptId, questionId, choiceIds: choiceIds[1] } });
+      check("student B save on student A's attempt → 404 JSON", bSave.status === 404, `got ${bSave.status}`);
+    }
+    const randomResult = await student.get(`/results/${crypto.randomUUID()}`);
+    check("unknown attempt id → 404", randomResult.status === 404, `got ${randomResult.status}`);
+
+    // submit → server grading → results
+    const submit1 = await student.post("/api/exam-attempt", { form: { _action: "submit", attemptId } });
+    let submit1Json = {};
+    try { submit1Json = JSON.parse(submit1.text); } catch { /* asserted below */ }
+    check("submit → {ok, redirect:/results/:id}", submit1.status === 200 && submit1Json.ok === true && submit1Json.redirect === `/results/${attemptId}`, `got ${submit1.status} ${submit1.text.slice(0, 80)}`);
+
+    const submit2 = await student.post("/api/exam-attempt", { form: { _action: "submit", attemptId } });
+    let submit2Json = {};
+    try { submit2Json = JSON.parse(submit2.text); } catch { /* asserted below */ }
+    check("DOUBLE submit → same stored result (idempotent, no second grading)", submit2.status === 200 && submit2Json.ok === true && submit2Json.redirect === `/results/${attemptId}`, `got ${submit2.status}`);
+
+    const resultPage = await student.get(`/results/${attemptId}`);
+    const resultHtml = norm(resultPage.text);
+    check("results page → 200 + score 2/3 + 66.7% + passed badge", resultPage.status === 200 && resultHtml.includes("66.7%") && resultHtml.includes("ناجح"), `got ${resultPage.status}`);
+    check("results page shows the review (show_answers policy on)", resultHtml.includes("مراجعة الإجابات"), "review missing");
+
+    const saveAfter = await student.post("/api/exam-attempt", { form: { _action: "save", attemptId, questionId, choiceIds: choiceIds[1] } });
+    let saveAfterJson = {};
+    try { saveAfterJson = JSON.parse(saveAfter.text); } catch { /* asserted below */ }
+    check("save after submit → rejected {error:'closed'} (attempt immutable)", saveAfter.status === 200 && saveAfterJson.error === "closed", `got ${saveAfter.status} ${saveAfter.text.slice(0, 80)}`);
+
+    const attemptAfter = await student.get(`/exams/${EXAM_SLUG}/attempt`);
+    check("attempt page after submit → 302 back to intro (attempt not reusable)", attemptAfter.status === 302 && attemptAfter.location === `/exams/${EXAM_SLUG}`, `${attemptAfter.status} ${attemptAfter.location ?? ""}`);
+
+    const introAfter = await student.get(`/exams/${EXAM_SLUG}`);
+    const introAfterHtml = norm(introAfter.text);
+    check("intro shows graded attempt history (محاولة + مُصححة)", introAfterHtml.includes("محاولة 1") && introAfterHtml.includes("مُصححة"), "history missing");
+
+    // consume attempt 2 so re-runs never leave a live attempt behind
+    const start2 = await student.post(`/exams/${EXAM_SLUG}`, { form: { _action: "start" } });
+    check("second attempt allowed (attempts.max=30 seed) → 302", start2.status === 302 && start2.location === `/exams/${EXAM_SLUG}/attempt`, `${start2.status}`);
+    const attempt2Page = await student.get(`/exams/${EXAM_SLUG}/attempt`);
+    const attempt2Id = (attempt2Page.text.match(/data-attempt-id="([0-9a-f-]{36})"/) ?? [])[1] ?? null;
+    check("attempt 2 has a NEW attempt id", Boolean(attempt2Id) && attempt2Id !== attemptId, "attempt id reuse detected");
+    if (attempt2Id) {
+      await student.post("/api/exam-attempt", { form: { _action: "submit", attemptId: attempt2Id } });
+    }
+  } else {
+    check("section 15 prerequisites (attempt hooks present)", false, "skipped — missing ids");
+  }
+
+  // results index + admin assessment surfaces
+  const resultsIndex = await student.get("/results");
+  check("GET /results → 200 + lists the exam attempt", resultsIndex.status === 200 && norm(resultsIndex.text).includes("قياس: الكهرباء الساكنة"), `got ${resultsIndex.status}`);
+  const adminAssessment = await admin.get("/admin/assessment");
+  check("admin assessment hub → 200 + question bank row", adminAssessment.status === 200 && norm(adminAssessment.text).includes("قوة كولوم تتناسب"), `got ${adminAssessment.status}`);
+  const adminExamsTab = await admin.get("/admin/assessment?tab=exams");
+  check("admin exams tab → 200 + seeded exam + attempts counter", adminExamsTab.status === 200 && norm(adminExamsTab.text).includes("قياس: الكهرباء الساكنة"), `got ${adminExamsTab.status}`);
+
+  // ------------------------------------------------------------------
   console.log("\n[13] Rate limiting (runs LAST by design — burns the 1-min login window)");
   const rlClient = makeClient("ratelimit");
   let blocked = false;

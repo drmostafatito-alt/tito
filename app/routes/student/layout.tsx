@@ -78,6 +78,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
     { to: "/dashboard", label: t(locale, "common.dashboard") },
     { to: "/courses", label: t(locale, "content.catalogTitle") },
     { to: "/programs", label: t(locale, "catalog.programs") },
+    { to: "/exams", label: t(locale, "exam.listTitle") },
     { to: "/profile", label: t(locale, "profile.title") },
     { to: "/profile/security", label: t(locale, "dashboard.securityLink") },
   ];

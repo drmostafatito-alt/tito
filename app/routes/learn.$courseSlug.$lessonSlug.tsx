@@ -17,6 +17,7 @@ import {
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { courseProgress, lessonProgressMap, setLessonCompleted, videoProgressMap } from "~server/progress/service.server";
 import { getSettings } from "~server/settings/service.server";
+import { getExam } from "~server/assessment/service.server";
 import { signFileUrl } from "~server/files/storage.server";
 import { VideoPlayer } from "~/components/player/VideoPlayer";
 import { Badge } from "~/components/ui/Badge";
@@ -62,6 +63,12 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 
   const videoRows = await videosByIds(db, items.filter((i) => i.itemType === "video" && i.videoId).map((i) => i.videoId!));
   const fileRows = await filesByIds(db, items.filter((i) => i.itemType === "file" && i.fileId).map((i) => i.fileId!));
+  // Phase 5: exam items resolve to their Assessment-domain exam (CMS only links)
+  const examMap = new Map<string, { slug: string; titleAr: string; titleEn: string; status: string }>();
+  for (const eid of new Set(items.filter((i) => i.itemType === "exam" && i.examId).map((i) => i.examId!))) {
+    const e = await getExam(db, eid);
+    if (e) examMap.set(eid, { slug: e.slug, titleAr: e.titleAr, titleEn: e.titleEn, status: e.status });
+  }
 
   const renderedItems = await Promise.all(
     items.map(async (item) => {
@@ -98,7 +105,17 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
           downloadUrl,
         };
       }
-      return { key: item.id, kind: "exam" as const, required: item.required, examId: item.examId };
+      const e = item.examId ? examMap.get(item.examId) : null;
+      return {
+        key: item.id,
+        kind: "exam" as const,
+        required: item.required,
+        examId: item.examId,
+        slug: e?.slug ?? null,
+        titleAr: e?.titleAr ?? null,
+        titleEn: e?.titleEn ?? null,
+        status: e?.status ?? null,
+      };
     })
   );
 
@@ -257,6 +274,26 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                         </a>
                       )}
                     </div>
+                  </CardBody>
+                </Card>
+              );
+            }
+            if (item.status === "published" && item.slug) {
+              return (
+                <Card key={item.key}>
+                  <CardBody className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium">📝 {locale === "ar" ? item.titleAr : item.titleEn}</p>
+                      <p className="text-xs text-slate-400">
+                        {t(locale, "content.examItem")} · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
+                      </p>
+                    </div>
+                    <Link
+                      to={`/exams/${item.slug}`}
+                      className="min-h-11 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 sm:min-h-0 sm:py-2"
+                    >
+                      {t(locale, "exam.start")}
+                    </Link>
                   </CardBody>
                 </Card>
               );

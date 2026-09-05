@@ -23,10 +23,16 @@ export default [
   route("files/:id", "routes/files.$id.tsx"),
   route("api/playback/:videoId", "routes/api.playback.$videoId.tsx"),
   route("beacons/progress", "routes/beacons.progress.tsx"),
+  route("api/exam-attempt", "routes/api.exam-attempt.tsx"),
+  route("exams/:slug/attempt", "routes/student/exams.$slug.attempt.tsx"),
   route("api/mock-stream/:videoId/:file", "routes/api.mock-stream.$videoId.$file.tsx"),
   layout("routes/student/layout.tsx", { id: "student" }, [
     route("dashboard", "routes/student/dashboard.tsx"),
     route("profile", "routes/student/profile.tsx"),
+    route("exams", "routes/student/exams.tsx"),
+    route("exams/:slug", "routes/student/exams.$slug.tsx"),
+    route("results", "routes/student/results.tsx"),
+    route("results/:attemptId", "routes/student/results.$attemptId.tsx"),
     route("profile/security", "routes/student/security.tsx"),
   ]),
   route("admin", "routes/admin/layout.tsx", { id: "admin-root" }, [
@@ -42,5 +48,8 @@ export default [
     route("files", "routes/admin.files.tsx"),
     route("videos", "routes/admin.videos.tsx"),
     route("entitlements", "routes/admin.entitlements.tsx"),
+    route("assessment", "routes/admin.assessment.tsx"),
+    route("assessment/questions/:id", "routes/admin.assessment.questions.$id.tsx"),
+    route("assessment/exams/:id", "routes/admin.assessment.exams.$id.tsx"),
   ]),
 ] satisfies RouteConfig;

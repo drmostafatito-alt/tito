@@ -170,3 +170,73 @@ system (ADR-012) already exist; progress must not weaken any of them.
 prior behavior); no changes to the provider abstraction, signed-URL discipline, or
 CMS. Beacons are a resource route outside the document shell (no CSRF token needed —
 session cookie + same-origin middleware still apply).
+
+## ADR-022 Assessment engine (Phase 5)
+
+**Context.** Phase 5 adds the question bank, exam builder, attempt engine,
+auto-grading and results. Reserved structures from earlier phases had to be
+used, not duplicated: the lesson-page exam item slot (P2/P3), the
+`exam_start`/`exam_submit` event types (P4 schema), the beacon/idempotency
+discipline (P4 resource routes), and the entitlement resolver (ADR-009).
+Essay grading is explicitly deferred by the owner brief; the schema must not
+block it.
+
+**Decisions.**
+1. **Domain separation.** Exam DATA lives in the Assessment domain
+   (`server/assessment/*`, 8 tables). The CMS/content system only LINKS an
+   exam via `lesson_items.exam_id`; the lesson page renders the card from the
+   Assessment service. No exam fields were added to content tables.
+2. **Answer-key containment.** `attemptContext` is the ONLY live-attempt
+   serializer and is sanitized by construction (id/type/stems/points/choices
+   with content only). Correctness flags, feedback and explanations exist
+   server-side until submission, then reappear only through
+   `attemptSummary`/`attemptReview` under the `results.*` policy. Review is
+   additionally gated by summary visibility: a hidden result (show=manual /
+   before window end) leaks NOTHING per-question either.
+3. **Server-authoritative timing.** `started_at`/`deadline_at` are computed
+   from the server clock at start; the client renders a countdown from
+   `remainingSeconds` only. Submission/expiry compare against the server clock
+   with `settings.assessment.graceSeconds`; past deadline+grace the attempt is
+   AUTO-SUBMITTED with the answered-so-far set (FEATURE-SPEC §6). No client
+   timestamp is ever read. Expiry runs as sweep-on-touch (loader/action
+   entry) — Workers have no cron in this deployment.
+4. **Frozen attempt sets.** `startAttempt` materializes questionOrder +
+   per-question points into `exam_attempts.metadata`. Grading/review use ONLY
+   the frozen data — bank edits mid-attempt cannot change an in-flight exam.
+   Randomization is seeded (`random_seed`, mulberry32, per-question choice
+   seed) so the student's own order is reproducible in review.
+5. **Exactly-once submission.** `submitAttempt` claims the attempt with a
+   conditional UPDATE (`status IN (in_progress,grading) → grading`) and checks
+   D1's `meta.changes`; only the claimer grades and emits `exam_submit`.
+   Replays return the stored result. `exam_start` is emitted once at
+   materialization; the partial-unique live-attempt index turns duplicate
+   starts (race) into resumes.
+6. **Mutations via a resource route.** Save/submit go to
+   `POST /api/exam-attempt` (no component) — the P4 beacon discipline: plain
+   `fetch` and `sendBeacon` (which cannot set RR single-fetch headers) receive
+   the JSON verdict verbatim, and a pagehide beacon works as the last-resort
+   autosave flush. UI-route actions are for RR `<Form>` flows only (start).
+7. **Grading abstraction.** Auto-grading is a pure function over frozen
+   metadata + stored answers (mcq/true_false exact; multi_select partial
+   credit `points × max(0, hits−misses)/totalCorrect`, 2dp, toggleable).
+   `grading_status` (auto|needs_manual|complete), `text_answer`, `graded_by`
+   and `essay_points` are reserved so manual essay grading slots in WITHOUT
+   touching the attempt engine; essay questions are creatable in the bank but
+   NOT attachable to exams in P5 (fail-closed validation).
+8. **Completion semantics.** A required exam item completes its lesson when an
+   attempt is GRADED (submitted) — pass/fail is scoring, not completion;
+   opening an attempt never completes anything (ADR-021 §4 rule extended in
+   `maybeAutoCompleteLesson`).
+9. **Availability windows are entered in UTC** in the admin builder
+   (datetime-local parsed as UTC, labeled as such) — the server has no single
+   admin timezone; window governs START only, deadline governs submit.
+10. **Non-destructive lifecycle.** Exams: draft→published→archived
+    (unarchive→draft); archiving/unpublishing never touches attempts.
+    Questions: soft delete, refused while attached. Exam question-set edits
+    are draft-only. `manual_extra_allowed` is stored per contract but NOT
+    enforced in P5 (documented limitation).
+
+**Consequences.** Attempt rows are self-contained grading inputs (audit +
+regrade-safe). FTS5 question search is deferred (LIKE on stems is adequate at
+bank sizes; indexed composite covers admin filters). The readiness gate now
+also detects seeded demo exams/questions/tags.

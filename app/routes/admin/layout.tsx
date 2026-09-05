@@ -25,6 +25,7 @@ export default function AdminLayout() {
     { to: "/admin/files", label: t(locale, "admin.navFiles") },
     { to: "/admin/videos", label: t(locale, "admin.navVideos") },
     { to: "/admin/entitlements", label: t(locale, "admin.navEntitlements") },
+    { to: "/admin/assessment", label: t(locale, "assessment.nav") },
     { to: "/dashboard", label: t(locale, "common.dashboard") },
   ];
 

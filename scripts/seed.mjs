@@ -248,6 +248,77 @@ if (!existingPdfItem) {
   ]);
 }
 
+// ---------------------------------------------------------------------------
+// Phase 5 demo assessment (idempotent: exam keyed by slug, questions by stem_en)
+// ---------------------------------------------------------------------------
+const examConfig = {
+  duration_minutes: 10,
+  availability: { starts_at: null, ends_at: null },
+  selection: { mode: "manual", pools: [], max_questions: null, randomize_questions: false, randomize_choices: false },
+  attempts: { max: 30, cooldown_minutes: 0, manual_extra_allowed: false },
+  scoring: { pass_percent: 50, partial_credit_multiselect: true, essay_points: 0 },
+  results: { show: "immediate", show_answers: true, show_explanations: true, review_mode: true },
+};
+
+async function ensureQuestion(stemEn, cols, choices) {
+  const found = await DB.prepare("SELECT id FROM questions WHERE stem_en = ? AND deleted_at IS NULL").bind(stemEn).first();
+  if (found) return found.id;
+  const id = crypto.randomUUID();
+  await exec(
+    `INSERT INTO questions (id, type, stem_ar, stem_en, explanation_ar, explanation_en, difficulty, points_default, subject_id, course_id, unit_id, lesson_id, status, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'published', ?, ?)`,
+    [id, cols.type, cols.stemAr, stemEn, cols.explanationAr ?? null, cols.explanationEn ?? null, cols.difficulty ?? "medium", cols.points, subjectId, courseId, unitId, cols.lessonId ?? null, now, now]
+  );
+  for (let i = 0; i < choices.length; i++) {
+    await exec(
+      `INSERT INTO question_choices (id, question_id, content_ar, content_en, is_correct, sort_order, feedback) VALUES (?,?,?,?,?,?,?)`,
+      [crypto.randomUUID(), id, choices[i].ar, choices[i].en, choices[i].correct ? 1 : 0, i, null]
+    );
+  }
+  return id;
+}
+
+const q1Id = await ensureQuestion("Coulomb force is proportional to…", {
+  type: "mcq", stemAr: "قوة كولوم تتناسب طرديًا مع…", points: 2, lessonId: lesson2Id,
+  explanationAr: "قانون كولوم: القوة تتناسب مع حاصل ضرب الشحنتين وعكس مربع المسافة.",
+  explanationEn: "Coulomb's law: force is proportional to the product of charges over distance squared.",
+}, [
+  { ar: "حاصل ضرب الشحنتين", en: "the product of the two charges", correct: true },
+  { ar: "مجموع الشحنتين", en: "the sum of the two charges", correct: false },
+  { ar: "المسافة بين الشحنتين", en: "the distance between charges", correct: false },
+]);
+const q2Id = await ensureQuestion("The unit of electric charge is the coulomb.", {
+  type: "true_false", stemAr: "وحدة قياس الشحنة الكهربائية هي الكولوم.", points: 1, lessonId: lesson2Id,
+  explanationAr: "نعم — الكولوم هو وحدة الشحنة في النظام الدولي.",
+  explanationEn: "True — the coulomb is the SI unit of charge.",
+}, [
+  { ar: "صواب", en: "True", correct: true },
+  { ar: "خطأ", en: "False", correct: false },
+]);
+
+const existingExam = await DB.prepare("SELECT id FROM exams WHERE slug = ?").bind("electrostatics-check").first();
+let demoExamId;
+if (!existingExam) {
+  demoExamId = crypto.randomUUID();
+  await exec(
+    `INSERT INTO exams (id, slug, title_ar, title_en, description_ar, description_en, course_id, lesson_id, config, status, created_at, updated_at)
+     VALUES (?, 'electrostatics-check', ?, ?, ?, ?, NULL, ?, ?, 'published', ?, ?)`,
+    [demoExamId, "قياس: الكهرباء الساكنة", "Check: Electrostatics", "اختبار قصير بعد درس قانون كولوم.", "A short check after the Coulomb's law lesson.", lesson2Id, JSON.stringify(examConfig), now, now]
+  );
+  await exec(`INSERT INTO exam_questions (exam_id, question_id, sort_order, points) VALUES (?,?,?,?)`, [demoExamId, q1Id, 0, 2]);
+  await exec(`INSERT INTO exam_questions (exam_id, question_id, sort_order, points) VALUES (?,?,?,?)`, [demoExamId, q2Id, 1, 1]);
+} else {
+  demoExamId = existingExam.id;
+}
+
+// lesson item: REQUIRED exam on lesson 2 (graded submission completes the lesson)
+const existingExamItem = await DB.prepare("SELECT id FROM lesson_items WHERE lesson_id = ? AND exam_id = ?").bind(lesson2Id, demoExamId).first();
+if (!existingExamItem) {
+  await exec(`INSERT INTO lesson_items (id, lesson_id, item_type, exam_id, sort_order, required, created_at) VALUES (?,?,?,?,?,?,?)`, [
+    crypto.randomUUID(), lesson2Id, "exam", demoExamId, 1, 1, now,
+  ]);
+}
+
 // demo entitlement: student → subject (covers both courses' entitled content)
 const studentRow = await DB.prepare("SELECT id FROM users WHERE email = ?").bind(studentEmail).first();
 const existingGrant = await DB.prepare(
@@ -265,5 +336,6 @@ console.log("Seed complete.");
 console.log(`  super admin : ${adminEmail} / ${adminPassword}`);
 console.log(`  demo student: student@educore.local / Student#12345`);
 console.log(`  demo course : /courses/physics-3s-full (lesson 1 free preview, lesson 2 entitled)`);
+console.log(`  demo exam   : /exams/electrostatics-check (lesson 2, required exam item)`);
 
 await proxy.dispose();

@@ -97,7 +97,15 @@ const cmsSmoke = await count(
   `SELECT COUNT(*) n FROM menu_items WHERE href LIKE '%smoke-%' OR label_en LIKE 'Smoke%'`
 );
 badContent += cmsSmoke;
-check("no seed/smoke content rows (incl. CMS pages/forms/menus)", badContent === 0, `${badContent} found`);
+// Phase 5: seeded demo exam + question bank rows must never reach production
+badContent += await count(
+  `SELECT COUNT(*) n FROM exams WHERE slug = 'electrostatics-check' OR slug LIKE 'smoke-%' OR title_en LIKE 'Smoke %'`
+) + await count(
+  `SELECT COUNT(*) n FROM questions WHERE stem_en IN ('Coulomb force is proportional to…', 'The unit of electric charge is the coulomb.') OR stem_en LIKE 'Smoke %'`
+) + await count(
+  `SELECT COUNT(*) n FROM tags WHERE slug LIKE 'smoke-%'`
+);
+check("no seed/smoke content rows (incl. CMS + assessment)", badContent === 0, `${badContent} found`);
 
 // 3) mock video provider / mock-data references in settings
 const video = await settingsValue("video");
@@ -134,7 +142,7 @@ check("all migrations applied", migrations >= expectedMigrations, `${migrations}
 
 // 9) CMS permission grants seeded for admin role
 const perms = await count(`SELECT COUNT(*) n FROM role_permissions WHERE role_id = 'admin'`);
-check("admin CMS permissions seeded", perms >= 9, `${perms}/9`);
+check("admin CMS + assessment permissions seeded", perms >= 15, `${perms}/15`);
 
 // 10) administrable: at least one active super_admin
 const supers = await count(
