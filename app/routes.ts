@@ -3,6 +3,7 @@ import { type RouteConfig, index, layout, route } from "@react-router/dev/routes
 export default [
   layout("routes/public/layout.tsx", { id: "public" }, [
     index("routes/public/home.tsx"),
+    route("p/:slug", "routes/p.$slug.tsx"),
     route("courses", "routes/public.courses.tsx"),
     route("courses/:slug", "routes/public.courses.$slug.tsx"),
     route("courses/:slug/units/:unitId", "routes/public.courses.$slug.units.$unitId.tsx"),
@@ -13,6 +14,8 @@ export default [
     route("set-locale", "routes/public/set-locale.tsx"),
   ]),
   route("logout", "routes/logout.tsx"),
+  route("theme.css", "routes/theme[.]css.tsx"),
+  route("favicon.ico", "routes/favicon[.]ico.tsx"),
   route("learn/:courseSlug/:lessonSlug", "routes/learn.$courseSlug.$lessonSlug.tsx"),
   route("files/:id", "routes/files.$id.tsx"),
   route("api/playback/:videoId", "routes/api.playback.$videoId.tsx"),

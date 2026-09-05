@@ -53,12 +53,120 @@ export const videoSettingsSchema = z.object({
 });
 export type VideoSettings = z.infer<typeof videoSettingsSchema>;
 
+/** Phase 3 — site identity & branding (owner brief §BRANDING). File ids reference the files table (public visibility). */
+const fileIdOrEmpty = z.string().max(36).refine((s) => s === "" || /^[0-9a-f-]{36}$/i.test(s), "file id must be a uuid").default("");
+const httpsOrEmpty = z.string().max(500).refine((s) => s === "" || /^https:\/\/[^\s]+$/i.test(s), "must be an https URL").default("");
+
+export const identitySettingsSchema = z.object({
+  shortNameAr: z.string().max(40).default(""),
+  shortNameEn: z.string().max(40).default(""),
+  ownerNameAr: z.string().max(120).default(""),
+  ownerNameEn: z.string().max(120).default(""),
+  ownerTitleAr: z.string().max(120).default(""),
+  ownerTitleEn: z.string().max(120).default(""),
+  ownerPhotoFileId: fileIdOrEmpty,
+  logoFileId: fileIdOrEmpty,
+  faviconFileId: fileIdOrEmpty,
+  heroImageFileId: fileIdOrEmpty,
+  aboutImageFileId: fileIdOrEmpty,
+  contactPhone: z.string().max(32).default(""),
+  contactEmail: z.string().max(200).refine((s) => s === "" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s), "invalid email").default(""),
+  contactAddressAr: z.string().max(300).default(""),
+  contactAddressEn: z.string().max(300).default(""),
+  telegram: httpsOrEmpty,
+  facebook: httpsOrEmpty,
+  youtube: httpsOrEmpty,
+  instagram: httpsOrEmpty,
+  tiktok: httpsOrEmpty,
+  twitter: httpsOrEmpty,
+  linkedin: httpsOrEmpty,
+  copyrightAr: z.string().max(200).default(""),
+  copyrightEn: z.string().max(200).default(""),
+});
+export type IdentitySettings = z.infer<typeof identitySettingsSchema>;
+
+/** Phase 3 — validated design tokens ONLY (no arbitrary CSS). Rendered to /theme.css. */
+const hex = (fallback: string) => z.string().regex(/^#[0-9a-fA-F]{6}$/, "must be #rrggbb").default(fallback);
+
+export const themeSettingsSchema = z.object({
+  primary: hex("#0d9488"),
+  secondary: hex("#0f766e"),
+  accent: hex("#f59e0b"),
+  background: hex("#ffffff"),
+  surface: hex("#f8fafc"),
+  text: hex("#0f172a"),
+  mutedText: hex("#64748b"),
+  border: hex("#e2e8f0"),
+  success: hex("#059669"),
+  warning: hex("#d97706"),
+  error: hex("#e11d48"),
+  radiusBase: z.number().int().min(0).max(32).default(8),
+  radiusButton: z.number().int().min(0).max(32).default(8),
+  radiusCard: z.number().int().min(0).max(32).default(14),
+  shadow: z.enum(["none", "sm", "md", "lg"]).default("sm"),
+  density: z.enum(["compact", "normal", "relaxed"]).default("normal"),
+  fontScale: z.enum(["compact", "normal", "large"]).default("normal"),
+});
+export type ThemeSettings = z.infer<typeof themeSettingsSchema>;
+
+/** Phase 3 — presentation config: HOW content data is displayed (data itself stays in content tables). */
+export const presentationSettingsSchema = z.object({
+  courseCard: z.object({
+    showImage: z.boolean().default(true),
+    showTeacher: z.boolean().default(true),
+    showLessonCount: z.boolean().default(true),
+    showSubject: z.boolean().default(true),
+    showBadge: z.boolean().default(true),
+    ctaLabelAr: z.string().max(60).default("عرض الكورس"),
+    ctaLabelEn: z.string().max(60).default("View course"),
+    layout: z.enum(["standard", "compact", "wide"]).default("standard"),
+  }).prefault({}),
+  subjectCard: z.object({
+    showImage: z.boolean().default(true),
+    showCourseCount: z.boolean().default(true),
+    ctaLabelAr: z.string().max(60).default("عرض المادة"),
+    ctaLabelEn: z.string().max(60).default("View subject"),
+  }).prefault({}),
+  lesson: z.object({
+    showDescription: z.boolean().default(true),
+    showAttachments: z.boolean().default(true),
+    showPrevNext: z.boolean().default(true),
+    showRelated: z.boolean().default(true),
+    video: z.object({
+      showPoster: z.boolean().default(true),
+      showTitle: z.boolean().default(true),
+      showDescription: z.boolean().default(true),
+      allowSpeed: z.boolean().default(true),
+      allowFullscreen: z.boolean().default(true),
+    }).prefault({}),
+  }).prefault({}),
+});
+export type PresentationSettings = z.infer<typeof presentationSettingsSchema>;
+
+/** Phase 3 — student dashboard module configuration (only IMPLEMENTED modules are offered). */
+export const dashboardSettingsSchema = z.object({
+  welcomeAr: z.string().max(300).default(""),
+  welcomeEn: z.string().max(300).default(""),
+  modules: z
+    .array(z.object({ id: z.enum(["my_courses", "quick_actions", "support"]), enabled: z.boolean().default(true) }))
+    .default([
+      { id: "my_courses", enabled: true },
+      { id: "quick_actions", enabled: true },
+      { id: "support", enabled: true },
+    ]),
+});
+export type DashboardSettings = z.infer<typeof dashboardSettingsSchema>;
+
 export const settingsGroupSchemas = {
   platform: platformSettingsSchema,
   locale: localeSettingsSchema,
   devices: deviceSettingsSchema,
   security: securitySettingsSchema,
   video: videoSettingsSchema,
+  identity: identitySettingsSchema,
+  theme: themeSettingsSchema,
+  presentation: presentationSettingsSchema,
+  dashboard: dashboardSettingsSchema,
 } as const;
 
 export type SettingsGroupName = keyof typeof settingsGroupSchemas;
@@ -74,4 +182,8 @@ export const ADMIN_ONLY_GROUPS: SettingsGroupName[] = [
   "devices",
   "security",
   "video",
+  "identity",
+  "theme",
+  "presentation",
+  "dashboard",
 ];

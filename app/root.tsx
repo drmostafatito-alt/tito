@@ -19,6 +19,8 @@ import "./app.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.ico", sizes: "any" },
+  // admin-controlled design tokens (validated; same-origin → CSP-safe)
+  { rel: "stylesheet", href: "/theme.css" },
 ];
 
 export async function loader({ context, request }: Route.LoaderArgs) {

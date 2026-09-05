@@ -14,6 +14,11 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/p/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
   "/courses": {
     params: {};
   };
@@ -44,6 +49,12 @@ type Pages = {
     params: {};
   };
   "/logout": {
+    params: {};
+  };
+  "/theme.css": {
+    params: {};
+  };
+  "/favicon.ico": {
     params: {};
   };
   "/learn/:courseSlug/:lessonSlug": {
@@ -100,15 +111,19 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale" | "/logout" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile/security" | "/admin" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements";
+    page: "/" | "/p/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile/security" | "/admin" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements";
   };
   "routes/public/layout.tsx": {
     id: "public";
-    page: "/" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale";
+    page: "/" | "/p/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale";
   };
   "routes/public/home.tsx": {
     id: "routes/public/home";
     page: "/";
+  };
+  "routes/p.$slug.tsx": {
+    id: "routes/p.$slug";
+    page: "/p/:slug";
   };
   "routes/public.courses.tsx": {
     id: "routes/public.courses";
@@ -145,6 +160,14 @@ type RouteFiles = {
   "routes/logout.tsx": {
     id: "routes/logout";
     page: "/logout";
+  };
+  "routes/theme[.]css.tsx": {
+    id: "routes/theme[.]css";
+    page: "/theme.css";
+  };
+  "routes/favicon[.]ico.tsx": {
+    id: "routes/favicon[.]ico";
+    page: "/favicon.ico";
   };
   "routes/learn.$courseSlug.$lessonSlug.tsx": {
     id: "routes/learn.$courseSlug.$lessonSlug";
@@ -208,6 +231,7 @@ type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "public": typeof import("./app/routes/public/layout.tsx");
   "routes/public/home": typeof import("./app/routes/public/home.tsx");
+  "routes/p.$slug": typeof import("./app/routes/p.$slug.tsx");
   "routes/public.courses": typeof import("./app/routes/public.courses.tsx");
   "routes/public.courses.$slug": typeof import("./app/routes/public.courses.$slug.tsx");
   "routes/public.courses.$slug.units.$unitId": typeof import("./app/routes/public.courses.$slug.units.$unitId.tsx");
@@ -217,6 +241,8 @@ type RouteModules = {
   "routes/public/reset-password": typeof import("./app/routes/public/reset-password.tsx");
   "routes/public/set-locale": typeof import("./app/routes/public/set-locale.tsx");
   "routes/logout": typeof import("./app/routes/logout.tsx");
+  "routes/theme[.]css": typeof import("./app/routes/theme[.]css.tsx");
+  "routes/favicon[.]ico": typeof import("./app/routes/favicon[.]ico.tsx");
   "routes/learn.$courseSlug.$lessonSlug": typeof import("./app/routes/learn.$courseSlug.$lessonSlug.tsx");
   "routes/files.$id": typeof import("./app/routes/files.$id.tsx");
   "routes/api.playback.$videoId": typeof import("./app/routes/api.playback.$videoId.tsx");

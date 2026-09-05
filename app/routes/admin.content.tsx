@@ -59,7 +59,7 @@ function TreeNode({ node, locale, depth = 0 }: { node: AdminTreeNode; locale: Lo
   const label = locale === "ar" ? node.titleAr : node.titleEn;
   return (
     <li className={depth === 0 ? "mb-3" : "mb-1.5"}>
-      <div className="flex items-center gap-2 py-0.5" style={{ paddingInlineStart: depth * 18 }}>
+      <div className={`flex items-center gap-2 py-0.5 ${["", "ps-5", "ps-10", "ps-14", "ps-20", "ps-24", "ps-28", "ps-32"][Math.min(depth, 7)]}`}>
         <StatusBadge status={node.status} locale={locale} />
         <Link
           to={`/admin/content/${node.type}/${node.id}`}
