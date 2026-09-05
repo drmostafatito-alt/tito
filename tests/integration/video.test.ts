@@ -94,10 +94,15 @@ describe("playback minting gates (service level — the route calls exactly thes
   it("mock stream token discipline: valid verifies; expired/forged/cross-scope reject (route parity)", async () => {
     await grantEntitlement(db, { studentId, resourceType: "subject", resourceId: subjectId, days: 30 }, actor);
     const video = (await getVideo(db, videoId))!;
-    const playback = (await mintPlayback(db, env, video, { studentId, lessonId })) as { url: string; token: string };
+    const playback = (await mintPlayback(db, env, video, { studentId, lessonId })) as { url: string; posterUrl?: string };
+    // the mock provider embeds uid|exp|token in the playback URL query (the
+    // /api/mock-stream route reads exactly these params — no separate token field)
     const parts = new URL(`https://app.test${playback.url}`).searchParams;
     const uid = parts.get("uid")!;
     const exp = Number(parts.get("exp")!);
+    const token = parts.get("token")!;
+    expect(uid).toBe(studentId);
+    expect(token).toMatch(/^[0-9a-f]{64}$/);
 
     // the exact check /api/mock-stream performs:
     const check = async (p: { uid: string; exp: number; token: string; scope: string }) => {
@@ -105,15 +110,25 @@ describe("playback minting gates (service level — the route calls exactly thes
       const expected = await signMockToken(env.MOCK_VIDEO_SECRET!, { videoId, scope: p.scope, studentId: p.uid, expiresAt: p.exp });
       return timingSafeEqualHex(expected, p.token) ? 200 : 404;
     };
-    expect(await check({ uid, exp, token: playback.token, scope: "playback" })).toBe(200);
+    expect(await check({ uid, exp, token, scope: "playback" })).toBe(200);
     // expired
-    expect(await check({ uid, exp: exp - 120_000, token: playback.token, scope: "playback" })).toBe(404);
+    expect(await check({ uid, exp: exp - 120_000, token, scope: "playback" })).toBe(404);
     // forged
     expect(await check({ uid, exp, token: "0".repeat(64), scope: "playback" })).toBe(404);
     // cross-scope (thumbnail token on playback route)
     const thumb = await new MockVideoProvider(env).getThumbnail(video);
     const t = new URL(`https://app.test${thumb.url}`).searchParams;
     expect(await check({ uid: t.get("uid")!, exp: Number(t.get("exp")!), token: t.get("token")!, scope: "playback" })).toBe(404);
+
+    // REGRESSION: mintPlayback().posterUrl must carry its OWN thumbnail-scoped
+    // token — it once reused the playback token, and /api/mock-stream derives
+    // scope from the file extension (poster.svg → "thumbnail"), so the poster
+    // URL the player renders 404'd every time.
+    expect(playback.posterUrl).toContain(`/api/mock-stream/${videoId}/poster.svg`);
+    const pp = new URL(`https://app.test${playback.posterUrl!}`).searchParams;
+    expect(await check({ uid: pp.get("uid")!, exp: Number(pp.get("exp")!), token: pp.get("token")!, scope: "thumbnail" })).toBe(200);
+    // scope separation holds both ways: playback token cannot open the poster path
+    expect(await check({ uid, exp, token, scope: "thumbnail" })).toBe(404);
   });
 
   it("video not attached to any lesson finds no allowed chain (route answers 403)", async () => {

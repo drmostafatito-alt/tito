@@ -60,12 +60,14 @@ Server-enforced policies at mint time: replay cap, completion threshold %, disab
 
 ## 5. Adapters
 
-### mock (dev/local; Phase 2)
-- Serves a known-good HLS test stream; token = HMAC-signed short-TTL value using a dev secret, mirroring the signed-URL discipline so dev behaves like prod. No network needed — works offline in the sandbox.
+### mock (dev/local; Phase 2 — implemented)
+- Serves a synthetic HLS stream (placeholder segments — A/V decoding intentionally not simulated); token = HMAC-SHA256 over `videoId|scope|studentId|expiresAt` with `MOCK_VIDEO_SECRET`, ≤45s TTL, embedded in the URL query (`uid|exp|token`) — mirroring the signed-URL discipline so dev behaves like prod. No network needed — works offline in the sandbox.
+- **Token scopes are separated**: `/api/mock-stream/:videoId/:file` derives the scope from the file extension (`.m3u8` → `playback`, anything else → `thumbnail`) and rejects cross-scope tokens with a 404. `mintPlayback()` therefore returns a `posterUrl` carrying its OWN thumbnail-scoped token (a Phase 2 bug where it reused the playback token — poster always 404'd — is fixed and regression-tested in `video.test.ts` + smoke §6).
+- Verification (2026-09-05, live `wrangler dev`): valid token → 200 playlist/SVG; forged/missing/expired/cross-scope → 404; responses `no-store`.
 
-### mux (production; Phase 2 — with a doc re-verification pass on upload APIs)
-- Verified model (2026-09-05): playback IDs are `public` or `signed`; signed requires a JWT (`https://stream.mux.com/{PLAYBACK_ID}.m3u8?token={JWT}`) signed with the environment's **Ed25519 signing key** (key id + private key). Tokens minted server-side only; short `exp`; optional **playback restrictions** (domain allowlist) referenced at signing. Assets also expose signed thumbnails (`image.mux.com`). Sources: Mux docs — "Securing video playback with signed URLs", "Mux fundamentals" (see DECISIONS.md verification queue for links).
-- Implementation notes for Workers: Ed25519 signing via WebCrypto (`Ed25519` supported in Workers runtime — re-verify against Cloudflare runtime docs during Phase 2 scaffold; fallback: tiny JOSE lib). Mux Data/Feeds not used initially. Direct-upload API for ingestion (re-verify current schema at Phase 2).
+### mux (production; Phase 2 — adapter implemented, credentials env-gated)
+- Verified model (2026-09-05): playback IDs are `public` or `signed`; signed requires a JWT (`https://stream.mux.com/{PLAYBACK_ID}.m3u8?token={JWT}`) signed with the environment's **Ed25519 signing key** (key id + private key). Tokens minted server-side only; short `exp` (≤45s in the adapter, settings-capped ≤60s); optional **playback restrictions** (domain allowlist) referenced at signing. Assets also expose signed thumbnails (`image.mux.com`). Sources: Mux docs — "Securing video playback with signed URLs", "Mux fundamentals" (see DECISIONS.md verification queue for links).
+- Implementation status: Ed25519 signing via WebCrypto verified INSIDE workerd (integration test signs/verifies a playback JWT in the Workers runtime — no fallback lib needed). Direct-upload ingest + asset-status sync implemented against the documented API shape; **live Mux API calls untested (no production credentials in this environment)** — first real-credential run must re-verify upload/asset schemas per the queue below. Missing credentials fail loudly: `VideoNotConfiguredError` at provider selection — verified live (settings switched to `mux` → ingest rejected, row stays `pending`, NO silent mock fallback; ADR-006 holds: business logic never mentions Mux).
 - Credentials: `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET` (API), `MUX_SIGNING_KEY_ID`, `MUX_SIGNING_PRIVATE_KEY` (playback JWT) — secrets only.
 
 ### bunny / cfstream (future)

@@ -18,15 +18,18 @@ Isolation rule: production data is **never** copied to dev/preview. Fixtures/see
 - D1 databases: `educore-preview`, `educore-prod`
 - R2 buckets: `public-assets`, `private-files`, `video-masters` (× env suffix for preview)
 - Worker + static assets (RR7 build), custom domain attached, HTTPS automatic (Cloudflare edge)
-- Bindings in `wrangler.jsonc`: `DB`, `PUBLIC_ASSETS`, `PRIVATE_FILES`, `VIDEOS_MASTERS`, `VIDEO` provider flag
+- Bindings in `wrangler.jsonc`: `DB` (D1), `PUBLIC_ASSETS`, `PRIVATE_FILES`, `VIDEO_MASTERS` (R2). The active video provider is NOT an env binding — it is the settings row `video.provider` in D1 (admin-switchable, ADR-006).
 
 ## 3. Secrets inventory (names only — values never in repo)
 
 | Name | Env | Phase |
 |---|---|---|
-| `SESSION_PEPPER` | all | P1 (defense-in-depth on token hashing) |
-| `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` | prod/preview | P2 |
-| `MUX_SIGNING_KEY_ID` / `MUX_SIGNING_PRIVATE_KEY` | prod/preview | P2 |
+| `SESSION_PEPPER` | all | P1 (defense-in-depth on token hashing; dev fallback exists, MUST be set in prod) |
+| `FILE_URL_SECRET` | all | P2 — REQUIRED: HMAC key for signed private-file URLs (no fallback) |
+| `MOCK_VIDEO_SECRET` | all (dev/local; prod only if mock provider used) | P2 — REQUIRED when provider=mock: playback-token HMAC (no fallback) |
+| `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` | prod/preview | P2 — required when provider=mux (API ingest/sync); absent → loud `VideoNotConfiguredError` |
+| `MUX_SIGNING_KEY_ID` / `MUX_SIGNING_PRIVATE_KEY` | prod/preview | P2 — required when provider=mux (signed-JWT playback) |
+| `AUTH_PBKDF2_ITERATIONS` (non-secret tuning) | all | P1 (default 100k) |
 | `RESEND_API_KEY` (email — pending verification ADR) | prod | P3+ |
 | Payment gateway keys | prod | P5 (only with verification ADR) |
 

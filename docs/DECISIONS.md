@@ -79,6 +79,12 @@ Format per record: **Context / Decision / Consequences / Status**.
 - **Embedded migrations manifest for tests** — workerd test pool has no fs; `scripts/gen-migrations-manifest.mjs` embeds `migrations/*.sql` into `tests/integration/migrations.generated.ts` (generated file — never hand-edit).
 - **PBKDF2-SHA256 100k iterations default** (`AUTH_PBKDF2_ITERATIONS`, clamped 50k–2M) — Workers free-plan CPU budget; raise on paid plan (SECURITY.md §2); transparent rehash on login.
 
+## ADR-017 Content-domain referential integrity at the application layer
+**Status: Accepted (Phase 2, 2026-09-05)**
+- Migration 0001 (content domain: programs → … → lesson_items, videos, files, entitlements) ships **without DB-level FK constraints**. Rationale: every content write path already runs through one service module (`server/content/service.server.ts`) inside D1 batches, and retrofitting FKs onto existing SQLite/D1 tables requires table-rebuild migrations (create-copy-drop-rename) against live data — a destructive-migration class the owner has barred without backup/verification. Deferring keeps Phase 2 non-destructive.
+- Compensating control: `ContentReferenceError` + `assert*Ref` guards validate EVERY referenced row (parent, program/grade/subject/course/unit, teacher, thumbnail file, video/file/exam) before insert in all create functions; the admin route maps the error to a validation response (no crash, no partial write). Regression coverage: integration tests for dangling parent/item refs, plus a live HTTP check (dangling video attach rejected — smoke §10). Identity-domain tables (0000) keep real FKs.
+- Review trigger: revisit before first production data exists (Phase 7 hardening at the latest) — adding FKs pre-launch via a rebuild migration is cheap on empty tables; the app-layer guards stay regardless (defense in depth).
+
 ---
 
 ## Verification queue (must complete before related implementation)
@@ -86,7 +92,7 @@ Format per record: **Context / Decision / Consequences / Status**.
 | Item | Phase | Status |
 |------|-------|--------|
 | Mux playback model (signed JWT, restrictions, thumbnails) | 2 | ✅ verified 2026-09-05 — mux.com/docs (Mux fundamentals; Securing video playback with signed URLs; React Native playback page confirming `?token=` usage) |
-| Mux upload API specifics + Workers Ed25519 WebCrypto support | 2 | pending (scaffold-time re-check) |
+| Mux upload API specifics + Workers Ed25519 WebCrypto support | 2 | ⚠️ partial (2026-09-05): Ed25519 WebCrypto sign/verify proven INSIDE workerd (integration test); direct-upload + asset-sync implemented per docs but **unexercised against the live Mux API (no production credentials here)** — must re-verify schemas on first credentialed run. Provider-switch behavior verified live: missing creds → loud `VideoNotConfiguredError`, no silent fallback |
 | Bunny Stream token auth (future adapter) | later | pending |
 | Paymob: official API, Egypt, webhooks, signature, refunds | 5 | pending |
 | Fawry: same | 5 | pending |

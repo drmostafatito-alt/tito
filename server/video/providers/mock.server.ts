@@ -61,11 +61,21 @@ export class MockVideoProvider implements VideoProvider {
       expiresAt,
     });
     const qs = `uid=${encodeURIComponent(ctx.studentId)}&exp=${expiresAt}&token=${token}`;
+    // Poster is served under the "thumbnail" scope (route derives scope from the
+    // file extension), so it needs its OWN token — reusing the playback-scoped
+    // token would fail HMAC verification. Scope separation is intentional.
+    const posterToken = await signMockToken(secret, {
+      videoId: video.id,
+      scope: "thumbnail",
+      studentId: ctx.studentId,
+      expiresAt,
+    });
+    const posterQs = `uid=${encodeURIComponent(ctx.studentId)}&exp=${expiresAt}&token=${posterToken}`;
     return {
       type: "hls",
       url: `/api/mock-stream/${video.id}/master.m3u8?${qs}`,
       expiresAt,
-      posterUrl: `/api/mock-stream/${video.id}/poster.svg?${qs}`,
+      posterUrl: `/api/mock-stream/${video.id}/poster.svg?${posterQs}`,
     };
   }
 

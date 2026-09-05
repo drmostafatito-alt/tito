@@ -7,6 +7,7 @@ import {
   archiveNode,
   catalogCourses,
   courseBySlug,
+  ContentReferenceError,
   createCourse,
   createGrade,
   createLesson,
@@ -20,14 +21,16 @@ import {
   unitsForCourse,
   updateNode,
 } from "~server/content/service.server";
-import { auditLogs } from "~server/db/schema";
+import { auditLogs, files as filesTable } from "~server/db/schema";
+import { registerMockVideo } from "~server/video/service.server";
+import { insertFile } from "~server/files/storage.server";
 import { eq } from "drizzle-orm";
 
 const actor = { userId: "00000000-0000-4000-8000-000000000001", role: "super_admin" };
 
 async function wipe() {
   const db = getDb(env);
-  for (const table of ["lesson_items", "lessons", "units", "courses", "subjects", "grades", "programs", "audit_logs"]) {
+  for (const table of ["lesson_items", "lessons", "units", "courses", "subjects", "grades", "programs", "videos", "files", "audit_logs"]) {
     await db.run(`DELETE FROM ${table}`);
   }
 }
@@ -155,11 +158,42 @@ describe("ordering", () => {
       createLessonItem(db, { lessonId: lesson.id, itemType: "video", videoId: null, fileId: null, examId: null, sortOrder: 0, required: true }, actor)
     ).rejects.toThrow(/videoId/);
 
-    await createLessonItem(db, { lessonId: lesson.id, itemType: "video", videoId: "v-1", fileId: null, examId: null, sortOrder: 0, required: true }, actor);
-    await createLessonItem(db, { lessonId: lesson.id, itemType: "file", videoId: null, fileId: "f-1", examId: null, sortOrder: 1, required: false }, actor);
+    // real video + file rows — items must reference persisted assets
+    const video = await registerMockVideo(db, { title: "Item video" });
+    const fileId = await insertFile(db, {
+      r2Key: `private/pdf/${crypto.randomUUID()}/item-doc.pdf`,
+      bucket: "PRIVATE_FILES",
+      kind: "pdf",
+      originalFilename: "item-doc.pdf",
+      mime: "application/pdf",
+      byteSize: 10,
+      checksumSha256: "test",
+      visibility: "private",
+    });
+
+    // regression guard (file-ID mismatch bug class): a reference that does not
+    // match a persisted row is rejected at write time — never stored dangling
+    await expect(
+      createLessonItem(db, { lessonId: lesson.id, itemType: "video", videoId: "not-a-real-video", fileId: null, examId: null, sortOrder: 0, required: true }, actor)
+    ).rejects.toBeInstanceOf(ContentReferenceError);
+    await expect(
+      createLessonItem(db, { lessonId: lesson.id, itemType: "file", videoId: null, fileId: "not-a-real-file", examId: null, sortOrder: 0, required: true }, actor)
+    ).rejects.toBeInstanceOf(ContentReferenceError);
+    // dangling parent references are rejected too
+    await expect(
+      createGrade(db, { programId: "not-a-real-program", titleAr: "ص", titleEn: "Orphan Grade", status: "draft", sortOrder: 0 }, actor)
+    ).rejects.toBeInstanceOf(ContentReferenceError);
+
+    await createLessonItem(db, { lessonId: lesson.id, itemType: "video", videoId: video.id, fileId: null, examId: null, sortOrder: 0, required: true }, actor);
+    await createLessonItem(db, { lessonId: lesson.id, itemType: "file", videoId: null, fileId, examId: null, sortOrder: 1, required: false }, actor);
     const items = await itemsForLesson(db, lesson.id);
     expect(items.map((i) => i.itemType)).toEqual(["video", "file"]);
     expect(items[1].required).toBe(false);
+    // the stored references ARE the persisted rows (exact IDs, both directions)
+    expect(items[0].videoId).toBe(video.id);
+    expect(items[1].fileId).toBe(fileId);
+    const fileRow = (await db.select().from(filesTable).where(eq(filesTable.id, fileId)))[0];
+    expect(fileRow?.id).toBe(fileId);
 
     const us = await unitsForCourse(db, course.id);
     expect(us.length).toBe(1);

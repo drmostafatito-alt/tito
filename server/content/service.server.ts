@@ -10,6 +10,7 @@ import {
   programs,
   subjects,
   units,
+  users,
   videos,
 } from "../db/schema";
 import { logAudit } from "../audit/log.server";
@@ -154,6 +155,49 @@ export async function getNodes(db: DB, type: ContentType, ids: string[]) {
 }
 
 // ---------------------------------------------------------------------------
+// Referential integrity (application-enforced)
+//
+// Content tables carry no SQLite FK constraints (see db/schema/content.ts note);
+// the service layer is therefore the integrity gate: every parent/asset reference
+// must resolve to an existing row BEFORE insert. This is the regression guard for
+// the file-ID mismatch bug class — an ID that doesn't match a persisted row is
+// rejected here instead of producing a dangling lesson_items reference.
+// ---------------------------------------------------------------------------
+
+export class ContentReferenceError extends Error {
+  constructor(public readonly field: string, public readonly referenceId: string) {
+    super(`reference not found: ${field}=${referenceId}`);
+    this.name = "ContentReferenceError";
+  }
+}
+
+async function assertContentRef(db: DB, type: ContentType, id: string, field: string): Promise<void> {
+  if (!(await getNode(db, type, id))) throw new ContentReferenceError(field, id);
+}
+
+async function assertOptionalContentRef(db: DB, type: ContentType, id: string | null | undefined, field: string): Promise<void> {
+  if (id) await assertContentRef(db, type, id, field);
+}
+
+async function assertFileRef(db: DB, id: string | null | undefined, field: string): Promise<void> {
+  if (!id) return;
+  const rows = await db.select({ id: files.id }).from(files).where(eq(files.id, id)).limit(1);
+  if (rows.length === 0) throw new ContentReferenceError(field, id);
+}
+
+async function assertVideoRef(db: DB, id: string | null | undefined, field: string): Promise<void> {
+  if (!id) return;
+  const rows = await db.select({ id: videos.id }).from(videos).where(eq(videos.id, id)).limit(1);
+  if (rows.length === 0) throw new ContentReferenceError(field, id);
+}
+
+async function assertUserRef(db: DB, id: string | null | undefined, field: string): Promise<void> {
+  if (!id) return;
+  const rows = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
+  if (rows.length === 0) throw new ContentReferenceError(field, id);
+}
+
+// ---------------------------------------------------------------------------
 // Create
 // ---------------------------------------------------------------------------
 
@@ -177,6 +221,7 @@ export async function createProgram(db: DB, input: z.infer<typeof createProgramS
 }
 
 export async function createGrade(db: DB, input: z.infer<typeof createGradeSchema>, actor: ActorCtx) {
+  await assertContentRef(db, "program", input.programId, "programId");
   const slug = await uniqueSlug(
     async (s) => (await db.select({ id: grades.id }).from(grades).where(eq(grades.slug, s)).limit(1)).length > 0,
     input.slug ?? input.titleEn
@@ -190,6 +235,8 @@ export async function createGrade(db: DB, input: z.infer<typeof createGradeSchem
 }
 
 export async function createSubject(db: DB, input: z.infer<typeof createSubjectSchema>, actor: ActorCtx) {
+  await assertContentRef(db, "grade", input.gradeId, "gradeId");
+  await assertFileRef(db, input.thumbnailFileId, "thumbnailFileId");
   const slug = await uniqueSlug(
     async (s) => (await db.select({ id: subjects.id }).from(subjects).where(eq(subjects.slug, s)).limit(1)).length > 0,
     input.slug ?? input.titleEn
@@ -203,6 +250,9 @@ export async function createSubject(db: DB, input: z.infer<typeof createSubjectS
 }
 
 export async function createCourse(db: DB, input: z.infer<typeof createCourseSchema>, actor: ActorCtx) {
+  await assertContentRef(db, "subject", input.subjectId, "subjectId");
+  await assertUserRef(db, input.teacherId, "teacherId");
+  await assertFileRef(db, input.thumbnailFileId, "thumbnailFileId");
   const slug = await uniqueSlug(
     async (s) => (await db.select({ id: courses.id }).from(courses).where(eq(courses.slug, s)).limit(1)).length > 0,
     input.slug ?? input.titleEn
@@ -224,6 +274,7 @@ export async function createCourse(db: DB, input: z.infer<typeof createCourseSch
 }
 
 export async function createUnit(db: DB, input: z.infer<typeof createUnitSchema>, actor: ActorCtx) {
+  await assertContentRef(db, "course", input.courseId, "courseId");
   const id = crypto.randomUUID();
   const now = Date.now();
   const row = { id, courseId: input.courseId, titleAr: input.titleAr, titleEn: input.titleEn, status: input.status, sortOrder: input.sortOrder, createdAt: now, updatedAt: now, deletedAt: null };
@@ -233,6 +284,7 @@ export async function createUnit(db: DB, input: z.infer<typeof createUnitSchema>
 }
 
 export async function createLesson(db: DB, input: z.infer<typeof createLessonSchema>, actor: ActorCtx) {
+  await assertContentRef(db, "unit", input.unitId, "unitId");
   const slug = await uniqueSlug(
     async (s) => (await db.select({ id: lessons.id }).from(lessons).where(eq(lessons.slug, s)).limit(1)).length > 0,
     input.slug ?? input.titleEn
@@ -254,6 +306,9 @@ export async function createLesson(db: DB, input: z.infer<typeof createLessonSch
 export async function createLessonItem(db: DB, input: z.infer<typeof createLessonItemSchema>, actor: ActorCtx) {
   if (input.itemType === "video" && !input.videoId) throw new Error("video item requires videoId");
   if (input.itemType === "file" && !input.fileId) throw new Error("file item requires fileId");
+  await assertContentRef(db, "lesson", input.lessonId, "lessonId");
+  await assertVideoRef(db, input.videoId, "videoId");
+  await assertFileRef(db, input.fileId, "fileId");
   const id = crypto.randomUUID();
   const row = { id, lessonId: input.lessonId, itemType: input.itemType, videoId: input.videoId ?? null, fileId: input.fileId ?? null, examId: input.examId ?? null, sortOrder: input.sortOrder, required: input.required, createdAt: Date.now() };
   await db.insert(lessonItems).values(row);

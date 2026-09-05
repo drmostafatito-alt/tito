@@ -54,8 +54,8 @@ Mutations require same-origin evidence: `Origin`/`Sec-Fetch-Site` check in middl
 
 ## 8. Protected media (P2/P3)
 
-- Files: R2 `private-files` never public; short-TTL (default 5 min, setting) signed URLs issued only after entitlement + per-file permission (view vs download decided at signing: attachment disposition + download flag).
-- Video: raw MP4/HLS never exposed for protected content. Playback requires server-minted provider credentials (Mux signed JWT ≤ 60s TTL) after entitlement + replay-policy checks. Playback restrictions (domain allowlist) configured at the provider. Mock provider mimics the same token discipline in dev.
+- Files: R2 `private-files` never public; short-TTL signed URLs (setting `video.fileUrlTtlSeconds`, shipped default **120s**) issued only after entitlement + per-file permission. The HMAC covers file id + `perm` (view|download) + expiry: tampering, id-swapping, perm-swapping, or expiry all produce the same 404-shaped response (no existence/permission oracle). `download_allowed` decides `attachment` vs `inline` disposition; Range requests served (206); responses `no-store`. *Verified live in Phase 2 smoke §5.*
+- Video: raw MP4/HLS never exposed for protected content. Playback requires server-minted provider credentials (Mux signed JWT / mock HMAC token, ≤45s TTL, settings-capped ≤60s) via `POST /api/playback/:videoId` — entitlement re-checked server-side on EVERY mint; admins bypass; unentitled → 403; anonymous → 401. Playback restrictions (domain allowlist) configured at the provider. Mock provider mimics the same token discipline in dev, with playback/thumbnail scope separation (cross-scope tokens rejected). *Verified live in Phase 2 smoke §6/§7/§10.*
 - Progress beacons authenticate the session and validate the video is entitlement-covered before writing.
 
 ## 9. Payments security (P5)

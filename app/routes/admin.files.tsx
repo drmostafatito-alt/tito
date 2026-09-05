@@ -5,7 +5,6 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import {
   buildR2Key,
-  bucketOf,
   detectKind,
   insertFile,
   listFiles,

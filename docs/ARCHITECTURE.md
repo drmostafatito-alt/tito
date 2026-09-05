@@ -87,7 +87,7 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
 **Student:** `/dashboard` · `/my/courses` · `/learn/:courseSlug/:lessonSlug` (video+files+quiz) · `/exams` · `/exams/:id` `/exams/:id/attempt` · `/results` · `/devices` · `/notifications` · `/profile` `/profile/security` · `/cart` `/checkout` `/orders` (Phase 5).
 **Teacher (Phase 4+):** question bank, exam authoring, their course content.
 **Admin (Phase 6, grows from Phase 1):** `/admin` overview + Students · Teachers · Content tree · Videos · Files · Question bank · Exams · Results · Orders · Payments · Subscriptions · Activation codes · Discount codes · Notifications · CMS · Settings · Security (devices/sessions/events) · Audit log · Analytics.
-**Resource routes:** `/webhooks/payments/:provider` (signature-verified) · `/beacons/progress` (session-validated) · `/files/:id/*` (signed URL redirect) · `/api/playback/:videoId` (entitlement-checked token minting).
+**Resource routes:** `/webhooks/payments/:provider` (signature-verified, Phase 5) · `/beacons/progress` (session-validated, Phase 3) · `/files/:id?perm&view-signature` (**live P2**: streams the private R2 object after HMAC-signed-URL verification — id+perm+exp covered by the signature; denials are 404-shaped; Range supported) · `/api/playback/:videoId` (**live P2**: POST-only, entitlement-checked token minting; GET → 302) · `/api/mock-stream/:videoId/:file` (**live P2, dev provider**: token-scoped synthetic HLS/poster; disappears from the request path when Mux is the active provider).
 
 ## 6. Authentication & session model (ADR-004/005)
 

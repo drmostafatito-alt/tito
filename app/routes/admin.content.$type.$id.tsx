@@ -19,6 +19,7 @@ import {
   updateNode,
   videosByIds,
   filesByIds,
+  ContentReferenceError,
   type ContentType,
 } from "~server/content/service.server";
 import { listVideos } from "~server/video/service.server";
@@ -121,99 +122,105 @@ export async function action({ context, request, params }: Route.ActionArgs) {
   const intent = String(form.get("_action") ?? "");
   const actor = { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
 
-  switch (intent) {
-    case "save": {
-      const patch: Record<string, unknown> = {};
-      const S = (k: string) => (form.get(k) === null ? undefined : str(form, k));
-      for (const k of ["titleAr", "titleEn", "descriptionAr", "descriptionEn", "status", "visibility", "accessLevel", "slug"]) {
-        const v = S(k);
-        if (v !== undefined) patch[k] = v;
+  try {
+    switch (intent) {
+      case "save": {
+        const patch: Record<string, unknown> = {};
+        const S = (k: string) => (form.get(k) === null ? undefined : str(form, k));
+        for (const k of ["titleAr", "titleEn", "descriptionAr", "descriptionEn", "status", "visibility", "accessLevel", "slug"]) {
+          const v = S(k);
+          if (v !== undefined) patch[k] = v;
+        }
+        const so = num(form, "sortOrder");
+        if (so !== null) patch.sortOrder = so;
+        const thumb = form.get("thumbnailFileId");
+        if (thumb !== null) patch.thumbnailFileId = str(form, "thumbnailFileId") ?? null;
+        const pa = form.get("publishAt");
+        if (pa !== null) patch.publishAt = dateMs(form, "publishAt");
+        const ea = form.get("expiresAt");
+        if (ea !== null) patch.expiresAt = dateMs(form, "expiresAt");
+        if (type === "lesson") patch.freePreview = form.get("freePreview") === "on";
+        if (type === "lessonItem") {
+          patch.required = form.get("required") === "on";
+        }
+        const res = await updateNode(db, type, id, patch, actor);
+        return res.ok ? { ok: true as const } : { error: res.error };
       }
-      const so = num(form, "sortOrder");
-      if (so !== null) patch.sortOrder = so;
-      const thumb = form.get("thumbnailFileId");
-      if (thumb !== null) patch.thumbnailFileId = str(form, "thumbnailFileId") ?? null;
-      const pa = form.get("publishAt");
-      if (pa !== null) patch.publishAt = dateMs(form, "publishAt");
-      const ea = form.get("expiresAt");
-      if (ea !== null) patch.expiresAt = dateMs(form, "expiresAt");
-      if (type === "lesson") patch.freePreview = form.get("freePreview") === "on";
-      if (type === "lessonItem") {
-        patch.required = form.get("required") === "on";
+      case "archive":
+        await archiveNode(db, type, id, actor);
+        return { ok: true as const };
+      case "move-up":
+      case "move-down": {
+        const res = await moveNode(db, type, id, intent === "move-up" ? "up" : "down");
+        return res.ok ? { ok: true as const } : { error: res.error };
       }
-      const res = await updateNode(db, type, id, patch, actor);
-      return res.ok ? { ok: true as const } : { error: res.error };
+      case "create-grade": {
+        const parentId = str(form, "parentId");
+        if (!parentId) return { error: "validation" as const };
+        await createGrade(db, { programId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!, status: (str(form, "status") as "draft" | "published") ?? "draft", sortOrder: 0, slug: undefined }, actor);
+        return { ok: true as const };
+      }
+      case "create-subject": {
+        const parentId = str(form, "parentId");
+        if (!parentId) return { error: "validation" as const };
+        await createSubject(db, { gradeId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!, status: (str(form, "status") as "draft" | "published") ?? "draft", sortOrder: 0, descriptionAr: null, descriptionEn: null, thumbnailFileId: null, slug: undefined }, actor);
+        return { ok: true as const };
+      }
+      case "create-course": {
+        const parentId = str(form, "parentId");
+        if (!parentId) return { error: "validation" as const };
+        await createCourse(db, {
+          subjectId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!,
+          status: (str(form, "status") as "draft" | "published") ?? "draft",
+          visibility: (str(form, "visibility") as "catalog" | "hidden" | "featured") ?? "catalog",
+          accessLevel: (str(form, "accessLevel") as "public" | "authenticated" | "entitled") ?? "entitled",
+          sortOrder: 0, descriptionAr: null, descriptionEn: null, thumbnailFileId: null, teacherId: null,
+          publishAt: null, expiresAt: null, slug: undefined,
+        }, actor);
+        return { ok: true as const };
+      }
+      case "create-unit": {
+        const parentId = str(form, "parentId");
+        if (!parentId) return { error: "validation" as const };
+        await createUnit(db, { courseId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!, status: (str(form, "status") as "draft" | "published") ?? "draft", sortOrder: 0 }, actor);
+        return { ok: true as const };
+      }
+      case "create-lesson": {
+        const parentId = str(form, "parentId");
+        if (!parentId) return { error: "validation" as const };
+        await createLesson(db, {
+          unitId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!,
+          status: (str(form, "status") as "draft" | "published") ?? "draft",
+          accessLevel: (str(form, "accessLevel") as "public" | "authenticated" | "entitled") ?? "entitled",
+          freePreview: form.get("freePreview") === "on", sortOrder: 0,
+          descriptionAr: null, descriptionEn: null, publishAt: null, expiresAt: null, slug: undefined,
+        }, actor);
+        return { ok: true as const };
+      }
+      case "add-item": {
+        const lessonId = id;
+        const itemType = str(form, "itemType") as "video" | "file" | null;
+        if (!itemType) return { error: "validation" as const };
+        const refId = itemType === "video" ? str(form, "videoId") : str(form, "fileId");
+        if (!refId) return { error: "validation" as const };
+        const maxOrder = (await itemsForLesson(db, lessonId)).reduce((m, i) => Math.max(m, i.sortOrder), -1);
+        await createLessonItem(db, {
+          lessonId, itemType,
+          videoId: itemType === "video" ? refId : null,
+          fileId: itemType === "file" ? refId : null,
+          examId: null,
+          sortOrder: maxOrder + 1,
+          required: form.get("required") === "on",
+        }, actor);
+        return { ok: true as const };
+      }
+      default:
+        return { error: "generic" as const };
     }
-    case "archive":
-      await archiveNode(db, type, id, actor);
-      return { ok: true as const };
-    case "move-up":
-    case "move-down": {
-      const res = await moveNode(db, type, id, intent === "move-up" ? "up" : "down");
-      return res.ok ? { ok: true as const } : { error: res.error };
-    }
-    case "create-grade": {
-      const parentId = str(form, "parentId");
-      if (!parentId) return { error: "validation" as const };
-      await createGrade(db, { programId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!, status: (str(form, "status") as "draft" | "published") ?? "draft", sortOrder: 0, slug: undefined }, actor);
-      return { ok: true as const };
-    }
-    case "create-subject": {
-      const parentId = str(form, "parentId");
-      if (!parentId) return { error: "validation" as const };
-      await createSubject(db, { gradeId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!, status: (str(form, "status") as "draft" | "published") ?? "draft", sortOrder: 0, descriptionAr: null, descriptionEn: null, thumbnailFileId: null, slug: undefined }, actor);
-      return { ok: true as const };
-    }
-    case "create-course": {
-      const parentId = str(form, "parentId");
-      if (!parentId) return { error: "validation" as const };
-      await createCourse(db, {
-        subjectId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!,
-        status: (str(form, "status") as "draft" | "published") ?? "draft",
-        visibility: (str(form, "visibility") as "catalog" | "hidden" | "featured") ?? "catalog",
-        accessLevel: (str(form, "accessLevel") as "public" | "authenticated" | "entitled") ?? "entitled",
-        sortOrder: 0, descriptionAr: null, descriptionEn: null, thumbnailFileId: null, teacherId: null,
-        publishAt: null, expiresAt: null, slug: undefined,
-      }, actor);
-      return { ok: true as const };
-    }
-    case "create-unit": {
-      const parentId = str(form, "parentId");
-      if (!parentId) return { error: "validation" as const };
-      await createUnit(db, { courseId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!, status: (str(form, "status") as "draft" | "published") ?? "draft", sortOrder: 0 }, actor);
-      return { ok: true as const };
-    }
-    case "create-lesson": {
-      const parentId = str(form, "parentId");
-      if (!parentId) return { error: "validation" as const };
-      await createLesson(db, {
-        unitId: parentId, titleAr: str(form, "titleAr")!, titleEn: str(form, "titleEn")!,
-        status: (str(form, "status") as "draft" | "published") ?? "draft",
-        accessLevel: (str(form, "accessLevel") as "public" | "authenticated" | "entitled") ?? "entitled",
-        freePreview: form.get("freePreview") === "on", sortOrder: 0,
-        descriptionAr: null, descriptionEn: null, publishAt: null, expiresAt: null, slug: undefined,
-      }, actor);
-      return { ok: true as const };
-    }
-    case "add-item": {
-      const lessonId = id;
-      const itemType = str(form, "itemType") as "video" | "file" | null;
-      if (!itemType) return { error: "validation" as const };
-      const refId = itemType === "video" ? str(form, "videoId") : str(form, "fileId");
-      if (!refId) return { error: "validation" as const };
-      const maxOrder = (await itemsForLesson(db, lessonId)).reduce((m, i) => Math.max(m, i.sortOrder), -1);
-      await createLessonItem(db, {
-        lessonId, itemType,
-        videoId: itemType === "video" ? refId : null,
-        fileId: itemType === "file" ? refId : null,
-        examId: null,
-        sortOrder: maxOrder + 1,
-        required: form.get("required") === "on",
-      }, actor);
-      return { ok: true as const };
-    }
-    default:
-      return { error: "generic" as const };
+  } catch (err) {
+    // dangling parent/video/file reference → validation-shaped response, never a 500
+    if (err instanceof ContentReferenceError) return { error: "validation" as const };
+    throw err;
   }
 }
 

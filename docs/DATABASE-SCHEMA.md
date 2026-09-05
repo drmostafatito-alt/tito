@@ -10,7 +10,7 @@
 - Timestamps: `INTEGER` ms since epoch (UTC). Money: `INTEGER` minor units (piasters for EGP).
 - Enums: `TEXT` + `CHECK` constraint; never booleans-as-ints for state machines.
 - Soft delete: `deleted_at INTEGER NULL` where history matters (users, questions, content).
-- All FKs enforced (`PRAGMA foreign_keys = ON`). Hot query paths indexed (listed per table).
+- FKs enforced (`PRAGMA foreign_keys = ON`) — **with one documented exception**: the Phase 2 content-domain tables (migration 0001: programs…lesson_items, videos, files, entitlements) ship WITHOUT DB-level FK constraints. Adding them later requires SQLite table-rebuild migrations on live data; until then referential integrity is enforced at the application layer (`ContentReferenceError` + `assert*Ref` guards in every create path, regression-tested; ADR-017). Identity-domain tables (migration 0000) DO have real FKs. Hot query paths indexed (listed per table).
 - Every mutation that spans tables runs in a D1 transaction (`batch`).
 - JSON columns: `TEXT` validated by Zod at the code boundary — the DB stores, the app validates.
 

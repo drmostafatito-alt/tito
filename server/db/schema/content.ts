@@ -5,6 +5,16 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
  * Hierarchy: program → grade → subject → course → unit → lesson → lesson_items.
  * Slugs unique per table; status draft|published|archived; soft delete via deleted_at.
  * IDs UUIDv4 generated in app code; timestamps INTEGER ms.
+ *
+ * NOTE (integrity): parent references (program_id, grade_id, …) and asset links
+ * (lesson_items.video_id/file_id) are plain TEXT columns + indexes here, NOT
+ * SQLite FK constraints. Referential integrity is enforced server-side in the
+ * content service: every create* validates that referenced parent/video/file/
+ * user rows exist (ContentReferenceError) BEFORE insert — a dangling reference
+ * (the file-ID mismatch bug class) is rejected at write time. DB-level FKs for
+ * these tables would require a SQLite table-rebuild migration plus a decision on
+ * soft-delete and exam_id (Phase 4) semantics — tracked as a deferred item in
+ * docs/DECISIONS.md, not changed silently.
  */
 
 export const programs = sqliteTable(

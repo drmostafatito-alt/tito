@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:test";
 import { getDb } from "~server/db/client.server";
-import { bucketOf, dispositionFor, getFile, insertFile, signFileUrl, verifyFileSignature } from "~server/files/storage.server";
+import { bucketOf, dispositionFor, getFile, insertFile, listFiles, signFileUrl, verifyFileSignature } from "~server/files/storage.server";
 
 /**
  * Private-file protection with REAL R2 + registry rows: signed-URL lifecycle at
@@ -37,6 +37,26 @@ beforeEach(async () => {
 });
 
 describe("private file protection (R2 + signed URLs)", () => {
+  it("insertFile returns EXACTLY the persisted row id (file-ID mismatch regression guard)", async () => {
+    // The historical bug: a helper returned one id while the registry row was
+    // persisted under a different generated id → signed URLs 404'd. The returned
+    // id MUST be the row id — verified against the table, not the helper.
+    const id = await putPrivateFile("ID-GUARD");
+    const row = await getFile(db, id);
+    expect(row).toBeTruthy();
+    expect(row!.id).toBe(id);
+    const all = await listFiles(db, 10);
+    expect(all.length).toBe(1);
+    expect(all[0]!.id).toBe(id);
+    expect(all[0]!.r2Key).toBe(row!.r2Key);
+    // a signature minted for the returned id verifies against the persisted row
+    const signed = await signFileUrl(env, id, "view", 60);
+    const p = new URL(`https://x${signed.path}`).searchParams;
+    expect(
+      await verifyFileSignature(env, { fileId: row!.id, perm: p.get("perm")!, exp: p.get("exp")!, sig: p.get("sig")! })
+    ).toEqual({ ok: true, perm: "view" });
+  });
+
   it("registry row + R2 object roundtrip; raw bytes land in the PRIVATE bucket", async () => {
     const id = await putPrivateFile("SECRET-PDF-BYTES");
     const row = await getFile(db, id);

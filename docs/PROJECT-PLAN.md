@@ -3,7 +3,7 @@
 > Single source of truth for **scope, phases, and process**.
 > Architecture details live in `ARCHITECTURE.md`. Decision rationale lives in `DECISIONS.md`.
 
-**Status: Phase 0 — Architecture & Planning. No application code has been written.**
+**Status: Phases 0–2 complete (2026-09-05). Phase 1 (foundation & auth) and Phase 2 (content domain) delivered with per-phase reports; all suites green (52 unit + 37 integration + 104-check runtime smoke). Phase 3 (student experience) not started.**
 
 ---
 
@@ -36,10 +36,10 @@ A commercial educational platform (Egypt-first, Cloudflare-hosted) with:
 
 | # | Phase | Scope summary | Exit criteria (tests must pass) |
 |---|-------|---------------|--------------------------------|
-| 0 | Architecture & planning *(current)* | This document, `DECISIONS.md`, then the full doc set (§7) | Docs approved by owner |
-| 1 | Foundation | Repo scaffold, env strategy, D1 + typed schema & migrations (identity/platform domains), authentication, RBAC, sessions + devices core, settings service, audit log, security middleware, base design system + layout | Auth flows verified; role guards server-enforced; sessions device-bound; CSP/headers verified; super-admin seed |
-| 2 | Content domain | Content hierarchy + admin CRUD, slugs/status/visibility/ordering, thumbnails, files + R2 signed access, VideoProvider abstraction (mock + Mux adapters), catalog & lesson pages gated by entitlement engine, menus from settings | Protected files only via short-TTL signed URLs post-check; mock playback works; Mux adapter env-gated |
-| 3 | Student experience | Student dashboard, progress & resume tracking, secure playback flow (token minting, replay rules, completion threshold), watch history, device management UI (student + admin), in-app notifications & announcements | Playback denied without entitlement; replay limits enforced server-side; resume works across sessions |
+| 0 | Architecture & planning ✅ | This document, `DECISIONS.md`, then the full doc set (§7) | Docs approved by owner ✅ |
+| 1 | Foundation ✅ | Repo scaffold, env strategy, D1 + typed schema & migrations (identity/platform domains), authentication, RBAC, sessions + devices core, settings service, audit log, security middleware, base design system + layout | ✅ verified 2026-09-05 (report + TEST-PLAN §6) |
+| 2 | Content domain ✅ | Content hierarchy + admin CRUD, slugs/status/visibility/ordering, thumbnails, files + R2 signed access, VideoProvider abstraction (mock + Mux adapters), catalog & lesson pages gated by entitlement engine, menus from settings | ✅ verified 2026-09-05: signed-URL discipline (tamper/expiry/perm-swap → 404), mock playback green, Mux adapter env-gated (loud `VideoNotConfiguredError`, no silent fallback), 104-check HTTP smoke (report + TEST-PLAN §6) |
+| 3 | Student experience *(next)* | Student dashboard, progress & resume tracking, secure playback flow (token minting, replay rules, completion threshold), watch history, device management UI (student + admin), in-app notifications & announcements | Playback denied without entitlement; replay limits enforced server-side; resume works across sessions |
 | 4 | Assessment engine | Question bank (MCQ / true-false / multi-select / essay; explanations, difficulty, tags, review workflow), exam builder (pools, randomization, distributions, windows, attempt & visibility policies), attempt engine (server timing, autosave, reconnect recovery, idempotent submission), auto-grading + manual essay queue, results & review modes | Client cannot bypass timing; refresh/network-loss recovery verified; duplicate submissions impossible; randomization stable per attempt |
 | 5 | Commerce | Products & pricing (incl. promos), discount codes, orders/order items, PaymentProvider abstraction + **Manual rail first** (transfer + admin approval), gateway adapter(s) only after verification ADR, webhook ingestion + signature verification + reconciliation, payment events, subscription lifecycle, activation codes (hashed, batched, product-bound), transactional entitlement grants | No access without verified webhook or admin approval; webhook signature tests pass; code redemption concurrency-safe; refunds adjust entitlements per policy |
 | 6 | Admin platform | Complete admin dashboard (all sections from brief §27) with search/filter/sort/pagination; homepage builder & CMS blocks; menus/footer/contact/social/WhatsApp settings; announcements broadcast; analytics events & charts; usage visibility for cost-sensitive services | Routine content/price/CMS changes need zero deploys; all admin actions audited; lists paginate under seeded scale |
