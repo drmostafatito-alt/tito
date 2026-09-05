@@ -50,6 +50,13 @@
       "when": 1788634491412,
       "tag": "0006_flowery_tempest",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1788641576540,
+      "tag": "0007_little_aqueduct",
+      "breakpoints": true
     }
   ]
 }

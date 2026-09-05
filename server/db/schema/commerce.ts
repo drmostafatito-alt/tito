@@ -125,6 +125,7 @@ export const orders = sqliteTable(
   (t) => [
     uniqueIndex("orders_number_uidx").on(t.orderNumber),
     index("orders_student_idx").on(t.studentId, t.status, t.createdAt),
+    index("orders_status_created_idx").on(t.status, t.createdAt),
   ]
 );
 

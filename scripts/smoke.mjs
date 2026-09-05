@@ -1055,6 +1055,139 @@ const run = async () => {
   check("forged webhook signature → 400 rejected (no fulfillment)", whPost.status === 400, `got ${whPost.status}`);
 
   // ------------------------------------------------------------------
+  console.log("\n[17] Phase 7 admin platform: real dashboard metrics, users, announcements, analytics, security, audit");
+  const p7Run = Date.now().toString(36);
+
+  // ── dashboard: real aggregated metrics + server-side date windows ──
+  const p7Home = await admin.get("/admin?range=all");
+  check("dashboard renders with range=all", p7Home.status === 200, `got ${p7Home.status}`);
+  const p7HomeText = norm(p7Home.text);
+  const p7Metric = (id) => {
+    const m = p7HomeText.match(new RegExp(`data-testid="${id}"[^>]*>([^<]*)<`));
+    return m ? m[1].trim() : null;
+  };
+  const usersMetric = Number((p7Metric("home-metric-users-total") ?? "0").replace(/[^0-9]/g, ""));
+  check("users metric is real data (>= 1)", usersMetric >= 1, `got ${p7Metric("home-metric-users-total")}`);
+  check("students metric present", p7Metric("home-metric-students") != null);
+  check("commerce revenue metric present (integer minor units, formatted)", (p7Metric("home-metric-gross") ?? "").length > 0);
+  check("video watch-time metric present", (p7Metric("home-metric-watch-time") ?? "").length > 0);
+  check("exam metrics present (attempts + pass rate)", p7Metric("home-metric-attempts") != null && p7Metric("home-metric-pass-rate") != null);
+  const p7HomeToday = await admin.get("/admin?range=today");
+  check("range switch re-renders server-side (today)", p7HomeToday.status === 200 && norm(p7HomeToday.text).includes('data-testid="range-switcher"'));
+
+  // ── users: search / detail / promote / escalation guards / suspend / reactivate / IDOR ──
+  // NOTE: reuses the §14 student (s14) — §17 must not consume register (5/h) or
+  // login (10/min) budget; those limits belong to §13 and to the earlier journeys.
+  const usersList = await admin.get(`/admin/users?q=${encodeURIComponent(s14Email)}`);
+  const s14Id = (usersList.text.match(/href="\/admin\/users\/([0-9a-f-]{36})"/) ?? [])[1] ?? null;
+  check("users search finds the §14 student server-side", usersList.status === 200 && Boolean(s14Id), `found=${s14Id}`);
+
+  if (s14Id) {
+    const p7Detail = await admin.get(`/admin/users/${s14Id}`);
+    check("user detail renders profile + aggregates", p7Detail.status === 200 && norm(p7Detail.text).includes(s14Email));
+    check("user detail leaks no password material", !p7Detail.text.includes("$2b$") && !p7Detail.text.includes("password_hash") && !p7Detail.text.includes("passwordHash"));
+
+    // super admin promotes s14 → admin (rank 3) for the low-privilege matrix
+    const promote = await admin.post(`/admin/users/${s14Id}`, { form: { _action: "set-role", roleId: "admin" } });
+    check("super admin promotes user to admin (audited)", promote.status === 200 && norm(promote.text).includes("user-action-done"), `got ${promote.status}`);
+
+    const s14Users = await s14.get("/admin/users");
+    check("rank-3 admin CAN view users (seeded users.read)", s14Users.status === 200, `got ${s14Users.status}`);
+    const s14Analytics = await s14.get("/admin/analytics?range=7d");
+    check("rank-3 admin CAN view analytics", s14Analytics.status === 200, `got ${s14Analytics.status}`);
+
+    const esc1 = await s14.post(`/admin/users/${s14Id}`, { form: { _action: "set-role", roleId: "super_admin" } });
+    check("rank-3 self-escalation to super_admin denied by server", norm(esc1.text).includes("user-action-error"), `status=${esc1.status}`);
+    const detailAsS14 = await s14.get(`/admin/users/${s14Id}`);
+    check("escalation changed nothing (still not super admin)", !detailAsS14.text.includes("مشرف عام"));
+    const esc2 = await s14.post(`/admin/users/${s14Id}`, { form: { _action: "force-logout" } });
+    check("rank-3 self force-logout denied", norm(esc2.text).includes("user-action-error"));
+    const esc3 = await s14.post(`/admin/users/${s14Id}`, { form: { _action: "set-status", status: "suspended" } });
+    check("rank-3 cannot suspend own account", norm(esc3.text).includes("user-action-error"));
+
+    // suspend (by super admin) → live session dies immediately
+    const p7Susp = await admin.post(`/admin/users/${s14Id}`, { form: { _action: "set-status", status: "suspended" } });
+    check("admin suspends user (audited action accepted)", p7Susp.status === 200 && norm(p7Susp.text).includes("user-action-done"), `got ${p7Susp.status}`);
+    const s14Dead = await s14.get("/admin/users");
+    check("suspended user's session dies immediately (redirect)", s14Dead.status === 302, `got ${s14Dead.status}`);
+    const statusBadge = (html, id) => {
+      const m = html.match(new RegExp(`user-status-${id}"[\\s\\S]{0,220}?</span>`));
+      return m ? m[0] : "";
+    };
+    const afterSusp = await admin.get(`/admin/users?q=${encodeURIComponent(s14Email)}`);
+    check("users list shows suspended status on THIS user's badge", statusBadge(afterSusp.text, s14Id).includes("موقوف"));
+
+    // reactivate → list shows active; revoked session STAYS revoked (re-login would be required)
+    const react = await admin.post(`/admin/users/${s14Id}`, { form: { _action: "set-status", status: "active" } });
+    check("admin reactivates user", react.status === 200 && norm(react.text).includes("user-action-done"));
+    const afterReact = await admin.get(`/admin/users?q=${encodeURIComponent(s14Email)}`);
+    check("users list shows active status again on THIS user's badge", statusBadge(afterReact.text, s14Id).includes("نشط"));
+    const s14StillDead = await s14.get("/admin/users");
+    check("revoked session stays revoked after reactivation", s14StillDead.status === 302, `got ${s14StillDead.status}`);
+
+    // demote back to student (leave no elevated smoke accounts behind)
+    const demote = await admin.post(`/admin/users/${s14Id}`, { form: { _action: "set-role", roleId: "student" } });
+    check("super admin demotes back to student (cleanup)", demote.status === 200 && norm(demote.text).includes("user-action-done"));
+
+    const idor = await student.get(`/admin/users/${s14Id}`);
+    check("student → admin user detail denied (redirect, no data)", idor.status === 302, `got ${idor.status}`);
+  }
+
+  // ── announcements: draft invisible → publish → student inbox → mark read → audit ──
+  const annTitle = `Smoke P7 ${p7Run}`;
+  const createAnn = await admin.post("/admin/announcements", { form: { _action: "create", titleAr: `إعلان ${annTitle}`, titleEn: annTitle, bodyAr: "نص الدخان", bodyEn: "smoke body", audience: "students" } });
+  check("announcement created as draft", createAnn.status === 200 && norm(createAnn.text).includes("ann-done"), `got ${createAnn.status}`);
+  const annList = await admin.get("/admin/announcements");
+  const annId = (annList.text.match(/ann-publish-([0-9a-f-]{36})/) ?? [])[1] ?? null;
+  check("draft listed with publish control", Boolean(annId));
+
+  const notifBefore = await student.get("/notifications");
+  check("student notification center renders", notifBefore.status === 200);
+  check("DRAFT announcement invisible to students", !notifBefore.text.includes(p7Run));
+
+  if (annId) {
+    const pub = await admin.post("/admin/announcements", { form: { _action: "publish", id: annId } });
+    check("announcement published", pub.status === 200 && norm(pub.text).includes("ann-done"));
+    const notifAfter = await student.get("/notifications");
+    check("published announcement visible to targeted student", notifAfter.text.includes(p7Run));
+    check("unread badge shown", norm(notifAfter.text).includes(`notif-unread-${annId}`));
+    check("nav unread count shown in student layout", norm(notifAfter.text).includes("nav-unread-badge"));
+
+    const mark = await student.post("/notifications", { form: { _action: "mark-read", id: annId } });
+    check("mark-read accepted", mark.status === 200);
+    const notifRead = await student.get("/notifications");
+    check("read state persisted (unread badge gone)", !norm(notifRead.text).includes(`notif-unread-${annId}`));
+
+    const auditPub = await admin.get("/admin/audit?q=announcements.publish");
+    check("audit viewer shows announcements.publish trail", auditPub.status === 200 && auditPub.text.includes("announcements.publish") && norm(auditPub.text).includes("audit-row"));
+
+    const studentCreate = await student.post("/admin/announcements", { form: { _action: "create", titleAr: "x", titleEn: "x", bodyAr: "", bodyEn: "", audience: "all" } });
+    check("student → announcements admin action denied (redirect)", studentCreate.status === 302, `got ${studentCreate.status}`);
+  }
+
+  // ── analytics / security / assessment / commerce / audit surfaces ──
+  const analytics = await admin.get("/admin/analytics?range=30d");
+  check("analytics page renders with date window", analytics.status === 200 && norm(analytics.text).includes("range-switcher"));
+  const security = await admin.get("/admin/security");
+  check("security center lists security events", security.status === 200 && norm(security.text).includes("security-event-row"));
+  const sessionsTab = await admin.get("/admin/security?tab=sessions");
+  check("security center lists active sessions", sessionsTab.status === 200 && norm(sessionsTab.text).includes("session-row"));
+  const assessHub = await admin.get("/admin/assessment");
+  check("assessment admin hub reachable (platform visibility)", assessHub.status === 200);
+  const ordersTab = await admin.get("/admin/commerce?tab=orders");
+  check("commerce orders view reachable with §16 rows", ordersTab.status === 200 && norm(ordersTab.text).includes("admin-order-row"));
+  const auditAll = await admin.get("/admin/audit");
+  check("audit viewer reachable with entries", auditAll.status === 200 && norm(auditAll.text).includes("audit-row"));
+
+  // ── student denied EVERY admin surface (UI visibility ≠ authorization) ──
+  let deniedAll = true;
+  for (const path of ["/admin", "/admin/users", "/admin/analytics", "/admin/audit", "/admin/security", "/admin/announcements"]) {
+    const r = await student.get(path);
+    if (r.status !== 302) { deniedAll = false; check(`student denied ${path}`, false, `got ${r.status}`); }
+  }
+  check("student denied all admin surfaces (302, no data)", deniedAll);
+
+  // ------------------------------------------------------------------
   console.log("\n[13] Rate limiting (runs LAST by design — burns the 1-min login window)");
   const rlClient = makeClient("ratelimit");
   let blocked = false;

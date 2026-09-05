@@ -347,3 +347,54 @@ tests.
 entry + a §6 verification row — zero domain changes. Until then the manual
 rail + activation codes are the production payment surface, exactly as
 FEATURE-SPEC §7 prescribes for v1.
+
+## ADR-025 Announcements ARE the in-app notification system (lazy reads, no fan-out) (Phase 7)
+
+**Context.** FEATURE-SPEC §9 defines platform announcements with a
+draft/publish lifecycle, audience targeting and a student inbox with unread
+state — and nothing more. A generic `notifications` fan-out table (one row
+per recipient at publish time) would multiply writes by audience size,
+complicate post-publish edits, and leave backfill problems for users who
+register later. External channels (email/WhatsApp/push) are not verified and
+stay gated exactly like payment gateways (ADR-024 discipline).
+
+**Decisions.**
+1. **Two tables ship (migration 0007, additive):** `announcements`
+   (bilingual title/body as PLAIN TEXT — nothing to sanitize; audience
+   `all|students|teachers`; status `draft|published|archived`; optional
+   `publish_at` schedule + `expires_at` window; `published_at` stamp;
+   `created_by`) and `announcement_reads` (UNIQUE(announcement_id, user_id)
+   — lazy read receipts; user_id is an app-ref per ADR-017).
+2. **Visibility is computed at READ time, server-side:**
+   `status='published'` AND window open (`publish_at` NULL/≤now,
+   `expires_at` NULL/>now) AND audience matches the viewer (admins match
+   `all` only). Drafts, archived and expired rows never reach students —
+   smoke-verified end to end. Post-publish edits apply to everyone
+   immediately; there are no stale per-user copies.
+3. **Read state is lazy:** an `announcement_reads` row exists only after the
+   user marks read (`onConflictDoNothing` ⇒ idempotent). Unread badge =
+   visible announcements minus the user's read rows — two indexed queries,
+   zero write amplification. `markAllRead` inserts at most 100 rows per call
+   (bounded Workers write).
+4. **Lifecycle guards live in the service:** create always lands as draft;
+   update allowed on draft+published (archived is frozen); unpublish returns
+   to draft keeping `published_at`; publish rejects an `expires_at` already
+   in the past; archive is a frozen terminal state. There is NO delete path —
+   announcements are permanent operational records. Every mutation writes an
+   audit row (`announcements.create/update/publish/unpublish/archive`)
+   through the existing audit infrastructure.
+5. **No external channel and no `server/notifications/` module ship.** The
+   student notification center (`/notifications`, nav unread badge) IS the
+   v1 notification system; `server/announcements/service.server.ts` owns the
+   domain. Email/WhatsApp require a recorded verification (provider docs,
+   deliverability, opt-in rules) before any adapter code — same gate as
+   ADR-024.
+6. **Announcements are operational content, not analytics events:** they are
+   never counted into learning/video/exam metrics.
+
+**Consequences.** Publish cost is O(1) regardless of audience size;
+registration-during-publication works with no backfill. Per-user
+notification preferences or an external channel can layer on later without
+schema change (audience column + user-scoped reads already exist). The
+`teachers` audience value is reserved by the spec and behaves as "no
+matching users" until a teacher role ships.

@@ -109,7 +109,11 @@ badContent += await count(
 badContent += await count(
   `SELECT COUNT(*) n FROM products WHERE slug = 'physics-3s-full-access' OR slug LIKE 'smoke-%' OR name_en LIKE 'Smoke %'`
 );
-check("no seed/smoke content rows (incl. CMS + assessment + commerce catalog)", badContent === 0, `${badContent} found`);
+// Phase 7: smoke announcements must never reach production
+badContent += await count(
+  `SELECT COUNT(*) n FROM announcements WHERE title_en LIKE 'Smoke %' OR title_ar LIKE 'إعلان Smoke%'`
+);
+check("no seed/smoke content rows (incl. CMS + assessment + commerce catalog + announcements)", badContent === 0, `${badContent} found`);
 
 // 2b) commerce transactional hygiene: the mock gateway and demo-account orders must never exist in production
 const mockPayments = await count(`SELECT COUNT(*) n FROM payments WHERE provider = 'mock'`);
@@ -161,7 +165,7 @@ check("all migrations applied", migrations >= expectedMigrations, `${migrations}
 
 // 9) CMS permission grants seeded for admin role
 const perms = await count(`SELECT COUNT(*) n FROM role_permissions WHERE role_id = 'admin'`);
-check("admin CMS + assessment + commerce permissions seeded", perms >= 22, `${perms}/22`);
+check("admin CMS + assessment + commerce + platform permissions seeded", perms >= 28, `${perms}/28`);
 
 // 10) administrable: at least one active super_admin
 const supers = await count(

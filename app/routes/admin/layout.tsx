@@ -24,9 +24,14 @@ export default function AdminLayout() {
     { to: "/admin/content", label: t(locale, "admin.navContent") },
     { to: "/admin/files", label: t(locale, "admin.navFiles") },
     { to: "/admin/videos", label: t(locale, "admin.navVideos") },
+    { to: "/admin/users", label: t(locale, "admin.navUsers") },
     { to: "/admin/entitlements", label: t(locale, "admin.navEntitlements") },
     { to: "/admin/assessment", label: t(locale, "assessment.nav") },
     { to: "/admin/commerce", label: t(locale, "commerceAdmin.nav") },
+    { to: "/admin/announcements", label: t(locale, "admin.navAnnouncements") },
+    { to: "/admin/analytics", label: t(locale, "admin.navAnalytics") },
+    { to: "/admin/security", label: t(locale, "admin.navSecurity") },
+    { to: "/admin/audit", label: t(locale, "admin.navAudit") },
     { to: "/dashboard", label: t(locale, "common.dashboard") },
   ];
 

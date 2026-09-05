@@ -137,6 +137,7 @@ export const examAttempts = sqliteTable(
       .on(t.examId, t.studentId)
       .where(sql`status = 'in_progress'`),
     index("exam_attempts_student_idx").on(t.studentId, t.startedAt),
+    index("exam_attempts_started_idx").on(t.startedAt),
   ]
 );
 

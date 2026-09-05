@@ -170,7 +170,8 @@ export type PresentationSettings = z.infer<typeof presentationSettingsSchema>;
 
 /** Phase 3 — student dashboard module configuration (only IMPLEMENTED modules are offered). */
 /** Phase 4 — additive module ids (continue/stats). Existing saved arrays keep working. */
-export const DASHBOARD_MODULE_IDS = ["my_courses", "continue", "stats", "quick_actions", "support"] as const;
+/** Phase 7 — additive module ids (announcements/expiry). Existing saved arrays keep working. */
+export const DASHBOARD_MODULE_IDS = ["my_courses", "continue", "stats", "quick_actions", "support", "announcements", "expiry"] as const;
 export type DashboardModuleId = (typeof DASHBOARD_MODULE_IDS)[number];
 
 export const dashboardSettingsSchema = z.object({

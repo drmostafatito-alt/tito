@@ -5,6 +5,7 @@ import { requireUser } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { menuItemsFor } from "~server/cms/service.server";
+import { unreadAnnouncementsCount } from "~server/announcements/service.server";
 import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { Icon } from "~/cms/icons";
@@ -21,9 +22,11 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     ...i,
     children: studentMenu.items.filter((c) => c.parentId === i.id && c.visible).map(toItem),
   }));
+  const unreadNotifications = await unreadAnnouncementsCount(db, { id: auth.user.id, roleId: auth.user.roleId });
   return {
     user: { fullName: auth.user.fullName, roleId: auth.user.roleId, rank: auth.user.rank },
     menu,
+    unreadNotifications,
   };
 }
 
@@ -74,12 +77,13 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
   const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100";
   const activeLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700";
 
-  const coreLinks: Array<{ to: string; label: string; end?: boolean }> = [
+  const coreLinks: Array<{ to: string; label: string; end?: boolean; badge?: number }> = [
     { to: "/dashboard", label: t(locale, "common.dashboard") },
     { to: "/courses", label: t(locale, "content.catalogTitle") },
     { to: "/programs", label: t(locale, "catalog.programs") },
     { to: "/exams", label: t(locale, "exam.listTitle") },
     { to: "/orders", label: t(locale, "commerce.myOrders") },
+    { to: "/notifications", label: t(locale, "notifications.navLabel"), badge: loaderData.unreadNotifications },
     { to: "/profile", label: t(locale, "profile.title") },
     { to: "/profile/security", label: t(locale, "dashboard.securityLink") },
   ];
@@ -99,6 +103,9 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
             {coreLinks.map((l) => (
               <RRNavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? activeLinkCls : navLinkCls)}>
                 {l.label}
+                {l.badge ? (
+                  <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white" dir="ltr" data-testid="nav-unread-badge">{l.badge}</span>
+                ) : null}
               </RRNavLink>
             ))}
             {loaderData.menu.map((node) =>
@@ -158,6 +165,9 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
               {coreLinks.map((l) => (
                 <RRNavLink key={l.to} to={l.to} onClick={close} className={({ isActive }) => (isActive ? activeLinkCls + " w-full" : navLinkCls + " w-full")}>
                   {l.label}
+                  {l.badge ? (
+                    <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white" dir="ltr">{l.badge}</span>
+                  ) : null}
                 </RRNavLink>
               ))}
               {loaderData.menu.map((node) => (

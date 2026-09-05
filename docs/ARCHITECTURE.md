@@ -161,3 +161,16 @@ server/*         → server/* (no cycles), drizzle, zod
 providers/*      → vendor SDK/HTTP only, isolated
 routes/*         → server modules via context only
 ```
+
+## 17. Admin platform & analytics aggregation (P7 — live; ADR-025)
+
+The admin platform is a **read/mutate layer over the existing domains** — no parallel app, no parallel tracking, no new sources of truth:
+
+- **Aggregation, not collection.** `server/analytics/service.server.ts` computes every metric with SQL aggregates (`COUNT/SUM`, `db.batch` — `adminOverview` runs ~20 queries in ONE round trip) over the tables that already record reality: `events` (exactly-once domain events), `video_watch_sessions`, `lesson_progress`, `video_progress`, `exam_attempts`, `orders`/`payments`/`refunds`, `activation_code_redemptions`, `entitlements`, `users`. Analytics writes NOTHING.
+- **Metric definitions are event-sourced and non-overlapping:** video starts = `events.video_start`; video completions = `video_complete`; lesson completions = `lesson_complete`; exam submissions = `exam_attempts.submitted_at`; watch time = `SUM(video_watch_sessions.watched_seconds)`; revenue = `orders.total_minor` where status `paid` only (integer minor units, never floats, never frontend totals); net = gross − refunds. Page views are never substituted for domain events.
+- **Time windows** (today/7d/30d/all) are pure functions (`server/analytics/ranges.ts` — client-safe, unit-tested); server-side filtering only, bounded by the 3 indexes added in migration 0007.
+- **User management** (`server/users/service.server.ts` + `server/auth/permissions.server.ts`): `canPlatform` (rank≥4 bypass, rank3 via seeded `users.*/analytics.read/security.read/audit.read/announcements.manage`); loaders THROW 403 without the read permission, actions return `{error:"denied"}` — UI hiding is never the control. Escalation is service-enforced: target-rank ≥ actor-rank rejected, self-target rejected, `super_admin` grants require rank 4, last super admin can't be demoted/suspended; suspend ⇒ `revokeAllUserSessions` + security event + audit; all mutations idempotent and audited. Entitlement revoke goes through the EXISTING resolver service (`revokeEntitlement`) — the platform never re-implements access.
+- **Lists are server-side:** pagination (users 20 / security 25 / audit 30 / announcements 20), search + status/type/date filters pushed into SQL with indexes; no client-side filtering of large datasets; no N+1 (detail pages batch their aggregates).
+- **Announcements** are the in-app notification system (ADR-025): lazy visibility + read receipts; student `/notifications` center + nav unread badge; drafts never leave the server for students.
+- **Audit & security viewers are read-only** over `audit_logs` (append-only; the audit route exports NO action) and `security_events`/`sessions`/`user_devices` (revoke/reset mutations live on the security surface under `users.manage`).
+- **Secrets discipline:** no admin view or loader response ever includes password hashes, session tokens, device keys, activation-code plaintext/hashes, or provider secrets — smoke-asserted.

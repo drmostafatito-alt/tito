@@ -68,7 +68,7 @@ export const videoWatchSessions = sqliteTable(
     watchedSeconds: integer("watched_seconds").notNull().default(0),
     deviceId: text("device_id"),
   },
-  (t) => [index("watch_sessions_progress_idx").on(t.videoProgressId, t.startedAt)]
+  (t) => [index("watch_sessions_progress_idx").on(t.videoProgressId, t.startedAt), index("watch_sessions_started_idx").on(t.startedAt)]
 );
 
 export const events = sqliteTable(

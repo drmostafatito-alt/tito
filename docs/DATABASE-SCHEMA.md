@@ -244,10 +244,31 @@ activation_code_redemptions id PK · code_id FK · student_id FK · entitlement_
                  · created_at · ip_hash      UNIQUE(code_id, student_id)
 ```
 
+## Announcements & platform admin (P7 — LIVE, migration `0007_little_aqueduct`)
+
+**Additive only: 2 tables + 4 indexes + 6 permission rows; no drops/renames/rewrites.** Announcement bodies are PLAIN TEXT (nothing to sanitize); `announcement_reads.user_id` is an app-ref to users per ADR-017. Visibility is computed at read time and reads are lazy receipts — no fan-out table (ADR-025).
+
+```
+announcements       id PK · title_ar/en · body_ar/en TEXT DEFAULT '' · audience TEXT(all|students|teachers)
+                    · status TEXT(draft|published|archived) · publish_at NULL (schedule) · expires_at NULL
+                    · published_at NULL · created_by NULL (app-ref users) · created_at · updated_at
+                    idx(status, publish_at)
+announcement_reads  id PK · announcement_id FK(announcements) · user_id (app-ref users) · read_at
+                    UNIQUE(announcement_id, user_id) · idx(user_id)
+```
+
+Query-driven indexes added for the P7 admin surfaces (time-window aggregation + list filters):
+- `watch_sessions_started_idx` on `video_watch_sessions(started_at)` — video analytics windows.
+- `exam_attempts_started_idx` on `exam_attempts(started_at)` — assessment activity windows.
+- `orders_status_created_idx` on `orders(status, created_at)` — commerce admin status filters + revenue windows.
+
+Permissions seeded for the admin role (idempotent `INSERT OR IGNORE`; super_admin rank 4 bypasses in code): `users.read`, `users.manage`, `analytics.read`, `security.read`, `audit.read`, `announcements.manage` — admin floor 22 → **28** (readiness-gate enforced). No other table changed; the admin platform reads the EXISTING `events`, `video_watch_sessions`, `lesson_progress`, `video_progress`, `exam_attempts`, `orders`, `payments`, `refunds`, `activation_code_redemptions`, `entitlements`, `audit_logs`, `security_events`, `sessions`, `user_devices` tables — analytics never writes (no parallel tracking).
+
 ## Referential notes
 
 - `order_items.entitlement_spec` freezes what was purchased; grant code reuses this spec — price changes never rewrite history.
 - Payment → entitlement grant happens in ONE transaction (see PAYMENTS.md state machine).
 - Activation/discount codes stored **hashed**; `prefix` (first 4 chars) kept for admin search/support.
 - Content cascade: deleting (soft) a course hides descendants; entitlements are never silently deleted — they expire/revoke explicitly.
+- Announcements: publish never writes per-user rows; unread state = visible-set minus `announcement_reads` (ADR-025). There is NO delete path — unpublish returns to draft, archive is the frozen terminal state.
 - Search: SQLite FTS5 shadow tables for `questions.stem`, `lessons.title`, `courses.title` (P4/P6); regular indexes elsewhere. Architecture permits an external search engine later without schema change.

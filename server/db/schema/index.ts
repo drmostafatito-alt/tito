@@ -6,3 +6,4 @@ export * from "./cms";
 export * from "./progress";
 export * from "./assessment";
 export * from "./commerce";
+export * from "./notifications";

@@ -4,7 +4,8 @@ import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { requireUser } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
-import { courses, devices, securityEvents, sessions } from "~server/db/schema";
+import { courses, devices, securityEvents, sessions, subscriptions } from "~server/db/schema";
+import { unreadAnnouncementsCount, visibleAnnouncements } from "~server/announcements/service.server";
 import { entitlementsForStudent } from "~server/entitlements/grant.server";
 import { continueLearning, courseProgressBatch, progressStats } from "~server/progress/service.server";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
@@ -70,6 +71,35 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const continueItems = enabled.get("continue") ? await continueLearning(db, auth.user.id, 4) : [];
   const stats = enabled.get("stats") ? await progressStats(db, auth.user.id) : null;
 
+  // Phase 7 modules: unread announcements + subscriptions expiring within 14 days (FEATURE-SPEC §2)
+  const notifUser = { id: auth.user.id, roleId: auth.user.roleId };
+  const [notifItems, notifUnread] = enabled.get("announcements")
+    ? await Promise.all([visibleAnnouncements(db, notifUser, Date.now(), 3), unreadAnnouncementsCount(db, notifUser)])
+    : [[], 0];
+  const announcementsModule = enabled.get("announcements")
+    ? { unread: notifUnread, items: notifItems.map((i) => ({ id: i.id, titleAr: i.titleAr, titleEn: i.titleEn, readAt: i.readAt })) }
+    : null;
+
+  let expiringModule: Array<{ id: string; titleAr: string | null; titleEn: string | null; endAt: number }> | null = null;
+  if (enabled.get("expiry")) {
+    const nowMs = Date.now();
+    const horizon = nowMs + 14 * 86_400_000;
+    const subRows = await db
+      .select({ id: subscriptions.id, planSnapshot: subscriptions.planSnapshot, currentPeriodEnd: subscriptions.currentPeriodEnd, expiresAt: subscriptions.expiresAt })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.studentId, auth.user.id), inArray(subscriptions.status, ["active", "paused", "cancelled"])))
+      .limit(20);
+    expiringModule = subRows
+      .map((s) => ({
+        id: s.id,
+        titleAr: typeof s.planSnapshot?.titleAr === "string" ? s.planSnapshot.titleAr : null,
+        titleEn: typeof s.planSnapshot?.titleEn === "string" ? s.planSnapshot.titleEn : null,
+        endAt: s.expiresAt ?? s.currentPeriodEnd ?? 0,
+      }))
+      .filter((s) => s.endAt > nowMs && s.endAt <= horizon)
+      .sort((a, b) => a.endAt - b.endAt);
+  }
+
   return {
     user: { fullName: auth.user.fullName, roleId: auth.user.roleId },
     session: { expiresAt: auth.session.expiresAt },
@@ -85,11 +115,15 @@ export async function loader({ context, request }: Route.LoaderArgs) {
         stats: Boolean(enabled.get("stats")),
         quickActions: Boolean(enabled.get("quick_actions")),
         support: Boolean(enabled.get("support")),
+        announcements: Boolean(enabled.get("announcements")),
+        expiry: Boolean(enabled.get("expiry")),
       },
     },
     myCourses,
     continueItems,
     stats,
+    announcementsModule,
+    expiringModule,
     support: {
       email: settings.platform.supportEmail ?? "",
       phone: settings.platform.supportPhone ?? "",
@@ -206,6 +240,58 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 ))}
               </ul>
             )}
+          </CardBody>
+        </Card>
+      )}
+
+      {loaderData.dash.modules.announcements && loaderData.announcementsModule && (
+        <Card>
+          <CardHeader
+            title={t(locale, "dashboard.announcements")}
+            action={
+              <Link to="/notifications" className="text-sm text-blue-700 hover:underline">
+                {loaderData.announcementsModule.unread > 0
+                  ? t(locale, "dashboard.unreadCount", { n: loaderData.announcementsModule.unread })
+                  : t(locale, "dashboard.viewAll")}
+              </Link>
+            }
+          />
+          <CardBody>
+            {loaderData.announcementsModule.items.length === 0 ? (
+              <p className="text-sm text-slate-500" data-testid="dash-announcements-empty">{t(locale, "notifications.empty")}</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {loaderData.announcementsModule.items.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between gap-2 text-sm" data-testid="dash-announcement-row">
+                    <Link to="/notifications" className="truncate font-medium text-slate-800 hover:text-brand-700">
+                      {locale === "ar" ? a.titleAr || a.titleEn : a.titleEn || a.titleAr}
+                    </Link>
+                    {!a.readAt && <Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+      )}
+
+      {loaderData.dash.modules.expiry && loaderData.expiringModule && loaderData.expiringModule.length > 0 && (
+        <Card>
+          <CardHeader title={t(locale, "dashboard.expiring")} />
+          <CardBody>
+            <ul className="flex flex-col gap-2">
+              {loaderData.expiringModule.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-2 text-sm" data-testid="dash-expiry-row">
+                  <span className="truncate font-medium text-slate-800">
+                    {(locale === "ar" ? s.titleAr || s.titleEn : s.titleEn || s.titleAr) || t(locale, "dashboard.subscriptionGeneric")}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Badge tone="warning">{t(locale, "dashboard.expiresOn")}</Badge>
+                    <span className="text-xs text-slate-500">{formatDate(locale, s.endAt)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </CardBody>
         </Card>
       )}
