@@ -1,0 +1,358 @@
+import type { Route } from "./+types/admin.appearance";
+import { Form, Link, useActionData, useRouteLoaderData } from "react-router";
+import { and, desc, eq } from "drizzle-orm";
+import { requireRole } from "~server/auth/guards.server";
+import { getDb } from "~server/db/client.server";
+import { getEnv } from "~server/cf.server";
+import { getSettings, updateSettingsGroup } from "~server/settings/service.server";
+import { canCms } from "~server/cms/service.server";
+import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
+import { files } from "~server/db/schema";
+import { cmsLabel } from "~/cms/registry";
+import { Alert } from "~/components/ui/Alert";
+import { Card, CardBody, CardHeader } from "~/components/ui/Card";
+import { Input } from "~/components/ui/Input";
+import { SubmitButton } from "~/components/ui/Button";
+import type { Locale } from "~/lib/i18n";
+
+/**
+ * Appearance & identity admin (Phase 3 stage 3). Branding, theme tokens,
+ * presentation toggles and dashboard modules — all validated design tokens /
+ * whitelisted options, persisted as settings (zero code deployment for routine
+ * visual changes). Theme tokens render through /theme.css; arbitrary CSS is
+ * never accepted.
+ */
+
+const TABS = ["identity", "theme", "presentation", "dashboard"] as const;
+type Tab = (typeof TABS)[number];
+
+export async function loader({ context, request }: Route.LoaderArgs) {
+  const guarded = await requireRole(context, request, 3);
+  const env = getEnv(context);
+  const db = getDb(env);
+  const url = new URL(request.url);
+  const tabParam = url.searchParams.get("tab");
+  const tab: Tab = TABS.includes(tabParam as Tab) ? (tabParam as Tab) : "identity";
+  const [canTheme, canEdit] = await Promise.all([
+    canCms(db, guarded.auth, "cms.manage_theme"),
+    canCms(db, guarded.auth, "cms.edit"),
+  ]);
+  const allowed = tab === "identity" || tab === "theme" ? canTheme : canEdit;
+  const settings = await getSettings(db);
+  const imageRows = await db
+    .select({ id: files.id, name: files.originalFilename })
+    .from(files)
+    .where(and(eq(files.visibility, "public"), eq(files.kind, "image")))
+    .orderBy(desc(files.createdAt))
+    .limit(200);
+  return { tab, allowed, canTheme, canEdit, settings, images: imageRows.map((r) => ({ id: r.id, label: r.name })) };
+}
+
+export async function action({ context, request }: Route.ActionArgs) {
+  const guarded = await requireRole(context, request, 3);
+  const env = getEnv(context);
+  const db = getDb(env);
+  const form = await request.formData();
+  const intent = String(form.get("_action") ?? "");
+  const group = intent.replace("save-", "");
+  if (!TABS.includes(group as Tab)) return { error: "generic" as const };
+  const needed = group === "identity" || group === "theme" ? "cms.manage_theme" : "cms.edit";
+  if (!(await canCms(db, guarded.auth, needed as "cms.manage_theme"))) return { error: "denied" as const };
+  const actor = { userId: guarded.auth.user.id, role: guarded.auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
+  const str = (k: string) => String(form.get(k) ?? "");
+  const on = (k: string) => form.get(k) === "on";
+
+  try {
+    let patch: Record<string, unknown>;
+    if (group === "identity") {
+      patch = {
+        shortNameAr: str("shortNameAr"), shortNameEn: str("shortNameEn"),
+        ownerNameAr: str("ownerNameAr"), ownerNameEn: str("ownerNameEn"),
+        ownerTitleAr: str("ownerTitleAr"), ownerTitleEn: str("ownerTitleEn"),
+        ownerPhotoFileId: str("ownerPhotoFileId"), logoFileId: str("logoFileId"),
+        faviconFileId: str("faviconFileId"), heroImageFileId: str("heroImageFileId"),
+        aboutImageFileId: str("aboutImageFileId"),
+        contactPhone: str("contactPhone"), contactEmail: str("contactEmail"),
+        contactAddressAr: str("contactAddressAr"), contactAddressEn: str("contactAddressEn"),
+        telegram: str("telegram"), facebook: str("facebook"), youtube: str("youtube"),
+        instagram: str("instagram"), tiktok: str("tiktok"), twitter: str("twitter"), linkedin: str("linkedin"),
+        copyrightAr: str("copyrightAr"), copyrightEn: str("copyrightEn"),
+      };
+    } else if (group === "theme") {
+      const num = (k: string) => Number(str(k) || 0);
+      patch = {
+        primary: str("primary"), secondary: str("secondary"), accent: str("accent"),
+        background: str("background"), surface: str("surface"), text: str("text"),
+        mutedText: str("mutedText"), border: str("border"),
+        success: str("success"), warning: str("warning"), error: str("error"),
+        radiusBase: num("radiusBase"), radiusButton: num("radiusButton"), radiusCard: num("radiusCard"),
+        shadow: str("shadow"), density: str("density"), fontScale: str("fontScale"),
+      };
+    } else if (group === "presentation") {
+      patch = {
+        courseCard: {
+          showImage: on("cc.showImage"), showTeacher: on("cc.showTeacher"),
+          showLessonCount: on("cc.showLessonCount"), showSubject: on("cc.showSubject"),
+          showBadge: on("cc.showBadge"),
+          ctaLabelAr: str("cc.ctaLabelAr"), ctaLabelEn: str("cc.ctaLabelEn"),
+          layout: str("cc.layout"),
+        },
+        subjectCard: {
+          showImage: on("sc.showImage"), showCourseCount: on("sc.showCourseCount"),
+          ctaLabelAr: str("sc.ctaLabelAr"), ctaLabelEn: str("sc.ctaLabelEn"),
+        },
+        lesson: {
+          showDescription: on("ls.showDescription"), showAttachments: on("ls.showAttachments"),
+          showPrevNext: on("ls.showPrevNext"), showRelated: on("ls.showRelated"),
+          video: {
+            showPoster: on("ls.video.showPoster"), showTitle: on("ls.video.showTitle"),
+            showDescription: on("ls.video.showDescription"),
+            allowSpeed: on("ls.video.allowSpeed"), allowFullscreen: on("ls.video.allowFullscreen"),
+          },
+        },
+      };
+    } else {
+      patch = {
+        welcomeAr: str("welcomeAr"), welcomeEn: str("welcomeEn"),
+        modules: (["my_courses", "quick_actions", "support"] as const).map((id) => ({ id, enabled: on(`mod.${id}`) })),
+      };
+    }
+    await updateSettingsGroup(db, group as "identity", patch, actor);
+    return { ok: true as const };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: "validation" as const, issues: [message.slice(0, 300)] };
+  }
+}
+
+type Loc = "ar" | "en";
+
+function ImageSelect({ name, value, images, label, locale }: { name: string; value: string; images: Array<{ id: string; label: string }>; label: string; locale: Loc }) {
+  void locale;
+  return (
+    <div className="flex flex-col">
+      <span className="mb-1 text-sm font-medium text-slate-700">{label}</span>
+      <div className="flex items-center gap-2">
+        {value && images.some((i) => i.id === value) && (
+          <img src={`/files/${value}`} alt="" className="h-10 w-10 rounded-lg border border-slate-200 object-cover" />
+        )}
+        <select name={name} defaultValue={value ?? ""} className="h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+          <option value="">—</option>
+          {value && !images.some((i) => i.id === value) && <option value={value}>{value.slice(0, 8)}…</option>}
+          {images.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function Check({ name, checked, label }: { name: string; checked: boolean; label: string }) {
+  return (
+    <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700">
+      <input type="checkbox" name={name} defaultChecked={checked} className="h-4 w-4" />
+      {label}
+    </label>
+  );
+}
+
+const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none";
+
+function ColorInput({ name, value, label }: { name: string; value: string; label: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="mb-1 text-sm font-medium text-slate-700">{label}</span>
+      <div className="flex items-center gap-2">
+        <input type="color" name={name} defaultValue={value} className="h-10 w-14 cursor-pointer rounded border border-slate-300 bg-white p-1" />
+        <span className="text-xs text-slate-400" dir="ltr">{value}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
+  const root = useRouteLoaderData("root") as { locale: Locale };
+  const locale = (root?.locale ?? "ar") as Loc;
+  const L = (k: string) => cmsLabel(k, locale);
+  const actionData = useActionData<typeof action>();
+  const { tab, settings, images } = loaderData;
+  const idn = settings.identity;
+  const theme = settings.theme;
+  const pres = settings.presentation;
+  const dash = settings.dashboard;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-500 hover:text-slate-800">← {L("cms.ui.backToPages")}</Link>
+        <h1 className="text-2xl font-bold text-slate-900">{L("cms.ui.appearance")}</h1>
+      </div>
+
+      <nav className="flex flex-wrap gap-2" aria-label={L("cms.ui.appearance")}>
+        {TABS.map((tb) => {
+          const key = tb === "identity" ? "cms.ui.identity" : tb === "theme" ? "cms.ui.theme" : tb === "presentation" ? "cms.ui.presentation" : "cms.ui.dashboardCfg";
+          const allowed = tb === "identity" || tb === "theme" ? loaderData.canTheme : loaderData.canEdit;
+          return (
+            <Link
+              key={tb}
+              to={`/admin/appearance?tab=${tb}`}
+              className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium ${tab === tb ? "bg-brand-600 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"} ${allowed ? "" : "opacity-50"}`}
+            >
+              {L(key)}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {actionData && "error" in actionData && actionData.error === "denied" && <Alert kind="error">{L("cms.ui.permissionDenied")}</Alert>}
+      {actionData && "issues" in actionData && actionData.issues && <Alert kind="error">{actionData.issues.join(" — ")}</Alert>}
+      {actionData && "ok" in actionData && actionData.ok && <Alert kind="success">{L("cms.ui.saved")}</Alert>}
+
+      {!loaderData.allowed ? (
+        <Alert kind="error">{L("cms.ui.permissionDenied")}</Alert>
+      ) : tab === "identity" ? (
+        <Card>
+          <CardHeader title={L("cms.ui.identity")} />
+          <CardBody>
+            <Form method="post" className="grid gap-3 sm:grid-cols-2">
+              <input type="hidden" name="_action" value="save-identity" />
+              <Input label={`${L("cms.set.shortName")} (عربي)`} name="shortNameAr" defaultValue={idn.shortNameAr} dir="rtl" />
+              <Input label={`${L("cms.set.shortName")} (English)`} name="shortNameEn" defaultValue={idn.shortNameEn} dir="ltr" />
+              <Input label={`${L("cms.set.ownerName")} (عربي)`} name="ownerNameAr" defaultValue={idn.ownerNameAr} dir="rtl" />
+              <Input label={`${L("cms.set.ownerName")} (English)`} name="ownerNameEn" defaultValue={idn.ownerNameEn} dir="ltr" />
+              <Input label={`${L("cms.set.ownerTitle")} (عربي)`} name="ownerTitleAr" defaultValue={idn.ownerTitleAr} dir="rtl" />
+              <Input label={`${L("cms.set.ownerTitle")} (English)`} name="ownerTitleEn" defaultValue={idn.ownerTitleEn} dir="ltr" />
+              <ImageSelect name="ownerPhotoFileId" value={idn.ownerPhotoFileId} images={images} label={L("cms.set.ownerPhoto")} locale={locale} />
+              <ImageSelect name="logoFileId" value={idn.logoFileId} images={images} label={L("cms.set.logo")} locale={locale} />
+              <ImageSelect name="faviconFileId" value={idn.faviconFileId} images={images} label={L("cms.set.favicon")} locale={locale} />
+              <ImageSelect name="heroImageFileId" value={idn.heroImageFileId} images={images} label={L("cms.set.heroImage")} locale={locale} />
+              <ImageSelect name="aboutImageFileId" value={idn.aboutImageFileId} images={images} label={L("cms.set.aboutImage")} locale={locale} />
+              <Input label={L("cms.set.contactPhone")} name="contactPhone" defaultValue={idn.contactPhone} dir="ltr" />
+              <Input label={L("cms.set.contactEmail")} name="contactEmail" defaultValue={idn.contactEmail} dir="ltr" type="email" />
+              <Input label={`${L("cms.set.contactAddress")} (عربي)`} name="contactAddressAr" defaultValue={idn.contactAddressAr} dir="rtl" />
+              <Input label={`${L("cms.set.contactAddress")} (English)`} name="contactAddressEn" defaultValue={idn.contactAddressEn} dir="ltr" />
+              {(["telegram", "facebook", "youtube", "instagram", "tiktok", "twitter", "linkedin"] as const).map((net) => (
+                <Input key={net} label={`${L(`cms.social.${net}`)} URL`} name={net} defaultValue={idn[net]} dir="ltr" placeholder="https://…" />
+              ))}
+              <Input label={`${L("cms.set.copyright")} (عربي)`} name="copyrightAr" defaultValue={idn.copyrightAr} dir="rtl" />
+              <Input label={`${L("cms.set.copyright")} (English)`} name="copyrightEn" defaultValue={idn.copyrightEn} dir="ltr" />
+              <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>
+            </Form>
+          </CardBody>
+        </Card>
+      ) : tab === "theme" ? (
+        <Card>
+          <CardHeader title={L("cms.ui.theme")} description={L("cms.set.colorHint")} />
+          <CardBody>
+            <Form method="post" className="grid gap-4 sm:grid-cols-3">
+              <input type="hidden" name="_action" value="save-theme" />
+              {(["primary", "secondary", "accent", "background", "surface", "text", "mutedText", "border", "success", "warning", "error"] as const).map((c) => (
+                <ColorInput key={c} name={c} value={theme[c]} label={L(`cms.set.${c}`)} />
+              ))}
+              <div className="flex flex-col">
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.radiusBase")}</span>
+                <input type="number" name="radiusBase" min={0} max={32} defaultValue={theme.radiusBase} className={selectCls} />
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.radiusButton")}</span>
+                <input type="number" name="radiusButton" min={0} max={32} defaultValue={theme.radiusButton} className={selectCls} />
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.radiusCard")}</span>
+                <input type="number" name="radiusCard" min={0} max={32} defaultValue={theme.radiusCard} className={selectCls} />
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.shadow")}</span>
+                <select name="shadow" defaultValue={theme.shadow} className={selectCls}>
+                  {["none", "sm", "md", "lg"].map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.density")}</span>
+                <select name="density" defaultValue={theme.density} className={selectCls}>
+                  {["compact", "normal", "relaxed"].map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.fontScale")}</span>
+                <select name="fontScale" defaultValue={theme.fontScale} className={selectCls}>
+                  {["compact", "normal", "large"].map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <SubmitButton className="w-fit sm:col-span-3">{L("cms.ui.saveGroup")}</SubmitButton>
+            </Form>
+          </CardBody>
+        </Card>
+      ) : tab === "presentation" ? (
+        <Card>
+          <CardHeader title={L("cms.ui.presentation")} />
+          <CardBody>
+            <Form method="post" className="flex flex-col gap-6">
+              <input type="hidden" name="_action" value="save-presentation" />
+              <fieldset className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.set.courseCard")}</legend>
+                <Check name="cc.showImage" checked={pres.courseCard.showImage} label={L("cms.set.showImage")} />
+                <Check name="cc.showTeacher" checked={pres.courseCard.showTeacher} label={L("cms.set.showTeacher")} />
+                <Check name="cc.showLessonCount" checked={pres.courseCard.showLessonCount} label={L("cms.set.showLessonCount")} />
+                <Check name="cc.showSubject" checked={pres.courseCard.showSubject} label={L("cms.set.showSubject")} />
+                <Check name="cc.showBadge" checked={pres.courseCard.showBadge} label={L("cms.set.showBadge")} />
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Input label={`${L("cms.set.ctaLabel")} (عربي)`} name="cc.ctaLabelAr" defaultValue={pres.courseCard.ctaLabelAr} dir="rtl" />
+                  <Input label={`${L("cms.set.ctaLabel")} (English)`} name="cc.ctaLabelEn" defaultValue={pres.courseCard.ctaLabelEn} dir="ltr" />
+                  <div className="flex flex-col">
+                    <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.layout")}</span>
+                    <select name="cc.layout" defaultValue={pres.courseCard.layout} className={selectCls}>
+                      {["standard", "compact", "wide"].map((v) => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.set.subjectCard")}</legend>
+                <Check name="sc.showImage" checked={pres.subjectCard.showImage} label={L("cms.set.showImage")} />
+                <Check name="sc.showCourseCount" checked={pres.subjectCard.showCourseCount} label={L("cms.set.showCourseCount")} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input label={`${L("cms.set.ctaLabel")} (عربي)`} name="sc.ctaLabelAr" defaultValue={pres.subjectCard.ctaLabelAr} dir="rtl" />
+                  <Input label={`${L("cms.set.ctaLabel")} (English)`} name="sc.ctaLabelEn" defaultValue={pres.subjectCard.ctaLabelEn} dir="ltr" />
+                </div>
+              </fieldset>
+              <fieldset className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.set.lessonPage")}</legend>
+                <Check name="ls.showDescription" checked={pres.lesson.showDescription} label={L("cms.set.showDescription")} />
+                <Check name="ls.showAttachments" checked={pres.lesson.showAttachments} label={L("cms.set.showAttachments")} />
+                <Check name="ls.showPrevNext" checked={pres.lesson.showPrevNext} label={L("cms.set.showPrevNext")} />
+                <Check name="ls.showRelated" checked={pres.lesson.showRelated} label={L("cms.set.showRelated")} />
+                <fieldset className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-100 p-3">
+                  <legend className="px-1 text-xs font-semibold text-slate-500">{L("cms.set.videoBlock")}</legend>
+                  <Check name="ls.video.showPoster" checked={pres.lesson.video.showPoster} label={L("cms.set.showPoster")} />
+                  <Check name="ls.video.showTitle" checked={pres.lesson.video.showTitle} label={L("cms.set.showTitle")} />
+                  <Check name="ls.video.showDescription" checked={pres.lesson.video.showDescription} label={L("cms.set.showDescription")} />
+                  <Check name="ls.video.allowSpeed" checked={pres.lesson.video.allowSpeed} label={L("cms.set.allowSpeed")} />
+                  <Check name="ls.video.allowFullscreen" checked={pres.lesson.video.allowFullscreen} label={L("cms.set.allowFullscreen")} />
+                </fieldset>
+              </fieldset>
+              <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>
+            </Form>
+          </CardBody>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader title={L("cms.ui.dashboardCfg")} />
+          <CardBody>
+            <Form method="post" className="flex flex-col gap-3">
+              <input type="hidden" name="_action" value="save-dashboard" />
+              <Input label={`${L("cms.set.welcome")} (عربي)`} name="welcomeAr" defaultValue={dash.welcomeAr} dir="rtl" />
+              <Input label={`${L("cms.set.welcome")} (English)`} name="welcomeEn" defaultValue={dash.welcomeEn} dir="ltr" />
+              <fieldset className="flex flex-col gap-1 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.set.modules")}</legend>
+                {dash.modules.map((m) => (
+                  <Check key={m.id} name={`mod.${m.id}`} checked={m.enabled} label={L(`cms.set.mod.${m.id}`)} />
+                ))}
+              </fieldset>
+              <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>
+            </Form>
+          </CardBody>
+        </Card>
+      )}
+    </div>
+  );
+}

@@ -22,6 +22,13 @@
       "when": 1788620821782,
       "tag": "0002_yellow_centennial",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788623221934,
+      "tag": "0003_cms_permission_seed",
+      "breakpoints": true
     }
   ]
 }

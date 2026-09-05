@@ -3,6 +3,7 @@ import { Link, Outlet, useRouteLoaderData } from "react-router";
 import { requireRole } from "~server/auth/guards.server";
 import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
+import { cmsLabel } from "~/cms/registry";
 import { t, type Locale } from "~/lib/i18n";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
@@ -34,6 +35,12 @@ export default function AdminLayout() {
             </span>
           </Link>
           <div className="flex items-center gap-1.5">
+            <Link to="/admin/cms" className="rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
+              {cmsLabel("cms.ui.pages", locale === "ar" ? "ar" : "en")}
+            </Link>
+            <Link to="/admin/appearance" className="rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
+              {cmsLabel("cms.ui.appearance", locale === "ar" ? "ar" : "en")}
+            </Link>
             <Link to="/admin/content" className="rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
               {t(locale, "admin.navContent")}
             </Link>

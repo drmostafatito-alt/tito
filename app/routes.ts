@@ -26,6 +26,11 @@ export default [
   ]),
   route("admin", "routes/admin/layout.tsx", { id: "admin-root" }, [
     index("routes/admin/home.tsx"),
+    route("cms", "routes/admin.cms.tsx"),
+    route("cms/pages/:id", "routes/admin.cms.pages.$id.tsx"),
+    route("cms/menus", "routes/admin.cms.menus.tsx"),
+    route("cms/forms", "routes/admin.cms.forms.tsx"),
+    route("appearance", "routes/admin.appearance.tsx"),
     route("content", "routes/admin.content.tsx"),
     route("content/:type/:id", "routes/admin.content.$type.$id.tsx"),
     route("files", "routes/admin.files.tsx"),

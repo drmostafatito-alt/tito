@@ -26,6 +26,8 @@ import {
   walkFields,
   zodForBlock,
   defaultPropsFor,
+  FORM_FIELD_TYPES,
+  type FormFieldType,
 } from "../../app/cms/registry";
 
 /**
@@ -706,8 +708,8 @@ export async function deleteMenuItem(db: DB, itemId: string, actor: ActorCtx) {
 // ---------------------------------------------------------------------------
 // Forms (configurable, declarative validation only — NEVER code execution)
 // ---------------------------------------------------------------------------
-export const FORM_FIELD_TYPES = ["text", "email", "phone", "number", "textarea", "select", "multiselect", "radio", "checkbox", "date", "hidden"] as const;
-export type FormFieldType = (typeof FORM_FIELD_TYPES)[number];
+export { FORM_FIELD_TYPES };
+export type { FormFieldType };
 
 export async function listForms(db: DB) {
   return db.select().from(forms).orderBy(asc(forms.createdAt));
