@@ -19,7 +19,7 @@
 | Domain | Tables | Phase |
 |---|---|---|
 | Identity & security | roles, users, teacher_profiles, sessions, devices, security_events, rate_limit_counters | P1 |
-| Platform / CMS | settings, homepage_sections, menus, announcements, audit_logs | P1 (CMS data docs P6) |
+| Platform / CMS | settings, pages, blocks, page_versions, menus, menu_items, forms, form_fields, form_submissions, role_permissions, announcements, audit_logs | P1 core · CMS tables P3 |
 | Content | programs, grades, subjects, courses, units, lessons, lesson_items, videos, files | P2 |
 | Progress | lesson_progress, video_progress, video_watch_sessions, events | P3 |
 | Assessment | questions, question_choices, tags, question_tags, exams, exam_questions, exam_attempts, exam_answers | P4 |
@@ -54,20 +54,50 @@ rate_limit_counters  bucket TEXT · window_start INTEGER · count INTEGER
                  PRIMARY KEY(bucket, window_start)                      TTL sweep on write
 ```
 
-## Platform / CMS (P1 core; content grows P6)
+## Platform (P1 core)
 
 ```
 settings         key TEXT PK (group name) · value JSON (Zod-validated per group)
                  · updated_by FK users NULL · updated_at                read: all · write: admin only
-homepage_sections id PK · type TEXT(hero|banner|text|courses_showcase|pricing|cta|stats|custom_markdown)
-                 · sort_order INTEGER · visible INTEGER(0/1) · data JSON · created_at · updated_at
-menus            id PK · location TEXT(header|footer|mobile) · items JSON · updated_at
 announcements    id PK · title_ar/en · body_ar/en · audience TEXT(all|students|teachers)
                  · publish_at · expires_at NULL · created_by FK · created_at
 audit_logs       id PK · actor_user_id NULL · actor_role · action TEXT (dot.separated)
                  · entity_type · entity_id · before JSON NULL · after JSON NULL
                  · ip_hash · created_at                idx: entity(type,id), actor+created_at, created_at
 ```
+
+## CMS (P3 — live; the P0 sketch `homepage_sections`/`menus.items` was replaced by this model, ADR-019)
+
+```
+pages            id PK · slug UNIQUE · title_ar/en · status(draft|published|archived)
+                 · seo JSON (zod) · published_snapshot JSON NULL (the ONLY public render source)
+                 · published_at NULL · sort_order · created_by · created/updated_at · deleted_at NULL
+                 idx: (status, sort_order)
+page_versions    id PK · page_id · version_no · snapshot JSON · note · created_by · created_at
+                 uidx: (page_id, version_no)          append-only; restore copies INTO draft
+blocks           id PK · page_id · parent_id NULL(section)|section(component) · type (registry key)
+                 · props JSON (zod-validated per type) · sort_order · visible BOOL · created/updated_at
+                 idx: (page_id, sort_order), (parent_id)
+menus            id PK · location UNIQUE(header|footer|student|legal) · updated_at
+menu_items       id PK · menu_id · parent_id NULL (one nesting level) · label_ar/en
+                 · href (internal '/' route or https external — safeHref-validated) · external BOOL
+                 · icon (registry id, never raw SVG) · sort_order · visible · created/updated_at
+                 idx: (menu_id, sort_order)
+forms            id PK · slug UNIQUE · title_ar/en · action_type(contact|newsletter|generic)
+                 · store_submissions BOOL · success_ar/en · failure_ar/en · consent_required BOOL
+                 · consent_ar/en · status(active|disabled) · created/updated_at   idx: status
+form_fields      id PK · form_id · name ([a-z][a-z0-9_]{0,39}) · type(text|email|phone|number|textarea|
+                 select|multiselect|radio|checkbox|date|hidden) · label/placeholder/help _ar/_en
+                 · required · enabled · options JSON · validation JSON (declarative: minLen/maxLen/
+                 min/max/pattern — NO code) · default_value · sort_order
+                 uidx: (form_id, name) · idx: (form_id, sort_order)
+form_submissions id PK · form_id · data JSON (validated answers) · ip_hash · created_at
+                 idx: (form_id, created_at)           rate-limited: 10/hour/ipHash
+role_permissions role_id · permission (cms.read|create|edit|publish|delete|manage_theme|
+                 manage_navigation|manage_forms|manage_seo) · granted_at   super_admin (rank 4) bypasses
+```
+
+Integrity policy mirrors ADR-017: plain TEXT references + app-layer guards in `server/cms/service.server.ts` (every referenced page/parent/menu/form/file validated before insert; `CmsReferenceError` → validation error).
 
 ## Content (P2)
 
@@ -112,7 +142,7 @@ entitlements  id PK · student_id FK users · source_type TEXT(order_item|subscr
               idx(student_id, resource_type, resource_id, status), (expires_at) for sweep jobs
 ```
 
-## Progress & analytics (P3)
+## Progress & analytics (P4)
 
 ```
 lesson_progress  id PK · student_id · lesson_id · status(in_progress|completed) · completed_at NULL
@@ -128,7 +158,7 @@ events           id PK · type TEXT(login|logout|registration|video_start|video_
                  idx(type, created_at), (user_id, created_at)      append-only, no PII in props
 ```
 
-## Assessment (P4)
+## Assessment (P5)
 
 ```
 questions        id PK · type TEXT(mcq|true_false|multi_select|essay) · stem_ar/en · explanation_ar/en NULL
@@ -157,7 +187,7 @@ exam_answers     id PK · attempt_id FK · question_id FK · choice_ids JSON NUL
                  UNIQUE(attempt_id, question_id)
 ```
 
-## Commerce (P5)
+## Commerce (P6)
 
 ```
 products         id PK · kind TEXT(course|subject|bundle|subscription_plan) · name_ar/en · description_ar/en

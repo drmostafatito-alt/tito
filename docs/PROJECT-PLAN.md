@@ -3,7 +3,7 @@
 > Single source of truth for **scope, phases, and process**.
 > Architecture details live in `ARCHITECTURE.md`. Decision rationale lives in `DECISIONS.md`.
 
-**Status: Phases 0–2 complete (2026-09-05). Phase 1 (foundation & auth) and Phase 2 (content domain) delivered with per-phase reports; all suites green (52 unit + 37 integration + 104-check runtime smoke). Phase 3 (student experience) not started.**
+**Status: Phases 0–3 delivered (2026-09-05). Phase 3 = CMS / Page Builder (owner-inserted; see ADR-018 for the renumbering of the original plan). Next: Phase 4 (student experience).**
 
 ---
 
@@ -39,11 +39,12 @@ A commercial educational platform (Egypt-first, Cloudflare-hosted) with:
 | 0 | Architecture & planning ✅ | This document, `DECISIONS.md`, then the full doc set (§7) | Docs approved by owner ✅ |
 | 1 | Foundation ✅ | Repo scaffold, env strategy, D1 + typed schema & migrations (identity/platform domains), authentication, RBAC, sessions + devices core, settings service, audit log, security middleware, base design system + layout | ✅ verified 2026-09-05 (report + TEST-PLAN §6) |
 | 2 | Content domain ✅ | Content hierarchy + admin CRUD, slugs/status/visibility/ordering, thumbnails, files + R2 signed access, VideoProvider abstraction (mock + Mux adapters), catalog & lesson pages gated by entitlement engine, menus from settings | ✅ verified 2026-09-05: signed-URL discipline (tamper/expiry/perm-swap → 404), mock playback green, Mux adapter env-gated (loud `VideoNotConfiguredError`, no silent fallback), 104-check HTTP smoke (report + TEST-PLAN §6) |
-| 3 | Student experience *(next)* | Student dashboard, progress & resume tracking, secure playback flow (token minting, replay rules, completion threshold), watch history, device management UI (student + admin), in-app notifications & announcements | Playback denied without entitlement; replay limits enforced server-side; resume works across sessions |
-| 4 | Assessment engine | Question bank (MCQ / true-false / multi-select / essay; explanations, difficulty, tags, review workflow), exam builder (pools, randomization, distributions, windows, attempt & visibility policies), attempt engine (server timing, autosave, reconnect recovery, idempotent submission), auto-grading + manual essay queue, results & review modes | Client cannot bypass timing; refresh/network-loss recovery verified; duplicate submissions impossible; randomization stable per attempt |
-| 5 | Commerce | Products & pricing (incl. promos), discount codes, orders/order items, PaymentProvider abstraction + **Manual rail first** (transfer + admin approval), gateway adapter(s) only after verification ADR, webhook ingestion + signature verification + reconciliation, payment events, subscription lifecycle, activation codes (hashed, batched, product-bound), transactional entitlement grants | No access without verified webhook or admin approval; webhook signature tests pass; code redemption concurrency-safe; refunds adjust entitlements per policy |
-| 6 | Admin platform | Complete admin dashboard (all sections from brief §27) with search/filter/sort/pagination; homepage builder & CMS blocks; menus/footer/contact/social/WhatsApp settings; announcements broadcast; analytics events & charts; usage visibility for cost-sensitive services | Routine content/price/CMS changes need zero deploys; all admin actions audited; lists paginate under seeded scale |
-| 7 | Hardening & release | Security review & pen checklist, performance pass, accessibility audit, i18n/RTL final pass, Playwright e2e regression suite, real-device mobile/iOS matrix, backup/restore rehearsal, production deploy runbook, docs finalization | `TEST-PLAN.md` fully executed incl. device matrix; runbook matches reality; `CHANGELOG.md` current |
+| 3 | CMS / page builder ✅ | Owner-inserted phase (ADR-018): data-driven UI — pages CRUD + draft/preview/publish + versions/rollback, block registry (typed zod schemas, ~40 block types), branding/theme tokens, icon registry, navigation & footer builders, configurable forms, SEO, fine-grained CMS permissions, audit on every mutation, production-readiness gate (`check:production-readiness`), empty-first production content policy (ADR-020) | Routine visual/content changes need zero deploys; drafts never public; no script/HTML/CSS injection; forms cannot execute code; readiness script fails on any demo/placeholder content; Phases 1–2 regression green |
+| 4 | Student experience *(next)* | Student dashboard, progress & resume tracking, secure playback flow (token minting, replay rules, completion threshold), watch history, device management UI (student + admin), in-app notifications & announcements | Playback denied without entitlement; replay limits enforced server-side; resume works across sessions |
+| 5 | Assessment engine | Question bank (MCQ / true-false / multi-select / essay; explanations, difficulty, tags, review workflow), exam builder (pools, randomization, distributions, windows, attempt & visibility policies), attempt engine (server timing, autosave, reconnect recovery, idempotent submission), auto-grading + manual essay queue, results & review modes | Client cannot bypass timing; refresh/network-loss recovery verified; duplicate submissions impossible; randomization stable per attempt |
+| 6 | Commerce | Products & pricing (incl. promos), discount codes, orders/order items, PaymentProvider abstraction + **Manual rail first** (transfer + admin approval), gateway adapter(s) only after verification ADR, webhook ingestion + signature verification + reconciliation, payment events, subscription lifecycle, activation codes (hashed, batched, product-bound), transactional entitlement grants | No access without verified webhook or admin approval; webhook signature tests pass; code redemption concurrency-safe; refunds adjust entitlements per policy |
+| 7 | Admin platform | Complete admin dashboard (all sections from brief §27) with search/filter/sort/pagination; homepage builder & CMS blocks; menus/footer/contact/social/WhatsApp settings; announcements broadcast; analytics events & charts; usage visibility for cost-sensitive services | Routine content/price/CMS changes need zero deploys; all admin actions audited; lists paginate under seeded scale |
+| 8 | Hardening & release | Security review & pen checklist, performance pass, accessibility audit, i18n/RTL final pass, Playwright e2e regression suite, real-device mobile/iOS matrix, backup/restore rehearsal, production deploy runbook, docs finalization | `TEST-PLAN.md` fully executed incl. device matrix; runbook matches reality; `CHANGELOG.md` current |
 
 Each phase is delivered with the **per-phase report** defined in §5 before the next phase begins.
 
@@ -53,14 +54,15 @@ Each phase is delivered with the **per-phase report** defined in §5 before the 
 P0  planning
  └─ P1  foundation (auth, RBAC, DB, settings, audit, layout)
      ├─ P2  content domain (hierarchy, files, video abstraction)
-     │   ├─ P3  student experience (needs content + progress)
-     │   └─ P4  assessment engine (needs content hierarchy)
-     ├─ P5  commerce (needs P1; unlocks full paid gating for P2/P3 content)
-     └─ P6  admin platform (consolidation; grows incrementally during P2–P5)
-P7  hardening & release (always last)
+     │   ├─ P3  CMS / page builder ✅ (needs content + settings; ADR-018/019/020)
+     │   ├─ P4  student experience (needs content + progress)
+     │   └─ P5  assessment engine (needs content hierarchy)
+     ├─ P6  commerce (needs P1; unlocks full paid gating for content)
+     └─ P7  admin platform (consolidation; grows incrementally during P2–P6)
+P8  hardening & release (always last)
 ```
 
-**Documented deviation from the brief's phase list:** the brief places "Entitlements" in Phase 5. We build the entitlement *engine* (schema + resolver service + admin-grant and free-tier sources) in Phases 1–2, because content access gating in Phases 2–3 depends on it. Phase 5 then adds purchase / subscription / activation-code sources to the same engine. See `DECISIONS.md` ADR-009.
+**Documented deviation from the brief's phase list:** the brief places "Entitlements" in Phase 5 (brief numbering; commerce is Phase 6 after the ADR-018 renumbering). We build the entitlement *engine* (schema + resolver service + admin-grant and free-tier sources) in Phases 1–2, because content access gating in Phases 2–4 depends on it. Commerce then adds purchase / subscription / activation-code sources to the same engine. See `DECISIONS.md` ADR-009.
 
 ## 5. Per-phase report format (mandatory, per brief §57)
 
@@ -99,9 +101,9 @@ Every phase report contains exactly:
 | `docs/SECURITY.md` | Security model & checklist | ✅ Phase 0 |
 | `docs/DEPLOYMENT.md` | Environments, runbooks, backups | ✅ Phase 0 (validated at first deploy) |
 | `docs/TEST-PLAN.md` | Strategy + device matrix | ✅ Phase 0 (execution log per phase) |
-| `docs/PAYMENTS.md` | Rails, states, verification records | ✅ Phase 0 (gateway log filled at Phase 5) |
+| `docs/PAYMENTS.md` | Rails, states, verification records | ✅ Phase 0 (gateway log filled at Phase 6) |
 | `docs/VIDEO-PROVIDERS.md` | Abstraction + adapters | ✅ Phase 0 (Mux playback verified 2026-09-05) |
-| `docs/ADMIN-GUIDE.md` | How the admin runs the platform | ✅ skeleton (complete at Phase 6) |
+| `docs/ADMIN-GUIDE.md` | How the admin runs the platform | ✅ skeleton (complete at Phase 7) |
 | `docs/CHANGELOG.md` | History | ✅ current |
 
 ## 8. Source-of-truth maintenance rules

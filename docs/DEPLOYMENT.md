@@ -63,4 +63,4 @@ Local: copy `.dev.vars.example` → `.dev.vars` (gitignored; committed file cont
 
 ## 8. Cloudflare plan boundaries (free-plan-first — no silent paid usage)
 
-Tracked limits: Workers free (100k req/day, 10ms CPU), D1 free (5M rows read/day), R2 free (10GB). The admin overview (Phase 6) surfaces a usage notice if `CF_API_TOKEN` (optional, read-only analytics scope) is configured; otherwise docs table only. Exceeding free tier requires owner's explicit plan upgrade decision — the app never silently depends on paid features. Mux streaming/Delivery usage is billed by Mux — flagged to owner before first production upload.
+Tracked limits: Workers free (100k req/day, 10ms CPU), D1 free (5M rows read/day), R2 free (10GB). The admin overview (Phase 7) surfaces a usage notice if `CF_API_TOKEN` (optional, read-only analytics scope) is configured; otherwise docs table only. Exceeding free tier requires owner's explicit plan upgrade decision — the app never silently depends on paid features. Mux streaming/Delivery usage is billed by Mux — flagged to owner before first production upload.

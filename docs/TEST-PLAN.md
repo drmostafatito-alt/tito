@@ -19,7 +19,7 @@
 - P3: entitled student plays video (mock+real), resume across devices, replay cap blocks N+1 watch; unentitled token mint → 403.
 - P4: timed exam with refresh mid-way → answers recovered → submit idempotent (double-click, network retry) → deadline expiry auto-submits per policy → essay manual grading → results visibility per policy.
 - P5: manual checkout → admin approval → entitlement appears; activation code redeem once (two concurrent tabs → exactly one success); discount math; refund revokes/shortens entitlement per policy.
-- P6: CMS edit homepage → public page reflects without deploy; audit log rows exist for every admin mutation.
+- P3 ✅: CMS edit page → publish → public page reflects without deploy; draft never public; preview admin-only; audit rows for every CMS mutation; unsafe HTML/links sanitized or rejected (unit + integration + runtime smoke §12).
 - P7: full regression + performance budgets + device matrix.
 
 ## 3. Authorization test matrix (unit, exhaustive — the crown jewels)

@@ -13,7 +13,7 @@
 | Database | **Cloudflare D1** (SQLite) via Drizzle ORM, versioned migrations |
 | Object storage | **R2** — `public-assets` (cacheable), `private-files` (signed URLs only), `video-masters` (never public) |
 | Video | `VideoProvider` interface — **Mux** adapter (production), **mock** adapter (dev), future: Bunny/Cloudflare Stream |
-| Payments | `PaymentProvider` interface — **manual rail** (transfer + admin approval) first; verified gateways Phase 5 |
+| Payments | `PaymentProvider` interface — **manual rail** (transfer + admin approval) first; verified gateways Phase 6 |
 | i18n | **Arabic + English, RTL/LTR** from day one; logical CSS properties; Arabic default (admin-configurable) |
 | Auth | Email/password, PBKDF2-SHA256 (600k iter, WebCrypto), opaque DB-backed sessions bound to devices |
 | Testing | Vitest (+ Workers pool), Playwright e2e, real-device matrix |
@@ -28,8 +28,8 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
   RR7 router
   ├─ routes/_public/    marketing, catalog, auth, pricing   (no auth required)
   ├─ routes/_student/   dashboard, learn, exams, devices    (session required)
-  ├─ routes/_teacher/   content authoring (Phase 4+)        (teacher role)
-  ├─ routes/_admin/     admin platform (Phase 6)            (admin/super_admin)
+  ├─ routes/_teacher/   content authoring (Phase 5+)        (teacher role)
+  ├─ routes/_admin/     admin platform (Phase 7)            (admin/super_admin)
   └─ routes/resources/  webhooks (payment), beacons (progress) — signature/entropy verified
   every loader/action = server code ──► server/ modules
       auth · entitlements · exams · settings · audit · http(guards)
@@ -84,10 +84,10 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
 ## 5. Route map (target)
 
 **Public:** `/` (CMS-rendered homepage) · `/courses` · `/courses/:slug` · `/subjects/:slug` · `/pricing` · `/login` `/register` `/forgot-password` `/reset-password` · `/contact` · legal pages.
-**Student:** `/dashboard` · `/my/courses` · `/learn/:courseSlug/:lessonSlug` (video+files+quiz) · `/exams` · `/exams/:id` `/exams/:id/attempt` · `/results` · `/devices` · `/notifications` · `/profile` `/profile/security` · `/cart` `/checkout` `/orders` (Phase 5).
-**Teacher (Phase 4+):** question bank, exam authoring, their course content.
-**Admin (Phase 6, grows from Phase 1):** `/admin` overview + Students · Teachers · Content tree · Videos · Files · Question bank · Exams · Results · Orders · Payments · Subscriptions · Activation codes · Discount codes · Notifications · CMS · Settings · Security (devices/sessions/events) · Audit log · Analytics.
-**Resource routes:** `/webhooks/payments/:provider` (signature-verified, Phase 5) · `/beacons/progress` (session-validated, Phase 3) · `/files/:id?perm&view-signature` (**live P2**: streams the private R2 object after HMAC-signed-URL verification — id+perm+exp covered by the signature; denials are 404-shaped; Range supported) · `/api/playback/:videoId` (**live P2**: POST-only, entitlement-checked token minting; GET → 302) · `/api/mock-stream/:videoId/:file` (**live P2, dev provider**: token-scoped synthetic HLS/poster; disappears from the request path when Mux is the active provider).
+**Student:** `/dashboard` · `/my/courses` · `/learn/:courseSlug/:lessonSlug` (video+files+quiz) · `/exams` · `/exams/:id` `/exams/:id/attempt` · `/results` · `/devices` · `/notifications` · `/profile` `/profile/security` · `/cart` `/checkout` `/orders` (Phase 6).
+**Teacher (Phase 5+):** question bank, exam authoring, their course content.
+**Admin (Phase 7, grows from Phase 1; CMS live since Phase 3):** `/admin` overview + Students · Teachers · Content tree · Videos · Files · Question bank · Exams · Results · Orders · Payments · Subscriptions · Activation codes · Discount codes · Notifications · CMS · Settings · Security (devices/sessions/events) · Audit log · Analytics.
+**Resource routes:** `/webhooks/payments/:provider` (signature-verified, Phase 6) · `/beacons/progress` (session-validated, Phase 4) · `/files/:id?perm&view-signature` (**live P2**: streams the private R2 object after HMAC-signed-URL verification — id+perm+exp covered by the signature; denials are 404-shaped; Range supported) · `/api/playback/:videoId` (**live P2**: POST-only, entitlement-checked token minting; GET → 302) · `/api/mock-stream/:videoId/:file` (**live P2, dev provider**: token-scoped synthetic HLS/poster; disappears from the request path when Mux is the active provider).
 
 ## 6. Authentication & session model (ADR-004/005)
 
@@ -102,9 +102,19 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
 - **RBAC layer:** `student` < `teacher` < `admin` < `super_admin`. Route groups enforce via layout guards (server). Teacher/admin permission matrix is a settings document (super_admin edits).
 - **Resource layer (entitlements resolver):** `canAccess(student, {resourceType, resourceId})` walks: content status → `access_level` (`public|authenticated|entitled`) → matching entitlement rows (course/subject/bundle/plan, with expiry & status) → admin override. One function, fully cached per request, unit-tested exhaustively. UI only *renders* the resolver's verdict; it never decides.
 
-## 8. Settings & CMS architecture (ADR-012)
+## 8. Settings & CMS architecture (ADR-012 → superseded/extended by ADR-019, live since Phase 3)
 
-Typed groups in `settings` (Zod-validated on read and write): `platform` (name, logo, locale default, maintenance), `theme` (color tokens within safe palette), `homepage` (ordered section documents), `menus`, `footer` (contact, social, WhatsApp), `announcements`, `devices`, `security`, `exams` (global defaults), `video` (replay defaults, completion threshold), `payments` (enabled rails, manual instructions), `locale`. Homepage = array of typed section blocks (`hero`, `banner`, `text`, `courses-showcase`, `pricing`, `cta`, `stats`) rendered by generic block components — reordering/adding sections requires zero deploys. All changes audited with before/after diff.
+**Settings** — typed groups in `settings` (Zod-validated on read and write): `platform` (owner identity, logo, favicon, socials, contact), `theme` (validated design tokens → served as CSS variables at `/theme.css`; never arbitrary CSS), `presentation` (course-card toggles, lesson-page block selection, player options), plus the Phase-1 groups (`devices`, `security`, `exams`, `video`, `payments`, `locale`, `maintenance`). All changes audited with before/after diff.
+
+**CMS (Phase 3)** — full guide: `docs/CMS.md`.
+
+- **Draft tree**: a page's draft is a tree of `blocks` rows (section blocks top-level, component blocks as children). Every mutation (add/update/reorder/duplicate/visibility/delete) is permission-checked (`cms.*` via `role_permissions`; super_admin bypasses) and audited.
+- **Block registry** (`app/cms/registry.ts`) is the single source of truth: ~40 block types, each with a zod schema, default props, field descriptors (localized text, icon-id pickers, image pickers, repeaters, ref pickers), and a renderer in `app/components/cms/blocks.tsx`. Adding a block type = one registry entry + one renderer case; no schema migration, no route change.
+- **Publish** = validate every block against its schema → sanitize rich text (HTMLRewriter allowlist) → serialize into `pages.published_snapshot` + append a `page_versions` row. **Public routes render ONLY the snapshot** — drafts can never leak and rendering is one indexed row read. Preview (`/admin/cms/preview/:pageId`) renders the draft server-side, admin-only.
+- **Rollback** = copy a version snapshot back into the draft tree (non-destructive; versions never deleted; an auto-snapshot of the current draft is taken first).
+- **Safety**: no arbitrary HTML/JS/CSS anywhere — rich text allowlist-sanitized (elements stripped or unwrapped, `on*` dropped, URLs via `safeHref`), icons are registry ids (never raw SVG), links/`href` validated (`javascript:`/`data:`/insecure http rejected), form behavior declarative-only (validated fields, consent, messages; rate-limited submissions), layout via responsive presets (mobile-first grid classes, no arbitrary CSS), CSP-compatible (no inline styles).
+- **Menus** (`menus`/`menu_items`, locations: header/footer/student/legal) drive the public header/footer and student nav; **forms** (`forms`/`form_fields`/`form_submissions`) are embedded on pages via the `form_block` block.
+- **SEO**: per-page `seo` JSON (title/description/canonical/OG/robots, zod-validated) rendered through `seoMeta()`; sitemap-clean slugs with reserved-word protection.
 
 ## 9. i18n & RTL (ADR-008)
 
@@ -127,7 +137,7 @@ Order → checkout (manual rail first) → `payments` row (`pending`/`under_revi
 - `audit_logs` — actor, action, entity, before/after diff, IP hash.
 - `security_events` — auth/device anomalies.
 - Workers platform logs (observability) for errors; structured `console` with request ids.
-- Admin analytics (Phase 6) aggregates via SQL over `events` + domain tables.
+- Admin analytics (Phase 7) aggregates via SQL over `events` + domain tables.
 
 ## 13. Performance budgets
 

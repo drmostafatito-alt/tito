@@ -1,6 +1,6 @@
 # Admin Guide
 
-> Status: **skeleton + live Phase 2 sections (§3–§5 below).** Grows with each phase; complete walkthrough ships with Phase 6.
+> Status: **skeleton + live Phase 2–3 sections.** Grows with each phase; complete walkthrough ships with Phase 7. The CMS guide lives in `docs/CMS.md` (Phase 3).
 
 ## 1. First-run (end of Phase 1)
 1. Operator runs the seed (DEPLOYMENT.md §6): creates the super_admin account with a one-time generated password.
@@ -28,7 +28,8 @@
 - Grant by student email + resource (subject / course / lesson) + duration in days (blank = permanent) + note; revoke per row. Grants take effect immediately server-side: the student's lesson pages flip from locked to signed-URL/file/playback access on next request (verified in smoke §10). Source type is `admin_grant`; all grants/revokes are audited.
 
 ## 6. Section guides (links resolve as sections ship)
-- Student & device management — Phase 3
-- Question bank & exams — Phase 4
-- Orders, payments, subscriptions, codes — Phase 5
-- CMS, homepage builder, analytics, audit — Phase 6
+- CMS, page builder, menus, forms, branding — **Phase 3 ✅** (`docs/CMS.md`)
+- Student & device management — Phase 4
+- Question bank & exams — Phase 5
+- Orders, payments, subscriptions, codes — Phase 6
+- Analytics, audit views, remaining consolidation — Phase 7

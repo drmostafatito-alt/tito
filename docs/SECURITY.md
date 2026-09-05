@@ -20,14 +20,14 @@
 - Password reset: single-use token (hashed, 60-min TTL); reset also revokes all sessions.
 - Enumeration resistance: register/login/reset responses are uniform in shape and timing where practical.
 
-## 3. Sessions, devices, account-sharing deterrence (P1/P3)
+## 3. Sessions, devices, account-sharing deterrence (P1/P4)
 
 - Device identity = random key in a durable cookie (+ localStorage fallback), hashed at rest; sessions are bound to device rows. Logout alone does **not** free a device slot (policy-driven).
 - Settings: `devices.max_per_student` (default 1), `devices.on_limit` (block | replace_oldest), `devices.change_limit_per_30d`, `devices.replace_enabled`.
 - Anomaly heuristics: rapid IP/ASN changes, many device additions, impossible travel (coarse) → `security_events` + optional admin review queue.
 - Admin: force logout, revoke device, reset device list, per-student session/device history.
 
-## 4. Authorization (P1 core; grows P2–P5)
+## 4. Authorization (P1 core; grows P2–P6)
 
 - RBAC route guards server-side in layouts; teacher/admin permission matrix in settings (super_admin editable).
 - Entitlement resolver is the single source of resource access truth (see ARCHITECTURE §7); exhaustive unit tests are the proof, including: expired entitlement, revoked subscription, unpublished content, free_preview scope, plan coverage.
@@ -52,20 +52,20 @@ Mutations require same-origin evidence: `Origin`/`Sec-Fetch-Site` check in middl
 - Uploads: size caps per kind, MIME sniffing (not extension trust), image re-encode, PDF/images only for study material, stored under random R2 keys with no user-controlled path parts.
 - SSRF: admin-defined external URLs (if any) go through a validation allowlist; the server never fetches user-supplied URLs.
 
-## 8. Protected media (P2/P3)
+## 8. Protected media (P2/P4)
 
 - Files: R2 `private-files` never public; short-TTL signed URLs (setting `video.fileUrlTtlSeconds`, shipped default **120s**) issued only after entitlement + per-file permission. The HMAC covers file id + `perm` (view|download) + expiry: tampering, id-swapping, perm-swapping, or expiry all produce the same 404-shaped response (no existence/permission oracle). `download_allowed` decides `attachment` vs `inline` disposition; Range requests served (206); responses `no-store`. *Verified live in Phase 2 smoke §5.*
 - Video: raw MP4/HLS never exposed for protected content. Playback requires server-minted provider credentials (Mux signed JWT / mock HMAC token, ≤45s TTL, settings-capped ≤60s) via `POST /api/playback/:videoId` — entitlement re-checked server-side on EVERY mint; admins bypass; unentitled → 403; anonymous → 401. Playback restrictions (domain allowlist) configured at the provider. Mock provider mimics the same token discipline in dev, with playback/thumbnail scope separation (cross-scope tokens rejected). *Verified live in Phase 2 smoke §6/§7/§10.*
 - Progress beacons authenticate the session and validate the video is entitlement-covered before writing.
 
-## 9. Payments security (P5)
+## 9. Payments security (P6)
 
 - Webhooks: signature verification per provider's official scheme (scheme recorded in `PAYMENTS.md` verification ADR before the adapter ships); replay protection via unique `provider_event_id`; every event stored raw (sanitized) in `payment_events` and processed idempotently.
 - Grant path: signature-verified webhook **or** explicit admin approval → single transaction (`payments.status='paid'` + entitlements). No grant from any redirect/success page.
 - Manual rail: admin approval requires admin role + is audit-logged; amount and order are server-computed.
 - Idempotency keys on checkout initiation; state machine transitions validated (never jump to `paid` from `expired`, etc.).
 
-## 10. Exam integrity (P4)
+## 10. Exam integrity (P5)
 
 - Server timestamps + `deadline_at`; client timer is cosmetic; submissions after deadline+grace are rejected or flagged per exam policy.
 - One live attempt per exam (partial unique index); submission idempotent via attempt status machine; autosave versioned per question.
@@ -79,7 +79,7 @@ Mutations require same-origin evidence: `Origin`/`Sec-Fetch-Site` check in middl
 
 ## 12. Audit & monitoring (P1 onward)
 
-`audit_logs` (admin/content/price/permission/payment/code changes, before/after) · `security_events` (auth/device) · `payment_events` (webhook inbox) · Workers error logs. Searchable admin views (Phase 6).
+`audit_logs` (admin/content/price/permission/payment/code changes, before/after) · `security_events` (auth/device) · `payment_events` (webhook inbox) · Workers error logs. Searchable admin views (Phase 7).
 
 ## 13. Rate limiting & abuse (P1)
 
@@ -89,7 +89,17 @@ D1 fixed-window counters per route+IP and per route+account on: login, register,
 
 `wrangler d1 export` before every destructive migration (runbook in DEPLOYMENT.md); R2 lifecycle rules for masters; restore rehearsal in Phase 7. Backup → migrate → verify → deploy, never blind.
 
-## 15. Honest limitations (acknowledged, not hidden)
+## 15. CMS / page-builder security (P3 — audited at Stage 9)
+
+- **No arbitrary execution**: admin input never becomes code. Rich text passes an HTMLRewriter allowlist sanitizer (script/style/iframe/form removed wholesale including content; unlisted tags unwrapped keeping text; `on*` attributes stripped; URLs via `safeHref` — `javascript:`/`data:`/insecure http rejected; `target=_blank` gets `rel="noopener"`). Icons are registry ids resolved to components — raw SVG/HTML never stored. Theme tokens are zod-validated and emitted only as CSS variables at `/theme.css` — no arbitrary CSS injection. Form behavior is declarative (field types + validation rules only); no server-side code execution path exists. CSP compatibility verified: no inline `style=` anywhere in CMS renderers.
+- **Draft isolation**: public routes (`/`, `/p/:slug`) render ONLY `pages.published_snapshot` of `status='published'` pages; drafts/unpublished → 404. Draft preview (`/admin/cms/preview/:pageId`) requires admin session + `cms.read`; no public preview tokens exist.
+- **Authorization**: every admin CMS route = `requireRole(3)` + granular `canCms` check (`cms.read/create/edit/publish/delete/manage_theme/manage_navigation/manage_forms/manage_seo`; super_admin bypass). Menu hrefs validated (`safeHref`) so navigation can't smuggle `javascript:` URIs; links to authenticated routes remain protected because authorization is enforced at those routes, never by hiding links.
+- **Validation on every transition**: block props are zod-validated on create, update, AND publish (publish revalidates the whole tree; unsafe links rejected with `CmsValidationError`). Broken blocks fail publish loudly instead of rendering half-broken pages.
+- **Image resolution**: `resolvePublicImageUrls` maps file ids ONLY through PUBLIC_ASSETS rows; private files remain behind the signed `/files/:id` path (Phase 2 discipline unchanged).
+- **Form submissions**: rate-limited (10/hour per ipHash bucket `form-submit`), server-validated per field (required/type/options/consent/disabled), stored as sanitized JSON; visitor file uploads are NOT accepted (a File value degrades to its name — no storage write).
+- **Audit**: every content/config mutation logs `audit_logs` (actor, action `cms.*`, entity, before/after where practical). Exceptions by design: idempotent bootstrap seeders (`seedCmsPermissions`, `seedSettingsDefaults`, `ensureMenu` container creation — no content) and visitor form submissions (the submission row itself is the record).
+
+## 16. Honest limitations (acknowledged, not hidden)
 
 - Device fingerprinting can be defeated by determined users; policy + audit is deterrence.
 - Signed video URLs prevent casual hotlinking, not screen recording.

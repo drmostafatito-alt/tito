@@ -10,10 +10,10 @@ Global rules applying everywhere: Arabic/English with RTL · loading/empty/error
 - Register: email + full name + password (min 8, checked against top-common list; no password rules leaked in responses). Rate-limited. Welcome notification.
 - Login: uniform errors (no user-existence leak); device policy applied **before** session issue; suspicious patterns logged.
 - Forgot/reset: single-use 60-min token; reset revokes all sessions.
-- Profile: name, phone, locale, password change (requires current). Email change: requires password + creates notification (verification flow Phase 3+).
+- Profile: name, phone, locale, password change (requires current). Email change: requires password + creates notification (verification flow Phase 4+).
 - Roles: student / teacher / admin / super_admin; only super_admin manages admins & system settings.
 
-## 2. Student dashboard (P3)
+## 2. Student dashboard (P4)
 Cards: active courses w/ progress %, continue-watching (last lesson + position), upcoming exams (availability window), recent results, expiring subscriptions (≤14d warning), unread announcements/notifications. All sections admin-toggleable via settings.
 
 ## 3. Catalog & content (P2)
@@ -21,16 +21,16 @@ Cards: active courses w/ progress %, continue-watching (last lesson + position),
 - Catalog shows published+visible only; entitled badges computed by resolver; free_preview lessons playable logged-in (watermarkable UI note).
 - Language fallback: content title shown in active locale, falls back to other locale, then slug.
 
-## 4. Learning experience (P3)
+## 4. Learning experience (P4)
 - Lesson page: ordered items; video (resume, replay policy, optional speed, PiP where supported), files (view/download per permission), quiz links.
 - Progress: lesson completes when required items complete; course % = completed required lessons/total; per-video completion threshold (setting, default 90%).
 - Watch history + resume positions per student (not per device), portable within device policy.
 
-## 5. Question bank (P4)
+## 5. Question bank (P5)
 - Types: mcq (single), true_false, multi_select (partial credit supported), essay (manual grading). Explanation per question (visibility per exam policy). Difficulty, tags, topic links to subject/course/unit/lesson (all optional).
 - Workflow: draft → in_review → published → archived; duplicate; bulk tag/status; FTS search. Teachers author; admins publish (permission matrix configurable).
 
-## 6. Exams (P4) — `exams.config` contract
+## 6. Exams (P5) — `exams.config` contract
 ```
 duration_minutes: int|null          availability: {starts_at, ends_at}
 selection: { mode: manual | pool,
@@ -43,25 +43,25 @@ results:   { show: immediate|after_end|manual, show_answers: bool, show_explanat
 ```
 Attempt rules: server deadline; autosave 3s debounce + pagehide beacon; idempotent submit; expiry auto-submits per policy (`submitted` with what's answered); reconnect resumes exactly; grace window (setting, default 30s) absorbs network loss; randomization seeded per attempt (review shows the student's own order).
 
-## 7. Commerce (P5)
+## 7. Commerce (P6)
 - Products: course/subject access, bundles (product_items), subscription plans; multiple price_plans per product (monthly/term/annual/custom days/fixed end date); promo pricing (compare-at + window).
 - Checkout: server-computed totals; discount codes (percent/fixed, windows, caps, per-user limits); activation codes as payment rail (see PAYMENTS.md).
 - Subscriptions: status server-driven; renew (manual v1), cancel (keeps access till period end), pause (admin), expire sweep; plan coverage via entitlements on plan product.
 - Student views: orders history, active subscriptions + expiry, receipts.
 
-## 8. Devices & security center (P1/P3/P6)
+## 8. Devices & security center (P1/P4/P7)
 Student: device list (label, last seen), sign-out device, request replace (if policy allows). Admin: force logout, revoke, reset list, change policy, review security events. Policies: max devices (default 1), on-limit behavior, change limits per 30d.
 
-## 9. Notifications & announcements (P3/P6)
-In-app always (unread counts, mark read); announcements broadcast by admin to audiences with publish/expiry windows. Email channel: provider-abstracted, enabled only after verification ADR (Phase 3+). WhatsApp: only official Meta WhatsApp Business Platform, only after legal/technical verification (deferred, not promised).
+## 9. Notifications & announcements (P4/P7)
+In-app always (unread counts, mark read); announcements broadcast by admin to audiences with publish/expiry windows. Email channel: provider-abstracted, enabled only after verification ADR (Phase 4+). WhatsApp: only official Meta WhatsApp Business Platform, only after legal/technical verification (deferred, not promised).
 
-## 10. Analytics (P6)
+## 10. Analytics (P7)
 Events per brief §24; admin dashboards: active students, video engagement, exam performance, revenue (manual+gateways), code usage, security overview. No invasive tracking: first-party events only, no third-party pixels by default.
 
 ## 11. Search (per phase)
 Courses/subjects/lessons (catalog, FTS), questions (bank, FTS), students/orders/payments/codes (admin, indexed filters). Architecture leaves room for an external engine later without schema change.
 
-## 12. Admin platform (P6) — sections
+## 12. Admin platform (P7; CMS sections live since P3) — sections
 Overview · Students · Teachers · Content tree (program→lesson) · Videos · Files · Question bank · Exams · Results · Orders · Payments · Subscriptions · Activation codes · Discount codes · Notifications · CMS (homepage/menus/footer/contact/social/WhatsApp) · Settings · Security (devices/sessions/events) · Audit log · Analytics. Every list: search/filter/sort/pagination. Every mutation: audited.
 
 ## 13. Maintenance & platform settings

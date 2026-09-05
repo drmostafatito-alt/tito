@@ -87,6 +87,35 @@ Format per record: **Context / Decision / Consequences / Status**.
 
 ---
 
+## ADR-018 Phase renumbering: Phase 3 = CMS / page builder
+**Status: Accepted (Phase 3, 2026-09-05)**
+- The owner redefined the phase sequence mid-project: **Phase 3 is now "production-grade, admin-controlled UI / CMS / page builder"** (delivered in 10 controlled stages), because routine visual/content changes requiring zero code deployment became a top priority ahead of the student-experience work.
+- Renumbering map (old → new): student experience P3 → **P4**; assessment engine P4 → **P5**; commerce P5 → **P6**; admin platform consolidation P6 → **P7**; hardening & release P7 → **P8**. All living docs (PROJECT-PLAN, ARCHITECTURE, FEATURE-SPEC, SECURITY, DATABASE-SCHEMA, ADMIN-GUIDE, TEST-PLAN, DEPLOYMENT, PAYMENTS) were updated in one pass; the CMS/homepage-builder scope originally slated for P6 moved into P3 and the remaining P7 scope is consolidation (analytics views, audit UI, list polish).
+- Historical artifacts (delivered phase reports, CHANGELOG entries, ADRs ≤ 017) keep their original numbering — this ADR is the mapping key. The brief's own numbering (e.g. "Entitlements in Phase 5") is quoted as-is where referenced.
+
+---
+
+## ADR-019 CMS architecture: draft tree + published snapshot + registry
+**Status: Accepted (Phase 3, 2026-09-05) — extends ADR-012, whose `homepage_sections` sketch was never built**
+- **Data model**: a page's draft is a tree of `blocks` rows (sections top-level, components as children, `sort_order` + `visible` per row). Publishing validates every block against its zod schema, sanitizes rich text, and freezes the tree into `pages.published_snapshot` (JSON) + appends an immutable `page_versions` row. **Public routes render ONLY the snapshot** → drafts can never leak, public rendering is a single indexed row read (performance), and publish is the single validation choke point.
+- **Rollback is non-destructive**: `restoreVersion` copies a snapshot back INTO the draft tree (fresh block ids), first auto-snapshotting the current draft as a version. Versions are append-only; nothing is silently destroyed. Unknown legacy block types in old snapshots are skipped at restore (registry shrank) rather than crashing.
+- **Block registry** (`app/cms/registry.ts`) is the single source of truth shared by client and server: type → zod schema, default props, field descriptors (localized text / icon-id / image / ref-picker / repeater), group, section flag, renderer. Adding a block type later = one registry entry + one renderer case — no migration, no route change (owner requirement). 39 types shipped.
+- **Safety envelope** (see SECURITY §15): no arbitrary HTML/JS/CSS; allowlist sanitizer (HTMLRewriter); icon registry ids only; `safeHref` URL validation; zod-validated theme tokens emitted as CSS variables (`/theme.css`); declarative-only forms with rate-limited submissions; responsive presets instead of arbitrary CSS (mobile-first grid classes; iPhone-safe: `dvh`, `viewport-fit=cover`, safe-area utilities, 44px touch targets on small screens).
+- **Integrity**: mirrors ADR-017 — plain TEXT references + `CmsReferenceError` guards in `server/cms/service.server.ts` (page/parent/menu/form/file refs validated before insert). Reserved slugs (`admin`, `api`, `files`, …) enforced; `home` slug drives `/`.
+- **Permissions & audit**: `role_permissions` table with `cms.*` granular permissions (super_admin bypasses); every content/config mutation audited with before/after where practical.
+- **Rejected alternatives**: (a) JSON-blob draft per page — worse concurrent-edit granularity and no per-block audit; (b) rendering drafts directly with a visibility flag — risks draft leakage on any query mistake; (c) storing HTML — violates the no-arbitrary-HTML rule. Snapshot+tree gives both safety and speed.
+
+---
+
+## ADR-020 Production content policy: empty-first + readiness gate
+**Status: Accepted (Phase 3, 2026-09-05)**
+- **Empty-first**: production starts structurally complete but content-empty (minimum system config only). No demo accounts/courses/testimonials/stats/pricing/media, no placeholder text ("Lorem", "John Doe", "Coming soon"), no silent fallbacks — a missing required production config produces a controlled admin-facing error (e.g. `VideoNotConfiguredError` pattern), never fake content. Empty image/media → element omitted or polished empty state; every content-driven area has a designed empty state ("No courses available yet.").
+- **Dev fixture isolation**: seed (`scripts/seed.mjs`) and smoke (`scripts/smoke.mjs`) data exist only for local/test environments, are clearly labeled (`seed-`/`smoke-` markers, demo domains), and are never referenced by production routes or migrations.
+- **Enforcement gate**: `scripts/check-production-readiness.mjs` (`npm run check:production-readiness`, `--remote` for the production D1) must pass before every production deployment. 10 checks: demo accounts, seed/smoke content (courses/pages/forms/menus/submissions…), mock video provider active, placeholder media, template branding, empty owner identity, lorem-ipsum in published snapshots, migrations fully applied, admin CMS permission seed present, ≥1 active super_admin. Any failure → non-zero exit → deploy blocked. Verified: correctly FAILS (exit 1, 6 findings) against the seeded dev DB and passes system checks.
+- **Content lifecycle**: draft → preview → publish → unpublish → archive → delete (soft, `deleted_at`) / restore; no one-way operations, no hard deletes that break integrity.
+
+---
+
 ## Verification queue (must complete before related implementation)
 
 | Item | Phase | Status |
@@ -94,9 +123,9 @@ Format per record: **Context / Decision / Consequences / Status**.
 | Mux playback model (signed JWT, restrictions, thumbnails) | 2 | ✅ verified 2026-09-05 — mux.com/docs (Mux fundamentals; Securing video playback with signed URLs; React Native playback page confirming `?token=` usage) |
 | Mux upload API specifics + Workers Ed25519 WebCrypto support | 2 | ⚠️ partial (2026-09-05): Ed25519 WebCrypto sign/verify proven INSIDE workerd (integration test); direct-upload + asset-sync implemented per docs but **unexercised against the live Mux API (no production credentials here)** — must re-verify schemas on first credentialed run. Provider-switch behavior verified live: missing creds → loud `VideoNotConfiguredError`, no silent fallback |
 | Bunny Stream token auth (future adapter) | later | pending |
-| Paymob: official API, Egypt, webhooks, signature, refunds | 5 | pending |
-| Fawry: same | 5 | pending |
-| Stripe: merchant-entity country constraints | 5 | pending |
-| Email provider (e.g., Resend) for reset/notifications | 3+ | pending |
-| WhatsApp: official WhatsApp Business Platform only | 6+ | pending (legal/account prerequisites) |
+| Paymob: official API, Egypt, webhooks, signature, refunds | 6 | pending |
+| Fawry: same | 6 | pending |
+| Stripe: merchant-entity country constraints | 6 | pending |
+| Email provider (e.g., Resend) for reset/notifications | 4+ | pending |
+| WhatsApp: official WhatsApp Business Platform only | 7+ | pending (legal/account prerequisites) |
 | Cloudflare free-tier limits vs projected usage | ongoing | doc'd in DEPLOYMENT §8 |
