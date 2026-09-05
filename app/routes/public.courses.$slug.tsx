@@ -12,6 +12,8 @@ import { videos, lessonItems, subjects } from "~server/db/schema";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
 import { ProgressBar } from "~/components/ProgressBar";
+import { purchasableFor } from "~server/commerce/service.server";
+import { formatMoney } from "~server/commerce/money";
 import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
 
@@ -38,6 +40,11 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       .where(eq(subjects.id, course.subjectId))
       .limit(1),
   ]);
+
+  // Phase 6: real commerce CTA when the course is locked and purchasable
+  const buyOption = verdict.allowed
+    ? null
+    : await purchasableFor(db, { type: "course", id: course.id, subjectId: course.subjectId });
 
   const visibleUnits = unitRows.filter((u) => u.status === "published" || verdict.allowed);
   const visibleLessons = lessonRows.filter((l) => l.status === "published" || verdict.allowed);
@@ -110,6 +117,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     },
     subject: subjectRows[0] ?? null,
     verdict,
+    buyOption,
     lessonVerdicts,
     progress,
     units: visibleUnits.map((u) => ({
@@ -132,7 +140,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 export default function CoursePage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { course, subject, verdict, lessonVerdicts, progress, units } = loaderData;
+  const { course, subject, verdict, lessonVerdicts, progress, units, buyOption } = loaderData;
   const title = locale === "ar" ? course.titleAr : course.titleEn;
   const desc = locale === "ar" ? course.descriptionAr : course.descriptionEn;
 
@@ -218,6 +226,18 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                 t(locale, "content.locked")
               )}
             </p>
+            {buyOption && (
+              <Link
+                to={`/products/${buyOption.productSlug}`}
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                data-testid="course-buy-cta"
+              >
+                {t(locale, "commerce.buyCta")}
+                <span dir="ltr">
+                  {t(locale, "commerce.fromPrice").replace("{price}", formatMoney(buyOption.minPriceMinor, buyOption.currency))}
+                </span>
+              </Link>
+            )}
           </CardBody>
         </Card>
       )}

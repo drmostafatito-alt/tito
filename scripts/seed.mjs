@@ -319,6 +319,53 @@ if (!existingExamItem) {
   ]);
 }
 
+// ---------------------------------------------------------------------------
+// Phase 6 demo commerce (idempotent: keyed by fixed slug). The readiness gate
+// flags these rows — dev/demo only, never production.
+// ---------------------------------------------------------------------------
+const paymentsSettings = {
+  manualEnabled: true,
+  manualInstructionsAr: "حوالة إنستاباي إلى 01000000000 — اكتب رقم الطلب في البيان",
+  manualInstructionsEn: "Instapay transfer to 01000000000 — write the order number as the reference",
+  orderTtlMinutes: 4320,
+  refundWindowDays: 14,
+};
+await exec(`INSERT INTO settings (key, value, updated_at) VALUES ('payments', ?, ?) ON CONFLICT(key) DO NOTHING`, [
+  JSON.stringify(paymentsSettings),
+  now,
+]);
+
+const demoProductId = await ensureContent("products", "physics-3s-full-access", {
+  id: crypto.randomUUID(),
+  kind: "course",
+  slug: "physics-3s-full-access",
+  name_ar: "فيزياء ٣ث — وصول كامل للدورة",
+  name_en: "Physics 3S — Full Course Access",
+  description_ar: "افتح كل دروس دورة الفيزياء: الشرح والملفات والامتحانات.",
+  description_en: "Unlock every physics lesson: videos, files and exams.",
+  active: 1,
+  sort_order: 0,
+  created_at: now,
+  updated_at: now,
+});
+const existingProductItem = await DB.prepare(
+  "SELECT id FROM product_items WHERE product_id = ? AND resource_id = ?"
+).bind(demoProductId, courseId).first();
+if (!existingProductItem) {
+  await exec(
+    `INSERT INTO product_items (id, product_id, resource_type, resource_id, sort_order, created_at) VALUES (?,?,?,?,?,?)`,
+    [crypto.randomUUID(), demoProductId, "course", courseId, 0, now]
+  );
+}
+const existingPricePlan = await DB.prepare("SELECT id FROM price_plans WHERE product_id = ?").bind(demoProductId).first();
+if (!existingPricePlan) {
+  await exec(
+    `INSERT INTO price_plans (id, product_id, currency, amount_minor, kind, active, sort_order, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?)`,
+    [crypto.randomUUID(), demoProductId, "EGP", 30000, "one_time", 1, 0, now, now]
+  );
+}
+
 // demo entitlement: student → subject (covers both courses' entitled content)
 const studentRow = await DB.prepare("SELECT id FROM users WHERE email = ?").bind(studentEmail).first();
 const existingGrant = await DB.prepare(
@@ -337,5 +384,6 @@ console.log(`  super admin : ${adminEmail} / ${adminPassword}`);
 console.log(`  demo student: student@educore.local / Student#12345`);
 console.log(`  demo course : /courses/physics-3s-full (lesson 1 free preview, lesson 2 entitled)`);
 console.log(`  demo exam   : /exams/electrostatics-check (lesson 2, required exam item)`);
+console.log(`  demo product: /products/physics-3s-full-access (300.00 EGP, manual rail)`);
 
 await proxy.dispose();

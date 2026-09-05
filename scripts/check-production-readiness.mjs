@@ -105,7 +105,26 @@ badContent += await count(
 ) + await count(
   `SELECT COUNT(*) n FROM tags WHERE slug LIKE 'smoke-%'`
 );
-check("no seed/smoke content rows (incl. CMS + assessment)", badContent === 0, `${badContent} found`);
+// Phase 6: demo commerce catalog rows (seeded product / smoke products)
+badContent += await count(
+  `SELECT COUNT(*) n FROM products WHERE slug = 'physics-3s-full-access' OR slug LIKE 'smoke-%' OR name_en LIKE 'Smoke %'`
+);
+check("no seed/smoke content rows (incl. CMS + assessment + commerce catalog)", badContent === 0, `${badContent} found`);
+
+// 2b) commerce transactional hygiene: the mock gateway and demo-account orders must never exist in production
+const mockPayments = await count(`SELECT COUNT(*) n FROM payments WHERE provider = 'mock'`);
+const demoOrders = await count(
+  `SELECT COUNT(*) n FROM orders o JOIN users u ON u.id = o.student_id
+    WHERE u.email LIKE '%@educore.local' OR u.email LIKE 'smoke-%' OR u.email LIKE '%@test.local'`
+);
+const demoBatches = await count(
+  `SELECT COUNT(*) n FROM activation_code_batches WHERE name LIKE 'Smoke%' OR name LIKE '%smoke%' OR note LIKE '%smoke%'`
+);
+check(
+  "no mock-gateway payments / demo-account orders / smoke code batches",
+  mockPayments === 0 && demoOrders === 0 && demoBatches === 0,
+  `mockPayments=${mockPayments} demoOrders=${demoOrders} demoBatches=${demoBatches}`
+);
 
 // 3) mock video provider / mock-data references in settings
 const video = await settingsValue("video");
@@ -142,7 +161,7 @@ check("all migrations applied", migrations >= expectedMigrations, `${migrations}
 
 // 9) CMS permission grants seeded for admin role
 const perms = await count(`SELECT COUNT(*) n FROM role_permissions WHERE role_id = 'admin'`);
-check("admin CMS + assessment permissions seeded", perms >= 15, `${perms}/15`);
+check("admin CMS + assessment + commerce permissions seeded", perms >= 22, `${perms}/22`);
 
 // 10) administrable: at least one active super_admin
 const supers = await count(

@@ -64,6 +64,20 @@ export const assessmentSettingsSchema = z.object({
 });
 export type AssessmentSettings = z.infer<typeof assessmentSettingsSchema>;
 
+/** Phase 6 — commerce/payments knobs (PAYMENTS.md §3 manual rail; FEATURE-SPEC §7). */
+export const paymentsSettingsSchema = z.object({
+  /** Manual rail master switch: when off, checkout refuses to create manual payments. */
+  manualEnabled: z.boolean().default(true),
+  /** Admin-configured transfer instructions shown on pending manual payments (bank/Instapay/wallet). */
+  manualInstructionsAr: z.string().max(2000).default(""),
+  manualInstructionsEn: z.string().max(2000).default(""),
+  /** Pending (unconfirmed) orders/payments older than this are auto-expired by the sweep (PAYMENTS.md §4). */
+  orderTtlMinutes: z.number().int().min(10).max(43200).default(4320),
+  /** Refund window (days) after payment for admin refunds; 0 = no window limit. */
+  refundWindowDays: z.number().int().min(0).max(3650).default(0),
+});
+export type PaymentsSettings = z.infer<typeof paymentsSettingsSchema>;
+
 /** Phase 3 — site identity & branding (owner brief §BRANDING). File ids reference the files table (public visibility). */
 const fileIdOrEmpty = z.string().max(36).refine((s) => s === "" || /^[0-9a-f-]{36}$/i.test(s), "file id must be a uuid").default("");
 const httpsOrEmpty = z.string().max(500).refine((s) => s === "" || /^https:\/\/[^\s]+$/i.test(s), "must be an https URL").default("");
@@ -179,6 +193,7 @@ export const settingsGroupSchemas = {
   presentation: presentationSettingsSchema,
   dashboard: dashboardSettingsSchema,
   assessment: assessmentSettingsSchema,
+  payments: paymentsSettingsSchema,
 } as const;
 
 export type SettingsGroupName = keyof typeof settingsGroupSchemas;
@@ -199,4 +214,5 @@ export const ADMIN_ONLY_GROUPS: SettingsGroupName[] = [
   "presentation",
   "dashboard",
   "assessment",
+  "payments",
 ];

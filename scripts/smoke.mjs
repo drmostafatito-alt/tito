@@ -151,6 +151,15 @@ function extractIdNear(rawHtml, linkRe, needle) {
   return last;
 }
 
+/** First id AFTER a needle (hidden inputs inside a row render after the row label). */
+function extractIdAfter(rawHtml, re, needle) {
+  const html = norm(rawHtml);
+  const at = html.indexOf(needle);
+  if (at === -1) return null;
+  const m = html.slice(at).match(new RegExp(re));
+  return m ? m[1] : null;
+}
+
 function blockIdsOf(rawHtml) {
   return [...norm(rawHtml).matchAll(/name="blockId" value="([0-9a-f-]{36})"/g)].map((m) => m[1]);
 }
@@ -894,6 +903,156 @@ const run = async () => {
   check("admin assessment hub → 200 + question bank row", adminAssessment.status === 200 && norm(adminAssessment.text).includes("قوة كولوم تتناسب"), `got ${adminAssessment.status}`);
   const adminExamsTab = await admin.get("/admin/assessment?tab=exams");
   check("admin exams tab → 200 + seeded exam + attempts counter", adminExamsTab.status === 200 && norm(adminExamsTab.text).includes("قياس: الكهرباء الساكنة"), `got ${adminExamsTab.status}`);
+
+  // ------------------------------------------------------------------
+  console.log("\n[16] Phase 6 commerce: product → checkout → order → manual verification → entitlement → unlock; rejection path; activation codes; webhook guards");
+  const runId = Date.now().toString(36);
+  const smokeProductSlug = `smoke-physics-${runId}`;
+  const hub = await admin.get("/admin/commerce?tab=products");
+  check("admin commerce hub → 200", hub.status === 200, `got ${hub.status}`);
+  const courseOpt = norm(hub.text).match(/value="([0-9a-f-]{36})"[^>]*>[^<]*\(physics-3s-full\)/);
+  check("hub offers the seeded course as a product target", Boolean(courseOpt), "course option not found in hub HTML");
+
+  let smokeProductId = null;
+  let smokePlanId = null;
+  if (courseOpt) {
+    const created = await admin.post("/admin/commerce", {
+      form: { _action: "create_product", kind: "course", nameAr: "فيزياء smoke", nameEn: `Smoke Physics ${runId}`, slug: smokeProductSlug, resourceId: courseOpt[1], active: "on" },
+    });
+    smokeProductId = extractIdNear(created.text, `/admin/commerce/products/([0-9a-f-]{36})`, `>${smokeProductSlug}</span>`);
+    check("create product via admin hub (RBAC + audit path)", created.status === 200 && Boolean(smokeProductId), `status=${created.status} id=${smokeProductId}`);
+  }
+  if (smokeProductId) {
+    const planRes = await admin.post(`/admin/commerce/products/${smokeProductId}`, {
+      form: { _action: "create_plan", amountMinor: "25000", currency: "EGP", planKind: "one_time", period: "", periodDays: "", fixedEndsAt: "", labelAr: "", labelEn: "", compareAtMinor: "", promoPriceMinor: "", promoStartsAt: "", promoEndsAt: "", planActive: "on" },
+    });
+    smokePlanId = extractIdAfter(planRes.text, `name="planId" value="([0-9a-f-]{36})"`, "250.00");
+    check("create active price plan (25000 minor = 250.00 EGP)", planRes.status === 200 && Boolean(smokePlanId), `status=${planRes.status} plan=${smokePlanId}`);
+  }
+
+  // buyer: fresh student with no entitlements (device jar persists like a browser profile)
+  const buyerEmail = "smoke-buyer@educore.local";
+  const buyerPass = "Sm0ke!Buyer-2026";
+  const buyer = makeClient("buyer");
+  let buyerIn = await buyer.post("/login", { form: { email: buyerEmail, password: buyerPass } });
+  if (buyerIn.status !== 302) {
+    buyerIn = await buyer.post("/register", { form: { email: buyerEmail, fullName: "Smoke Buyer", password: buyerPass, passwordConfirm: buyerPass } });
+  }
+  check("buyer session established (login or register)", buyerIn.status === 302, `got ${buyerIn.status} (${loginFailureKind(buyerIn.text)})`);
+
+  if (smokePlanId) {
+    const buyerAdminProbe = await buyer.get("/admin/commerce");
+    check("student → /admin/commerce forbidden redirect (server-enforced RBAC)", buyerAdminProbe.status === 302 && (buyerAdminProbe.location ?? "").includes("error=forbidden"), `got ${buyerAdminProbe.status}`);
+
+    const lockedCourse = await buyer.get("/courses/physics-3s-full");
+    check("locked course page shows the buy CTA with the cheapest server-read price", norm(lockedCourse.text).includes(`/products/${smokeProductSlug}`) && lockedCourse.text.includes("250.00"), "CTA/price missing");
+
+    const productPage = await buyer.get(`/products/${smokeProductSlug}`);
+    check("public product page → 200 + server-priced plan", productPage.status === 200 && productPage.text.includes("250.00") && productPage.text.includes("EGP"), `got ${productPage.status}`);
+
+    // checkout — client sends garbage amounts; the server must ignore all of it
+    const checkout = await buyer.post(`/checkout/${smokeProductSlug}`, {
+      form: { _action: "create_order", pricePlanId: smokePlanId, amountMinor: "1", totalMinor: "1", currency: "USD", price: "0.01" },
+    });
+    const orderNumber = (checkout.location ?? "").startsWith("/orders/") ? (checkout.location ?? "").slice("/orders/".length) : null;
+    check("checkout → 302 /orders/EC-…", checkout.status === 302 && /^EC-/.test(orderNumber ?? ""), `got ${checkout.status} ${checkout.location ?? ""}`);
+
+    if (orderNumber) {
+      const orderPage = await buyer.get(`/orders/${orderNumber}`);
+      check("order shows the SERVER total (250.00 EGP) — tamper fields ignored", orderPage.text.includes("250.00") && orderPage.text.includes("EGP") && !orderPage.text.includes("0.01") && !orderPage.text.includes("USD"), "totals wrong");
+      check("order page shows the manual payment reference (= order number)", norm(orderPage.text).includes(orderNumber));
+      const preAccess = await buyer.get("/learn/physics-3s-full/coulomb-law");
+      check("pending order grants NO access (order ≠ payment ≠ authorization)", preAccess.text.includes("يتطلب صلاحية وصول"));
+
+      const confirmRes = await buyer.post(`/orders/${orderNumber}`, { form: { _action: "confirm_payment", transferReference: `SMOKE-TX-${runId}`, note: "" } });
+      check("submit transfer reference → 200", confirmRes.status === 200, `got ${confirmRes.status}`);
+      const underReview = await buyer.get(`/orders/${orderNumber}`);
+      check("payment moves to under_review", underReview.text.includes("قيد المراجعة"));
+      const stillLocked = await buyer.get("/learn/physics-3s-full/coulomb-law");
+      check("submitted reference grants NO access (verification pending)", stillLocked.text.includes("يتطلب صلاحية وصول"));
+      await buyer.post(`/orders/${orderNumber}`, { form: { _action: "confirm_payment", transferReference: "SMOKE-TX-DUP", note: "" } });
+      const afterDup = await buyer.get(`/orders/${orderNumber}`);
+      check("duplicate confirm rejected — still a single under_review attempt", afterDup.text.includes("قيد المراجعة"));
+
+      const payQueue = await admin.get("/admin/commerce?tab=payments");
+      const paymentId = extractIdAfter(payQueue.text, `name="paymentId" value="([0-9a-f-]{36})"`, orderNumber);
+      check("admin payments queue lists the order + evidence reference", Boolean(paymentId) && norm(payQueue.text).includes(`SMOKE-TX-${runId}`), `paymentId=${paymentId}`);
+
+      if (paymentId) {
+        const mismatch = await admin.post("/admin/commerce?tab=payments", { form: { _action: "approve_payment", paymentId, receivedAmount: "24999" } });
+        const mismatchLocked = await buyer.get("/learn/physics-3s-full/coulomb-law");
+        check("wrong amount → amount_mismatch, nothing granted", mismatch.text.includes("يجب أن يساوي المبلغ المستلم") && mismatchLocked.text.includes("يتطلب صلاحية وصول"));
+
+        const approve = await admin.post("/admin/commerce?tab=payments", { form: { _action: "approve_payment", paymentId, receivedAmount: "25000" } });
+        check("admin approve (exact amount) → saved", approve.text.includes("تم الحفظ"), `status=${approve.status}`);
+        const approve2 = await admin.post("/admin/commerce?tab=payments", { form: { _action: "approve_payment", paymentId, receivedAmount: "25000" } });
+        check("replayed approve → alreadyProcessed, no duplicate grants", approve2.text.includes("عولج من قبل"));
+
+        const unlocked = await buyer.get("/learn/physics-3s-full/coulomb-law");
+        check("verified payment → entitlement → SAME resolver unlocks the lesson", unlocked.status === 200 && !unlocked.text.includes("يتطلب صلاحية وصول"), `got ${unlocked.status}`);
+        const courseAfter = await buyer.get("/courses/physics-3s-full");
+        check("course page unlocked (buy CTA gone)", !courseAfter.text.includes("course-buy-cta"));
+        const myOrders = await buyer.get("/orders");
+        check("my-orders lists the paid order", norm(myOrders.text).includes(orderNumber));
+      }
+    }
+
+    // ── failure path: rejected payment → no entitlement → still locked ──
+    // NOTE: a FRESH student — §10 grants student2 a subject entitlement, so student2 is already unlocked by now.
+    const rejEmail = "smoke-reject@educore.local";
+    const rejPass = "Sm0ke!Reject-2026";
+    const rejectee = makeClient("rejectee");
+    let rejIn = await rejectee.post("/login", { form: { email: rejEmail, password: rejPass } });
+    if (rejIn.status !== 302) {
+      rejIn = await rejectee.post("/register", { form: { email: rejEmail, fullName: "Smoke Reject", password: rejPass, passwordConfirm: rejPass } });
+    }
+    check("rejection-path student session established", rejIn.status === 302, `got ${rejIn.status} (${loginFailureKind(rejIn.text)})`);
+    const rejLockedBefore = await rejectee.get("/learn/physics-3s-full/coulomb-law");
+    check("rejection-path student starts locked", rejLockedBefore.text.includes("يتطلب صلاحية وصول"));
+    const checkout2 = await rejectee.post(`/checkout/${smokeProductSlug}`, { form: { _action: "create_order", pricePlanId: smokePlanId } });
+    const order2 = (checkout2.location ?? "").startsWith("/orders/") ? (checkout2.location ?? "").slice("/orders/".length) : null;
+    check("rejection-path student checkout → order created", Boolean(order2), `got ${checkout2.status} ${checkout2.location ?? ""}`);
+    if (order2) {
+      await rejectee.post(`/orders/${order2}`, { form: { _action: "confirm_payment", transferReference: "SMOKE-BAD-TX", note: "" } });
+      const queue2 = await admin.get("/admin/commerce?tab=payments");
+      const payment2 = extractIdAfter(queue2.text, `name="paymentId" value="([0-9a-f-]{36})"`, order2);
+      const rejected = await admin.post("/admin/commerce?tab=payments", { form: { _action: "reject_payment", paymentId: payment2 ?? "", reason: "reference not found in bank statement" } });
+      check("admin rejects the manual payment", rejected.status === 200 && Boolean(payment2), `status=${rejected.status}`);
+      const s2Locked = await rejectee.get("/learn/physics-3s-full/coulomb-law");
+      check("rejected payment → NO entitlement, lesson still locked", s2Locked.text.includes("يتطلب صلاحية وصول"));
+
+      // student cannot self-approve (RBAC on the admin action)
+      const selfApprove = await rejectee.post("/admin/commerce", { form: { _action: "approve_payment", paymentId: payment2 ?? "", receivedAmount: "25000" } });
+      const s2StillLocked = await rejectee.get("/learn/physics-3s-full/coulomb-law");
+      check("student self-approval blocked (redirect, no grant)", selfApprove.status === 302 && s2StillLocked.text.includes("يتطلب صلاحية وصول"), `got ${selfApprove.status}`);
+
+      // ── activation codes: generate (plaintext once) → redeem → unlock; replay rejected ──
+      const genRes = await admin.post("/admin/commerce?tab=codes", {
+        form: { _action: "generate_codes", name: `Smoke batch ${runId}`, count: "2", maxUses: "1", productId: smokeProductId ?? "", resourceId: "", durationDays: "", expiresAt: "", note: "smoke" },
+      });
+      const codes = [...genRes.text.matchAll(/EDU-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}/g)].map((m) => m[0]);
+      check("activation batch generated; plaintext codes shown once", codes.length >= 2, `found ${codes.length}`);
+      if (codes.length >= 2) {
+        const redeem = await rejectee.post("/activate", { form: { _action: "redeem", code: codes[0] } });
+        check("valid code redemption → success", redeem.text.includes('data-testid="redeem-success"'), `status=${redeem.status}`);
+        const s2Unlocked = await rejectee.get("/learn/physics-3s-full/coulomb-law");
+        check("redeemed code → entitlement → lesson unlocked", !s2Unlocked.text.includes("يتطلب صلاحية وصول"));
+        const replay = await rejectee.post("/activate", { form: { _action: "redeem", code: codes[0] } });
+        check("same code twice → already_redeemed (no double grant)", replay.text.includes("لقد فعّلت هذا الكود من قبل"));
+        const junk = await rejectee.post("/activate", { form: { _action: "redeem", code: "EDU-2222-3333-4444" } });
+        check("fabricated code → invalid", junk.text.includes('data-testid="redeem-error"'));
+      }
+    }
+  }
+
+  // webhook endpoint guards (mock provider is TEST-ONLY; forged events must bounce)
+  const whGet = await anon.get("/webhooks/payments/mock");
+  check("webhook route: GET → 405", whGet.status === 405, `got ${whGet.status}`);
+  const whPost = await anon.post("/webhooks/payments/mock", {
+    body: JSON.stringify({ provider_event_id: `smoke_${runId}`, type: "payment.paid", reference: "does-not-exist", amount_minor: 1 }),
+    headers: { "content-type": "application/json", "x-mock-signature": "00".repeat(32) },
+  });
+  check("forged webhook signature → 400 rejected (no fulfillment)", whPost.status === 400, `got ${whPost.status}`);
 
   // ------------------------------------------------------------------
   console.log("\n[13] Rate limiting (runs LAST by design — burns the 1-min login window)");

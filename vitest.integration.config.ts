@@ -19,6 +19,7 @@ export default defineConfig({
           SESSION_PEPPER: "integration-test-session-pepper",
           FILE_URL_SECRET: "integration-test-file-url-secret",
           MOCK_VIDEO_SECRET: "integration-test-mock-video-secret",
+          MOCK_PAYMENTS_SECRET: "integration-test-mock-payments-secret",
           AUTH_PBKDF2_ITERATIONS: "100000",
         },
       },

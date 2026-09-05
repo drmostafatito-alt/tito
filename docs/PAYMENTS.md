@@ -52,6 +52,8 @@ Signature verification before parsing; replay protection; amount taken from serv
 
 ## 6. Verification log (fill at Phase 6, one row per provider)
 
+**Phase 6 outcome (2026-09-05):** NO real gateway was verified or integrated — per the verification gate above, no adapter code exists for any candidate. The production rails are **manual transfer** (live) and **activation codes** (live). A `mock` adapter (`server/payments/providers/mock.server.ts`, registered ONLY when the `MOCK_PAYMENTS_SECRET` binding is present — never in production) exercises the full gateway discipline in tests/dev: createCheckout → provider reference → HMAC-signed webhook → signature verification → idempotent `provider_event_id` inbox → verified fulfillment. The `PaymentProvider` interface below is the sole contract a future verified gateway must satisfy (ADR-024).
+
 | Provider | Docs verified (date+links) | Egypt | Webhooks | Signature | Refunds | Decision |
 |---|---|---|---|---|---|---|
 | Paymob | — | — | — | — | — | pending |

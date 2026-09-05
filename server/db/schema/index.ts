@@ -5,3 +5,4 @@ export * from "./content";
 export * from "./cms";
 export * from "./progress";
 export * from "./assessment";
+export * from "./commerce";

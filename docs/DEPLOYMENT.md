@@ -27,6 +27,7 @@ Isolation rule: production data is **never** copied to dev/preview. Fixtures/see
 | `SESSION_PEPPER` | all | P1 (defense-in-depth on token hashing; dev fallback exists, MUST be set in prod) |
 | `FILE_URL_SECRET` | all | P2 — REQUIRED: HMAC key for signed private-file URLs (no fallback) |
 | `MOCK_VIDEO_SECRET` | all (dev/local; prod only if mock provider used) | P2 — REQUIRED when provider=mock: playback-token HMAC (no fallback) |
+| `MOCK_PAYMENTS_SECRET` | dev/local/tests ONLY | P6 — binds the TEST-ONLY `mock` payment provider (webhook HMAC). NEVER set in production: without it the mock adapter is not registered and `/webhooks/payments/mock` 404s. No real gateway secret exists yet (PAYMENTS.md §6). |
 | `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` | prod/preview | P2 — required when provider=mux (API ingest/sync); absent → loud `VideoNotConfiguredError` |
 | `MUX_SIGNING_KEY_ID` / `MUX_SIGNING_PRIVATE_KEY` | prod/preview | P2 — required when provider=mux (signed-JWT playback) |
 | `AUTH_PBKDF2_ITERATIONS` (non-secret tuning) | all | P1 (default 100k) |

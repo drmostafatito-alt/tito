@@ -7,6 +7,8 @@ import { getSettings } from "~server/settings/service.server";
 import { catalogCourses } from "~server/content/service.server";
 import { lessonCounts, resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
 import { subjects } from "~server/db/schema";
+import { purchasableFor } from "~server/commerce/service.server";
+import { formatMoney } from "~server/commerce/money";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
 import { t, type Locale } from "~/lib/i18n";
@@ -19,6 +21,9 @@ export async function loader({ context, params }: Route.LoaderArgs) {
   if (!subject || subject.status !== "published" || subject.deletedAt) {
     throw new Response("Not Found", { status: 404 });
   }
+
+  // Phase 6: subject-level access product CTA (server-read price)
+  const buyOption = await purchasableFor(db, { type: "subject", id: subject.id });
 
   const settings = await getSettings(db);
   const pres = settings.presentation.courseCard;
@@ -40,6 +45,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       descriptionEn: subject.descriptionEn,
     },
     program: { slug: catalog[0]?.programSlug ?? null, titleAr: catalog[0]?.programAr ?? null, titleEn: catalog[0]?.programEn ?? null },
+    buyOption,
     pres,
     courses: catalog.map((r) => ({
       slug: r.course.slug,
@@ -56,7 +62,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
 export default function SubjectPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { subject, program, pres, courses } = loaderData;
+  const { subject, program, pres, courses, buyOption } = loaderData;
   const c = (row: { titleAr: string | null; titleEn: string | null }) => (locale === "ar" ? row.titleAr : row.titleEn);
   const desc = locale === "ar" ? subject.descriptionAr : subject.descriptionEn;
 
@@ -75,6 +81,18 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
       </nav>
       <h1 className="text-2xl font-bold">{c(subject)}</h1>
       {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      {buyOption && (
+        <Link
+          to={`/products/${buyOption.productSlug}`}
+          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+          data-testid="subject-buy-cta"
+        >
+          {t(locale, "commerce.buyCta")}
+          <span dir="ltr">
+            {t(locale, "commerce.fromPrice").replace("{price}", formatMoney(buyOption.minPriceMinor, buyOption.currency))}
+          </span>
+        </Link>
+      )}
 
       {courses.length === 0 ? (
         <p className="mt-6 text-slate-500">{t(locale, "content.catalogEmpty")}</p>

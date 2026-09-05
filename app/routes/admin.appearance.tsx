@@ -14,6 +14,7 @@ import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
+import { t } from "~/lib/i18n";
 import type { Locale } from "~/lib/i18n";
 
 /**
@@ -80,6 +81,14 @@ export async function action({ context, request }: Route.ActionArgs) {
           provider: str("provider"),
           playbackTokenTtlSeconds: num("playbackTokenTtl"),
           fileUrlTtlSeconds: num("fileTtl"),
+        }, actor);
+        // Phase 6: manual payment-rail configuration (PAYMENTS.md §3 — admin-configured instructions)
+        await updateSettingsGroup(db, "payments", {
+          manualEnabled: on("manualEnabled"),
+          manualInstructionsAr: str("manualInstructionsAr").slice(0, 2000),
+          manualInstructionsEn: str("manualInstructionsEn").slice(0, 2000),
+          orderTtlMinutes: num("orderTtlMinutes"),
+          refundWindowDays: num("refundWindowDays"),
         }, actor);
       }
       return { ok: true as const };
@@ -202,6 +211,7 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
   const dash = settings.dashboard;
   const plat = settings.platform;
   const vid = settings.video;
+  const pay = settings.payments;
 
   return (
     <div className="flex flex-col gap-6">
@@ -404,6 +414,25 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                   </div>
                   <Input label={L("cms.f.playbackTtl")} name="playbackTokenTtl" defaultValue={String(vid.playbackTokenTtlSeconds)} dir="ltr" />
                   <Input label={L("cms.f.fileTtl")} name="fileTtl" defaultValue={String(vid.fileUrlTtlSeconds)} dir="ltr" />
+                </fieldset>
+              )}
+              {loaderData.isSuper && (
+                <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4" data-testid="payments-settings">
+                  <legend className="px-1 text-sm font-semibold text-slate-700">{t(locale, "commerceAdmin.settingsTitle")}</legend>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="manualEnabled" defaultChecked={pay.manualEnabled} />
+                    {t(locale, "commerceAdmin.manualEnabled")}
+                  </label>
+                  <div className="flex flex-col">
+                    <span className="mb-1 text-sm font-medium text-slate-700">{t(locale, "commerceAdmin.manualInstructionsAr")}</span>
+                    <textarea name="manualInstructionsAr" rows={3} defaultValue={pay.manualInstructionsAr} dir="rtl" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="mb-1 text-sm font-medium text-slate-700">{t(locale, "commerceAdmin.manualInstructionsEn")}</span>
+                    <textarea name="manualInstructionsEn" rows={3} defaultValue={pay.manualInstructionsEn} dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                  <Input label={t(locale, "commerceAdmin.orderTtlMinutes")} name="orderTtlMinutes" defaultValue={String(pay.orderTtlMinutes)} dir="ltr" />
+                  <Input label={t(locale, "commerceAdmin.refundWindowDays")} name="refundWindowDays" defaultValue={String(pay.refundWindowDays)} dir="ltr" />
                 </fieldset>
               )}
               <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>

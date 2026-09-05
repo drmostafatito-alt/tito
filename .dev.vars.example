@@ -21,3 +21,6 @@ MUX_TOKEN_ID=
 MUX_TOKEN_SECRET=
 MUX_SIGNING_KEY_ID=
 MUX_SIGNING_PRIVATE_KEY=
+
+# Phase 6 — HMAC secret for the MOCK payment gateway webhooks (TEST-ONLY; do NOT set in production)
+MOCK_PAYMENTS_SECRET=change-me-long-random

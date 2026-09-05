@@ -27,6 +27,17 @@ export function t(locale: Locale, key: string, params?: Record<string, string | 
   return value as string;
 }
 
+/**
+ * Error-message lookup with graceful fallback: `ns.err_<reason>` when defined,
+ * otherwise the namespace's generic message — dynamic service reasons never
+ * render as raw keys (Phase 6 commerce uses this for service error reasons).
+ */
+export function et(locale: Locale, ns: string, reason: string): string {
+  const key = `${ns}.err_${reason}`;
+  const value = t(locale, key);
+  return value === key ? t(locale, `${ns}.err_generic`) : value;
+}
+
 export function dirOf(locale: Locale): "rtl" | "ltr" {
   return locale === "ar" ? "rtl" : "ltr";
 }

@@ -199,6 +199,8 @@ exam_answers     id PK · attempt_id FK · question_id FK · choice_ids JSON NUL
 
 ## Commerce (P6)
 
+**LIVE — implemented as sketched below by additive migration `0006_flowery_tempest` (15 tables, no drops/renames; 7 `commerce.*` permission rows seeded for the admin role).** As-built notes: money is integer minor units everywhere (`*_minor`); `payments.instructions` (frozen manual-rail snapshot: reference = order number + localized instructions) and `payments.metadata` (evidence: transferReference/note) are JSON columns; `order_items.entitlement_spec` freezes the grants at purchase time; `subscriptions.plan_snapshot` embeds the originating `orderId` (used by refund-revocation); activation/discount codes are stored as SHA-256 hashes of the normalized code + a short plaintext prefix for admin search; uniqueness guards: `orders.order_number`, `payment_events.provider_event_id` (per provider), `activation_codes.code_hash`, `discount_codes.code_hash`, `activation_code_redemptions(code_id, student_id)`, `discount_redemptions` per order, `product_items(product_id, resource_type, resource_id)`. Cross-domain refs (users/content/files) stay app-layer guarded per ADR-017.
+
 ```
 products         id PK · kind TEXT(course|subject|bundle|subscription_plan) · name_ar/en · description_ar/en
                  · active INTEGER · sort_order · metadata JSON · timestamps

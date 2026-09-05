@@ -46,6 +46,11 @@ type Pages = {
       "unitId": string;
     };
   };
+  "/products/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
   "/login": {
     params: {};
   };
@@ -92,6 +97,11 @@ type Pages = {
   "/api/exam-attempt": {
     params: {};
   };
+  "/webhooks/payments/:provider": {
+    params: {
+      "provider": string;
+    };
+  };
   "/exams/:slug/attempt": {
     params: {
       "slug": string;
@@ -124,6 +134,22 @@ type Pages = {
     params: {
       "attemptId": string;
     };
+  };
+  "/checkout/:productSlug": {
+    params: {
+      "productSlug": string;
+    };
+  };
+  "/orders": {
+    params: {};
+  };
+  "/orders/:orderNumber": {
+    params: {
+      "orderNumber": string;
+    };
+  };
+  "/activate": {
+    params: {};
   };
   "/profile/security": {
     params: {};
@@ -184,16 +210,34 @@ type Pages = {
       "id": string;
     };
   };
+  "/admin/commerce": {
+    params: {};
+  };
+  "/admin/commerce/products/:id": {
+    params: {
+      "id": string;
+    };
+  };
+  "/admin/commerce/orders/:id": {
+    params: {
+      "id": string;
+    };
+  };
+  "/admin/commerce/batches/:id": {
+    params: {
+      "id": string;
+    };
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/api/exam-attempt" | "/exams/:slug/attempt" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/exams" | "/exams/:slug" | "/results" | "/results/:attemptId" | "/profile/security" | "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/assessment" | "/admin/assessment/questions/:id" | "/admin/assessment/exams/:id";
+    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/api/exam-attempt" | "/webhooks/payments/:provider" | "/exams/:slug/attempt" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/exams" | "/exams/:slug" | "/results" | "/results/:attemptId" | "/checkout/:productSlug" | "/orders" | "/orders/:orderNumber" | "/activate" | "/profile/security" | "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/assessment" | "/admin/assessment/questions/:id" | "/admin/assessment/exams/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
   };
   "routes/public/layout.tsx": {
     id: "public";
-    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale";
+    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale";
   };
   "routes/public/home.tsx": {
     id: "routes/public/home";
@@ -226,6 +270,10 @@ type RouteFiles = {
   "routes/public.courses.$slug.units.$unitId.tsx": {
     id: "routes/public.courses.$slug.units.$unitId";
     page: "/courses/:slug/units/:unitId";
+  };
+  "routes/public.products.$slug.tsx": {
+    id: "routes/public.products.$slug";
+    page: "/products/:slug";
   };
   "routes/public/login.tsx": {
     id: "routes/public/login";
@@ -279,6 +327,10 @@ type RouteFiles = {
     id: "routes/api.exam-attempt";
     page: "/api/exam-attempt";
   };
+  "routes/webhooks.payments.$provider.tsx": {
+    id: "routes/webhooks.payments.$provider";
+    page: "/webhooks/payments/:provider";
+  };
   "routes/student/exams.$slug.attempt.tsx": {
     id: "routes/student/exams.$slug.attempt";
     page: "/exams/:slug/attempt";
@@ -289,7 +341,7 @@ type RouteFiles = {
   };
   "routes/student/layout.tsx": {
     id: "student";
-    page: "/dashboard" | "/profile" | "/exams" | "/exams/:slug" | "/results" | "/results/:attemptId" | "/profile/security";
+    page: "/dashboard" | "/profile" | "/exams" | "/exams/:slug" | "/results" | "/results/:attemptId" | "/checkout/:productSlug" | "/orders" | "/orders/:orderNumber" | "/activate" | "/profile/security";
   };
   "routes/student/dashboard.tsx": {
     id: "routes/student/dashboard";
@@ -315,13 +367,29 @@ type RouteFiles = {
     id: "routes/student/results.$attemptId";
     page: "/results/:attemptId";
   };
+  "routes/student/checkout.$productSlug.tsx": {
+    id: "routes/student/checkout.$productSlug";
+    page: "/checkout/:productSlug";
+  };
+  "routes/student/orders.tsx": {
+    id: "routes/student/orders";
+    page: "/orders";
+  };
+  "routes/student/orders.$orderNumber.tsx": {
+    id: "routes/student/orders.$orderNumber";
+    page: "/orders/:orderNumber";
+  };
+  "routes/student/activate.tsx": {
+    id: "routes/student/activate";
+    page: "/activate";
+  };
   "routes/student/security.tsx": {
     id: "routes/student/security";
     page: "/profile/security";
   };
   "routes/admin/layout.tsx": {
     id: "admin-root";
-    page: "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/assessment" | "/admin/assessment/questions/:id" | "/admin/assessment/exams/:id";
+    page: "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/assessment" | "/admin/assessment/questions/:id" | "/admin/assessment/exams/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
   };
   "routes/admin/home.tsx": {
     id: "routes/admin/home";
@@ -383,6 +451,22 @@ type RouteFiles = {
     id: "routes/admin.assessment.exams.$id";
     page: "/admin/assessment/exams/:id";
   };
+  "routes/admin.commerce.tsx": {
+    id: "routes/admin.commerce";
+    page: "/admin/commerce";
+  };
+  "routes/admin.commerce.products.$id.tsx": {
+    id: "routes/admin.commerce.products.$id";
+    page: "/admin/commerce/products/:id";
+  };
+  "routes/admin.commerce.orders.$id.tsx": {
+    id: "routes/admin.commerce.orders.$id";
+    page: "/admin/commerce/orders/:id";
+  };
+  "routes/admin.commerce.batches.$id.tsx": {
+    id: "routes/admin.commerce.batches.$id";
+    page: "/admin/commerce/batches/:id";
+  };
 };
 
 type RouteModules = {
@@ -396,6 +480,7 @@ type RouteModules = {
   "routes/public.courses": typeof import("./app/routes/public.courses.tsx");
   "routes/public.courses.$slug": typeof import("./app/routes/public.courses.$slug.tsx");
   "routes/public.courses.$slug.units.$unitId": typeof import("./app/routes/public.courses.$slug.units.$unitId.tsx");
+  "routes/public.products.$slug": typeof import("./app/routes/public.products.$slug.tsx");
   "routes/public/login": typeof import("./app/routes/public/login.tsx");
   "routes/public/register": typeof import("./app/routes/public/register.tsx");
   "routes/public/forgot-password": typeof import("./app/routes/public/forgot-password.tsx");
@@ -409,6 +494,7 @@ type RouteModules = {
   "routes/api.playback.$videoId": typeof import("./app/routes/api.playback.$videoId.tsx");
   "routes/beacons.progress": typeof import("./app/routes/beacons.progress.tsx");
   "routes/api.exam-attempt": typeof import("./app/routes/api.exam-attempt.tsx");
+  "routes/webhooks.payments.$provider": typeof import("./app/routes/webhooks.payments.$provider.tsx");
   "routes/student/exams.$slug.attempt": typeof import("./app/routes/student/exams.$slug.attempt.tsx");
   "routes/api.mock-stream.$videoId.$file": typeof import("./app/routes/api.mock-stream.$videoId.$file.tsx");
   "student": typeof import("./app/routes/student/layout.tsx");
@@ -418,6 +504,10 @@ type RouteModules = {
   "routes/student/exams.$slug": typeof import("./app/routes/student/exams.$slug.tsx");
   "routes/student/results": typeof import("./app/routes/student/results.tsx");
   "routes/student/results.$attemptId": typeof import("./app/routes/student/results.$attemptId.tsx");
+  "routes/student/checkout.$productSlug": typeof import("./app/routes/student/checkout.$productSlug.tsx");
+  "routes/student/orders": typeof import("./app/routes/student/orders.tsx");
+  "routes/student/orders.$orderNumber": typeof import("./app/routes/student/orders.$orderNumber.tsx");
+  "routes/student/activate": typeof import("./app/routes/student/activate.tsx");
   "routes/student/security": typeof import("./app/routes/student/security.tsx");
   "admin-root": typeof import("./app/routes/admin/layout.tsx");
   "routes/admin/home": typeof import("./app/routes/admin/home.tsx");
@@ -435,4 +525,8 @@ type RouteModules = {
   "routes/admin.assessment": typeof import("./app/routes/admin.assessment.tsx");
   "routes/admin.assessment.questions.$id": typeof import("./app/routes/admin.assessment.questions.$id.tsx");
   "routes/admin.assessment.exams.$id": typeof import("./app/routes/admin.assessment.exams.$id.tsx");
+  "routes/admin.commerce": typeof import("./app/routes/admin.commerce.tsx");
+  "routes/admin.commerce.products.$id": typeof import("./app/routes/admin.commerce.products.$id.tsx");
+  "routes/admin.commerce.orders.$id": typeof import("./app/routes/admin.commerce.orders.$id.tsx");
+  "routes/admin.commerce.batches.$id": typeof import("./app/routes/admin.commerce.batches.$id.tsx");
 };

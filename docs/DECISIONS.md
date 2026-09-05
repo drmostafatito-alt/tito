@@ -240,3 +240,110 @@ block it.
 regrade-safe). FTS5 question search is deferred (LIKE on stems is adequate at
 bank sizes; indexed composite covers admin filters). The readiness gate now
 also detects seeded demo exams/questions/tags.
+
+## ADR-023 Commerce engine: payment never authorizes; frozen specs; integer money (Phase 6)
+
+**Context.** Phase 6 adds products/pricing, orders, the manual payment rail,
+activation codes, discounts, subscriptions and refunds. Reserved structures
+were binding: the `Commerce (P6)` schema block (DATABASE-SCHEMA.md),
+PAYMENTS.md (rails/state machines/records), the `entitlements` engine
+(ADR-009) and the provider-abstraction pattern proven by VideoProvider
+(ADR-007). The owner rule is absolute: **payment does NOT directly authorize
+access** — only `verified payment / manual activation → entitlement grant →
+the EXISTING resolveAccess()`.
+
+**Decisions.**
+1. **One fulfillment transaction, one grant path.** `fulfillPaid` is the ONLY
+   code that creates purchase entitlements: it conditionally claims the
+   payment (`pending|under_review → paid`, `changes==0` ⇒ idempotent no-op
+   return), then one `db.batch` writes order→paid, entitlement rows
+   (`source_type: order_item|subscription`), the subscription row (recurring
+   plans; `plan_snapshot` embeds `orderId` for refund-revocation) and the
+   exactly-once `purchase` event. Admin approval and signature-verified
+   webhooks both funnel through it; nothing else grants.
+2. **Frozen entitlement specs.** At order time `buildEntitlementSpec`
+   validates every product item (node exists + published) and freezes
+   `{grants, durationDays, fixedExpiresAt}` into `order_items.entitlement_spec`.
+   Fulfillment reads the freeze — later catalog edits never rewrite history.
+3. **Server-side pricing only.** Amounts are integer minor units end to end
+   (`money.ts` is float-free by construction: `Math.trunc` formatting, floor
+   discounts). Checkout reads product/plan from the DB by id; the client
+   submits `pricePlanId` and NOTHING monetary — tamper fields are not parsed.
+   Promo windows/compare-at are evaluated on the server clock.
+4. **State machines are data.** PAYMENTS.md §2 transitions live in
+   `PAYMENT_TRANSITIONS`/`ORDER_TRANSITIONS` + `canTransition`; every mutation
+   is a conditional UPDATE claim (compare-and-set) so concurrent callers can
+   never double-advance. Illegal jumps throw `CommerceStateError`.
+5. **Manual rail discipline.** Order → pending payment with a frozen
+   `instructions` snapshot (reference = order number + localized instructions
+   from `settings.payments`) → student submits evidence (`confirm`, claim
+   `pending→under_review`, evidence in `metadata`) → admin approves with the
+   EXACT server total (`amount_mismatch` otherwise) or rejects (→ `failed`;
+   the student may resubmit on a NEW payment row — 1:N attempts). Submission
+   of a reference grants nothing.
+6. **Atomic activation codes.** Codes are crypto-random over an
+   ambiguity-free alphabet, stored as SHA-256 of the normalized code (+prefix
+   for admin search), plaintext shown exactly once. Redemption = pre-checks
+   for precise reasons, then a conditional `use_count+1` claim
+   (`WHERE active ∧ use_count<max ∧ expiry-ok`, exhaustion folded into the
+   CASE) + `UNIQUE(code_id, student_id)`; a unique-catch compensates
+   `use_count−1`. Two concurrent redeemers ⇒ exactly one winner (tested).
+7. **Discounts without oracles.** Hashed storage; ANY invalid/inactive/
+   window-miss code returns the generic `discount_invalid` (no existence
+   leak); limits (`max_uses`, `per_user_limit`, `min_order`) enforced via a
+   conditional claim UPDATE + per-user subquery, with `used_count−1`
+   compensation if the order batch fails.
+8. **Refunds are full, windowed, non-destructive.** `paid→refunded` claim,
+   `refunds` row, order→refunded, entitlements revoked with reason
+   `refund:<paymentId>` (subscription entitlements matched via
+   `json_extract(plan_snapshot,'$.orderId')`), subscription cancelled, the
+   `purchase` event marked `action: refunded`. History is never deleted;
+   access flips through the same resolver. Partial refunds deferred.
+9. **Sweeps on touch (no cron).** Order TTL expiry and subscription period
+   expiry run inside student loaders (`ordersForStudent`) — Workers-safe.
+10. **RBAC + audit on every mutation.** 7 `commerce.*` permissions (rank≥4
+    bypass, rank3 via `role_permissions` — the CMS/assessment model);
+    `logAudit` on product/price/order/payment/code/discount/refund/
+    subscription mutations with before/after diffs.
+
+**Consequences.** Access decisions remain 100% inside `resolveAccess()` —
+commerce only writes entitlement rows, so Phases 1–5 gating is untouched and
+revocation (refund/pause/expiry) is automatically honored everywhere.
+Idempotency is structural (claims + unique indexes), not incidental. Known
+deferrals: cart, partial refunds, admin-created orders UI (schema supports
+`source='admin'`), reconciliation cron (mock `fetchRemoteStatus` reports
+unknown; TTL sweep covers expiry), dashboard expiry card (Phase 7).
+
+## ADR-024 No real payment gateway before verification; binding-gated mock (Phase 6)
+
+**Context.** PAYMENTS.md §3 makes gateway adapters verification-gated:
+official docs, webhook signature scheme, sandbox, refund API and merchant
+prerequisites must be recorded in the §6 log BEFORE adapter code exists. At
+Phase 6 delivery no candidate (Paymob/Fawry/Stripe) had a recorded
+verification, and the owner brief forbids real payments/transactions in
+tests.
+
+**Decisions.**
+1. **No vendor adapter ships.** The `PaymentProvider` interface
+   (`server/payments/provider.ts`) + `paymentProviderRegistry(env)` are the
+   only contract; `manual` is always registered.
+2. **A `mock` adapter proves the gateway discipline** end to end
+   (createCheckout → provider reference → HMAC-signed webhook → verify →
+   idempotent inbox → fulfill/flag). It registers ONLY when
+   `MOCK_PAYMENTS_SECRET` is bound: integration tests and local dev bind it;
+   production never does, so the adapter and its webhook path are inert
+   there (unknown provider ⇒ 404). The readiness gate flags any
+   `payments.provider='mock'` row as deploy-blocking demo data.
+3. **Webhook ingestion is provider-agnostic:** signature verification BEFORE
+   parsing; `payment_events` inbox unique per `(provider, provider_event_id)`
+   with `onConflictDoNothing` ⇒ replay-safe 200 `duplicate`; invalid
+   signatures recorded (`signature_valid=0`) and 400-rejected; amount
+   mismatches flag the payment `under_review` for a human — never
+   auto-fulfill; sanitized payload storage only.
+4. **No secret ever reaches the frontend:** provider keys/HMAC secrets are
+   server-binding-only; checkout UI exposes no provider configuration.
+
+**Consequences.** Adding a real gateway later = one adapter file + registry
+entry + a §6 verification row — zero domain changes. Until then the manual
+rail + activation codes are the production payment surface, exactly as
+FEATURE-SPEC §7 prescribes for v1.

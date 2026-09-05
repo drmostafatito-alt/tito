@@ -3,7 +3,7 @@
 > Single source of truth for **scope, phases, and process**.
 > Architecture details live in `ARCHITECTURE.md`. Decision rationale lives in `DECISIONS.md`.
 
-**Status: Phases 0–5 delivered (2026-09-05). Phase 3 = CMS / Page Builder (owner-inserted; see ADR-018 for the renumbering of the original plan); Phase 4 = student experience (progress, resume, catalog hierarchy, profile); Phase 5 = assessment engine (question bank, exam builder, attempt engine, auto-grading, results/review — ADR-022). Next: Phase 6 (commerce) — awaits owner go-ahead.**
+**Status: Phases 0–6 delivered (2026-09-05). Phase 3 = CMS / Page Builder (owner-inserted; see ADR-018 for the renumbering of the original plan); Phase 4 = student experience (progress, resume, catalog hierarchy, profile); Phase 5 = assessment engine (question bank, exam builder, attempt engine, auto-grading, results/review — ADR-022); Phase 6 = commerce engine (products & server-side pricing, orders, manual payment rail, activation codes, discounts, subscriptions, refunds/revocation, signature-verified webhook pipeline — ADR-023/ADR-024). Next: Phase 7 (admin platform consolidation) — awaits owner go-ahead.**
 
 ---
 
@@ -101,7 +101,7 @@ Every phase report contains exactly:
 | `docs/SECURITY.md` | Security model & checklist | ✅ Phase 0 |
 | `docs/DEPLOYMENT.md` | Environments, runbooks, backups | ✅ Phase 0 (validated at first deploy) |
 | `docs/TEST-PLAN.md` | Strategy + device matrix | ✅ Phase 0 (execution log per phase) |
-| `docs/PAYMENTS.md` | Rails, states, verification records | ✅ Phase 0 (gateway log filled at Phase 6) |
+| `docs/PAYMENTS.md` | Rails, states, verification records | ✅ Phase 0 (P6: manual rail + codes live; NO real gateway verified → mock adapter only, log §6 updated) |
 | `docs/VIDEO-PROVIDERS.md` | Abstraction + adapters | ✅ Phase 0 (Mux playback verified 2026-09-05) |
 | `docs/ADMIN-GUIDE.md` | How the admin runs the platform | ✅ skeleton (complete at Phase 7) |
 | `docs/CHANGELOG.md` | History | ✅ current |

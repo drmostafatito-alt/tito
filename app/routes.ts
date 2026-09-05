@@ -10,6 +10,7 @@ export default [
     route("courses", "routes/public.courses.tsx"),
     route("courses/:slug", "routes/public.courses.$slug.tsx"),
     route("courses/:slug/units/:unitId", "routes/public.courses.$slug.units.$unitId.tsx"),
+    route("products/:slug", "routes/public.products.$slug.tsx"),
     route("login", "routes/public/login.tsx"),
     route("register", "routes/public/register.tsx"),
     route("forgot-password", "routes/public/forgot-password.tsx"),
@@ -24,6 +25,7 @@ export default [
   route("api/playback/:videoId", "routes/api.playback.$videoId.tsx"),
   route("beacons/progress", "routes/beacons.progress.tsx"),
   route("api/exam-attempt", "routes/api.exam-attempt.tsx"),
+  route("webhooks/payments/:provider", "routes/webhooks.payments.$provider.tsx"),
   route("exams/:slug/attempt", "routes/student/exams.$slug.attempt.tsx"),
   route("api/mock-stream/:videoId/:file", "routes/api.mock-stream.$videoId.$file.tsx"),
   layout("routes/student/layout.tsx", { id: "student" }, [
@@ -33,6 +35,10 @@ export default [
     route("exams/:slug", "routes/student/exams.$slug.tsx"),
     route("results", "routes/student/results.tsx"),
     route("results/:attemptId", "routes/student/results.$attemptId.tsx"),
+    route("checkout/:productSlug", "routes/student/checkout.$productSlug.tsx"),
+    route("orders", "routes/student/orders.tsx"),
+    route("orders/:orderNumber", "routes/student/orders.$orderNumber.tsx"),
+    route("activate", "routes/student/activate.tsx"),
     route("profile/security", "routes/student/security.tsx"),
   ]),
   route("admin", "routes/admin/layout.tsx", { id: "admin-root" }, [
@@ -51,5 +57,9 @@ export default [
     route("assessment", "routes/admin.assessment.tsx"),
     route("assessment/questions/:id", "routes/admin.assessment.questions.$id.tsx"),
     route("assessment/exams/:id", "routes/admin.assessment.exams.$id.tsx"),
+    route("commerce", "routes/admin.commerce.tsx"),
+    route("commerce/products/:id", "routes/admin.commerce.products.$id.tsx"),
+    route("commerce/orders/:id", "routes/admin.commerce.orders.$id.tsx"),
+    route("commerce/batches/:id", "routes/admin.commerce.batches.$id.tsx"),
   ]),
 ] satisfies RouteConfig;
