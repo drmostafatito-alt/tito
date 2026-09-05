@@ -60,14 +60,15 @@ export const ar = {
     },
   },
   dashboard: {
+    myCourses: "كورساتي",
+    quickActions: "إجراءات سريعة",
+    support: "الدعم",
     title: "لوحة الطالب",
     welcome: "أهلًا",
     role: "الدور",
     sessionCard: "جلستك الحالية",
     sessionExpires: "تنتهي في",
     deviceCard: "جهازك الحالي",
-    roadmapTitle: "قادم قريبًا",
-    roadmapBody: "الكورسات، تتبع التقدم، الفيديو، الاختبارات والمدفوعات تُفعّل تدريجيًا في المراحل القادمة.",
     securityLink: "الأمان وكلمة المرور",
   },
   security: {

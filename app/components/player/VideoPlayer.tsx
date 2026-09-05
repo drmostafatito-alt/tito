@@ -19,7 +19,20 @@ interface PlaybackResponse {
   error?: string;
 }
 
-export function VideoPlayer({ videoId, title }: { videoId: string; title?: string }) {
+export function VideoPlayer({
+  videoId,
+  title,
+  showPoster = true,
+  allowFullscreen = true,
+  allowSpeed = true,
+}: {
+  videoId: string;
+  title?: string;
+  /** Presentation settings (admin-controlled; Phase 3). Structure stays provider-agnostic. */
+  showPoster?: boolean;
+  allowFullscreen?: boolean;
+  allowSpeed?: boolean;
+}) {
   const root = useRouteLoaderData("root") as { locale: Locale } | undefined;
   const locale = root?.locale ?? "ar";
   const [state, setState] = useState<"loading" | "ready" | "denied" | "error">("loading");
@@ -47,6 +60,15 @@ export function VideoPlayer({ videoId, title }: { videoId: string; title?: strin
     };
   }, [videoId]);
 
+  // enforce the admin playback-speed policy (native UI offers speed; we pin it back)
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || allowSpeed) return;
+    const lock = () => { if (el.playbackRate !== 1) el.playbackRate = 1; };
+    el.addEventListener("ratechange", lock);
+    return () => el.removeEventListener("ratechange", lock);
+  }, [allowSpeed, state, src]);
+
   return (
     <figure className="overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
       {state === "loading" && (
@@ -66,7 +88,8 @@ export function VideoPlayer({ videoId, title }: { videoId: string; title?: strin
           playsInline
           webkit-playsinline="true"
           preload="metadata"
-          poster={poster ?? undefined}
+          poster={showPoster ? (poster ?? undefined) : undefined}
+          controlsList={allowFullscreen ? undefined : "nofullscreen"}
           src={src}
         >
           {title && <track kind="captions" />}

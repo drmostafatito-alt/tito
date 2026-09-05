@@ -61,14 +61,15 @@ export const en: Dictionary = {
     },
   },
   dashboard: {
+    myCourses: "My courses",
+    quickActions: "Quick actions",
+    support: "Support",
     title: "Student dashboard",
     welcome: "Welcome",
     role: "Role",
     sessionCard: "Your current session",
     sessionExpires: "Expires",
     deviceCard: "Your current device",
-    roadmapTitle: "Coming soon",
-    roadmapBody: "Courses, progress tracking, video, exams and payments activate across the next phases.",
     securityLink: "Security & password",
   },
   security: {

@@ -114,13 +114,14 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     items: renderedItems,
     prev: prev ? { slug: prev.slug, titleAr: prev.titleAr, titleEn: prev.titleEn } : null,
     next: next ? { slug: next.slug, titleAr: next.titleAr, titleEn: next.titleEn } : null,
+    pres: settings.presentation.lesson,
   };
 }
 
 export default function LessonPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { course, unit, lesson, verdict, items, prev, next } = loaderData;
+  const { course, unit, lesson, verdict, items, prev, next, pres } = loaderData;
   const title = locale === "ar" ? lesson.titleAr : lesson.titleEn;
 
   return (
@@ -135,7 +136,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
         <h1 className="text-2xl font-bold">{title}</h1>
         {lesson.freePreview && <Badge tone="success">{t(locale, "content.freePreview")}</Badge>}
       </div>
-      {(locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn) && (
+      {pres.showDescription && (locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn) && (
         <p className="mb-6 text-slate-600">{locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn}</p>
       )}
 
@@ -153,7 +154,14 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
           {items.map((item) => {
             if (item.kind === "video") {
               return item.status === "ready" ? (
-                <VideoPlayer key={item.key} videoId={item.videoId} title={t(locale, "content.videoItem")} />
+                <VideoPlayer
+                  key={item.key}
+                  videoId={item.videoId}
+                  title={pres.video.showTitle ? t(locale, "content.videoItem") : undefined}
+                  showPoster={pres.video.showPoster}
+                  allowFullscreen={pres.video.allowFullscreen}
+                  allowSpeed={pres.video.allowSpeed}
+                />
               ) : (
                 <Card key={item.key}>
                   <CardBody className="text-sm text-slate-500">
@@ -163,6 +171,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
               );
             }
             if (item.kind === "file") {
+              if (!pres.showAttachments) return null;
               return (
                 <Card key={item.key}>
                   <CardBody className="flex flex-wrap items-center justify-between gap-2">
@@ -200,6 +209,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
+      {pres.showPrevNext && (
       <nav className="mt-8 flex justify-between text-sm">
         {prev ? (
           <Link to={`/learn/${course.slug}/${prev.slug}`} className="text-blue-600 hover:underline">
@@ -214,6 +224,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
           </Link>
         )}
       </nav>
+      )}
     </div>
   );
 }

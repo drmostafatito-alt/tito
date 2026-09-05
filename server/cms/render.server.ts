@@ -128,7 +128,7 @@ export function collectDynamicRequests(sections: SnapshotSection[]): DynRequest[
 
 const publishedWindow = (nowMs: number) => sql`(${courses.publishAt} IS NULL OR ${courses.publishAt} <= ${nowMs}) AND (${courses.expiresAt} IS NULL OR ${courses.expiresAt} > ${nowMs})`;
 
-async function lessonCounts(db: DB, courseIds: string[]): Promise<Record<string, number>> {
+export async function lessonCounts(db: DB, courseIds: string[]): Promise<Record<string, number>> {
   if (!courseIds.length) return {};
   const rows = await db
     .select({ courseId: units.courseId, n: sql<number>`count(*)` })
@@ -139,7 +139,7 @@ async function lessonCounts(db: DB, courseIds: string[]): Promise<Record<string,
   return Object.fromEntries(rows.map((r) => [r.courseId, Number(r.n)]));
 }
 
-async function teacherNames(db: DB, teacherIds: string[]): Promise<Record<string, string>> {
+export async function teacherNames(db: DB, teacherIds: string[]): Promise<Record<string, string>> {
   const ids = [...new Set(teacherIds.filter(Boolean))];
   if (!ids.length) return {};
   const rows = await db.select({ id: users.id, name: users.fullName }).from(users).where(inArray(users.id, ids));
