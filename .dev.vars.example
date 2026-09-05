@@ -1,0 +1,23 @@
+# Copy to .dev.vars (gitignored) and fill for local development.
+# Production secrets are set with `wrangler secret put` — never committed.
+
+# Pepper mixed into session-token hashing (any long random string)
+SESSION_PEPPER=dev-only-pepper-change-me
+
+# PBKDF2 iterations (see docs/SECURITY.md §2 — Workers free-plan CPU tradeoff; raise on paid plan)
+AUTH_PBKDF2_ITERATIONS=100000
+
+# Seed: super admin account created by `npm run db:seed:local`
+ADMIN_BOOTSTRAP_EMAIL=admin@educore.local
+
+# Phase 2 — HMAC secret for short-lived private-file signed URLs
+FILE_URL_SECRET=change-me-long-random
+
+# Phase 2 — HMAC secret for mock video provider playback tokens
+MOCK_VIDEO_SECRET=change-me-long-random
+
+# Phase 2 — Mux adapter credentials (empty = not configured; video settings decide the active provider)
+MUX_TOKEN_ID=
+MUX_TOKEN_SECRET=
+MUX_SIGNING_KEY_ID=
+MUX_SIGNING_PRIVATE_KEY=

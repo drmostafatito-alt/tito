@@ -1,0 +1,14 @@
+node_modules
+.build
+.wrangler
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+/react-router.config.ts.bak
+migrations/*.sql.bak
+*.log
+.DS_Store
+
+# local artifacts
+backups/
+.wrangler

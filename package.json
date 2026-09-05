@@ -1,0 +1,45 @@
+{
+  "name": "educore",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/rr.mjs build",
+    "typecheck": "node scripts/rr.mjs typegen && tsc",
+    "dev": "node scripts/rr.mjs build && node scripts/nw.mjs wrangler dev --ip 0.0.0.0 --port 5173",
+    "lint:imports": "node scripts/check-imports.mjs",
+    "db:generate": "node scripts/nw.mjs drizzle-kit generate && node scripts/sync-migrations.mjs && node scripts/gen-migrations-manifest.mjs",
+    "db:migrate:local": "node scripts/nw.mjs wrangler d1 migrations apply DB --local",
+    "db:seed:local": "node scripts/nw.mjs node scripts/seed.mjs",
+    "test": "vitest run --config vitest.unit.config.ts && node scripts/gen-migrations-manifest.mjs && vitest run --config vitest.integration.config.ts",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:integration": "node scripts/gen-migrations-manifest.mjs && vitest run --config vitest.integration.config.ts",
+    "deploy": "npm run verify && node scripts/nw.mjs wrangler deploy",
+    "verify": "npm run lint:imports && npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-sans-arabic": "^5.2.5",
+    "drizzle-orm": "0.45.2",
+    "isbot": "^5.1.17",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router": "^7.18.3",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.52.1",
+    "@cloudflare/vitest-plugin": "1.1.4",
+    "@cloudflare/workers-types": "^5.20260905.1",
+    "@react-router/dev": "^7.18.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "drizzle-kit": "0.31.10",
+    "node-linux-x64": "^22.22.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "5.9.3",
+    "vite": "^8.2.2",
+    "vitest": "4.1.11",
+    "wrangler": "^4.129.0"
+  }
+}

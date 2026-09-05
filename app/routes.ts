@@ -1,0 +1,32 @@
+import { type RouteConfig, index, layout, route } from "@react-router/dev/routes";
+
+export default [
+  layout("routes/public/layout.tsx", { id: "public" }, [
+    index("routes/public/home.tsx"),
+    route("courses", "routes/public.courses.tsx"),
+    route("courses/:slug", "routes/public.courses.$slug.tsx"),
+    route("courses/:slug/units/:unitId", "routes/public.courses.$slug.units.$unitId.tsx"),
+    route("login", "routes/public/login.tsx"),
+    route("register", "routes/public/register.tsx"),
+    route("forgot-password", "routes/public/forgot-password.tsx"),
+    route("reset-password", "routes/public/reset-password.tsx"),
+    route("set-locale", "routes/public/set-locale.tsx"),
+  ]),
+  route("logout", "routes/logout.tsx"),
+  route("learn/:courseSlug/:lessonSlug", "routes/learn.$courseSlug.$lessonSlug.tsx"),
+  route("files/:id", "routes/files.$id.tsx"),
+  route("api/playback/:videoId", "routes/api.playback.$videoId.tsx"),
+  route("api/mock-stream/:videoId/:file", "routes/api.mock-stream.$videoId.$file.tsx"),
+  layout("routes/student/layout.tsx", { id: "student" }, [
+    route("dashboard", "routes/student/dashboard.tsx"),
+    route("profile/security", "routes/student/security.tsx"),
+  ]),
+  route("admin", "routes/admin/layout.tsx", { id: "admin-root" }, [
+    index("routes/admin/home.tsx"),
+    route("content", "routes/admin.content.tsx"),
+    route("content/:type/:id", "routes/admin.content.$type.$id.tsx"),
+    route("files", "routes/admin.files.tsx"),
+    route("videos", "routes/admin.videos.tsx"),
+    route("entitlements", "routes/admin.entitlements.tsx"),
+  ]),
+] satisfies RouteConfig;

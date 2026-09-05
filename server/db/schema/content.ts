@@ -1,0 +1,215 @@
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+/**
+ * Content domain (DATABASE-SCHEMA.md "Content (P2)").
+ * Hierarchy: program → grade → subject → course → unit → lesson → lesson_items.
+ * Slugs unique per table; status draft|published|archived; soft delete via deleted_at.
+ * IDs UUIDv4 generated in app code; timestamps INTEGER ms.
+ */
+
+export const programs = sqliteTable(
+  "programs",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull().unique(),
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    descriptionAr: text("description_ar"),
+    descriptionEn: text("description_en"),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull().default("draft"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "number" }),
+  },
+  (t) => [index("programs_status_idx").on(t.status, t.sortOrder)]
+);
+
+export const grades = sqliteTable(
+  "grades",
+  {
+    id: text("id").primaryKey(),
+    programId: text("program_id").notNull(),
+    slug: text("slug").notNull().unique(),
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull().default("draft"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "number" }),
+  },
+  (t) => [index("grades_program_idx").on(t.programId, t.sortOrder)]
+);
+
+export const subjects = sqliteTable(
+  "subjects",
+  {
+    id: text("id").primaryKey(),
+    gradeId: text("grade_id").notNull(),
+    slug: text("slug").notNull().unique(),
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    descriptionAr: text("description_ar"),
+    descriptionEn: text("description_en"),
+    thumbnailFileId: text("thumbnail_file_id"),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull().default("draft"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "number" }),
+  },
+  (t) => [index("subjects_grade_idx").on(t.gradeId, t.sortOrder)]
+);
+
+export const courses = sqliteTable(
+  "courses",
+  {
+    id: text("id").primaryKey(),
+    subjectId: text("subject_id").notNull(),
+    teacherId: text("teacher_id"),
+    slug: text("slug").notNull().unique(),
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    descriptionAr: text("description_ar"),
+    descriptionEn: text("description_en"),
+    thumbnailFileId: text("thumbnail_file_id"),
+    accessLevel: text("access_level", {
+      enum: ["public", "authenticated", "entitled"],
+    })
+      .notNull()
+      .default("entitled"),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull().default("draft"),
+    visibility: text("visibility", {
+      enum: ["hidden", "catalog", "featured"],
+    })
+      .notNull()
+      .default("catalog"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    publishAt: integer("publish_at", { mode: "number" }),
+    expiresAt: integer("expires_at", { mode: "number" }),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "number" }),
+  },
+  (t) => [
+    index("courses_subject_idx").on(t.subjectId, t.status, t.sortOrder),
+    index("courses_visibility_idx").on(t.visibility, t.status),
+  ]
+);
+
+export const units = sqliteTable(
+  "units",
+  {
+    id: text("id").primaryKey(),
+    courseId: text("course_id").notNull(),
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull().default("draft"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "number" }),
+  },
+  (t) => [index("units_course_idx").on(t.courseId, t.sortOrder)]
+);
+
+export const lessons = sqliteTable(
+  "lessons",
+  {
+    id: text("id").primaryKey(),
+    unitId: text("unit_id").notNull(),
+    slug: text("slug").notNull().unique(),
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    descriptionAr: text("description_ar"),
+    descriptionEn: text("description_en"),
+    accessLevel: text("access_level", {
+      enum: ["public", "authenticated", "entitled"],
+    })
+      .notNull()
+      .default("entitled"),
+    freePreview: integer("free_preview", { mode: "boolean" }).notNull().default(false),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull().default("draft"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    publishAt: integer("publish_at", { mode: "number" }),
+    expiresAt: integer("expires_at", { mode: "number" }),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "number" }),
+  },
+  (t) => [index("lessons_unit_idx").on(t.unitId, t.sortOrder)]
+);
+
+export const lessonItems = sqliteTable(
+  "lesson_items",
+  {
+    id: text("id").primaryKey(),
+    lessonId: text("lesson_id").notNull(),
+    itemType: text("item_type", { enum: ["video", "file", "exam"] }).notNull(),
+    videoId: text("video_id"),
+    fileId: text("file_id"),
+    examId: text("exam_id"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    required: integer("required", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+  },
+  (t) => [index("lesson_items_lesson_idx").on(t.lessonId, t.sortOrder)]
+);
+
+/**
+ * Provider-neutral video registry (VIDEO-PROVIDERS.md §2). Masters live in R2
+ * video-masters/ (never public). Provider specifics never leak to business logic.
+ */
+export const videos = sqliteTable(
+  "videos",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider", { enum: ["mux", "mock", "bunny", "cfstream"] }).notNull(),
+    providerAssetId: text("provider_asset_id"),
+    playbackId: text("playback_id"),
+    status: text("status", {
+      enum: ["pending", "preparing", "ready", "errored"],
+    })
+      .notNull()
+      .default("pending"),
+    durationSeconds: integer("duration_seconds", { mode: "number" }),
+    thumbnailUrl: text("thumbnail_url"),
+    thumbnailFileId: text("thumbnail_file_id"),
+    byteSize: integer("byte_size", { mode: "number" }),
+    width: integer("width", { mode: "number" }),
+    height: integer("height", { mode: "number" }),
+    masterR2Key: text("master_r2_key"),
+    metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+  },
+  (t) => [index("videos_provider_asset_idx").on(t.provider, t.providerAssetId)]
+);
+
+/**
+ * File registry. r2_key points into PUBLIC_ASSETS (visibility=public) or
+ * PRIVATE_FILES (visibility=private) — raw keys/URLs are never exposed;
+ * private files are streamed by /files/:id after an HMAC-signed-URL +
+ * entitlement check.
+ */
+export const files = sqliteTable(
+  "files",
+  {
+    id: text("id").primaryKey(),
+    r2Key: text("r2_key").notNull().unique(),
+    bucket: text("bucket", { enum: ["PUBLIC_ASSETS", "PRIVATE_FILES", "VIDEO_MASTERS"] }).notNull(),
+    kind: text("kind", {
+      enum: ["pdf", "image", "doc", "audio", "archive", "video"],
+    }).notNull(),
+    originalFilename: text("original_filename").notNull(),
+    mime: text("mime").notNull(),
+    byteSize: integer("byte_size", { mode: "number" }).notNull(),
+    checksumSha256: text("checksum_sha256").notNull(),
+    visibility: text("visibility", { enum: ["public", "private"] }).notNull().default("private"),
+    downloadAllowed: integer("download_allowed", { mode: "boolean" }).notNull().default(false),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+  },
+  (t) => [index("files_kind_idx").on(t.kind, t.visibility)]
+);

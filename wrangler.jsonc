@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "educore",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./build/client"
+  },
+  "observability": { "enabled": true },
+  // Local development uses miniflare-simulated resources.
+  // Production values (database_id, bucket names) are set at deploy time — see docs/DEPLOYMENT.md.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "educore-dev",
+      "database_id": "local",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "PUBLIC_ASSETS", "bucket_name": "educore-public-assets" },
+    { "binding": "PRIVATE_FILES", "bucket_name": "educore-private-files" },
+    { "binding": "VIDEO_MASTERS", "bucket_name": "educore-video-masters" }
+  ]
+}

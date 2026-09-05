@@ -1,0 +1,77 @@
+import type { Route } from "./+types/api.playback.$videoId";
+import { eq } from "drizzle-orm";
+import { redirect } from "react-router";
+import { getDb } from "~server/db/client.server";
+import { getEnv } from "~server/cf.server";
+import { resolveAuth } from "~server/auth/session.server";
+import { lessonItems } from "~server/db/schema";
+import { chainForLesson } from "~server/content/service.server";
+import { resolveContentAccess } from "~server/entitlements/access.server";
+import { getSettings } from "~server/settings/service.server";
+import { getVideo, mintPlayback } from "~server/video/service.server";
+
+/**
+ * POST /api/playback/:videoId — the ONLY place playback credentials are minted
+ * (ARCHITECTURE §10). Server-side entitlement check every time; short-TTL
+ * credentials; nothing provider-specific is hardcoded (ADR-006).
+ */
+export async function action({ context, params, request }: Route.ActionArgs) {
+  if (request.method !== "POST") return Response.json({ error: "method_not_allowed" }, { status: 405 });
+  const env = getEnv(context);
+  const db = getDb(env);
+  const settings = await getSettings(db);
+
+  const { auth } = await resolveAuth(db, env, request);
+  if (!auth) {
+    return Response.json({ error: "login_required" }, { status: 401 });
+  }
+
+  const video = await getVideo(db, params.videoId);
+  if (!video) return Response.json({ error: "not_found" }, { status: 404 });
+
+  // entitlement: find the lesson this video is attached to (first published item)
+  const items = await db
+    .select({ lessonId: lessonItems.lessonId })
+    .from(lessonItems)
+    .where(eq(lessonItems.videoId, video.id))
+    .limit(5);
+  let allowed = false;
+  let lessonId: string | undefined;
+  for (const item of items) {
+    const chain = await chainForLesson(db, item.lessonId);
+    if (!chain) continue;
+    const verdict = await resolveContentAccess(db, { userId: auth.user.id, roleRank: auth.user.rank }, chain);
+    if (verdict.allowed) {
+      allowed = true;
+      lessonId = item.lessonId;
+      break;
+    }
+  }
+  if (!allowed) {
+    // also allow admins directly (mirrors resolver's admin bypass for attached content)
+    if (auth.user.rank < 3) {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
+  }
+
+  const playback = await mintPlayback(db, env, video, { studentId: auth.user.id, lessonId });
+  if ("error" in playback) {
+    return Response.json({ error: playback.error }, { status: playback.error === "not_ready" ? 409 : 503 });
+  }
+  void settings; // TTL is enforced provider-side (settings.video.playbackTokenTtlSeconds documented)
+  return Response.json(
+    {
+      type: playback.type,
+      url: playback.url,
+      token: playback.token ?? null,
+      expiresAt: playback.expiresAt,
+      posterUrl: playback.posterUrl ?? null,
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
+}
+
+export async function loader() {
+  // playback credentials are minted by POST only — GET is a client bug
+  return redirect("/", { status: 302 });
+}
