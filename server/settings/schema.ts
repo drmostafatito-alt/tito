@@ -50,6 +50,10 @@ export const videoSettingsSchema = z.object({
   playbackTokenTtlSeconds: z.number().int().min(10).max(60).default(45),
   /** Private-file signed-URL TTL seconds. */
   fileUrlTtlSeconds: z.number().int().min(30).max(600).default(120),
+  /** Phase 4 — a video counts as completed at this % of its duration (FEATURE-SPEC §4, default 90). */
+  completionThresholdPct: z.number().int().min(50).max(100).default(90),
+  /** Phase 4 — max playback-credential mints per student+video; 0 = unlimited (replay policy, server-enforced). */
+  replayLimit: z.number().int().min(0).max(1000).default(0),
 });
 export type VideoSettings = z.infer<typeof videoSettingsSchema>;
 
@@ -144,16 +148,16 @@ export const presentationSettingsSchema = z.object({
 export type PresentationSettings = z.infer<typeof presentationSettingsSchema>;
 
 /** Phase 3 — student dashboard module configuration (only IMPLEMENTED modules are offered). */
+/** Phase 4 — additive module ids (continue/stats). Existing saved arrays keep working. */
+export const DASHBOARD_MODULE_IDS = ["my_courses", "continue", "stats", "quick_actions", "support"] as const;
+export type DashboardModuleId = (typeof DASHBOARD_MODULE_IDS)[number];
+
 export const dashboardSettingsSchema = z.object({
   welcomeAr: z.string().max(300).default(""),
   welcomeEn: z.string().max(300).default(""),
   modules: z
-    .array(z.object({ id: z.enum(["my_courses", "quick_actions", "support"]), enabled: z.boolean().default(true) }))
-    .default([
-      { id: "my_courses", enabled: true },
-      { id: "quick_actions", enabled: true },
-      { id: "support", enabled: true },
-    ]),
+    .array(z.object({ id: z.enum(DASHBOARD_MODULE_IDS), enabled: z.boolean().default(true) }))
+    .default(DASHBOARD_MODULE_IDS.map((id) => ({ id, enabled: true }))),
 });
 export type DashboardSettings = z.infer<typeof dashboardSettingsSchema>;
 

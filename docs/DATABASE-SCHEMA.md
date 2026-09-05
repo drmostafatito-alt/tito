@@ -21,11 +21,11 @@
 | Identity & security | roles, users, teacher_profiles, sessions, devices, security_events, rate_limit_counters | P1 |
 | Platform / CMS | settings, pages, blocks, page_versions, menus, menu_items, forms, form_fields, form_submissions, role_permissions, announcements, audit_logs | P1 core · CMS tables P3 |
 | Content | programs, grades, subjects, courses, units, lessons, lesson_items, videos, files | P2 |
-| Progress | lesson_progress, video_progress, video_watch_sessions, events | P3 |
-| Assessment | questions, question_choices, tags, question_tags, exams, exam_questions, exam_attempts, exam_answers | P4 |
-| Commerce | products, product_items, price_plans, orders, order_items, payments, payment_events, refunds, subscriptions, subscription_events, discount_codes, discount_redemptions, activation_code_batches, activation_codes, activation_code_redemptions | P5 |
-| Access | entitlements | P1 (core) → P5 (purchase sources) |
-| Notifications | notifications | P3 |
+| Progress | lesson_progress, video_progress, video_watch_sessions, events | P4 ✅ (migration 0004) |
+| Assessment | questions, question_choices, tags, question_tags, exams, exam_questions, exam_attempts, exam_answers | P5 |
+| Commerce | products, product_items, price_plans, orders, order_items, payments, payment_events, refunds, subscriptions, subscription_events, discount_codes, discount_redemptions, activation_code_batches, activation_codes, activation_code_redemptions | P6 |
+| Access | entitlements | P1 (core) ✅ → P6 (purchase sources) |
+| Notifications | notifications | P7 |
 
 ---
 
@@ -142,21 +142,31 @@ entitlements  id PK · student_id FK users · source_type TEXT(order_item|subscr
               idx(student_id, resource_type, resource_id, status), (expires_at) for sweep jobs
 ```
 
-## Progress & analytics (P4)
+## Progress & analytics (P4 — LIVE, migration 0004)
 
 ```
 lesson_progress  id PK · student_id · lesson_id · status(in_progress|completed) · completed_at NULL
-                 · last_activity_at    UNIQUE(student_id, lesson_id)
+                 · last_activity_at · created_at · updated_at    UNIQUE(student_id, lesson_id)
+                 idx(student_id, last_activity_at)               (continue-learning feed)
 video_progress   id PK · student_id · video_id · lesson_id NULL · watch_count INTEGER
-                 · position_seconds INTEGER · max_position_seconds · completed INTEGER(0/1)
-                 · completed_at NULL · last_watched_at    UNIQUE(student_id, video_id)
+                 · position_seconds INTEGER · max_position_seconds · duration_seconds NULL
+                 · completed INTEGER(0/1) · completed_at NULL · last_watched_at
+                 · created_at · updated_at    UNIQUE(student_id, video_id)
+                 idx(student_id, last_watched_at)
 video_watch_sessions id PK · video_progress_id FK · started_at · ended_at NULL
-                 · watched_seconds · device_id NULL       (replay accounting / audit)
-events           id PK · type TEXT(login|logout|registration|video_start|video_complete|lesson_complete|
-                 exam_start|exam_submit|purchase|subscription_*(…)|activation_redeem|device_change|
-                 security_*) · user_id NULL · resource_type/id NULL · props JSON · created_at
+                 · watched_seconds · device_id NULL       idx(video_progress_id, started_at)
+events           id PK · type TEXT(video_start|video_complete|lesson_complete live in P4;
+                 exam_*|purchase|subscription_*|activation_redeem reserved for P5/P6)
+                 · user_id NULL · resource_type/id NULL · props JSON · created_at
                  idx(type, created_at), (user_id, created_at)      append-only, no PII in props
 ```
+
+Implementation notes (ADR-021): progress is per student (device_id on watch sessions
+is analytics-only); positions are client-reported but clamped and never authorize
+anything; completion threshold + replay limit come from `settings.video`
+(`completionThresholdPct` default 90, `replayLimit` default 0 = unlimited).
+Auth-domain security events stay in `security_events` (P1); `events` is the
+product-analytics/progress stream.
 
 ## Assessment (P5)
 

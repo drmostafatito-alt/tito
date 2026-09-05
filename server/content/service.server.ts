@@ -500,8 +500,10 @@ export async function catalogCourses(db: DB) {
       subjectSlug: subjects.slug,
       gradeAr: grades.titleAr,
       gradeEn: grades.titleEn,
+      gradeSlug: grades.slug,
       programAr: programs.titleAr,
       programEn: programs.titleEn,
+      programSlug: programs.slug,
       thumbnailFileId: courses.thumbnailFileId,
     })
     .from(courses)

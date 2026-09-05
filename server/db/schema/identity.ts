@@ -134,6 +134,7 @@ export const securityEvents = sqliteTable(
         "rate_limited",
         "permission_denied",
         "registration",
+        "profile_updated",
       ],
     }).notNull(),
     ipHash: text("ip_hash"),

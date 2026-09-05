@@ -30,7 +30,7 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
   ├─ routes/_student/   dashboard, learn, exams, devices    (session required)
   ├─ routes/_teacher/   content authoring (Phase 5+)        (teacher role)
   ├─ routes/_admin/     admin platform (Phase 7)            (admin/super_admin)
-  └─ routes/resources/  webhooks (payment), beacons (progress) — signature/entropy verified
+  └─ routes/resources/  webhooks (payment, P6), beacons/progress (**live P4**) — session/entropy verified
   every loader/action = server code ──► server/ modules
       auth · entitlements · exams · settings · audit · http(guards)
       video/<provider>  payments/<provider>  files(R2)  notifications/<channel>
@@ -84,10 +84,10 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
 ## 5. Route map (target)
 
 **Public:** `/` (CMS-rendered homepage) · `/courses` · `/courses/:slug` · `/subjects/:slug` · `/pricing` · `/login` `/register` `/forgot-password` `/reset-password` · `/contact` · legal pages.
-**Student:** `/dashboard` · `/my/courses` · `/learn/:courseSlug/:lessonSlug` (video+files+quiz) · `/exams` · `/exams/:id` `/exams/:id/attempt` · `/results` · `/devices` · `/notifications` · `/profile` `/profile/security` · `/cart` `/checkout` `/orders` (Phase 6).
+**Student:** `/dashboard` (**live P4**: real-data modules — my courses w/ %, continue learning, stats; admin-toggleable) · catalog hierarchy `/programs` `/programs/:slug` `/subjects/:slug` `/courses` `/courses/:slug` `/courses/:slug/units/:unitId` (**live P4**: published-only, per-lesson verdicts, progress + lock states) · `/learn/:courseSlug/:lessonSlug` (**live P2/P4**: video+files, resume, mark-complete) · `/profile` (**live P4**: account info + self-service name/phone/language) `/profile/security` (**live P1**: password + devices) · `/exams` `/results` (Phase 5) · `/notifications` (Phase 7) · `/cart` `/checkout` `/orders` (Phase 6).
 **Teacher (Phase 5+):** question bank, exam authoring, their course content.
 **Admin (Phase 7, grows from Phase 1; CMS live since Phase 3):** `/admin` overview + Students · Teachers · Content tree · Videos · Files · Question bank · Exams · Results · Orders · Payments · Subscriptions · Activation codes · Discount codes · Notifications · CMS · Settings · Security (devices/sessions/events) · Audit log · Analytics.
-**Resource routes:** `/webhooks/payments/:provider` (signature-verified, Phase 6) · `/beacons/progress` (session-validated, Phase 4) · `/files/:id?perm&view-signature` (**live P2**: streams the private R2 object after HMAC-signed-URL verification — id+perm+exp covered by the signature; denials are 404-shaped; Range supported) · `/api/playback/:videoId` (**live P2**: POST-only, entitlement-checked token minting; GET → 302) · `/api/mock-stream/:videoId/:file` (**live P2, dev provider**: token-scoped synthetic HLS/poster; disappears from the request path when Mux is the active provider).
+**Resource routes:** `/webhooks/payments/:provider` (signature-verified, Phase 6) · `/beacons/progress` (**live P4**: POST-only, session-validated progress beacons — heartbeat/ended; lesson entitlement re-checked server-side on every beacon; completion threshold applied server-side; 401 anon / 403 non-entitled / 404 unknown refs) · `/files/:id?perm&view-signature` (**live P2**: streams the private R2 object after HMAC-signed-URL verification — id+perm+exp covered by the signature; denials are 404-shaped; Range supported) · `/api/playback/:videoId` (**live P2**: POST-only, entitlement-checked token minting; GET → 302) · `/api/mock-stream/:videoId/:file` (**live P2, dev provider**: token-scoped synthetic HLS/poster; disappears from the request path when Mux is the active provider).
 
 ## 6. Authentication & session model (ADR-004/005)
 
@@ -125,7 +125,7 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
 
 ## 10. Video pipeline (detail in VIDEO-PROVIDERS.md)
 
-Ingest: admin uploads master → R2 `video-masters/` → provider upload (Mux direct-upload) → `videos` row tracks `provider`, `asset_id`, `playback_id`, `status` (poll/sync). Playback: `POST /api/playback/:videoId` → entitlement + replay-policy check → mint provider credentials (Mux signed JWT, short TTL) → client player (hls.js; Safari uses native HLS). Progress beacons update `video_progress` (position, watch sessions, completion threshold, replay count).
+Ingest: admin uploads master → R2 `video-masters/` → provider upload (Mux direct-upload) → `videos` row tracks `provider`, `asset_id`, `playback_id`, `status` (poll/sync). Playback: `POST /api/playback/:videoId` → entitlement + replay-policy check (**live P4**: `settings.video.replayLimit` enforced at mint against pre-increment `watch_count`; admins bypass) → mint provider credentials (Mux signed JWT, short TTL) → client player (hls.js; Safari uses native HLS) + `resumeAt` from stored position. Progress beacons (**live P4**) update `video_progress` (position, watch sessions, completion threshold, replay count); progress writes never block entitled playback (ADR-021).
 
 ## 11. Payments (detail in PAYMENTS.md)
 

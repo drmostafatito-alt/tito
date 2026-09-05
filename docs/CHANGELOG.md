@@ -2,6 +2,37 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.6.0] — 2026-09-05
+
+### Added — Phase 4 (student experience)
+- D1 schema 0004 (progress domain, additive): `lesson_progress` (UNIQUE student+lesson, status/completed_at/last_activity), `video_progress` (UNIQUE student+video, watch_count, position/max_position/duration, completed), `video_watch_sessions` (replay accounting/audit, device_id analytics-only), `events` (append-only product analytics: `video_start`, `video_complete`, `lesson_complete`) + 7 indexes. Progress is per student; the DB is the single source of truth — never localStorage (ADR-021).
+- Progress service `server/progress/service.server.ts`: `startWatch` (mint-time accounting + session open + lesson touch), `recordBeacon` (position upsert clamped to duration, server-debounced session updates, threshold completion from `settings.video.completionThresholdPct` default 90, exactly-once `lesson_complete` via pre-read guard), `maybeAutoCompleteLesson` (FEATURE-SPEC §4: only when ALL required items are completed videos), `setLessonCompleted` (manual toggle, never downgrades completed→in_progress silently), `lessonProgressMap`/`videoProgressMap`, `courseProgress`/`courseProgressBatch` (course % = completed published lessons / published lessons of published units), `continueLearning`, `progressStats`.
+- Resource route `POST /beacons/progress`: session-validated (401 anon), zod-validated payload (400), lesson entitlement RE-CHECKED server-side on every beacon when a lesson context is present (403 non-entitled, 404 unknown refs). Heartbeats debounced 10s client-side; final "ended" beacon via `sendBeacon` on `pagehide` (fire-and-forget, keepalive fetch for heartbeats).
+- Playback policy (same provider abstraction, no vendor coupling): replay limit enforced at MINT time in `POST /api/playback/:videoId` (`settings.video.replayLimit`, default 0 = unlimited; admins rank ≥ 3 bypass) — a denied replay never produces credentials (403 `replay_limit`); `resumeAt` returned from the stored position (>5s, not completed); `startWatch` runs post-mint inside try/catch so a progress-write failure can never deny entitled playback.
+- VideoPlayer: resume seek on `loadedmetadata` (+ localized "resumed" notice), heartbeat/ended beacons, watched-seconds accumulated from continuous forward deltas only, `onLessonCompleted` → page revalidation. Server `resumeAt` wins over any prop.
+- Catalog hierarchy pages (published-only, entitlement-aware): `/programs` (subject counts), `/programs/:slug` (grades → subjects with visible-course counts), `/subjects/:slug` (course cards honoring the admin presentation config). Course page upgraded: breadcrumbs, thumbnail, teacher, summed video duration, lesson count, per-lesson server verdicts (locked lessons render WITHOUT learn links — free_preview is a logged-in affordance per resolver), course progress bar + per-lesson completed/in-progress states. Unit page rewritten: real per-lesson entitlement verdicts (fixes entitled lessons inside allowed courses rendering as open), progress states, resume CTA.
+- Student dashboard from REAL data: continue-learning module (4 most recent lessons + resume/completed badges + course %), stats module (completed lessons / in-progress / videos watched), my-courses tiles with segmented progress bars; modules admin-toggleable via the canonical `DASHBOARD_MODULE_IDS` (settings schema is now the single source; appearance admin iterates it).
+- Student profile `/profile`: account info (email read-only + role + member-since), self-service fullName/phone/localePref (zod fail-closed; locale cookie synced on preference change; `profile_updated` security event). Student layout: mobile nav toggle (44px, aria-expanded/controls, collapsible panel), CMS **student menu** rendered (desktop dropdown + mobile panel), catalog/profile links.
+- Shared CSP-safe `ProgressBar` (10 segments, class-only — no inline styles), `lock` icon added to the registry, i18n namespaces `progress.*`, `catalog.*`, `profile.*`, `content.durationMinutes`, `content.examNotReady`, `player.resumed` (ar+en parity enforced by tsc).
+- Tests: integration `progress.test.ts` (12 — beacon gates, threshold completion + exactly-once event, watch accounting, resumeAt, replay limit + admin bypass, course %, continue/stats); unit +2 (video knobs defaults/bounds, dashboard module ids); smoke §14 full journey (36 checks).
+
+### Changed
+- `api.playback` response now includes `resumeAt`; lesson page exposes `data-lesson-id` for beacon context; learn action `toggle-complete` re-checks entitlement server-side (403 verified).
+- `catalogCourses` additionally selects `programSlug`/`gradeSlug` (additive — existing consumers untouched).
+- `security_events.type` union + `SecurityEventType` extended with `profile_updated` (TS-level only; column is TEXT — no migration).
+- Docs: ADR-021, DATABASE-SCHEMA progress section marked live (+ domain-table phase numbers corrected to the ADR-018 renumbering), ARCHITECTURE route map/resource routes updated, TEST-PLAN §6 execution log, PROJECT-PLAN phase table.
+
+### Fixed
+- Unit page authorization accuracy: per-lesson verdicts now consult real entitlement grants (previously `courseVerdict.allowed` leaked entitled lessons as open links and the resolver ran with an empty entitlement set).
+- Dashboard module ids were duplicated between the settings schema and the appearance admin — now one canonical export.
+- CSP regression avoided: segmented progress bars replace inline `style` widths (prod CSP is `style-src 'self'`).
+
+### Verification (Phase 4 exit)
+- Static: lint:imports ✓ · tsc 0 errors · unit **63/63** · integration **58/58** · production build ✓ (`npm run verify` exit 0).
+- Runtime (cold seeded local D1+R2, live `wrangler dev`, fresh cookie jars): smoke **162/162** including all Phase 1–3 regressions (auth, RBAC, devices, signed URLs, playback tokens, entitlement flip, revocation, CMS, rate limits, CSP/headers).
+- DB safety: 0004 is pure additive DDL; applied to local D1 + verified on an isolated fresh DB; integration suite rebuilds a cold DB from all 5 migrations every run.
+- Security audit clean (TEST-PLAN §6 Phase 4 rows); mobile audit code-level green (real-device matrix remains owner-assisted).
+
 ## [0.5.0] — 2026-09-05
 
 ### Added — Phase 3 (CMS / page builder — owner-inserted phase, ADR-018)

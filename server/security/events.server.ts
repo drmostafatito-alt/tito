@@ -17,7 +17,8 @@ export type SecurityEventType =
   | "session_revoked"
   | "rate_limited"
   | "permission_denied"
-  | "registration";
+  | "registration"
+  | "profile_updated";
 
 export async function logSecurityEvent(
   db: DB,

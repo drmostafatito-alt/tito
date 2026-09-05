@@ -28,7 +28,7 @@ import { z } from "zod";
 export const ICON_IDS = [
   "book-open", "play-circle", "graduation-cap", "file-text", "check", "check-circle",
   "star", "phone", "mail", "map-pin", "clock", "calendar", "users", "user", "award",
-  "target", "zap", "shield", "heart", "arrow-right", "arrow-left", "chevron-down",
+  "target", "zap", "shield", "lock", "heart", "arrow-right", "arrow-left", "chevron-down",
   "chevron-up", "menu", "close", "search", "settings", "image", "video", "microphone",
   "download", "external-link", "quote", "help-circle", "info", "alert-triangle",
   "sparkles", "briefcase", "globe", "credit-card", "tag", "layers", "grid", "list",
@@ -955,6 +955,8 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.set.mod.my_courses": { ar: "كورساتي", en: "My courses" },
   "cms.set.mod.quick_actions": { ar: "إجراءات سريعة", en: "Quick actions" },
   "cms.set.mod.support": { ar: "الدعم", en: "Support" },
+  "cms.set.mod.continue": { ar: "استكمل التعلم", en: "Continue learning" },
+  "cms.set.mod.stats": { ar: "إحصاءات التقدم", en: "Progress stats" },
   "cms.set.colorHint": { ar: "قيم الألوان تُتحقق منها الخادم (#rrggbb) — لا يسمح بـ CSS حر.", en: "Color values are server-validated (#rrggbb) — arbitrary CSS is never accepted." },
   // --- admin chrome (builder UI strings; NOT public marketing copy) ---
   "cms.ui.pages": { ar: "الصفحات", en: "Pages" },

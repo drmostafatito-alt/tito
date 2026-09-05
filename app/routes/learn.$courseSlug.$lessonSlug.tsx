@@ -1,5 +1,5 @@
 import type { Route } from "./+types/learn.$courseSlug.$lessonSlug";
-import { Link, useLoaderData, useRouteLoaderData } from "react-router";
+import { Form, Link, useLoaderData, useRouteLoaderData, useRevalidator, useActionData } from "react-router";
 import { redirect } from "react-router";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
@@ -15,10 +15,13 @@ import {
   videosByIds,
 } from "~server/content/service.server";
 import { resolveContentAccess } from "~server/entitlements/access.server";
+import { courseProgress, lessonProgressMap, setLessonCompleted, videoProgressMap } from "~server/progress/service.server";
 import { getSettings } from "~server/settings/service.server";
 import { signFileUrl } from "~server/files/storage.server";
 import { VideoPlayer } from "~/components/player/VideoPlayer";
 import { Badge } from "~/components/ui/Badge";
+import { SubmitButton } from "~/components/ui/Button";
+import { ProgressBar } from "~/components/ProgressBar";
 import { Card, CardBody } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
 
@@ -99,7 +102,30 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     })
   );
 
+  // Phase 4: progress (server is the source of truth) — only for signed-in viewers with access
+  let progress: {
+    lesson: { status: "in_progress" | "completed"; completedAt: number | null } | null;
+    videos: Record<string, { positionSeconds: number; completed: boolean }>;
+    course: { total: number; completed: number; pct: number };
+  } | null = null;
+  if (auth && verdict.allowed) {
+    const videoIds = items.filter((i) => i.itemType === "video" && i.videoId).map((i) => i.videoId!);
+    const [lpMap, vpMap, cProg] = await Promise.all([
+      lessonProgressMap(db, auth.user.id, [lesson.id]),
+      videoProgressMap(db, auth.user.id, videoIds),
+      courseProgress(db, auth.user.id, course.id),
+    ]);
+    const lp = lpMap.get(lesson.id);
+    progress = {
+      lesson: lp ? { status: lp.status, completedAt: lp.completedAt } : null,
+      videos: Object.fromEntries([...vpMap].map(([vid, r]) => [vid, { positionSeconds: r.positionSeconds, completed: r.completed }])),
+      course: { total: cProg.total, completed: cProg.completed, pct: cProg.pct },
+    };
+  }
+
   return {
+    progress,
+    lessonId: lesson.id,
     course: { slug: course.slug, titleAr: course.titleAr, titleEn: course.titleEn },
     unit: unit ? { titleAr: unit.titleAr, titleEn: unit.titleEn } : null,
     lesson: {
@@ -118,11 +144,35 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   };
 }
 
+/** Student self-report: mark the lesson complete / not complete (entitlement re-checked). */
+export async function action({ context, params, request }: Route.ActionArgs) {
+  const env = getEnv(context);
+  const db = getDb(env);
+  const { auth } = await resolveAuth(db, env, request);
+  if (!auth) throw new Response("Unauthorized", { status: 401 });
+  const course = await courseBySlug(db, params.courseSlug);
+  if (!course) throw new Response("Not Found", { status: 404 });
+  const lesson = await lessonBySlug(db, params.lessonSlug);
+  if (!lesson) throw new Response("Not Found", { status: 404 });
+  const chain = await chainForLesson(db, lesson.id);
+  if (!chain) throw new Response("Not Found", { status: 404 });
+  const verdict = await resolveContentAccess(db, { userId: auth.user.id, roleRank: auth.user.rank }, chain);
+  if (!verdict.allowed) throw new Response("Forbidden", { status: 403 });
+  const form = await request.formData();
+  if (String(form.get("_action") ?? "") !== "toggle-complete") throw new Response("Bad Request", { status: 400 });
+  const completed = String(form.get("completed") ?? "") === "1";
+  await setLessonCompleted(db, auth.user.id, lesson.id, completed);
+  return { ok: true as const, completed };
+}
+
 export default function LessonPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { course, unit, lesson, verdict, items, prev, next, pres } = loaderData;
+  const { course, unit, lesson, verdict, items, prev, next, pres, progress, lessonId } = loaderData;
+  const revalidator = useRevalidator();
+  const actionData = useActionData<typeof action>();
   const title = locale === "ar" ? lesson.titleAr : lesson.titleEn;
+  const lessonCompleted = actionData?.completed ?? (progress?.lesson?.status === "completed" || false);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -132,10 +182,21 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
         </Link>
         {unit && <span> / {locale === "ar" ? unit.titleAr : unit.titleEn}</span>}
       </nav>
-      <div className="mb-1 flex items-center gap-2">
+      <div className="mb-1 flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-bold">{title}</h1>
         {lesson.freePreview && <Badge tone="success">{t(locale, "content.freePreview")}</Badge>}
+        {progress && lessonCompleted && <Badge tone="success">{t(locale, "progress.completed")}</Badge>}
+        {progress && !lessonCompleted && progress.lesson && <Badge tone="warning">{t(locale, "progress.inProgress")}</Badge>}
       </div>
+      {progress && progress.course.total > 0 && (
+        <div className="mb-4" aria-label={t(locale, "progress.courseProgress")}>
+          <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+            <span>{t(locale, "progress.courseProgress")}</span>
+            <span dir="ltr">{progress.course.completed}/{progress.course.total} · {progress.course.pct}%</span>
+          </div>
+          <ProgressBar pct={progress.course.pct} label={t(locale, "progress.courseProgress")} />
+        </div>
+      )}
       {pres.showDescription && (locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn) && (
         <p className="mb-6 text-slate-600">{locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn}</p>
       )}
@@ -157,10 +218,13 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 <VideoPlayer
                   key={item.key}
                   videoId={item.videoId}
+                  lessonId={lessonId}
                   title={pres.video.showTitle ? t(locale, "content.videoItem") : undefined}
                   showPoster={pres.video.showPoster}
                   allowFullscreen={pres.video.allowFullscreen}
                   allowSpeed={pres.video.allowSpeed}
+                  startAt={progress?.videos[item.videoId]?.positionSeconds ?? 0}
+                  onLessonCompleted={() => revalidator.revalidate()}
                 />
               ) : (
                 <Card key={item.key}>
@@ -200,12 +264,19 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
             return (
               <Card key={item.key}>
                 <CardBody className="text-sm text-slate-500">
-                  {t(locale, "content.examItem")} — Phase 4
+                  {t(locale, "content.examItem")} — {t(locale, "content.examNotReady")}
                 </CardBody>
               </Card>
             );
           })}
           {items.length === 0 && <p className="text-sm text-slate-400">—</p>}
+          <Form method="post" className="pt-2" data-lesson-id={lessonId}>
+            <input type="hidden" name="_action" value="toggle-complete" />
+            <input type="hidden" name="completed" value={lessonCompleted ? "0" : "1"} />
+            <SubmitButton variant={lessonCompleted ? "secondary" : "primary"} className="min-h-11">
+              {lessonCompleted ? t(locale, "progress.markIncomplete") : t(locale, "progress.markComplete")}
+            </SubmitButton>
+          </Form>
         </div>
       )}
 

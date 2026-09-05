@@ -6,8 +6,10 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { courses, devices, securityEvents, sessions } from "~server/db/schema";
 import { entitlementsForStudent } from "~server/entitlements/grant.server";
+import { continueLearning, courseProgressBatch, progressStats } from "~server/progress/service.server";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
+import { ProgressBar } from "~/components/ProgressBar";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
 /**
@@ -35,7 +37,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   ]);
 
   // my_courses: only what THIS user is entitled to (course grants + subject grants), active window, published courses
-  let myCourses: Array<{ slug: string; titleAr: string; titleEn: string }> = [];
+  let myCourses: Array<{ slug: string; titleAr: string; titleEn: string; pct: number; completed: number; total: number }> = [];
   if (enabled.get("my_courses")) {
     const nowMs = Date.now();
     const ents = (await entitlementsForStudent(db, auth.user.id)).filter(
@@ -44,7 +46,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     const courseIds = ents.filter((e) => e.resourceType === "course" && e.resourceId).map((e) => e.resourceId!);
     const subjectIds = ents.filter((e) => e.resourceType === "subject" && e.resourceId).map((e) => e.resourceId!);
     if (courseIds.length || subjectIds.length) {
-      const selectCols = { slug: courses.slug, titleAr: courses.titleAr, titleEn: courses.titleEn };
+      const selectCols = { id: courses.id, slug: courses.slug, titleAr: courses.titleAr, titleEn: courses.titleEn };
       const published = and(eq(courses.status, "published"), isNull(courses.deletedAt));
       const [byCourse, bySubject] = await Promise.all([
         courseIds.length
@@ -55,9 +57,18 @@ export async function loader({ context, request }: Route.LoaderArgs) {
           : Promise.resolve([]),
       ]);
       const seen = new Set<string>();
-      myCourses = [...byCourse, ...bySubject].filter((c) => (seen.has(c.slug) ? false : (seen.add(c.slug), true)));
+      const rows = [...byCourse, ...bySubject].filter((c) => (seen.has(c.slug) ? false : (seen.add(c.slug), true)));
+      const pcts = await courseProgressBatch(db, auth.user.id, rows.map((r) => r.id));
+      myCourses = rows.map((c) => {
+        const pr = pcts.get(c.id);
+        return { slug: c.slug, titleAr: c.titleAr, titleEn: c.titleEn, pct: pr?.pct ?? 0, completed: pr?.completed ?? 0, total: pr?.total ?? 0 };
+      });
     }
   }
+
+  // continue learning (Phase 4): recent lessons with resume positions — server-resolved, entitled-only
+  const continueItems = enabled.get("continue") ? await continueLearning(db, auth.user.id, 4) : [];
+  const stats = enabled.get("stats") ? await progressStats(db, auth.user.id) : null;
 
   return {
     user: { fullName: auth.user.fullName, roleId: auth.user.roleId },
@@ -70,11 +81,15 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       welcome: { ar: dash.welcomeAr, en: dash.welcomeEn },
       modules: {
         myCourses: Boolean(enabled.get("my_courses")),
+        continue: Boolean(enabled.get("continue")),
+        stats: Boolean(enabled.get("stats")),
         quickActions: Boolean(enabled.get("quick_actions")),
         support: Boolean(enabled.get("support")),
       },
     },
     myCourses,
+    continueItems,
+    stats,
     support: {
       email: settings.platform.supportEmail ?? "",
       phone: settings.platform.supportPhone ?? "",
@@ -110,6 +125,63 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* Admin-configured modules */}
+      {loaderData.dash.modules.continue && (
+        <Card>
+          <CardHeader title={t(locale, "progress.continueTitle")} />
+          <CardBody>
+            {loaderData.continueItems.length === 0 ? (
+              <p className="text-sm text-slate-500">{t(locale, "progress.continueEmpty")}</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {loaderData.continueItems.map((item) => (
+                  <li key={`${item.courseSlug}/${item.lessonSlug}`}>
+                    <Link
+                      to={`/learn/${item.courseSlug}/${item.lessonSlug}`}
+                      className="flex min-h-11 flex-col gap-1 rounded-lg border border-slate-200 px-4 py-2.5 hover:border-brand-300 hover:bg-brand-50/40"
+                    >
+                      <span className="flex items-center justify-between gap-2 text-sm font-medium text-slate-800">
+                        {locale === "ar" ? item.lessonTitleAr || item.lessonTitleEn : item.lessonTitleEn || item.lessonTitleAr}
+                        {item.status === "completed" ? (
+                          <Badge tone="success">{t(locale, "progress.completed")}</Badge>
+                        ) : (
+                          <span className="text-xs font-normal text-brand-700">{t(locale, "progress.resume")}</span>
+                        )}
+                      </span>
+                      <span className="flex items-center gap-2 text-xs text-slate-500">
+                        {locale === "ar" ? item.courseTitleAr || item.courseTitleEn : item.courseTitleEn || item.courseTitleAr}
+                        <span dir="ltr">· {item.pct}%</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+      )}
+
+      {loaderData.dash.modules.stats && loaderData.stats && (
+        <Card>
+          <CardHeader title={t(locale, "progress.statsTitle")} />
+          <CardBody>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-slate-200 p-3 text-center">
+                <p className="text-2xl font-bold text-brand-700" dir="ltr">{loaderData.stats.completedLessons}</p>
+                <p className="text-xs text-slate-500">{t(locale, "progress.completedLessons")}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 p-3 text-center">
+                <p className="text-2xl font-bold text-slate-700" dir="ltr">{loaderData.stats.inProgressLessons}</p>
+                <p className="text-xs text-slate-500">{t(locale, "progress.lessonsInProgress")}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 p-3 text-center">
+                <p className="text-2xl font-bold text-slate-700" dir="ltr">{loaderData.stats.completedVideos}</p>
+                <p className="text-xs text-slate-500">{t(locale, "progress.completedVideos")}</p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
       {loaderData.dash.modules.myCourses && (
         <Card>
           <CardHeader title={t(locale, "dashboard.myCourses")} />
@@ -122,10 +194,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   <li key={course.slug}>
                     <Link
                       to={`/courses/${course.slug}`}
-                      className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 hover:border-brand-300 hover:bg-brand-50/40"
+                      className="flex min-h-11 flex-col gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 hover:border-brand-300 hover:bg-brand-50/40"
                     >
-                      {locale === "ar" ? course.titleAr || course.titleEn : course.titleEn || course.titleAr}
-                      <span aria-hidden="true" className="text-slate-400 rtl:rotate-180">→</span>
+                      <span className="flex items-center justify-between gap-2">
+                        {locale === "ar" ? course.titleAr || course.titleEn : course.titleEn || course.titleAr}
+                        <span className="text-xs font-normal text-slate-500" dir="ltr">{course.pct}%</span>
+                      </span>
+                      <ProgressBar pct={course.pct} label={t(locale, "progress.courseProgress")} />
                     </Link>
                   </li>
                 ))}

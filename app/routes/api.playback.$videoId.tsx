@@ -9,6 +9,7 @@ import { chainForLesson } from "~server/content/service.server";
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { getSettings } from "~server/settings/service.server";
 import { getVideo, mintPlayback } from "~server/video/service.server";
+import { getVideoProgress, startWatch } from "~server/progress/service.server";
 
 /**
  * POST /api/playback/:videoId — the ONLY place playback credentials are minted
@@ -54,11 +55,26 @@ export async function action({ context, params, request }: Route.ActionArgs) {
     }
   }
 
+  // replay policy (Phase 4): server-enforced cap on credential mints per student+video.
+  // 0 = unlimited (default). Admins bypass (mirrors the resolver's admin rule).
+  const prior = await getVideoProgress(db, auth.user.id, video.id);
+  const replayLimit = settings.video.replayLimit;
+  if (replayLimit > 0 && auth.user.rank < 3 && prior && prior.watchCount >= replayLimit) {
+    return Response.json({ error: "replay_limit" }, { status: 403 });
+  }
+
   const playback = await mintPlayback(db, env, video, { studentId: auth.user.id, lessonId });
   if ("error" in playback) {
     return Response.json({ error: playback.error }, { status: playback.error === "not_ready" ? 409 : 503 });
   }
-  void settings; // TTL is enforced provider-side (settings.video.playbackTokenTtlSeconds documented)
+
+  // watch accounting + resume context (never blocks playback on progress-write failure)
+  try {
+    await startWatch(db, { studentId: auth.user.id, videoId: video.id, lessonId: lessonId ?? null, deviceId: auth.device.id });
+  } catch {
+    // progress is convenience data — a failed write must not deny an entitled playback
+  }
+
   return Response.json(
     {
       type: playback.type,
@@ -66,6 +82,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
       token: playback.token ?? null,
       expiresAt: playback.expiresAt,
       posterUrl: playback.posterUrl ?? null,
+      resumeAt: prior && !prior.completed && prior.positionSeconds > 5 ? prior.positionSeconds : 0,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

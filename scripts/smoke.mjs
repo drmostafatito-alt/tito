@@ -653,6 +653,135 @@ const run = async () => {
   check("platform name change visible to anonymous visitors (zero-deploy branding)", norm(homeAfterSys.text).includes(newPlatformName), "new platform name not found on /");
 
   // ------------------------------------------------------------------
+  console.log("\n[14] Phase 4 student journey: catalog hierarchy, progress, resume, completion, profile");
+  // NOTE: the student jar is still authenticated (§11 only logged out student2).
+
+  // --- catalog hierarchy: Program → Subject → Course (published-only pages) ---
+  const programs = await anon.get("/programs");
+  check("GET /programs → 200 + seeded program linked", programs.status === 200 && programs.text.includes("/programs/al-Thanawiya-al-3amma"), `got ${programs.status}`);
+  const programPage = await anon.get("/programs/al-Thanawiya-al-3amma");
+  check("program page → 200 + links its published subject", programPage.status === 200 && programPage.text.includes("/subjects/physics-3s"), `got ${programPage.status}`);
+  const subjectPage = await anon.get("/subjects/physics-3s");
+  check("subject page → 200 + links its published course", subjectPage.status === 200 && subjectPage.text.includes("/courses/physics-3s-full"), `got ${subjectPage.status}`);
+  const unknownProgram = await anon.get("/programs/does-not-exist");
+  check("unknown program slug → 404", unknownProgram.status === 404, `got ${unknownProgram.status}`);
+  const unknownSubject = await anon.get("/subjects/does-not-exist");
+  check("unknown subject slug → 404", unknownSubject.status === 404, `got ${unknownSubject.status}`);
+
+  // --- course detail: entitlement-aware lesson list + unit navigation ---
+  const courseEntitled = await student.get("/courses/physics-3s-full");
+  check("entitled student → course page 200 with learn links", courseEntitled.status === 200 && courseEntitled.text.includes("/learn/physics-3s-full/coulomb-law"), `got ${courseEntitled.status}`);
+  const unitMatch = courseEntitled.text.match(/\/courses\/physics-3s-full\/units\/([0-9a-f-]{36})/);
+  check("course page exposes unit links", Boolean(unitMatch), "no unit link found");
+  if (unitMatch) {
+    const unitPage = await student.get(`/courses/physics-3s-full/units/${unitMatch[1]}`);
+    check("unit page → 200 + lesson links", unitPage.status === 200 && unitPage.text.includes("/learn/physics-3s-full/electrostatics-intro"), `got ${unitPage.status}`);
+  }
+  const courseAnon = await anon.get("/courses/physics-3s-full");
+  check(
+    "anon → entitled lesson is LOCKED on the course page (no learn link)",
+    courseAnon.status === 200 && !courseAnon.text.includes("/learn/physics-3s-full/coulomb-law"),
+    `got ${courseAnon.status}`
+  );
+  // free_preview is a LOGGED-IN affordance by design (resolver: anon → deny, unit-tested)
+  check("anon → free-preview lesson also locked (login required)", !courseAnon.text.includes("/learn/physics-3s-full/electrostatics-intro"));
+  check("anon → course page invites login", norm(courseAnon.text).includes("سجّل الدخول") || courseAnon.text.includes("/login"));
+
+  // --- beacons: auth + entitlement gates ---
+  const beaconBody = (obj) => ({ body: JSON.stringify(obj), headers: { "content-type": "application/json" } });
+  const anonBeacon = await anon.post("/beacons/progress", beaconBody({ videoId: videoId ?? "00000000-0000-4000-8000-000000000000", positionSeconds: 10 }));
+  check("anon beacon → 401", anonBeacon.status === 401, `got ${anonBeacon.status}`);
+  const beaconGet = await anon.get("/beacons/progress");
+  check("GET /beacons/progress → 405 (POST-only)", beaconGet.status === 405, `got ${beaconGet.status}`);
+
+  const s14 = makeClient("s14");
+  const s14Email = `s14-${Date.now()}@smoke.local`;
+  const s14Pass = "Sm0ke!S14-2026";
+  const s14Reg = await s14.post("/register", { form: { email: s14Email, fullName: "Smoke S14", password: s14Pass, passwordConfirm: s14Pass } });
+  check("journey: fresh student registered → 302", s14Reg.status === 302, `${s14Reg.status} ${s14Reg.location ?? ""}`);
+
+  const l1 = await student.get("/learn/physics-3s-full/electrostatics-intro");
+  const journeyLessonId = (l1.text.match(/data-lesson-id="([0-9a-f-]{36})"/) ?? [])[1] ?? null;
+  check("learn page exposes lesson id (data attribute)", Boolean(journeyLessonId), "data-lesson-id not found");
+  const l2Page = await student.get("/learn/physics-3s-full/coulomb-law");
+  const entitledLessonId = (l2Page.text.match(/data-lesson-id="([0-9a-f-]{36})"/) ?? [])[1] ?? null;
+  check("entitled lesson page exposes its lesson id", Boolean(entitledLessonId), "data-lesson-id not found on lesson 2");
+
+  if (entitledLessonId) {
+    const s14Beacon = await s14.post("/beacons/progress", beaconBody({ videoId: videoId ?? "00000000-0000-4000-8000-000000000000", lessonId: entitledLessonId, positionSeconds: 10 }));
+    check("unentitled student beacon with lesson context → 403 (server-side check)", s14Beacon.status === 403, `got ${s14Beacon.status}`);
+  }
+
+  if (videoId && journeyLessonId) {
+
+    // --- heartbeat → resume: server stores position, next mint returns resumeAt ---
+    const hb = await student.post("/beacons/progress", beaconBody({ videoId, lessonId: journeyLessonId, positionSeconds: 30, watchedSeconds: 30 }));
+    let hbJson = {};
+    try { hbJson = JSON.parse(hb.text); } catch { /* asserted below */ }
+    check("entitled heartbeat beacon → 200 {completed:false}", hb.status === 200 && hbJson.completed === false, `got ${hb.status} ${hb.text.slice(0, 80)}`);
+
+    const mint2 = await student.post(`/api/playback/${videoId}`);
+    let pb2 = {};
+    try { pb2 = JSON.parse(mint2.text); } catch { /* asserted below */ }
+    check("re-mint after heartbeat → resumeAt=30 (server-side resume)", mint2.status === 200 && pb2.resumeAt === 30, `got ${mint2.status} resumeAt=${pb2.resumeAt}`);
+
+    // --- threshold completion is SERVER-decided (90% of the seeded 120s video = 108s) ---
+    const below = await student.post("/beacons/progress", beaconBody({ videoId, lessonId: journeyLessonId, positionSeconds: 107 }));
+    let belowJson = {};
+    try { belowJson = JSON.parse(below.text); } catch { /* asserted below */ }
+    check("beacon below threshold → not completed", below.status === 200 && belowJson.completed === false, `got ${below.status}`);
+    const ended = await student.post("/beacons/progress", beaconBody({ videoId, lessonId: journeyLessonId, positionSeconds: 115, kind: "ended", watchedSeconds: 115 }));
+    let endedJson = {};
+    try { endedJson = JSON.parse(ended.text); } catch { /* asserted below */ }
+    check(
+      "ended beacon past threshold → video + lesson auto-completed",
+      ended.status === 200 && endedJson.completed === true && endedJson.lessonCompleted === true,
+      `got ${ended.status} ${ended.text.slice(0, 120)}`
+    );
+
+    const l1After = await student.get("/learn/physics-3s-full/electrostatics-intro");
+    check("completed lesson page shows the completed badge", norm(l1After.text).includes(">مكتمل<"), "badge not found");
+
+    const mint3 = await student.post(`/api/playback/${videoId}`);
+    let pb3 = {};
+    try { pb3 = JSON.parse(mint3.text); } catch { /* asserted below */ }
+    check("completed video → resumeAt=0 (no stale resume)", mint3.status === 200 && pb3.resumeAt === 0, `resumeAt=${pb3.resumeAt}`);
+  } else {
+    check("section 14 prerequisites (videoId + lessonId present)", false, "skipped — missing ids");
+  }
+
+  // --- manual mark-complete (lesson 2, entitled) via the lesson action ---
+  const toggle2 = await student.post("/learn/physics-3s-full/coulomb-law", { form: { _action: "toggle-complete", completed: "1" } });
+  check("mark-complete action → 200 + completed state", toggle2.status === 200 && norm(toggle2.text).includes(">مكتمل<"), `got ${toggle2.status}`);
+  const toggle2Bad = await student.post("/learn/physics-3s-full/coulomb-law", { form: { _action: "something-else" } });
+  check("unknown lesson action → 400", toggle2Bad.status === 400, `got ${toggle2Bad.status}`);
+  const s14Toggle = await s14.post("/learn/physics-3s-full/coulomb-law", { form: { _action: "toggle-complete", completed: "1" } });
+  check("unentitled student mark-complete → 403 (action re-checks entitlement)", s14Toggle.status === 403, `got ${s14Toggle.status}`);
+
+  // --- dashboard reflects REAL progress ---
+  const dash14 = await student.get("/dashboard");
+  const dash14Html = norm(dash14.text);
+  check("dashboard → 200", dash14.status === 200, `got ${dash14.status}`);
+  check("dashboard shows continue-learning module", dash14Html.includes("استكمل التعلم"), "continue module missing");
+  check("dashboard shows stats module", dash14Html.includes("تقدمك"), "stats module missing");
+  check("dashboard continue links a completed lesson", dash14.text.includes("/learn/physics-3s-full/coulomb-law"), "no lesson link");
+  check("dashboard shows 100% course progress (2/2 lessons completed)", dash14Html.includes("100%"), "100% missing");
+
+  // --- student profile page ---
+  const profilePage = await student.get("/profile");
+  check("GET /profile → 200 + shows account email", profilePage.status === 200 && profilePage.text.includes(STUDENT_EMAIL), `got ${profilePage.status}`);
+  const profileSave = await student.post("/profile", { form: { fullName: "طالب الدخان", phone: "+201000000000", localePref: "ar" } });
+  check("profile save → 200 + saved alert", profileSave.status === 200 && norm(profileSave.text).includes("تم حفظ الملف الشخصي"), `got ${profileSave.status}`);
+  const profileBad = await student.post("/profile", { form: { fullName: "x", phone: "not-a-phone!!", localePref: "ar" } });
+  check("profile invalid input → 200 with error alert (no crash)", profileBad.status === 200, `got ${profileBad.status}`);
+  const dashAfterProfile = await student.get("/dashboard");
+  check("new name visible in the student shell after save", norm(dashAfterProfile.text).includes("طالب الدخان"), "name not updated");
+  check("student layout ships the mobile nav panel", dashAfterProfile.text.includes("student-mobile-nav"), "mobile nav missing");
+
+  // restore the name so re-runs stay deterministic
+  await student.post("/profile", { form: { fullName: "طالب تجريبي", phone: "", localePref: "ar" } });
+
+  // ------------------------------------------------------------------
   console.log("\n[13] Rate limiting (runs LAST by design — burns the 1-min login window)");
   const rlClient = makeClient("ratelimit");
   let blocked = false;

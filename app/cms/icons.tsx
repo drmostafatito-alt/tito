@@ -30,6 +30,7 @@ const GLYPHS: Record<IconId, React.ReactNode> = {
   target: <S><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></S>,
   zap: <path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z" />,
   shield: <S><path d="M12 2.5 20 6v5.5c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6z" /><path d="m9 12 2 2 4-4.5" /></S>,
+  lock: <S><rect x="4.5" y="10.5" width="15" height="10.5" rx="2" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></S>,
   heart: <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.5 2.8C20.5 15 12 20.5 12 20.5z" />,
   "arrow-right": <S><path d="M4 12h15" /><path d="m13 6 6 6-6 6" /></S>,
   "arrow-left": <S><path d="M20 12H5" /><path d="m11 6-6 6 6 6" /></S>,

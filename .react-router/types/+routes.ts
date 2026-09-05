@@ -19,6 +19,19 @@ type Pages = {
       "slug": string;
     };
   };
+  "/programs": {
+    params: {};
+  };
+  "/programs/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
+  "/subjects/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
   "/courses": {
     params: {};
   };
@@ -73,6 +86,9 @@ type Pages = {
       "videoId": string;
     };
   };
+  "/beacons/progress": {
+    params: {};
+  };
   "/api/mock-stream/:videoId/:file": {
     params: {
       "videoId": string;
@@ -80,6 +96,9 @@ type Pages = {
     };
   };
   "/dashboard": {
+    params: {};
+  };
+  "/profile": {
     params: {};
   };
   "/profile/security": {
@@ -133,11 +152,11 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/p/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile/security" | "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements";
+    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/profile/security" | "/admin" | "/admin/cms" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements";
   };
   "routes/public/layout.tsx": {
     id: "public";
-    page: "/" | "/p/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale";
+    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/set-locale";
   };
   "routes/public/home.tsx": {
     id: "routes/public/home";
@@ -146,6 +165,18 @@ type RouteFiles = {
   "routes/p.$slug.tsx": {
     id: "routes/p.$slug";
     page: "/p/:slug";
+  };
+  "routes/public.programs.tsx": {
+    id: "routes/public.programs";
+    page: "/programs";
+  };
+  "routes/public.programs.$slug.tsx": {
+    id: "routes/public.programs.$slug";
+    page: "/programs/:slug";
+  };
+  "routes/public.subjects.$slug.tsx": {
+    id: "routes/public.subjects.$slug";
+    page: "/subjects/:slug";
   };
   "routes/public.courses.tsx": {
     id: "routes/public.courses";
@@ -203,17 +234,25 @@ type RouteFiles = {
     id: "routes/api.playback.$videoId";
     page: "/api/playback/:videoId";
   };
+  "routes/beacons.progress.tsx": {
+    id: "routes/beacons.progress";
+    page: "/beacons/progress";
+  };
   "routes/api.mock-stream.$videoId.$file.tsx": {
     id: "routes/api.mock-stream.$videoId.$file";
     page: "/api/mock-stream/:videoId/:file";
   };
   "routes/student/layout.tsx": {
     id: "student";
-    page: "/dashboard" | "/profile/security";
+    page: "/dashboard" | "/profile" | "/profile/security";
   };
   "routes/student/dashboard.tsx": {
     id: "routes/student/dashboard";
     page: "/dashboard";
+  };
+  "routes/student/profile.tsx": {
+    id: "routes/student/profile";
+    page: "/profile";
   };
   "routes/student/security.tsx": {
     id: "routes/student/security";
@@ -278,6 +317,9 @@ type RouteModules = {
   "public": typeof import("./app/routes/public/layout.tsx");
   "routes/public/home": typeof import("./app/routes/public/home.tsx");
   "routes/p.$slug": typeof import("./app/routes/p.$slug.tsx");
+  "routes/public.programs": typeof import("./app/routes/public.programs.tsx");
+  "routes/public.programs.$slug": typeof import("./app/routes/public.programs.$slug.tsx");
+  "routes/public.subjects.$slug": typeof import("./app/routes/public.subjects.$slug.tsx");
   "routes/public.courses": typeof import("./app/routes/public.courses.tsx");
   "routes/public.courses.$slug": typeof import("./app/routes/public.courses.$slug.tsx");
   "routes/public.courses.$slug.units.$unitId": typeof import("./app/routes/public.courses.$slug.units.$unitId.tsx");
@@ -292,9 +334,11 @@ type RouteModules = {
   "routes/learn.$courseSlug.$lessonSlug": typeof import("./app/routes/learn.$courseSlug.$lessonSlug.tsx");
   "routes/files.$id": typeof import("./app/routes/files.$id.tsx");
   "routes/api.playback.$videoId": typeof import("./app/routes/api.playback.$videoId.tsx");
+  "routes/beacons.progress": typeof import("./app/routes/beacons.progress.tsx");
   "routes/api.mock-stream.$videoId.$file": typeof import("./app/routes/api.mock-stream.$videoId.$file.tsx");
   "student": typeof import("./app/routes/student/layout.tsx");
   "routes/student/dashboard": typeof import("./app/routes/student/dashboard.tsx");
+  "routes/student/profile": typeof import("./app/routes/student/profile.tsx");
   "routes/student/security": typeof import("./app/routes/student/security.tsx");
   "admin-root": typeof import("./app/routes/admin/layout.tsx");
   "routes/admin/home": typeof import("./app/routes/admin/home.tsx");

@@ -9,6 +9,7 @@ import { canCms } from "~server/cms/service.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { files } from "~server/db/schema";
 import { cmsLabel } from "~/cms/registry";
+import { DASHBOARD_MODULE_IDS } from "~server/settings/schema";
 import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
@@ -134,7 +135,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     } else {
       patch = {
         welcomeAr: str("welcomeAr"), welcomeEn: str("welcomeEn"),
-        modules: (["my_courses", "quick_actions", "support"] as const).map((id) => ({ id, enabled: on(`mod.${id}`) })),
+        modules: DASHBOARD_MODULE_IDS.map((id) => ({ id, enabled: on(`mod.${id}`) })),
       };
     }
     await updateSettingsGroup(db, group as "identity", patch, actor);

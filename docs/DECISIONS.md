@@ -129,3 +129,44 @@ Format per record: **Context / Decision / Consequences / Status**.
 | Email provider (e.g., Resend) for reset/notifications | 4+ | pending |
 | WhatsApp: official WhatsApp Business Platform only | 7+ | pending (legal/account prerequisites) |
 | Cloudflare free-tier limits vs projected usage | ongoing | doc'd in DEPLOYMENT §8 |
+
+## ADR-021 Student progress & playback policy (Phase 4)
+
+**Context.** Phase 4 needs lesson/video progress, resume, completion, and replay
+policy. The video pipeline (ADR-006), entitlement resolver (ADR-009), and settings
+system (ADR-012) already exist; progress must not weaken any of them.
+
+**Decision.**
+1. **DB is the single source of truth** for progress (D1 tables `lesson_progress`,
+   `video_progress`, `video_watch_sessions`, `events` — additive migration 0004).
+   localStorage is never authoritative; the client only reports positions.
+2. **Progress is per student, not per device** (FEATURE-SPEC §4). `device_id` is
+   recorded on watch sessions for analytics/audit only.
+3. **Client-reported positions are sanity-clamped** (0..duration) and treated as
+   self-report — they unlock nothing. Every beacon re-checks the session AND the
+   lesson entitlement server-side (`POST /beacons/progress`); progress writes can
+   never grant access.
+4. **Completion is server-decided**: a video completes at
+   `settings.video.completionThresholdPct` (default 90) of its duration; a lesson
+   auto-completes only when ALL its required items are videos that completed
+   (files/exams have no completion signal yet — students mark those lessons
+   complete explicitly). The `lesson_complete` event is emitted exactly once
+   (pre-read `wasCompleted` guard).
+5. **Replay policy is enforced at credential-mint time** in `POST /api/playback/:id`
+   using the pre-increment `watch_count` (`settings.video.replayLimit`, 0 = unlimited
+   default; admins rank ≥ 3 bypass, mirroring the resolver). Enforcement happens
+   before minting, so a denied replay never produces credentials.
+6. **Progress writes never block entitled playback**: `startWatch` runs after the
+   mint inside try/catch; a failed progress write cannot deny a video the student
+   is entitled to.
+7. **Resume**: `resumeAt` is returned by the playback API (position > 5s and not
+   completed); the player seeks on `loadedmetadata`. Heartbeats are debounced (10s)
+   and fire-and-forget (`fetch keepalive`; `sendBeacon` for the final "ended" beacon
+   on `pagehide`) per ARCHITECTURE §13/§15.
+8. **Course % = completed published lessons / published lessons** of published
+   units. Draft/unpublished content never counts and never renders.
+
+**Consequences.** One additive migration; two new settings knobs (defaults preserve
+prior behavior); no changes to the provider abstraction, signed-URL discipline, or
+CMS. Beacons are a resource route outside the document shell (no CSRF token needed —
+session cookie + same-origin middleware still apply).

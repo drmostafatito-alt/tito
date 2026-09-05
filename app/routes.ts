@@ -4,6 +4,9 @@ export default [
   layout("routes/public/layout.tsx", { id: "public" }, [
     index("routes/public/home.tsx"),
     route("p/:slug", "routes/p.$slug.tsx"),
+    route("programs", "routes/public.programs.tsx"),
+    route("programs/:slug", "routes/public.programs.$slug.tsx"),
+    route("subjects/:slug", "routes/public.subjects.$slug.tsx"),
     route("courses", "routes/public.courses.tsx"),
     route("courses/:slug", "routes/public.courses.$slug.tsx"),
     route("courses/:slug/units/:unitId", "routes/public.courses.$slug.units.$unitId.tsx"),
@@ -19,9 +22,11 @@ export default [
   route("learn/:courseSlug/:lessonSlug", "routes/learn.$courseSlug.$lessonSlug.tsx"),
   route("files/:id", "routes/files.$id.tsx"),
   route("api/playback/:videoId", "routes/api.playback.$videoId.tsx"),
+  route("beacons/progress", "routes/beacons.progress.tsx"),
   route("api/mock-stream/:videoId/:file", "routes/api.mock-stream.$videoId.$file.tsx"),
   layout("routes/student/layout.tsx", { id: "student" }, [
     route("dashboard", "routes/student/dashboard.tsx"),
+    route("profile", "routes/student/profile.tsx"),
     route("profile/security", "routes/student/security.tsx"),
   ]),
   route("admin", "routes/admin/layout.tsx", { id: "admin-root" }, [

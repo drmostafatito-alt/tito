@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  DASHBOARD_MODULE_IDS,
+  dashboardSettingsSchema,
   deviceSettingsSchema,
   localeSettingsSchema,
   platformSettingsSchema,
   securitySettingsSchema,
+  videoSettingsSchema,
 } from "~server/settings/schema";
 
 describe("settings schemas (ADR-012)", () => {
@@ -24,6 +27,27 @@ describe("settings schemas (ADR-012)", () => {
     const locale = localeSettingsSchema.parse({});
     expect(locale.default).toBe("ar");
     expect(locale.enabled).toEqual(["ar", "en"]);
+  });
+
+  it("video settings: Phase 4 progress knobs default to safe values", () => {
+    const video = videoSettingsSchema.parse({});
+    expect(video.completionThresholdPct).toBe(90);
+    expect(video.replayLimit).toBe(0); // 0 = unlimited (no behavior change pre-Phase-4)
+
+    // bounds are enforced fail-closed on write
+    expect(videoSettingsSchema.safeParse({ completionThresholdPct: 49 }).success).toBe(false);
+    expect(videoSettingsSchema.safeParse({ completionThresholdPct: 101 }).success).toBe(false);
+    expect(videoSettingsSchema.safeParse({ replayLimit: -1 }).success).toBe(false);
+    expect(videoSettingsSchema.safeParse({ replayLimit: 1001 }).success).toBe(false);
+  });
+
+  it("dashboard modules: canonical ids all enabled by default; unknown ids rejected", () => {
+    const dash = dashboardSettingsSchema.parse({});
+    expect(dash.modules.map((m) => m.id)).toEqual([...DASHBOARD_MODULE_IDS]);
+    expect(dash.modules.every((m) => m.enabled)).toBe(true);
+    expect(DASHBOARD_MODULE_IDS).toContain("continue");
+    expect(DASHBOARD_MODULE_IDS).toContain("stats");
+    expect(dashboardSettingsSchema.safeParse({ modules: [{ id: "crypto_miner", enabled: true }] }).success).toBe(false);
   });
 
   it("rejects invalid values (fail closed on write)", () => {
