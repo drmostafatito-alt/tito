@@ -15,7 +15,10 @@
     "test:integration": "node scripts/gen-migrations-manifest.mjs && vitest run --config vitest.integration.config.ts",
     "deploy": "npm run verify && node scripts/nw.mjs wrangler deploy",
     "check:production-readiness": "node scripts/check-production-readiness.mjs",
-    "verify": "npm run lint:imports && npm run typecheck && npm run test && npm run build"
+    "verify": "npm run lint:imports && npm run typecheck && npm run test && npm run build",
+    "bootstrap:admin": "node scripts/nw.mjs node scripts/bootstrap-admin.mjs",
+    "bootstrap:admin:remote": "node scripts/bootstrap-admin.mjs --remote",
+    "check:production-readiness:remote": "node scripts/check-production-readiness.mjs --remote"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-arabic": "^5.2.5",

@@ -48,13 +48,16 @@ Local: copy `.dev.vars.example` → `.dev.vars` (gitignored; committed file cont
 - Pre-migration: `wrangler d1 export educore-prod --remote --output backups/$(date +%F).sqlite` (+ R2 master listing). Backup verified (row counts of core tables logged) before applying.
 - Migrations are transactional per D1 batch; a failed batch leaves the previous state.
 
-## 6. First-deploy runbook (end of Phase 1)
+## 6. First-deploy runbook (updated for Phase 3 / ADR-020)
 
 1. `npm ci && npm run verify` (typecheck/lint/tests/build all green).
-2. Create D1 preview + prod; apply migrations; run seed (super admin from `ADMIN_BOOTSTRAP_EMAIL` + one-time generated password printed once to operator, must change at first login).
-3. Deploy preview → smoke → deploy prod → smoke.
-4. Set secrets; verify CSP/headers with a security-header scan; verify cookie flags.
-5. Update this file with anything that differed.
+2. Create D1 preview + prod; apply migrations (`wrangler d1 migrations apply <db> --remote`).
+3. Bootstrap the first super admin: `npm run bootstrap:admin:remote` (email via `ADMIN_BOOTSTRAP_EMAIL` or `--email=`; one-time generated password printed once; refuses dev-placeholder emails). **Never run `scripts/seed.mjs` against preview/prod — it is LOCAL-DEV ONLY (plants demo content the readiness gate rejects).**
+4. Owner logs in, changes the bootstrap password, fills Appearance → System (platform identity, video provider) + Identity (owner name/photo/logo/contact) — all zero-deploy.
+5. **Pre-deploy gate**: `npm run check:production-readiness -- --remote` must pass (exit 0). It fails on demo accounts, seed/smoke content, mock video provider, placeholder media, template branding, empty owner identity, lorem-ipsum pages, unapplied migrations, missing CMS permissions, or no active super admin (ADR-020).
+6. Deploy preview → smoke → deploy prod → smoke (`SMOKE_BASE_URL=<url> SMOKE_ADMIN_PASSWORD=… node scripts/smoke.mjs`; note: smoke creates `smoke-`-prefixed rows — re-run the readiness gate afterwards or clean up before launch).
+7. Set secrets; verify CSP/headers with a security-header scan; verify cookie flags.
+8. Update this file with anything that differed.
 
 ## 7. Custom domain & cookies
 

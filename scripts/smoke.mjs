@@ -539,7 +539,7 @@ const run = async () => {
   const themeCss = await anon.get("/theme.css");
   check(
     "GET /theme.css → 200 CSS with admin design tokens",
-    themeCss.status === 200 && themeCss.text.includes("--brand-500") && (themeCss.headers.get("content-type") ?? "").includes("text/css"),
+    themeCss.status === 200 && themeCss.text.includes("--color-brand-500") && (themeCss.headers.get("content-type") ?? "").includes("text/css"),
     `got ${themeCss.status}`
   );
   const faviconRes = await anon.get("/favicon.ico");
@@ -635,6 +635,22 @@ const run = async () => {
   check("invalid form submission → failure message in place (no redirect)", badSubmit.status === 200 && norm(badSubmit.text).includes("فشل الإرسال"), `got ${badSubmit.status}`);
   const goodSubmit = await anon.post(`/p/${cmsSlug}`, { form: { _cmsForm: formSlug, email: `smoke-${cmsStamp}@example.com` } });
   check("valid form submission → success message", goodSubmit.status === 200 && norm(goodSubmit.text).includes("تم الإرسال بنجاح"), `got ${goodSubmit.status}`);
+
+  // system settings tab: platform identity + video policy editable with ZERO code deploy
+  const sysPage = await admin.get("/admin/appearance?tab=system");
+  const sysHtml = norm(sysPage.text);
+  check("system tab renders for super admin (platform fields + provider policy)", sysPage.status === 200 && sysHtml.includes('name="nameAr"') && sysHtml.includes('name="provider"'), `got ${sysPage.status}`);
+  const newPlatformName = `SmokePlatform-${cmsStamp}`;
+  const sysSave = await admin.post("/admin/appearance?tab=system", { form: {
+    _action: "save-system",
+    nameAr: newPlatformName, nameEn: newPlatformName,
+    taglineAr: "", taglineEn: "",
+    supportEmail: "", supportPhone: "", whatsapp: "",
+    provider: "mock", playbackTokenTtl: "45", fileTtl: "120",
+  } });
+  check("system settings saved (platform + video groups)", sysSave.status === 200, `got ${sysSave.status}`);
+  const homeAfterSys = await anon.get("/");
+  check("platform name change visible to anonymous visitors (zero-deploy branding)", norm(homeAfterSys.text).includes(newPlatformName), "new platform name not found on /");
 
   // ------------------------------------------------------------------
   console.log("\n[13] Rate limiting (runs LAST by design — burns the 1-min login window)");

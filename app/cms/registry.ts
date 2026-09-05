@@ -1031,7 +1031,20 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.ui.permissionDenied": { ar: "لا تملك صلاحية لهذا الإجراء.", en: "You do not have permission for this action." },
   "cms.ui.viewPage": { ar: "عرض الصفحة", en: "View page" },
   "cms.ui.homeSlugNote": { ar: "الصفحة ذات المعرّف home تظهر على الرابط /", en: "The page with slug home is served at /" },
-
+  "cms.ui.system": { ar: "إعدادات النظام", en: "System settings" },
+  "cms.ui.systemPlatform": { ar: "هوية المنصة", en: "Platform identity" },
+  "cms.ui.systemVideo": { ar: "مزود الفيديو (للمسؤول الأعلى فقط)", en: "Video provider (super admin only)" },
+  "cms.f.platformNameAr": { ar: "اسم المنصة (عربي)", en: "Platform name (Arabic)" },
+  "cms.f.platformNameEn": { ar: "اسم المنصة (إنجليزي)", en: "Platform name (English)" },
+  "cms.f.taglineAr": { ar: "الوصف المختصر (عربي)", en: "Tagline (Arabic)" },
+  "cms.f.taglineEn": { ar: "الوصف المختصر (إنجليزي)", en: "Tagline (English)" },
+  "cms.f.supportEmail": { ar: "بريد الدعم", en: "Support email" },
+  "cms.f.supportPhone": { ar: "هاتف الدعم", en: "Support phone" },
+  "cms.f.whatsapp": { ar: "رقم واتساب", en: "WhatsApp number" },
+  "cms.f.maintenance": { ar: "وضع الصيانة (يظهر للزوار صفحة صيانة)", en: "Maintenance mode (visitors see a maintenance page)" },
+  "cms.f.videoProvider": { ar: "المزود النشط", en: "Active provider" },
+  "cms.f.playbackTtl": { ar: "مدة رمز التشغيل (ثانية، 10–60)", en: "Playback token TTL (seconds, 10–60)" },
+  "cms.f.fileTtl": { ar: "مدة رابط الملف الخاص (ثانية، 30–600)", en: "Private file URL TTL (seconds, 30–600)" },
 };
 
 export function cmsLabel(key: string, locale: "ar" | "en"): string {

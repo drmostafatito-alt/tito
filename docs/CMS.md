@@ -51,6 +51,7 @@ Notes:
   - Lesson page: show description/attachments/prev-next; video: poster/title/description/speed/fullscreen.
   - Known limitation: `lesson.showRelated` is stored and validated but the learn page does not render a related-lessons block yet (documented, not silent).
 - **Student dashboard**: welcome message (ar/en) + module toggles/order (`my_courses`, `quick_actions`, `support`). Modules only ever show data the student is entitled to — access stays server-side; `support` appears only when a contact email/phone/WhatsApp is configured.
+- **System** (tab `?tab=system`): platform name/tagline (ar/en), support email/phone/WhatsApp, maintenance mode — plus, **super_admin only**, the video provider policy (active provider `mock|mux`, playback-token TTL, private-file URL TTL). This is where the production readiness gate's "template branding" and "mock provider" findings are resolved, with zero code deployment.
 
 ### Navigation — `/admin/cms/menus` (needs `cms.manage_navigation`)
 
@@ -77,8 +78,8 @@ Every CMS mutation (page/block/menu/form/theme/settings create, edit, reorder, v
 ### Production content rules (owner policy, ADR-020)
 
 - Production starts **content-empty**: no demo accounts, courses, pages, forms, images, or placeholder text. Empty areas show polished empty states.
-- Dev seed/smoke data is local-only and clearly labeled; it cannot be deployed.
-- Before every production deploy run: `npm run check:production-readiness` (or `--remote` against production D1). It fails the deploy on demo accounts, seed/smoke content, mock video provider, placeholder media, template branding, empty owner identity, lorem text in published pages, unapplied migrations, missing CMS permissions, or no active super_admin.
+- Dev seed/smoke data is local-only and clearly labeled; it cannot be deployed. The production first-admin path is `npm run bootstrap:admin:remote` (`scripts/bootstrap-admin.mjs`) — roles + one super admin, nothing else.
+- Before every production deploy run: `npm run check:production-readiness` (or `--remote` / `npm run check:production-readiness:remote` against production D1). It fails the deploy on demo accounts, seed/smoke content, mock video provider, placeholder media, template branding, empty owner identity, lorem text in published pages, unapplied migrations, missing CMS permissions, or no active super_admin.
 
 ---
 

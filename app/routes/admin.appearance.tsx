@@ -23,7 +23,7 @@ import type { Locale } from "~/lib/i18n";
  * never accepted.
  */
 
-const TABS = ["identity", "theme", "presentation", "dashboard"] as const;
+const TABS = ["identity", "theme", "presentation", "dashboard", "system"] as const;
 type Tab = (typeof TABS)[number];
 
 export async function loader({ context, request }: Route.LoaderArgs) {
@@ -37,7 +37,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     canCms(db, guarded.auth, "cms.manage_theme"),
     canCms(db, guarded.auth, "cms.edit"),
   ]);
-  const allowed = tab === "identity" || tab === "theme" ? canTheme : canEdit;
+  const allowed = tab === "identity" || tab === "theme" || tab === "system" ? canTheme : canEdit;
+  const isSuper = guarded.auth.user.rank >= 4;
   const settings = await getSettings(db);
   const imageRows = await db
     .select({ id: files.id, name: files.originalFilename })
@@ -45,7 +46,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     .where(and(eq(files.visibility, "public"), eq(files.kind, "image")))
     .orderBy(desc(files.createdAt))
     .limit(200);
-  return { tab, allowed, canTheme, canEdit, settings, images: imageRows.map((r) => ({ id: r.id, label: r.name })) };
+  return { tab, allowed, canTheme, canEdit, isSuper, settings, images: imageRows.map((r) => ({ id: r.id, label: r.name })) };
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -56,13 +57,32 @@ export async function action({ context, request }: Route.ActionArgs) {
   const intent = String(form.get("_action") ?? "");
   const group = intent.replace("save-", "");
   if (!TABS.includes(group as Tab)) return { error: "generic" as const };
-  const needed = group === "identity" || group === "theme" ? "cms.manage_theme" : "cms.edit";
+  const needed = group === "identity" || group === "theme" || group === "system" ? "cms.manage_theme" : "cms.edit";
   if (!(await canCms(db, guarded.auth, needed as "cms.manage_theme"))) return { error: "denied" as const };
   const actor = { userId: guarded.auth.user.id, role: guarded.auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
   const str = (k: string) => String(form.get(k) ?? "");
   const on = (k: string) => form.get(k) === "on";
 
   try {
+    if (group === "system") {
+      // platform identity (name/tagline/support/maintenance) + — super_admin only — video provider policy.
+      const nullable = (k: string) => { const v = str(k); return v === "" ? null : v; };
+      await updateSettingsGroup(db, "platform", {
+        nameAr: str("nameAr"), nameEn: str("nameEn"),
+        taglineAr: str("taglineAr"), taglineEn: str("taglineEn"),
+        supportEmail: nullable("supportEmail"), supportPhone: nullable("supportPhone"),
+        whatsapp: nullable("whatsapp"), maintenance: on("maintenance"),
+      }, actor);
+      if (guarded.auth.user.rank >= 4) {
+        const num = (k: string) => Number(str(k) || 0);
+        await updateSettingsGroup(db, "video", {
+          provider: str("provider"),
+          playbackTokenTtlSeconds: num("playbackTokenTtl"),
+          fileUrlTtlSeconds: num("fileTtl"),
+        }, actor);
+      }
+      return { ok: true as const };
+    }
     let patch: Record<string, unknown>;
     if (group === "identity") {
       patch = {
@@ -179,6 +199,8 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
   const theme = settings.theme;
   const pres = settings.presentation;
   const dash = settings.dashboard;
+  const plat = settings.platform;
+  const vid = settings.video;
 
   return (
     <div className="flex flex-col gap-6">
@@ -189,8 +211,8 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
 
       <nav className="flex flex-wrap gap-2" aria-label={L("cms.ui.appearance")}>
         {TABS.map((tb) => {
-          const key = tb === "identity" ? "cms.ui.identity" : tb === "theme" ? "cms.ui.theme" : tb === "presentation" ? "cms.ui.presentation" : "cms.ui.dashboardCfg";
-          const allowed = tb === "identity" || tb === "theme" ? loaderData.canTheme : loaderData.canEdit;
+          const key = tb === "identity" ? "cms.ui.identity" : tb === "theme" ? "cms.ui.theme" : tb === "presentation" ? "cms.ui.presentation" : tb === "system" ? "cms.ui.system" : "cms.ui.dashboardCfg";
+          const allowed = tb === "identity" || tb === "theme" || tb === "system" ? loaderData.canTheme : loaderData.canEdit;
           return (
             <Link
               key={tb}
@@ -334,7 +356,7 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
             </Form>
           </CardBody>
         </Card>
-      ) : (
+      ) : tab === "dashboard" ? (
         <Card>
           <CardHeader title={L("cms.ui.dashboardCfg")} />
           <CardBody>
@@ -348,6 +370,41 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                   <Check key={m.id} name={`mod.${m.id}`} checked={m.enabled} label={L(`cms.set.mod.${m.id}`)} />
                 ))}
               </fieldset>
+              <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>
+            </Form>
+          </CardBody>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader title={L("cms.ui.system")} />
+          <CardBody>
+            <Form method="post" className="flex flex-col gap-4">
+              <input type="hidden" name="_action" value="save-system" />
+              <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.systemPlatform")}</legend>
+                <Input label={L("cms.f.platformNameAr")} name="nameAr" defaultValue={plat.nameAr} dir="rtl" />
+                <Input label={L("cms.f.platformNameEn")} name="nameEn" defaultValue={plat.nameEn} dir="ltr" />
+                <Input label={L("cms.f.taglineAr")} name="taglineAr" defaultValue={plat.taglineAr} dir="rtl" />
+                <Input label={L("cms.f.taglineEn")} name="taglineEn" defaultValue={plat.taglineEn} dir="ltr" />
+                <Input label={L("cms.f.supportEmail")} name="supportEmail" defaultValue={plat.supportEmail ?? ""} dir="ltr" />
+                <Input label={L("cms.f.supportPhone")} name="supportPhone" defaultValue={plat.supportPhone ?? ""} dir="ltr" />
+                <Input label={L("cms.f.whatsapp")} name="whatsapp" defaultValue={plat.whatsapp ?? ""} dir="ltr" />
+                <Check name="maintenance" checked={plat.maintenance} label={L("cms.f.maintenance")} />
+              </fieldset>
+              {loaderData.isSuper && (
+                <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4">
+                  <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.systemVideo")}</legend>
+                  <div className="flex flex-col">
+                    <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.f.videoProvider")}</span>
+                    <select name="provider" defaultValue={vid.provider} className={selectCls}>
+                      <option value="mock">mock (development only)</option>
+                      <option value="mux">mux</option>
+                    </select>
+                  </div>
+                  <Input label={L("cms.f.playbackTtl")} name="playbackTokenTtl" defaultValue={String(vid.playbackTokenTtlSeconds)} dir="ltr" />
+                  <Input label={L("cms.f.fileTtl")} name="fileTtl" defaultValue={String(vid.fileUrlTtlSeconds)} dir="ltr" />
+                </fieldset>
+              )}
               <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>
             </Form>
           </CardBody>

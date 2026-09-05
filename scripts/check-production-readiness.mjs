@@ -42,7 +42,9 @@ if (REMOTE) {
   query = async (sql) => (await queryAll(sql))[0] ?? null;
 } else {
   const { getPlatformProxy } = await import("wrangler");
-  const proxy = await getPlatformProxy();
+  // wrangler --persist-to X stores state under X/v3; getPlatformProxy().persist.path expects that dir.
+  const persist = process.env.PERSIST_DIR ? { path: `${process.env.PERSIST_DIR.replace(/\/$/, "")}/v3` } : undefined;
+  const proxy = await getPlatformProxy(persist ? { persist } : {});
   const DB = proxy.env.DB;
   queryAll = async (sql) => {
     const res = await DB.prepare(sql).all();

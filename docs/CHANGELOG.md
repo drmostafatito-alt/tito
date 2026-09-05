@@ -2,6 +2,32 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.5.0] — 2026-09-05
+
+### Added — Phase 3 (CMS / page builder — owner-inserted phase, ADR-018)
+- D1 schema 0002 (CMS domain) + 0003 (admin CMS permission seed): `pages` (slug/status/seo/published_snapshot), `page_versions` (append-only snapshots), `blocks` (draft tree: sections + components, ordering, visibility), `menus`/`menu_items` (header/footer/student/legal, one nesting level), `forms`/`form_fields`/`form_submissions` (declarative validation, consent, rate-limited submissions), `role_permissions` (nine `cms.*` permissions; super_admin bypasses). App-layer reference guards mirror ADR-017.
+- Block registry `app/cms/registry.ts` (single source of truth, client-safe): 38 block types with zod schemas, default props, field descriptors (bilingual text, icon-id pickers, image pickers bound to PUBLIC_ASSETS files, ref pickers for courses/subjects/programs, repeaters), reserved slugs, SEO schema, `safeHref`. Adding a block type = one registry entry + one renderer case (no migration/route change).
+- Admin CMS UI (non-developer friendly): pages list (create/duplicate/archive/delete/reorder/publish/unpublish), page builder (sections + blocks: add/edit/move up-down/duplicate/hide/delete, grouped palette, per-block settings forms generated from the registry), version history with notes + non-destructive restore (auto-snapshots the current draft first), admin-only draft preview route with validation-issue listing, menus editor, forms editor (fields/options/messages/consent/submissions view), appearance admin (identity/branding, theme tokens, presentation toggles, student-dashboard modules, **new System tab**: platform name/tagline/support/maintenance + super-admin video-provider policy).
+- Public rendering: `/` = CMS page `home`, `/p/:slug` for other pages — both render ONLY the validated published snapshot (drafts can never leak); per-page SEO meta (title/description/canonical/OG/robots); rich-text sanitized via HTMLRewriter allowlist at publish; dynamic blocks (course/subject/program cards, latest lessons, free/featured) resolve server-side with entitlement-safe data and empty states; `/theme.css` emits zod-validated design tokens as CSS variables (no arbitrary CSS, CSP-safe: zero inline styles); icon registry ids only (no raw SVG storage); menus drive header/footer/student/legal nav.
+- Settings groups `identity`, `theme`, `presentation`, `dashboard` (+ `platform`/`video` now admin-editable via System tab): owner identity (name/photo/title/logo/favicon/hero/about/contact/socials/copyright), theme tokens (colors/radius/shadow/density/font-scale), course/subject card toggles + CTA labels, lesson-page & video-player presentation options, student dashboard modules (my_courses/quick_actions/support) — modular dashboard never exposes unauthorized data (entitlements stay server-side).
+- Production-content enforcement (ADR-020): `scripts/check-production-readiness.mjs` (`npm run check:production-readiness`, `--remote` for prod D1) — 10 checks, fails deploy on demo accounts/seed-smoke content/mock provider/placeholder media/template branding/empty owner identity/lorem snapshots/unapplied migrations/missing CMS permissions/no super admin. `scripts/bootstrap-admin.mjs` — production first-admin (roles + one super admin, one-time password, refuses dev-placeholder emails; the seed script stays LOCAL-ONLY).
+- Tests: unit `cms-registry.test.ts` (9) + integration `cms.test.ts` (9); runtime smoke §12 (22 CMS checks incl. draft-404 → publish → anonymous render, preview gating, menu visibility, form validation messages, zero-deploy platform rename); docs: `CMS.md` (admin + technical guide), ADR-018/019/020, SECURITY §15 (CMS audit), ARCHITECTURE §8 rewrite, DATABASE-SCHEMA CMS section, phase renumbering across all living docs.
+
+### Changed
+- Student dashboard, catalog, course/lesson pages, and VideoPlayer now render from settings-driven presentation config (Phase 3 stages 5–6); homepage is fully CMS-composed (no hard-coded marketing content anywhere).
+- Admin header: mobile nav toggle with 44px touch targets; builder tool buttons scale to 44px on small screens (iPhone audit, stage 7).
+- `scripts/smoke.mjs`: 13 sections (CMS §12 added; rate-limiting renumbered §13) — 126 checks total.
+
+### Fixed
+- Smoke theme-token needle (`--brand-500` → `--color-brand-500`, the actual emitted variable).
+- `bootstrap-admin`/`check-production-readiness` local mode honors `PERSIST_DIR` via wrangler `persist.path` (isolated fresh-DB verification); bootstrap disposes the platform proxy (no hang) and uses a non-blocklisted `full_name`.
+
+### Verification (Phase 3 exit)
+- Static: lint:imports ✓ · tsc 0 errors · unit **61/61** · integration **46/46** · production build ✓ (`npm run verify` exit 0).
+- Runtime (cold seeded local D1+R2, live `wrangler dev`): smoke **126/126** including all Phase 1–2 regressions (auth, RBAC, devices, signed URLs, playback tokens, entitlement flip, revocation, rate limits, CSP/headers).
+- Readiness gate both directions: seeded dev DB → exit 1 (6 findings); fresh production-like DB (migrations + bootstrap + owner config only) → **10/10 PASS exit 0**.
+- Security/access audit clean (SECURITY §15); mobile audit code-level green (real-device matrix remains owner-assisted, TEST-PLAN §5).
+
 ## [0.4.0] — 2026-09-05
 
 ### Added — Phase 2 (content domain)
