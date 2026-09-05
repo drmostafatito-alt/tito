@@ -28,6 +28,7 @@ export default [
     index("routes/admin/home.tsx"),
     route("cms", "routes/admin.cms.tsx"),
     route("cms/pages/:id", "routes/admin.cms.pages.$id.tsx"),
+    route("cms/preview/:pageId", "routes/admin.cms.preview.$pageId.tsx"),
     route("cms/menus", "routes/admin.cms.menus.tsx"),
     route("cms/forms", "routes/admin.cms.forms.tsx"),
     route("appearance", "routes/admin.appearance.tsx"),

@@ -140,6 +140,21 @@ function extractVideoId(html) {
 }
 
 /** Nearest preceding node-editor link for a needle occurring in the admin tree. */
+function extractIdNear(rawHtml, linkRe, needle) {
+  const html = norm(rawHtml);
+  const at = html.indexOf(needle);
+  if (at === -1) return null;
+  const before = html.slice(0, at);
+  const re = new RegExp(linkRe, "g");
+  let last = null;
+  for (const m of before.matchAll(re)) last = m[1];
+  return last;
+}
+
+function blockIdsOf(rawHtml) {
+  return [...norm(rawHtml).matchAll(/name="blockId" value="([0-9a-f-]{36})"/g)].map((m) => m[1]);
+}
+
 function extractNodeIdNear(rawHtml, type, needle) {
   const html = norm(rawHtml);
   const at = html.indexOf(needle);
@@ -515,7 +530,114 @@ const run = async () => {
   }
 
   // ------------------------------------------------------------------
-  console.log("\n[12] Rate limiting (runs LAST by design — burns the 1-min login window)");
+  // ------------------------------------------------------------------
+  console.log("\n[12] CMS: theme/favicon, page builder, publish, preview, menus, forms (Phase 3)");
+  const cmsStamp = Date.now().toString(36);
+  const cmsSlug = `smoke-cms-${cmsStamp}`;
+  const builder = (id) => `/admin/cms/pages/${id}`;
+
+  const themeCss = await anon.get("/theme.css");
+  check(
+    "GET /theme.css → 200 CSS with admin design tokens",
+    themeCss.status === 200 && themeCss.text.includes("--brand-500") && (themeCss.headers.get("content-type") ?? "").includes("text/css"),
+    `got ${themeCss.status}`
+  );
+  const faviconRes = await anon.get("/favicon.ico");
+  check("GET /favicon.ico (unset) → 204 empty-first", faviconRes.status === 204, `got ${faviconRes.status}`);
+
+  const createPage = await admin.post("/admin/cms", { form: { _action: "create", titleAr: "صفحة الدخان", titleEn: `Smoke CMS ${cmsStamp}`, slug: cmsSlug } });
+  check("admin create CMS page → 200", createPage.status === 200, `got ${createPage.status}`);
+  const pagesList = await admin.get("/admin/cms");
+  const cmsPageId = extractIdNear(pagesList.text, "/admin/cms/pages/([0-9a-f-]{36})", `/p/${cmsSlug}`);
+  check("created page listed with builder link", Boolean(cmsPageId), `pageId=${cmsPageId}`);
+
+  const draftPublic = await anon.get(`/p/${cmsSlug}`);
+  check("draft page NOT public before publish → 404", draftPublic.status === 404, `got ${draftPublic.status}`);
+
+  const addSection = await admin.post(builder(cmsPageId), { form: { _action: "add-section" } });
+  const cmsSectionId = blockIdsOf(addSection.text)[0] ?? null;
+  check("builder: section added, id resolvable from markup", addSection.status === 200 && Boolean(cmsSectionId), `got ${addSection.status}`);
+
+  await admin.post(builder(cmsPageId), { form: {
+    _action: "save-block", blockId: cmsSectionId, blockTypeDef: "section",
+    "f.heading.ar": "عنوان الدخان", "f.heading.en": `Smoke Heading ${cmsStamp}`,
+    "f.subheading.ar": "", "f.subheading.en": "",
+    "f.bg": "default", "f.bgImage": "", "f.padding": "md", "f.container": "normal",
+    "f.columns": "1", "f.gap": "md", "f.align": "start",
+  } });
+
+  const addText = await admin.post(builder(cmsPageId), { form: { _action: "add-block", parentId: cmsSectionId, blockType: "text" } });
+  const cmsTextId = blockIdsOf(addText.text).filter((id) => id !== cmsSectionId).at(-1) ?? null;
+  check("builder: text block added", addText.status === 200 && Boolean(cmsTextId));
+
+  await admin.post(builder(cmsPageId), { form: {
+    _action: "save-block", blockId: cmsTextId, blockTypeDef: "text",
+    "f.content.ar": `نص الدخان ${cmsStamp}`, "f.content.en": `SMOKE-CMS-TEXT-${cmsStamp}`,
+    "f.size": "body", "f.align": "start",
+  } });
+
+  const publish1 = await admin.post(builder(cmsPageId), { form: { _action: "publish", note: "smoke publish" } });
+  check("builder: publish → 200", publish1.status === 200, `got ${publish1.status}`);
+
+  const livePage = await anon.get(`/p/${cmsSlug}`);
+  check(
+    "published page renders publicly (section heading + text block)",
+    livePage.status === 200 && norm(livePage.text).includes("عنوان الدخان") && norm(livePage.text).includes(`نص الدخان ${cmsStamp}`),
+    `got ${livePage.status}`
+  );
+
+  const previewAdmin = await admin.get(`/admin/cms/preview/${cmsPageId}`);
+  check("draft preview renders for admin", previewAdmin.status === 200 && previewAdmin.text.includes("معاينة"), `got ${previewAdmin.status}`);
+  const previewAnon = await anon.get(`/admin/cms/preview/${cmsPageId}`);
+  check("preview denied for anonymous → login redirect", previewAnon.status === 302 && (previewAnon.location ?? "").startsWith("/login"), `got ${previewAnon.status}`);
+
+  const menuAdd = await admin.post("/admin/cms/menus", { form: { _action: "add", location: "header", labelAr: "دخان", labelEn: `SmokeNav ${cmsStamp}`, href: `/p/${cmsSlug}`, icon: "", parentId: "" } });
+  check("header menu item added", menuAdd.status === 200, `got ${menuAdd.status}`);
+  const homeWithMenu = await anon.get("/");
+  check("header menu link visible to anonymous visitors", homeWithMenu.text.includes(`/p/${cmsSlug}`), "href missing in public chrome");
+
+  const createForm = await admin.post("/admin/cms/forms", { form: { _action: "create", titleAr: "نموذج الدخان", titleEn: `Smoke Form ${cmsStamp}`, actionType: "contact" } });
+  check("form created", createForm.status === 200, `got ${createForm.status}`);
+  const formsList = await admin.get("/admin/cms/forms");
+  const formId = extractIdNear(formsList.text, "/admin/cms/forms\\?form=([0-9a-f-]{36})", `smoke-form-${cmsStamp}`);
+  check("form id resolvable from list", Boolean(formId), `formId=${formId}`);
+  const formSlug = `smoke-form-${cmsStamp}`;
+
+  await admin.post("/admin/cms/forms", { form: {
+    _action: "update-form", formId, titleAr: "نموذج الدخان", titleEn: `Smoke Form ${cmsStamp}`,
+    actionType: "contact", status: "active",
+    successAr: "تم الإرسال بنجاح", successEn: "Submitted", failureAr: "فشل الإرسال", failureEn: "Failed",
+    consentAr: "", consentEn: "",
+  } });
+  await admin.post("/admin/cms/forms", { form: {
+    _action: "add-field", formId, name: "email", type: "email",
+    labelAr: "البريد", labelEn: "Email", required: "on",
+    placeholderAr: "", placeholderEn: "", helpAr: "", helpEn: "", defaultValue: "",
+  } });
+
+  const addFormBlock = await admin.post(builder(cmsPageId), { form: { _action: "add-block", parentId: cmsSectionId, blockType: "form_block" } });
+  const formBlockId = blockIdsOf(addFormBlock.text).filter((id) => id !== cmsSectionId && id !== cmsTextId).at(-1) ?? null;
+  check("builder: form block added", addFormBlock.status === 200 && Boolean(formBlockId));
+  await admin.post(builder(cmsPageId), { form: {
+    _action: "save-block", blockId: formBlockId, blockTypeDef: "form_block",
+    "f.formId": formId, "f.heading.ar": "", "f.heading.en": "",
+  } });
+  await admin.post(builder(cmsPageId), { form: { _action: "publish", note: "smoke publish 2" } });
+
+  const pageWithForm = await anon.get(`/p/${cmsSlug}`);
+  check(
+    "form block renders on public page (posts to page action)",
+    pageWithForm.status === 200 && pageWithForm.text.includes(formSlug),
+    `got ${pageWithForm.status}; slug missing`
+  );
+
+  const badSubmit = await anon.post(`/p/${cmsSlug}`, { form: { _cmsForm: formSlug, email: "not-an-email" } });
+  check("invalid form submission → failure message in place (no redirect)", badSubmit.status === 200 && norm(badSubmit.text).includes("فشل الإرسال"), `got ${badSubmit.status}`);
+  const goodSubmit = await anon.post(`/p/${cmsSlug}`, { form: { _cmsForm: formSlug, email: `smoke-${cmsStamp}@example.com` } });
+  check("valid form submission → success message", goodSubmit.status === 200 && norm(goodSubmit.text).includes("تم الإرسال بنجاح"), `got ${goodSubmit.status}`);
+
+  // ------------------------------------------------------------------
+  console.log("\n[13] Rate limiting (runs LAST by design — burns the 1-min login window)");
   const rlClient = makeClient("ratelimit");
   let blocked = false;
   for (let i = 0; i < 14; i++) {

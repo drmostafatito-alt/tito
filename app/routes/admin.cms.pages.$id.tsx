@@ -197,7 +197,7 @@ function ToolButton({ label, disabled = false, danger = false }: { label: string
     <button
       type="submit"
       disabled={disabled}
-      className={`inline-flex min-h-9 items-center rounded-lg border px-2.5 text-xs font-medium disabled:opacity-40 ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+      className={`inline-flex min-h-9 items-center rounded-lg border px-2.5 text-xs font-medium disabled:opacity-40 max-sm:min-h-11 max-sm:px-3.5 max-sm:text-sm ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
     >
       {label}
     </button>
@@ -265,6 +265,9 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
         <h1 className="text-xl font-bold text-slate-900">{title}</h1>
         <Badge tone={statusTone}>{page.status}</Badge>
         <span className="text-xs text-slate-400" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
+        <Link to={`/admin/cms/preview/${page.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-medium text-amber-800 hover:bg-amber-100">
+          {L("cms.ui.preview")}
+        </Link>
         {page.status === "published" && (
           <Link to={page.slug === "home" ? "/" : `/p/${page.slug}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-600 hover:bg-slate-50">
             {L("cms.ui.viewPage")}
