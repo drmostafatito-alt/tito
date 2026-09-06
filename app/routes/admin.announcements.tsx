@@ -190,7 +190,7 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
       <Card>
         <CardBody className="space-y-3">
           <Form method="get" className="flex flex-wrap items-center gap-2">
-            <select name="status" className={selectCls} defaultValue={statusFilter} data-testid="ann-status-filter">
+            <select name="status" className={selectCls} defaultValue={statusFilter} aria-label={t(locale, "announcementsAdmin.filterByStatus")} data-testid="ann-status-filter">
               <option value="">{t(locale, "announcementsAdmin.allStatuses")}</option>
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>{t(locale, `announcementsAdmin.status_${s}`)}</option>

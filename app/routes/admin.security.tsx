@@ -128,7 +128,7 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
             <Form method="get" className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="tab" value="events" />
               <input name="q" className={inputCls} defaultValue={loaderData.q} placeholder={t(locale, "securityAdmin.searchPh")} dir="ltr" data-testid="sec-q" />
-              <select name="type" className={selectCls} defaultValue={loaderData.type} data-testid="sec-type-filter">
+              <select name="type" className={selectCls} defaultValue={loaderData.type} aria-label={t(locale, "securityAdmin.filterByType")} data-testid="sec-type-filter">
                 <option value="">{t(locale, "securityAdmin.allTypes")}</option>
                 {EVENT_TYPE_OPTIONS.map((ty) => (
                   <option key={ty} value={ty}>{ty}</option>

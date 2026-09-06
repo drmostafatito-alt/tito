@@ -45,6 +45,19 @@ await exec(
 // default settings groups (mirrors server/settings/schema.ts defaults)
 const defaults = {
   platform: { nameAr: "منصة إيدوكور", nameEn: "EduCore", taglineAr: "تعلم بثقة — من مرحلة إلى مرحلة", taglineEn: "Learn with confidence", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null },
+  // Owner identity (content/branding integration). ONLY owner-confirmed fields
+  // are set here; the Facebook page is scrape-blocked (HTTP 403), so title /
+  // bio / specialty / photo / other links stay empty until the owner provides
+  // them (admin → Appearance → Identity) or extends this seed. Never fabricate.
+  identity: {
+    ownerNameAr: "د/ مصطفى تيتو",
+    ownerNameEn: "Dr mostafa tito",
+    contactPhone: "01153719506",
+    facebook: "https://www.facebook.com/mr.mostafa.tito.philosophy/",
+    // ownerTitleAr/En, ownerPhotoFileId, logoFileId, heroImageFileId,
+    // aboutImageFileId, contactEmail, contactAddressAr/En, youtube/instagram/
+    // tiktok/twitter/linkedin/telegram, copyrightAr/En — intentionally empty.
+  },
   locale: { default: "ar", enabled: ["ar", "en"] },
   devices: { maxPerStudent: 1, onLimit: "block", changeLimitPer30d: 2 },
   security: { sessionDays: 30, resetTokenMinutes: 60, rateLimits: { loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5 } },

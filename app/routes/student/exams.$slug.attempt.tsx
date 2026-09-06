@@ -14,6 +14,7 @@ import {
   parseExamConfig,
 } from "~server/assessment/service.server";
 import { Alert } from "~/components/ui/Alert";
+import { Modal } from "~/components/ui/Modal";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -204,8 +205,9 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
         <Alert kind="warning">{t(locale, "exam.noQuestions")}</Alert>
-        <Link to={`/exams/${examSlug}`} className="mt-4 inline-block text-sm text-blue-600 hover:underline">
-          ← {t(locale, "exam.backToExams")}
+        <Link to={`/exams/${examSlug}`} className="mt-4 inline-flex min-h-6 items-center text-sm text-blue-600 hover:underline">
+          <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
+          {t(locale, "exam.backToExams")}
         </Link>
       </div>
     );
@@ -215,8 +217,9 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-10">
         <Alert kind="warning">{t(locale, "exam.attemptLocked")}</Alert>
-        <Link to={`/exams/${examSlug}`} className="inline-block text-sm text-blue-600 hover:underline">
-          ← {t(locale, "exam.backToExams")}
+        <Link to={`/exams/${examSlug}`} className="inline-flex min-h-6 items-center text-sm text-blue-600 hover:underline">
+          <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
+          {t(locale, "exam.backToExams")}
         </Link>
       </div>
     );
@@ -333,17 +336,19 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setIdx((i) => Math.max(0, i - 1))}
             disabled={idx === 0 || submitting}
+            aria-label={t(locale, "exam.prevQuestion")}
             className="min-h-11 rounded-lg border px-4 text-sm font-medium disabled:opacity-40"
           >
-            ←
+            <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           </button>
           <button
             type="button"
             onClick={() => setIdx((i) => Math.min(questions.length - 1, i + 1))}
             disabled={idx >= questions.length - 1 || submitting}
+            aria-label={t(locale, "exam.nextQuestion")}
             className="min-h-11 flex-1 rounded-lg border px-4 text-sm font-medium disabled:opacity-40 sm:flex-none"
           >
-            →
+            <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
           </button>
           <button
             type="button"
@@ -357,38 +362,37 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
       </footer>
 
       {/* submit confirmation */}
-      {confirmOpen && !submitting && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-base font-bold">{t(locale, "exam.submitConfirmTitle")}</h3>
-            <p className="mt-2 text-sm text-slate-600">{t(locale, "exam.submitConfirmBody")}</p>
-            {unanswered > 0 && (
-              <p className="mt-1 text-sm font-medium text-amber-600">
-                {t(locale, "exam.submitUnanswered").replace("{n}", String(unanswered))}
-              </p>
-            )}
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(false)}
-                className="min-h-11 flex-1 rounded-lg border px-3 text-sm font-medium"
-              >
-                {t(locale, "exam.submitConfirmNo")}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setConfirmOpen(false);
-                  void doSubmit();
-                }}
-                className="min-h-11 flex-1 rounded-lg bg-emerald-600 px-3 text-sm font-bold text-white hover:bg-emerald-700"
-              >
-                {t(locale, "exam.submitConfirmYes")}
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={confirmOpen && !submitting}
+        onClose={() => setConfirmOpen(false)}
+        title={t(locale, "exam.submitConfirmTitle")}
+      >
+        <p className="text-sm text-slate-600">{t(locale, "exam.submitConfirmBody")}</p>
+        {unanswered > 0 && (
+          <p className="mt-1 text-sm font-medium text-amber-600">
+            {t(locale, "exam.submitUnanswered").replace("{n}", String(unanswered))}
+          </p>
+        )}
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(false)}
+            className="min-h-11 flex-1 rounded-lg border px-3 text-sm font-medium"
+          >
+            {t(locale, "exam.submitConfirmNo")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setConfirmOpen(false);
+              void doSubmit();
+            }}
+            className="min-h-11 flex-1 rounded-lg bg-emerald-600 px-3 text-sm font-bold text-white hover:bg-emerald-700"
+          >
+            {t(locale, "exam.submitConfirmYes")}
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

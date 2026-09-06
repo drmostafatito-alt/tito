@@ -276,7 +276,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </span>
                       ) : (
-                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="text-blue-700 hover:underline">
+                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="inline-flex min-h-6 items-center text-blue-700 hover:underline">
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </Link>
                       )}

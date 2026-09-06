@@ -7,6 +7,12 @@ interface Env {
   AUTH_PBKDF2_ITERATIONS?: string;
   /** Seed-only: super admin email for `npm run db:seed:local`. */
   ADMIN_BOOTSTRAP_EMAIL?: string;
-  /** dev | preview | production */
+  /** dev | preview | production — unknown/missing is treated as production-safe. */
   ENVIRONMENT?: string;
+  /**
+   * Explicit dev-only opt-in (C1): when "true", the raw password-reset token is
+   * returned for local testing. MUST NOT be set in preview/production — the
+   * production-readiness gate refuses a deploy config that carries it.
+   */
+  EXPOSE_DEV_RESET_TOKEN?: string;
 }

@@ -15,6 +15,7 @@ import { getSettings } from "~server/settings/service.server";
 import { LOCALE_COOKIE, resolveLocale } from "~server/settings/locale.server";
 import { parseCookieHeader } from "~server/auth/cookies.server";
 import { isLocale, t, dirOf, type Locale } from "~/lib/i18n";
+import { cspNonceContext } from "~server/csp.server";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -49,7 +50,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
 /** Global middleware: CSRF origin check on mutations + security headers (SECURITY.md §5/§6). */
 export const middleware: Route.MiddlewareFunction[] = [
-  async ({ request }, next) => {
+  async ({ request, context }, next) => {
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
       const fetchSite = request.headers.get("sec-fetch-site");
       const origin = request.headers.get("origin");
@@ -62,10 +63,30 @@ export const middleware: Route.MiddlewareFunction[] = [
       }
     }
     const response = await next();
-    applySecurityHeaders(response.headers, Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV));
+    applySecurityHeaders(
+      response.headers,
+      Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV),
+      readNonce(context),
+    );
     return response;
   },
 ];
+
+/** Read the per-request CSP nonce from the load context (workers/app.ts seeds
+ *  it). Missing in direct/Vite contexts → undefined (dev falls back to
+ *  'unsafe-inline'; production nonce-less renders would fail hydration loudly
+ *  rather than silently serve a broken app). */
+function readNonce(context: unknown): string | undefined {
+  const provider = context as { get?: (definition: unknown) => string } | undefined;
+  if (provider && typeof provider.get === "function") {
+    try {
+      return provider.get(cspNonceContext);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return children;

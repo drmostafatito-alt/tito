@@ -275,8 +275,9 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
   return (
     <div className="space-y-4">
       <nav className="text-sm">
-        <Link to="/admin/assessment" className="text-blue-600 hover:underline">
-          ← {t(locale, "assessment.questionsTab")}
+        <Link to="/admin/assessment" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+          <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
+          {t(locale, "assessment.questionsTab")}
         </Link>
       </nav>
       <div className="flex flex-wrap items-center gap-2">

@@ -54,10 +54,11 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-4">
       <nav className="flex items-center justify-between text-sm">
-        <Link to="/results" className="text-blue-600 hover:underline">
-          ← {t(locale, "exam.resultsTitle")}
+        <Link to="/results" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+          <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
+          {t(locale, "exam.resultsTitle")}
         </Link>
-        <Link to={`/exams/${examSlug}`} className="text-blue-600 hover:underline">
+        <Link to={`/exams/${examSlug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
           {t(locale, "exam.backToExams")}
         </Link>
       </nav>

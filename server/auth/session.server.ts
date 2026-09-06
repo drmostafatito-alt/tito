@@ -101,8 +101,12 @@ export async function resolveAuth(
   let refreshCookie: string | undefined;
   const halfLife = (row.session.expiresAt - row.session.createdAt) / 2;
   if (now - row.session.lastSeenAt > halfLife) {
-    const settingsRow = { sessionDays: 30 }; // refined in service layer; refresh to 30d floor
-    const newExpiry = now + settingsRow.sessionDays * 86_400_000;
+    // H2 (Phase 8): extend by the session's ORIGINAL lifetime, not a hardcoded
+    // 30d floor — this honors the configured `security.sessionDays` that was in
+    // force when the session was created (and future config changes take effect
+    // on next login, as expected).
+    const sessionLifetimeMs = row.session.expiresAt - row.session.createdAt;
+    const newExpiry = now + sessionLifetimeMs;
     await db.update(sessions).set({ lastSeenAt: now, expiresAt: newExpiry }).where(eq(sessions.id, row.session.id));
     refreshCookie = serializeCookie(SESSION_COOKIE, token, {
       maxAgeSeconds: Math.floor((newExpiry - now) / 1000),

@@ -68,10 +68,12 @@ export async function action({ context, request }: Route.ActionArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
+  const pageTitle = loaderData.locale === "ar" ? loaderData.title.ar : loaderData.title.en;
 
   if (loaderData.empty || !loaderData.ctx) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-16">
+        <h1 className="sr-only">{pageTitle || "EduCore"}</h1>
         <EmptyState
           title={t(loaderData.locale, "content.pageEmptyTitle")}
           body={t(loaderData.locale, "content.pageEmptyBody")}
@@ -87,6 +89,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   if (loaderData.sections.length === 0) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-16">
+        <h1 className="sr-only">{pageTitle || "EduCore"}</h1>
         <EmptyState
           title={t(ctx.locale, "content.pageEmptyTitle")}
           body={t(ctx.locale, "content.pageEmptyBody")}
@@ -94,5 +97,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       </div>
     );
   }
-  return <PageView sections={loaderData.sections} ctx={ctx} />;
+  return (
+    <>
+      <h1 className="sr-only">{pageTitle || "EduCore"}</h1>
+      <PageView sections={loaderData.sections} ctx={ctx} />
+    </>
+  );
 }

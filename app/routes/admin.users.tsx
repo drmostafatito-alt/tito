@@ -64,13 +64,13 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
         <CardBody className="space-y-3">
           <Form method="get" className="flex flex-wrap items-center gap-2">
             <input name="q" className={inputCls} defaultValue={loaderData.q} placeholder={t(locale, "adminUsers.searchPh")} dir="ltr" data-testid="users-search" />
-            <select name="role" className={selectCls} defaultValue={loaderData.role} data-testid="users-role-filter">
+            <select name="role" className={selectCls} defaultValue={loaderData.role} aria-label={t(locale, "adminUsers.filterByRole")} data-testid="users-role-filter">
               <option value="">{t(locale, "adminUsers.allRoles")}</option>
               {ROLE_OPTIONS.map((r) => (
                 <option key={r} value={r}>{t(locale, `adminUsers.role_${r}`)}</option>
               ))}
             </select>
-            <select name="status" className={selectCls} defaultValue={loaderData.status} data-testid="users-status-filter">
+            <select name="status" className={selectCls} defaultValue={loaderData.status} aria-label={t(locale, "adminUsers.filterByStatus")} data-testid="users-status-filter">
               <option value="">{t(locale, "adminUsers.allStatuses")}</option>
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>{t(locale, `adminUsers.status_${s}`)}</option>

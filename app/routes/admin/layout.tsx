@@ -53,7 +53,7 @@ export default function AdminLayout() {
               </span>
             </span>
           </Link>
-          <div className="hidden items-center gap-1.5 sm:flex">
+          <div className="hidden items-center gap-1.5 lg:flex">
             {navLinks.map((l) => (
               <Link key={l.to} to={l.to} className="rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
                 {l.label}
@@ -68,7 +68,7 @@ export default function AdminLayout() {
           </div>
           <button
             type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 sm:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 lg:hidden"
             aria-expanded={navOpen}
             aria-controls="admin-mobile-nav"
             aria-label={t(locale, "common.menu")}
@@ -91,7 +91,7 @@ export default function AdminLayout() {
           </button>
         </div>
         {navOpen && (
-          <nav id="admin-mobile-nav" className="border-t border-slate-800 px-4 pb-3 sm:hidden" aria-label={t(locale, "admin.title")}>
+          <nav id="admin-mobile-nav" className="border-t border-slate-800 px-4 pb-3 lg:hidden" aria-label={t(locale, "admin.title")}>
             <div className="mx-auto flex max-w-7xl flex-col gap-1 pt-2">
               {navLinks.map((l) => (
                 <Link

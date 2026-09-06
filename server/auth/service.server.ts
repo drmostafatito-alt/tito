@@ -2,7 +2,7 @@
  * Auth orchestration used by route actions AND integration tests.
  * Routes stay thin (SECURITY.md: validation + server decisions live here).
  */
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { getDb, type DB } from "../db/client.server";
 import { passwordResetTokens, users } from "../db/schema";
 import { checkRateLimit, clientIpOf, sha256Hex } from "../http/rate-limit.server";
@@ -205,8 +205,23 @@ export async function requestPasswordReset(
   await logSecurityEvent(db, { userId: user.id, type: "password_reset_requested", ipHash });
 
   // Email delivery arrives in Phase 3+ (verification-gated). Until a channel exists,
-  // the raw token is only exposed in non-production environments for testing.
-  return { ok: true, devToken: env.ENVIRONMENT === "production" ? undefined : token };
+  // the raw token is ONLY exposed in an EXPLICIT development context, for testing.
+  // Fail-closed: any unknown/missing configuration is treated as production-safe
+  // and the token is never returned (C1 — Phase 8 hardening).
+  return { ok: true, devToken: shouldExposeDevResetToken(env) ? token : undefined };
+}
+
+/**
+ * C1 guard — the raw password-reset token is a full account-takeover credential,
+ * so its exposure must be an EXPLICIT allowlist, never a "!= production" check.
+ * An unknown/missing ENVIRONMENT (or any value other than "development") is
+ * treated as production and the token is NOT returned. The dedicated
+ * `EXPOSE_DEV_RESET_TOKEN === "true"` flag is a belt-and-suspenders explicit opt-in.
+ */
+export function shouldExposeDevResetToken(
+  env: Pick<Env, "ENVIRONMENT" | "EXPOSE_DEV_RESET_TOKEN">
+): boolean {
+  return env.ENVIRONMENT === "development" || env.EXPOSE_DEV_RESET_TOKEN === "true";
 }
 
 export async function resetPassword(
@@ -218,22 +233,29 @@ export async function resetPassword(
   if (!password.success) return { ok: false, code: "weak_password" };
   if (isCommonPassword(input.newPassword)) return { ok: false, code: "common_password" };
 
+  const now = Date.now();
   const tokenHash = await hashToken(input.token, env);
-  const found = await db
-    .select()
-    .from(passwordResetTokens)
-    .where(eq(passwordResetTokens.tokenHash, tokenHash))
-    .limit(1);
-  const row = found[0];
-  if (!row || row.usedAt || row.expiresAt <= Date.now()) return { ok: false, code: "invalid_token" };
+
+  // H3 (Phase 8): claim the token ATOMICALLY. A conditional UPDATE matches only
+  // an unused, unexpired row, so two concurrent submissions cannot both succeed —
+  // exactly one wins (the loser's WHERE no longer matches). This replaces the
+  // previous select-then-update TOCTOU.
+  const claimed = await db.all<{ user_id: string }>(
+    sql`UPDATE password_reset_tokens
+        SET used_at = ${now}
+        WHERE token_hash = ${tokenHash} AND used_at IS NULL AND expires_at > ${now}
+        RETURNING user_id`
+  );
+  // raw SQL returns the column under its real (snake_case) name — no drizzle mapping
+  const userId = claimed[0]?.user_id;
+  if (!userId) return { ok: false, code: "invalid_token" };
 
   await db
     .update(users)
-    .set({ passwordHash: await hashPassword(input.newPassword, env), updatedAt: Date.now() })
-    .where(eq(users.id, row.userId));
-  await db.update(passwordResetTokens).set({ usedAt: Date.now() }).where(eq(passwordResetTokens.id, row.id));
-  await revokeAllUserSessions(db, row.userId, "password_reset");
-  await logSecurityEvent(db, { userId: row.userId, type: "password_reset_completed" });
+    .set({ passwordHash: await hashPassword(input.newPassword, env), updatedAt: now })
+    .where(eq(users.id, userId));
+  await revokeAllUserSessions(db, userId, "password_reset");
+  await logSecurityEvent(db, { userId, type: "password_reset_completed" });
   return { ok: true };
 }
 

@@ -2,6 +2,7 @@ import type { Route } from "./+types/api.exam-attempt";
 import { requireUser } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
+import { checkRateLimit } from "~server/http/rate-limit.server";
 import {
   examAccess,
   expireAttemptIfNeeded,
@@ -58,6 +59,15 @@ export async function action({ context, request }: Route.ActionArgs) {
 
   if (intent === "save") {
     if (attempt.status !== "in_progress") return Response.json({ error: "closed" });
+
+    // Abuse control (H1, Phase 8): autosave is client-debounced (3s) but the
+    // server enforces its own cap. Keyed on the authenticated user only (placed
+    // AFTER ownership + access checks — never an enumeration oracle).
+    const saveRl = await checkRateLimit(db, "exam_save", auth.user.id, 60, 60_000);
+    if (!saveRl.ok) {
+      return Response.json({ error: "rate_limited", retryAfterMs: saveRl.retryAfterMs }, { status: 429 });
+    }
+
     const questionId = String(form.get("questionId") ?? "");
     const raw = String(form.get("choiceIds") ?? "");
     const choiceIds = raw ? raw.split(",").filter(Boolean) : [];
@@ -67,6 +77,13 @@ export async function action({ context, request }: Route.ActionArgs) {
   }
 
   if (intent === "submit") {
+    // Abuse control (H1, Phase 8): submission is idempotent but a tight cap
+    // bounds burst retries. After ownership + access checks, never an oracle.
+    const submitRl = await checkRateLimit(db, "exam_submit", `${auth.user.id}:${attemptId}`, 10, 60_000);
+    if (!submitRl.ok) {
+      return Response.json({ error: "rate_limited", retryAfterMs: submitRl.retryAfterMs }, { status: 429 });
+    }
+
     const result = await submitAttempt(db, {
       attempt,
       graceSeconds: settings.assessment.graceSeconds,

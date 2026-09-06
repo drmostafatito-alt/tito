@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:test";
 import { getDb } from "~server/db/client.server";
-import { login, registerUser, requestPasswordReset, resetPassword } from "~server/auth/service.server";
+import { login, registerUser, requestPasswordReset, resetPassword, shouldExposeDevResetToken } from "~server/auth/service.server";
 import { securityEvents, users } from "~server/db/schema";
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1";
@@ -144,4 +144,80 @@ describe("password reset", () => {
     );
     expect(relogin.ok).toBe(true);
   });
+
+  it("concurrent submissions with the same token: exactly one succeeds (H3)", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "11.11.11.11" }));
+
+    const forgot = await requestPasswordReset(env, email, makeRequest({ ip: "11.11.11.11" }));
+    expect(forgot.devToken).toBeTruthy();
+
+    // two simultaneous resets with the SAME token — the atomic claim must let
+    // exactly one through (the other sees used_at already set).
+    const [a, b] = await Promise.all([
+      resetPassword(env, { token: forgot.devToken!, newPassword: "RacePass!11" }),
+      resetPassword(env, { token: forgot.devToken!, newPassword: "RacePass!22" }),
+    ]);
+    const successes = [a, b].filter((r) => r.ok).length;
+    expect(successes).toBe(1);
+  });
 });
+
+describe("password reset token exposure (C1 — fail closed)", () => {
+  it("never exposes the token unless the environment is an explicit development context", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "9.9.9.9" }));
+
+    const cases: Array<{ label: string; envOverride: Partial<Env>; expose: boolean }> = [
+      { label: "production", envOverride: { ENVIRONMENT: "production" }, expose: false },
+      { label: "staging (unknown value)", envOverride: { ENVIRONMENT: "staging" }, expose: false },
+      { label: "undefined", envOverride: { ENVIRONMENT: undefined }, expose: false },
+      { label: "preview", envOverride: { ENVIRONMENT: "preview" }, expose: false },
+      { label: "development", envOverride: { ENVIRONMENT: "development" }, expose: true },
+      // explicit flag overrides even a production-looking environment (dev opt-in)
+      { label: "production + explicit flag", envOverride: { ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: "true" }, expose: true },
+      // flag present but not exactly "true" → still fail closed
+      { label: "flag '1' is not 'true'", envOverride: { ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: "1" }, expose: false },
+    ];
+
+    for (let i = 0; i < cases.length; i++) {
+      const c = cases[i];
+      // Pin EXPOSE_DEV_RESET_TOKEN to undefined FIRST so the fail-closed cases
+      // don't inherit "true" from .dev.vars (cloudflare:test loads it into `env`).
+      const testEnv = { ...env, EXPOSE_DEV_RESET_TOKEN: undefined, ...c.envOverride };
+      // distinct IP per case: the forgot limiter is 5/hour/IP, and this loop
+      // exceeds it — a limited request returns {ok:true} without a token.
+      const forgot = await requestPasswordReset(testEnv, email, makeRequest({ ip: `9.9.9.${(i + 1) % 256}` }));
+      expect(forgot.ok).toBe(true);
+      expect(forgot.devToken == null, `[${c.label}] expected devToken ${c.expose ? "present" : "absent"}`).toBe(!c.expose);
+    }
+  });
+
+  it("shouldExposeDevResetToken is an explicit allowlist (unit-style truth table)", () => {
+    expect(shouldExposeDevResetToken({})).toBe(false);
+    expect(shouldExposeDevResetToken({ ENVIRONMENT: "production" })).toBe(false);
+    expect(shouldExposeDevResetToken({ ENVIRONMENT: "staging" })).toBe(false);
+    expect(shouldExposeDevResetToken({ ENVIRONMENT: "preview" })).toBe(false);
+    expect(shouldExposeDevResetToken({ ENVIRONMENT: "development" })).toBe(true);
+    expect(shouldExposeDevResetToken({ EXPOSE_DEV_RESET_TOKEN: "true" })).toBe(true);
+    expect(shouldExposeDevResetToken({ EXPOSE_DEV_RESET_TOKEN: "TRUE" })).toBe(false);
+    expect(shouldExposeDevResetToken({ ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: "true" })).toBe(true);
+  });
+
+  it("the safe response HTML does not contain the token", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "10.10.10.10" }));
+    // production-like: no devToken must ever surface (flag pinned off so it
+    // can't leak in from .dev.vars)
+    const forgot = await requestPasswordReset(
+      { ...env, ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: undefined },
+      email,
+      makeRequest({ ip: "10.10.10.10" }),
+    );
+    expect(forgot.ok).toBe(true);
+    expect(forgot.devToken).toBeUndefined();
+    // the route maps devToken→null; assert the raw token never appears anywhere in the result
+    expect(JSON.stringify(forgot)).not.toMatch(/([A-Za-z0-9_-]{20,})/);
+  });
+});
+

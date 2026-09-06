@@ -173,6 +173,23 @@ const supers = await count(
 );
 check("at least one active super admin", supers >= 1, `${supers} found`);
 
+// 11) C1 guard (Phase 8): the deploy config must never opt into exposing the raw
+// password-reset token, nor declare a development environment. This is defense-
+// in-depth — the primary protection is fail-closed inside the auth service
+// (server/auth/service.server.ts → shouldExposeDevResetToken). Dashboard-bound
+// Worker vars can't be inspected from here; they are covered by DEPLOYMENT.md.
+{
+  const rawWrangler = readFileSync("wrangler.jsonc", "utf8");
+  const stripped = rawWrangler.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const hasDevResetFlag = /EXPOSE_DEV_RESET_TOKEN\s*[:=]\s*["']?true/i.test(stripped);
+  const declaresDevEnv = /"ENVIRONMENT"\s*:\s*"development"/i.test(stripped);
+  check(
+    "no EXPOSE_DEV_RESET_TOKEN / development ENVIRONMENT in deploy config",
+    !hasDevResetFlag && !declaresDevEnv,
+    hasDevResetFlag ? "EXPOSE_DEV_RESET_TOKEN present" : declaresDevEnv ? "ENVIRONMENT=development present" : ""
+  );
+}
+
 // report
 const failed = results.filter((r) => !r.ok);
 console.log(`\nProduction readiness (${REMOTE ? "REMOTE" : "local"}):`);

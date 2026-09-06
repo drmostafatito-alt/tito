@@ -21,6 +21,10 @@ export default defineConfig({
           MOCK_VIDEO_SECRET: "integration-test-mock-video-secret",
           MOCK_PAYMENTS_SECRET: "integration-test-mock-payments-secret",
           AUTH_PBKDF2_ITERATIONS: "100000",
+          // Development context so the reset-token dev flow is exercised here;
+          // fail-closed variants (production/staging/undefined) are asserted by
+          // passing overridden env objects directly in auth.test.ts (C1).
+          ENVIRONMENT: "development",
         },
       },
     }),

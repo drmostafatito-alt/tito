@@ -361,8 +361,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardBody>
             <p className="text-sm font-medium text-slate-900">{loaderData.device.label}</p>
             <p className="mt-1 text-xs text-slate-400">{loaderData.device.platform}</p>
-            <Link to="/profile/security" className="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline">
-              {t(locale, "dashboard.securityLink")} →
+            <Link to="/profile/security" className="mt-3 inline-flex min-h-6 items-center text-sm font-medium text-brand-700 hover:underline">
+              {t(locale, "dashboard.securityLink")}
+              <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
             </Link>
           </CardBody>
         </Card>

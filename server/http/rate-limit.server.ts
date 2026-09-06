@@ -40,13 +40,14 @@ export async function checkRateLimit(
   return { ok: row.count <= limit, count: row.count, retryAfterMs: windowStart + windowMs - now };
 }
 
-/** Best-effort client IP (Cloudflare sets cf-connecting-ip at the edge). */
+/**
+ * Best-effort client IP. Cloudflare always sets `cf-connecting-ip` at the edge,
+ * which is the ONLY source we trust for rate-limit bucketing: `x-forwarded-for`
+ * is client-controlled and would let an attacker rotate buckets to bypass
+ * limits, so it is deliberately NOT read (H4 — Phase 8 hardening).
+ */
 export function clientIpOf(request: Request): string | null {
-  return (
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    null
-  );
+  return request.headers.get("cf-connecting-ip") ?? null;
 }
 
 export async function sha256Hex(value: string, prefix = ""): Promise<string> {

@@ -8,6 +8,7 @@ import { lessonItems } from "~server/db/schema";
 import { chainForLesson } from "~server/content/service.server";
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { getSettings } from "~server/settings/service.server";
+import { checkRateLimit } from "~server/http/rate-limit.server";
 import { getVideo, mintPlayback } from "~server/video/service.server";
 import { getVideoProgress, startWatch } from "~server/progress/service.server";
 
@@ -61,6 +62,14 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   const replayLimit = settings.video.replayLimit;
   if (replayLimit > 0 && auth.user.rank < 3 && prior && prior.watchCount >= replayLimit) {
     return Response.json({ error: "replay_limit" }, { status: 403 });
+  }
+
+  // Abuse control (H1, Phase 8): credential minting is rate-limited per student
+  // + video. Placed AFTER auth/entitlement/replay so the limiter is never an
+  // IDOR or enumeration oracle (only entitled viewers consume budget).
+  const mintRl = await checkRateLimit(db, "playback_mint", `${auth.user.id}:${video.id}`, 30, 60_000);
+  if (!mintRl.ok) {
+    return Response.json({ error: "rate_limited", retryAfterMs: mintRl.retryAfterMs }, { status: 429 });
   }
 
   const playback = await mintPlayback(db, env, video, { studentId: auth.user.id, lessonId });

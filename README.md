@@ -2,9 +2,9 @@
 
 Production-grade educational platform on Cloudflare (React Router 7 framework mode + D1 + R2, served by `workers/app.ts`), Arabic/English with RTL, admin-first configurability, provider-abstracted video & payments.
 
-**Status: Phases 0–2 complete** (planning docs → foundation/auth → content domain: admin CRUD, private files, entitlements, video providers). Phase 3 (student experience) not started. See `docs/CHANGELOG.md`.
+**Status: Phases 0–7 complete** — planning → foundation/auth → content domain → CMS/page builder → student experience → assessment engine → commerce → admin platform. **Phase 8 (hardening & release) in progress.** See `docs/CHANGELOG.md` and `docs/reports/`.
 
-**Read `docs/` first** — it is the single source of truth (`PROJECT-PLAN.md` for phases, `ARCHITECTURE.md` for design, `DECISIONS.md` for rationale).
+**Read `docs/` first** — it is the single source of truth (`PROJECT-PLAN.md` for phases, `ARCHITECTURE.md` for design, `DECISIONS.md` for rationale, `SECURITY.md` for the security model).
 
 ## Quick start (local)
 
