@@ -9,6 +9,7 @@ import {
   AssessmentReferenceError,
   AssessmentValidationError,
   addExamQuestion,
+  adminAttemptsForExam,
   archiveExam,
   canAssessment,
   createExam,
@@ -16,6 +17,7 @@ import {
   examQuestionsFull,
   getExam,
   listQuestions,
+  listTags,
   moveExamQuestion,
   parseExamConfig,
   publishExam,
@@ -27,13 +29,13 @@ import {
 import { adminTree } from "~server/content/service.server";
 import { Badge } from "~/components/ui/Badge";
 import { Alert } from "~/components/ui/Alert";
-import { Card, CardBody } from "~/components/ui/Card";
+import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
+import { PoolBuilder } from "~/components/admin/PoolBuilder";
 import { t, type Locale } from "~/lib/i18n";
 
 const selectCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm";
-const areaCls = "w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-mono text-xs";
 
 interface Issue {
   path: string;
@@ -61,20 +63,32 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   };
 
   const tree = await adminTree(db);
+  const subjects: Array<{ id: string; labelAr: string; labelEn: string }> = [];
   const courses: Array<{ id: string; labelAr: string; labelEn: string }> = [];
+  const units: Array<{ id: string; labelAr: string; labelEn: string }> = [];
   const lessons: Array<{ id: string; labelAr: string; labelEn: string }> = [];
-  for (const s of tree.filter((n) => n.type === "subject")) {
-    for (const c of s.children.filter((n) => n.type === "course")) {
-      courses.push({ id: c.id, labelAr: `${s.titleAr} › ${c.titleAr}`, labelEn: `${s.titleEn} › ${c.titleEn}` });
-      for (const u of c.children.filter((n) => n.type === "unit")) {
-        for (const l of u.children.filter((n) => n.type === "lesson")) {
-          lessons.push({ id: l.id, labelAr: `${c.titleAr} › ${u.titleAr} › ${l.titleAr}`, labelEn: `${c.titleEn} › ${u.titleEn} › ${l.titleEn}` });
+  // Content hierarchy is program › grade › subject › course › unit › lesson —
+  // walk it fully so subject/unit/lesson pickers are populated.
+  for (const pr of tree) {
+    for (const gr of pr.children.filter((n) => n.type === "grade")) {
+      for (const s of gr.children.filter((n) => n.type === "subject")) {
+        const subjTitle = (loc: string) => (loc === "ar" ? `${gr.titleAr} › ${s.titleAr}` : `${gr.titleEn} › ${s.titleEn}`);
+        subjects.push({ id: s.id, labelAr: subjTitle("ar"), labelEn: subjTitle("en") });
+        for (const c of s.children.filter((n) => n.type === "course")) {
+          courses.push({ id: c.id, labelAr: `${s.titleAr} › ${c.titleAr}`, labelEn: `${s.titleEn} › ${c.titleEn}` });
+          for (const u of c.children.filter((n) => n.type === "unit")) {
+            units.push({ id: u.id, labelAr: `${c.titleAr} › ${u.titleAr}`, labelEn: `${c.titleEn} › ${u.titleEn}` });
+            for (const l of u.children.filter((n) => n.type === "lesson")) {
+              lessons.push({ id: l.id, labelAr: `${c.titleAr} › ${u.titleAr} › ${l.titleAr}`, labelEn: `${c.titleEn} › ${u.titleEn} › ${l.titleEn}` });
+            }
+          }
         }
       }
     }
   }
+  const tags = (await listTags(db)).map((tg) => ({ id: tg.id, labelAr: tg.labelAr, labelEn: tg.labelEn }));
 
-  if (isNew) return { isNew: true as const, perms, courses, lessons, exam: null, attached: [], bank: [], counts: { total: 0, live: 0 } };
+  if (isNew) return { isNew: true as const, perms, subjects, courses, units, lessons, tags, exam: null, attached: [], bank: [], counts: { total: 0, live: 0 } };
 
   const exam = await getExam(db, params.id);
   if (!exam) throw new Response("Not Found", { status: 404 });
@@ -83,12 +97,16 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const attachedIds = new Set(attachedRows.map((r) => r.questionId));
   const bankRows = await listQuestions(db, { status: "published", limit: 200 });
   const allCounts = await examAttemptCounts(db);
+  const attempts = await adminAttemptsForExam(db, exam.id);
 
   return {
     isNew: false as const,
     perms,
+    subjects,
     courses,
+    units,
     lessons,
+    tags,
     exam: {
       id: exam.id,
       slug: exam.slug,
@@ -130,6 +148,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       .filter((q) => !attachedIds.has(q.id))
       .map((q) => ({ id: q.id, stemAr: q.stemAr, stemEn: q.stemEn, type: q.type })),
     counts: allCounts[exam.id] ?? { total: 0, live: 0 },
+    attempts,
   };
 }
 
@@ -320,7 +339,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
   const [searchParams] = useSearchParams();
-  const { perms, courses, lessons } = loaderData;
+  const { perms, subjects, courses, units, lessons, tags } = loaderData;
   const issues = actionData && "issues" in actionData ? (actionData.issues as Issue[]) : null;
 
   if (loaderData.isNew) {
@@ -376,7 +395,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
     );
   }
 
-  const { exam, attached, bank, counts } = loaderData;
+  const { exam, attached, bank, counts, attempts } = loaderData;
   const draft = exam.status === "draft";
   const cfg = exam.config;
   const totalPoints = attached.reduce((s, a) => s + a.points, 0);
@@ -547,9 +566,20 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                 <input type="datetime-local" name="endsAt" defaultValue={cfg.endsAt} className={selectCls} disabled={!draft || !perms.edit} />
               </div>
             </div>
-            <details open={cfg.mode === "pool"} className="rounded-lg border p-2">
-              <summary className="cursor-pointer text-sm font-medium text-slate-700">{t(locale, "assessment.poolsJson")}</summary>
-              <textarea name="poolsJson" rows={8} defaultValue={cfg.poolsJson} className={`${areaCls} mt-2`} disabled={!draft || !perms.edit} />
+            <details open={cfg.mode === "pool"} className="rounded-lg border border-slate-200">
+              <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-slate-700">{t(locale, "assessment.poolsTitle")}</summary>
+              <div className="border-t border-slate-100 px-3 pb-3 pt-1">
+                <PoolBuilder
+                  name="poolsJson"
+                  poolsJson={cfg.poolsJson}
+                  disabled={!draft || !perms.edit}
+                  subjects={subjects}
+                  units={units}
+                  lessons={lessons}
+                  tags={tags}
+                  locale={locale}
+                />
+              </div>
             </details>
             {draft && perms.edit && (
               <SubmitButton variant="secondary" className="min-h-11">
@@ -643,6 +673,77 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
           )}
         </CardBody>
       </Card>
+
+      {/* results & attempts (Phase 6) */}
+      <Card>
+        <CardHeader title={t(locale, "assessment.attemptsTitle")} description={t(locale, "assessment.attemptsHint")} />
+        <CardBody>
+          {attempts.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center">
+              <span className="text-3xl text-slate-300" aria-hidden="true">🗒️</span>
+              <p className="font-medium text-slate-600">{t(locale, "assessment.noAttempts")}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs text-slate-400 rtl:text-right">
+                    <th className="px-3 py-2 font-medium">{t(locale, "assessment.colStudent")}</th>
+                    <th className="px-3 py-2 font-medium">{t(locale, "assessment.attemptNo")}</th>
+                    <th className="px-3 py-2 font-medium">{t(locale, "assessment.colStatus")}</th>
+                    <th className="px-3 py-2 font-medium">{t(locale, "assessment.colScore")}</th>
+                    <th className="px-3 py-2 font-medium">{t(locale, "assessment.colResult")}</th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {attempts.map((a) => (
+                    <tr key={a.id} className="border-b border-slate-100 align-middle last:border-0 hover:bg-slate-50/60">
+                      <td className="px-3 py-2.5">
+                        <p className="font-medium text-slate-800">{a.studentName}</p>
+                        <p className="text-xs text-slate-400" dir="ltr">{a.studentEmail}</p>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-500">#{a.attemptNumber}</td>
+                      <td className="px-3 py-2.5">
+                        <Badge tone={a.status === "graded" || a.status === "submitted" ? "success" : a.status === "in_progress" ? "warning" : "neutral"}>
+                          {attemptStatusLabel(locale, a.status, a.gradingStatus)}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700">
+                        {a.score !== null ? `${a.score} / ${a.maxScore ?? "—"}` : "—"}
+                        {a.percentage !== null && <span className="ml-1 text-xs text-slate-400 rtl:mr-1">({a.percentage}%)</span>}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {a.passed === null ? (
+                          <span className="text-slate-400">—</span>
+                        ) : a.passed ? (
+                          <span className="inline-flex items-center gap-1 font-medium text-emerald-600">{t(locale, "assessment.resultPass")}</span>
+                        ) : (
+                          <span className="font-medium text-red-600">{t(locale, "assessment.resultFail")}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-end">
+                        <Link to={`/admin/assessment/attempts/${a.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-700 hover:border-brand-400 hover:text-brand-700">
+                          {t(locale, "assessment.reviewAttempt")}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
+}
+
+function attemptStatusLabel(locale: Locale, status: string, gradingStatus: string) {
+  if (status === "in_progress") return t(locale, "assessment.statusInProgress");
+  if (status === "grading" || (status === "submitted" && gradingStatus === "needs_manual")) return t(locale, "assessment.statusGrading");
+  if (status === "graded") return t(locale, "assessment.statusGraded");
+  if (status === "expired") return t(locale, "assessment.statusExpired");
+  if (status === "cancelled") return t(locale, "assessment.statusCancelled");
+  return t(locale, "assessment.statusSubmitted");
 }

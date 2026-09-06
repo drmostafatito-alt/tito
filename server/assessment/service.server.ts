@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { DB } from "~server/db/client.server";
 import {
   courses, examAnswers, examAttempts, examQuestions, exams, events,
-  lessons, questionChoices, questionTags, questions, subjects, tags, units,
+  lessons, questionChoices, questionTags, questions, subjects, tags, units, users,
 } from "~server/db/schema";
 import { slugify, type ChainRow } from "~server/content/service.server";
 import { chainForCourse, chainForLesson } from "~server/content/service.server";
@@ -1404,6 +1404,165 @@ export async function attemptReview(
     });
   }
   return { questions: out };
+}
+
+// ---------------------------------------------------------------------------
+// Admin results & grading (Phase 6). Objective questions are auto-graded on
+// submit; essay/manual grading remains a documented backend deferral (schema
+// reserves text_answer / graded_by / needs_manual). This section gives admins
+// a full read on every attempt regardless of the student-facing result policy.
+// ---------------------------------------------------------------------------
+
+export interface AdminAttemptRow {
+  id: string;
+  attemptNumber: number;
+  status: string;
+  gradingStatus: string;
+  startedAt: number;
+  submittedAt: number | null;
+  timeUsedSeconds: number | null;
+  score: number | null;
+  maxScore: number | null;
+  passed: boolean | null;
+  studentName: string;
+  studentEmail: string;
+  percentage: number | null;
+}
+
+export async function adminAttemptsForExam(db: DB, examId: string): Promise<AdminAttemptRow[]> {
+  const rows = await db
+    .select({
+      id: examAttempts.id,
+      attemptNumber: examAttempts.attemptNumber,
+      status: examAttempts.status,
+      gradingStatus: examAttempts.gradingStatus,
+      startedAt: examAttempts.startedAt,
+      submittedAt: examAttempts.submittedAt,
+      timeUsedSeconds: examAttempts.timeUsedSeconds,
+      score: examAttempts.score,
+      maxScore: examAttempts.maxScore,
+      passed: examAttempts.passed,
+      studentName: users.fullName,
+      studentEmail: users.email,
+    })
+    .from(examAttempts)
+    .innerJoin(users, eq(users.id, examAttempts.studentId))
+    .where(eq(examAttempts.examId, examId))
+    .orderBy(desc(examAttempts.startedAt));
+  return rows.map((r) => ({
+    ...r,
+    percentage: r.score !== null && r.maxScore ? Math.round((r.score / r.maxScore) * 1000) / 10 : null,
+  }));
+}
+
+/** One student's answers against the question's correct answers — admin always sees the full picture. */
+export interface AdminReviewQuestion {
+  id: string;
+  type: string;
+  stemAr: string;
+  stemEn: string;
+  points: number;
+  earned: number | null;
+  answered: boolean;
+  textAnswer: string | null;
+  isCorrect: boolean | null;
+  choices: Array<{ id: string; contentAr: string; contentEn: string; selected: boolean; correct: boolean; feedback: string | null }>;
+  explanationAr: string | null;
+  explanationEn: string | null;
+}
+
+export interface AdminAttemptReview {
+  examId: string;
+  examTitleAr: string;
+  examTitleEn: string;
+  examSlug: string;
+  attemptNumber: number;
+  status: string;
+  gradingStatus: string;
+  startedAt: number;
+  submittedAt: number | null;
+  timeUsedSeconds: number | null;
+  score: number | null;
+  maxScore: number | null;
+  passed: boolean | null;
+  studentName: string;
+  studentEmail: string;
+  questions: AdminReviewQuestion[];
+}
+
+export async function adminAttemptReview(db: DB, attemptId: string): Promise<AdminAttemptReview | null> {
+  const attemptRows = await db
+    .select({
+      att: examAttempts,
+      studentName: users.fullName,
+      studentEmail: users.email,
+    })
+    .from(examAttempts)
+    .innerJoin(users, eq(users.id, examAttempts.studentId))
+    .where(eq(examAttempts.id, attemptId))
+    .limit(1);
+  if (!attemptRows[0]) return null;
+  const { att, studentName, studentEmail } = attemptRows[0];
+  const exam = await getExam(db, att.examId);
+  if (!exam) return null;
+
+  const { questionOrder, points } = attemptMetadata(att);
+  const questions_out: AdminReviewQuestion[] = [];
+  if (questionOrder.length) {
+    const qRows = await db.select().from(questions).where(inArray(questions.id, questionOrder));
+    const qMap = new Map(qRows.map((q) => [q.id, q]));
+    const cRows = await db.select().from(questionChoices).where(inArray(questionChoices.questionId, questionOrder)).orderBy(asc(questionChoices.sortOrder));
+    const byQ = new Map<string, typeof cRows>();
+    for (const c of cRows) byQ.set(c.questionId, [...(byQ.get(c.questionId) ?? []), c]);
+    const aRows = await db.select().from(examAnswers).where(eq(examAnswers.attemptId, att.id));
+    const aMap = new Map(aRows.map((a) => [a.questionId, a]));
+    for (const qid of questionOrder) {
+      const q = qMap.get(qid);
+      if (!q) continue;
+      const answer = aMap.get(qid);
+      const selected = new Set((answer?.choiceIds as string[] | null) ?? []);
+      questions_out.push({
+        id: qid,
+        type: q.type,
+        stemAr: q.stemAr,
+        stemEn: q.stemEn,
+        points: points[qid] ?? q.pointsDefault,
+        earned: answer?.pointsEarned ?? null,
+        answered: Boolean(answer && ((answer.choiceIds as string[] | null)?.length ?? 0) > 0),
+        textAnswer: answer?.textAnswer ?? null,
+        isCorrect: answer?.isCorrect ?? null,
+        choices: (byQ.get(qid) ?? []).map((c) => ({
+          id: c.id,
+          contentAr: c.contentAr,
+          contentEn: c.contentEn,
+          selected: selected.has(c.id),
+          correct: c.isCorrect,
+          feedback: selected.has(c.id) ? c.feedback : null,
+        })),
+        explanationAr: q.explanationAr,
+        explanationEn: q.explanationEn,
+      });
+    }
+  }
+
+  return {
+    examId: exam.id,
+    examTitleAr: exam.titleAr,
+    examTitleEn: exam.titleEn,
+    examSlug: exam.slug,
+    attemptNumber: att.attemptNumber,
+    status: att.status,
+    gradingStatus: att.gradingStatus,
+    startedAt: att.startedAt,
+    submittedAt: att.submittedAt,
+    timeUsedSeconds: att.timeUsedSeconds,
+    score: att.score,
+    maxScore: att.maxScore,
+    passed: att.passed,
+    studentName,
+    studentEmail,
+    questions: questions_out,
+  };
 }
 
 // ---------------------------------------------------------------------------

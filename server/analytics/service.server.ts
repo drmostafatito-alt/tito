@@ -3,6 +3,7 @@ import type { DB } from "../db/client.server";
 import {
   activationCodeRedemptions,
   activationCodes,
+  courses,
   entitlements,
   events,
   examAttempts,
@@ -13,7 +14,9 @@ import {
   orders,
   payments,
   refunds,
+  subjects,
   subscriptions,
+  units,
   users,
   videoProgress,
   videoWatchSessions,
@@ -358,4 +361,84 @@ export async function analyticsDetail(db: DB, range: RangeKey, nowMs: number = D
     ordersByStatus: orderRows.map((r) => ({ status: r.status, count: num(r.count), totalMinor: num(r.totalMinor) })),
     codeStatusBreakdown: codeRows.map((r) => ({ status: r.status, count: num(r.count) })),
   };
+}
+
+export interface CoursePerformanceRow {
+  id: string;
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+  subjectAr: string | null;
+  subjectEn: string | null;
+  visibility: string;
+  status: string;
+  thumbnailFileId: string | null;
+  updatedAt: number;
+  units: number;
+  lessons: number;
+  /** Distinct students with any lesson progress inside the course (real data). */
+  engagedStudents: number;
+}
+
+/**
+ * Dashboard "course performance" read model — published/live courses with real
+ * unit/lesson counts and distinct engaged students (from lesson_progress). One
+ * small batched pass; never fabricates enrollment numbers from commerce ties.
+ */
+export async function coursePerformance(db: DB, limit = 8): Promise<CoursePerformanceRow[]> {
+  const rows = await db
+    .select({
+      id: courses.id,
+      slug: courses.slug,
+      titleAr: courses.titleAr,
+      titleEn: courses.titleEn,
+      visibility: courses.visibility,
+      status: courses.status,
+      thumbnailFileId: courses.thumbnailFileId,
+      updatedAt: courses.updatedAt,
+      subjectAr: subjects.titleAr,
+      subjectEn: subjects.titleEn,
+    })
+    .from(courses)
+    .leftJoin(subjects, eq(subjects.id, courses.subjectId))
+    .where(and(eq(courses.status, "published"), isNull(courses.deletedAt)))
+    .orderBy(desc(courses.updatedAt))
+    .limit(limit);
+
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+
+  const [lessonAgg, engageAgg] = await Promise.all([
+    // lessons grouped by course (via unit)
+    db
+      .select({
+        courseId: units.courseId,
+        lessons: sql<number>`COUNT(${lessons.id})`,
+      })
+      .from(lessons)
+      .innerJoin(units, eq(units.id, lessons.unitId))
+      .where(and(inArray(units.courseId, ids), eq(lessons.status, "published"), isNull(lessons.deletedAt)))
+      .groupBy(units.courseId),
+    // distinct engaged students per course (lesson_progress -> lesson -> unit)
+    db
+      .select({
+        courseId: units.courseId,
+        students: sql<number>`COUNT(DISTINCT ${lessonProgress.studentId})`,
+      })
+      .from(lessonProgress)
+      .innerJoin(lessons, eq(lessons.id, lessonProgress.lessonId))
+      .innerJoin(units, eq(units.id, lessons.unitId))
+      .where(inArray(units.courseId, ids))
+      .groupBy(units.courseId),
+  ]);
+
+  const lessonsByCourse = new Map(lessonAgg.map((r) => [r.courseId, num(r.lessons)]));
+  const engagedByCourse = new Map(engageAgg.map((r) => [r.courseId, num(r.students)]));
+
+  return rows.map((r) => ({
+    ...r,
+    units: 0,
+    lessons: lessonsByCourse.get(r.id) ?? 0,
+    engagedStudents: engagedByCourse.get(r.id) ?? 0,
+  }));
 }

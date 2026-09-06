@@ -54,8 +54,8 @@ import { et, t, formatDate, type Locale } from "~/lib/i18n";
 const TABS = ["products", "orders", "payments", "subscriptions", "codes", "discounts"] as const;
 type Tab = (typeof TABS)[number];
 
-const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
+const selectCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -422,9 +422,9 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
             <Card>
               <CardHeader title={t(locale, "commerceAdmin.newProduct")} />
               <CardBody>
-                <Form method="post" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Form method="post" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <input type="hidden" name="_action" value="create_product" />
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.kind")}</span>
                     <select name="kind" className={selectCls} defaultValue="course">
                       <option value="course">{t(locale, "commerce.kind_course")}</option>
@@ -433,19 +433,19 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                       <option value="subscription_plan">{t(locale, "commerce.kind_subscription_plan")}</option>
                     </select>
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.nameAr")}</span>
                     <input name="nameAr" required className={inputCls} dir="rtl" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.nameEn")}</span>
                     <input name="nameEn" required className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.slugOptional")}</span>
                     <input name="slug" className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.contentRef")}</span>
                     <select name="resourceId" className={selectCls} required defaultValue="">
                       <option value="" disabled>{t(locale, "commerceAdmin.choose")}</option>
@@ -577,7 +577,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                     <Form method="post" className="flex flex-wrap items-end gap-2">
                       <input type="hidden" name="_action" value="approve_payment" />
                       <input type="hidden" name="paymentId" value={p.id} />
-                      <label className="grid gap-1 text-xs">
+                      <label className="grid min-w-0 gap-1 text-xs">
                         <span>{t(locale, "commerceAdmin.receivedAmount")}</span>
                         <input
                           name="receivedAmount"
@@ -595,7 +595,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                     <Form method="post" className="flex flex-wrap items-end gap-2">
                       <input type="hidden" name="_action" value="reject_payment" />
                       <input type="hidden" name="paymentId" value={p.id} />
-                      <label className="grid gap-1 text-xs">
+                      <label className="grid min-w-0 gap-1 text-xs">
                         <span>{t(locale, "commerceAdmin.rejectReason")}</span>
                         <input name="reason" required maxLength={500} className="w-48 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
                       </label>
@@ -679,21 +679,21 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
             <Card>
               <CardHeader title={t(locale, "commerceAdmin.generateBatch")} />
               <CardBody>
-                <Form method="post" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Form method="post" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <input type="hidden" name="_action" value="generate_codes" />
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.batchName")}</span>
                     <input name="name" required className={inputCls} />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.count")}</span>
                     <input name="count" type="number" min={1} max={500} defaultValue={5} required className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.maxUses")}</span>
                     <input name="maxUses" type="number" min={1} max={1000} defaultValue={1} required className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.bindProduct")}</span>
                     <select name="productId" className={selectCls} defaultValue="">
                       <option value="">{t(locale, "commerceAdmin.noProductDirectGrant")}</option>
@@ -704,7 +704,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                       ))}
                     </select>
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.orDirectResource")}</span>
                     <select name="resourceId" className={selectCls} defaultValue="">
                       <option value="">{t(locale, "commerceAdmin.none")}</option>
@@ -720,11 +720,11 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                       </optgroup>
                     </select>
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.durationDays")}</span>
                     <input name="durationDays" type="number" min={1} max={3650} className={inputCls} dir="ltr" placeholder={t(locale, "commerceAdmin.permanentIfEmpty")} />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.redeemByUtc")}</span>
                     <input name="expiresAt" type="datetime-local" className={inputCls} dir="ltr" />
                   </label>
@@ -772,40 +772,40 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
             <Card>
               <CardHeader title={t(locale, "commerceAdmin.newDiscount")} />
               <CardBody>
-                <Form method="post" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Form method="post" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <input type="hidden" name="_action" value="create_discount" />
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.discountCode")}</span>
                     <input name="code" required minLength={4} maxLength={40} className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.discountType")}</span>
                     <select name="type" className={selectCls} defaultValue="percent">
                       <option value="percent">{t(locale, "commerceAdmin.percent")}</option>
                       <option value="fixed">{t(locale, "commerceAdmin.fixedMinor")}</option>
                     </select>
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.discountValue")}</span>
                     <input name="value" type="number" min={1} required className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.maxUses")}</span>
                     <input name="maxUses" type="number" min={1} className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.perUserLimit")}</span>
                     <input name="perUserLimit" type="number" min={1} className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.minOrderMinor")}</span>
                     <input name="minOrderMinor" type="number" min={0} className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.startsAtUtc")}</span>
                     <input name="startsAt" type="datetime-local" className={inputCls} dir="ltr" />
                   </label>
-                  <label className="grid gap-1 text-sm">
+                  <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.endsAtUtc")}</span>
                     <input name="endsAt" type="datetime-local" className={inputCls} dir="ltr" />
                   </label>

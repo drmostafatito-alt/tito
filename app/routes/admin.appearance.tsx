@@ -16,6 +16,7 @@ import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
+import { ImagePicker } from "~/components/ui/ImagePicker";
 import { t } from "~/lib/i18n";
 import type { Locale } from "~/lib/i18n";
 
@@ -180,21 +181,18 @@ export async function action({ context, request }: Route.ActionArgs) {
 
 type Loc = "ar" | "en";
 
-function ImageSelect({ name, value, images, label, locale }: { name: string; value: string; images: Array<{ id: string; label: string }>; label: string; locale: Loc }) {
-  void locale;
+/**
+ * Reusable image field with a real media-picker experience (Phase 1). Replaces
+ * the previous bare `<select>`. Offers: a live preview (or an explanatory empty
+ * state when no image is set), "choose from the media library", "remove", and a
+ * link to open the Media Library to upload. The chosen file id is carried on a
+ * hidden input with the same `name`, so the parent Form/action is unchanged.
+ */
+function BrandImageField({ name, value, images, label, locale }: { name: string; value: string; images: Array<{ id: string; label: string }>; label: string; locale: Loc }) {
+  // Shared bilingual image picker (see components/ui/ImagePicker.tsx).
   return (
-    <div className="flex flex-col">
-      <span className="mb-1 text-sm font-medium text-slate-700">{label}</span>
-      <div className="flex items-center gap-2">
-        {value && images.some((i) => i.id === value) && (
-          <img src={`/files/${value}`} alt="" className="h-10 w-10 rounded-lg border border-slate-200 object-cover" />
-        )}
-        <select name={name} defaultValue={value ?? ""} className="h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
-          <option value="">—</option>
-          {value && !images.some((i) => i.id === value) && <option value={value}>{value.slice(0, 8)}…</option>}
-          {images.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
-        </select>
-      </div>
+    <div className="sm:col-span-2">
+      <ImagePicker name={name} value={value} images={images} locale={locale} label={label} />
     </div>
   );
 }
@@ -277,6 +275,76 @@ function ColorInput({ name, value, label }: { name: string; value: string; label
   );
 }
 
+/** Reorganized identity editor — one page but visually grouped into clear
+ *  sections (name/identity, owner profile, branding, contact, social, legal)
+ *  instead of a flat wall of fields. Writes the exact same settings group. */
+function IdentityEditor({
+  idn,
+  images,
+  locale,
+  L,
+}: {
+  idn: {
+    shortNameAr: string; shortNameEn: string; ownerNameAr: string; ownerNameEn: string;
+    ownerTitleAr: string; ownerTitleEn: string; ownerPhotoFileId: string; logoFileId: string;
+    faviconFileId: string; heroImageFileId: string; aboutImageFileId: string; contactPhone: string;
+    contactEmail: string; contactAddressAr: string; contactAddressEn: string; copyrightAr: string; copyrightEn: string;
+    socialLinks?: SocialLink[];
+    facebook: string; youtube: string; instagram: string; tiktok: string; twitter: string; linkedin: string; telegram: string;
+  };
+  images: Array<{ id: string; label: string }>;
+  locale: Loc;
+  L: (k: string) => string;
+}) {
+  const Sec = ({ k }: { k: string }) => (
+    <h3 className="col-span-full mt-4 border-b border-slate-100 pb-1.5 text-sm font-semibold text-slate-700 first:mt-0">
+      {t(locale, `appearanceSec.${k}`)}
+    </h3>
+  );
+  const AR = " (عربي)";
+  const EN = " (English)";
+  return (
+    <Card>
+      <CardHeader title={L("cms.ui.identity")} />
+      <CardBody>
+        <Form method="post" className="grid gap-3 sm:grid-cols-2">
+          <input type="hidden" name="_action" value="save-identity" />
+          <Sec k="names" />
+          <Input label={`${L("cms.set.shortName")}${AR}`} name="shortNameAr" defaultValue={idn.shortNameAr} dir="rtl" />
+          <Input label={`${L("cms.set.shortName")}${EN}`} name="shortNameEn" defaultValue={idn.shortNameEn} dir="ltr" />
+          <Input label={`${L("cms.set.ownerName")}${AR}`} name="ownerNameAr" defaultValue={idn.ownerNameAr} dir="rtl" />
+          <Input label={`${L("cms.set.ownerName")}${EN}`} name="ownerNameEn" defaultValue={idn.ownerNameEn} dir="ltr" />
+          <Input label={`${L("cms.set.ownerTitle")}${AR}`} name="ownerTitleAr" defaultValue={idn.ownerTitleAr} dir="rtl" />
+          <Input label={`${L("cms.set.ownerTitle")}${EN}`} name="ownerTitleEn" defaultValue={idn.ownerTitleEn} dir="ltr" />
+
+          <Sec k="profile" />
+          <BrandImageField name="ownerPhotoFileId" value={idn.ownerPhotoFileId} images={images} label={L("cms.set.ownerPhoto")} locale={locale} />
+
+          <Sec k="branding" />
+          <BrandImageField name="logoFileId" value={idn.logoFileId} images={images} label={L("cms.set.logo")} locale={locale} />
+          <BrandImageField name="faviconFileId" value={idn.faviconFileId} images={images} label={L("cms.set.favicon")} locale={locale} />
+          <BrandImageField name="heroImageFileId" value={idn.heroImageFileId} images={images} label={L("cms.set.heroImage")} locale={locale} />
+          <BrandImageField name="aboutImageFileId" value={idn.aboutImageFileId} images={images} label={L("cms.set.aboutImage")} locale={locale} />
+
+          <Sec k="contact" />
+          <Input label={L("cms.set.contactPhone")} name="contactPhone" defaultValue={idn.contactPhone} dir="ltr" />
+          <Input label={L("cms.set.contactEmail")} name="contactEmail" defaultValue={idn.contactEmail} dir="ltr" type="email" />
+          <Input label={`${L("cms.set.contactAddress")}${AR}`} name="contactAddressAr" defaultValue={idn.contactAddressAr} dir="rtl" />
+          <Input label={`${L("cms.set.contactAddress")}${EN}`} name="contactAddressEn" defaultValue={idn.contactAddressEn} dir="ltr" />
+
+          <Sec k="social" />
+          <SocialHub identity={idn} locale={locale} L={L} />
+
+          <Sec k="legal" />
+          <Input label={`${L("cms.set.copyright")}${AR}`} name="copyrightAr" defaultValue={idn.copyrightAr} dir="rtl" />
+          <Input label={`${L("cms.set.copyright")}${EN}`} name="copyrightEn" defaultValue={idn.copyrightEn} dir="ltr" />
+          <SubmitButton className="w-fit sm:col-span-2">{L("cms.ui.saveGroup")}</SubmitButton>
+        </Form>
+      </CardBody>
+    </Card>
+  );
+}
+
 export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = (root?.locale ?? "ar") as Loc;
@@ -321,33 +389,7 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
       {!loaderData.allowed ? (
         <Alert kind="error">{L("cms.ui.permissionDenied")}</Alert>
       ) : tab === "identity" ? (
-        <Card>
-          <CardHeader title={L("cms.ui.identity")} />
-          <CardBody>
-            <Form method="post" className="grid gap-3 sm:grid-cols-2">
-              <input type="hidden" name="_action" value="save-identity" />
-              <Input label={`${L("cms.set.shortName")} (عربي)`} name="shortNameAr" defaultValue={idn.shortNameAr} dir="rtl" />
-              <Input label={`${L("cms.set.shortName")} (English)`} name="shortNameEn" defaultValue={idn.shortNameEn} dir="ltr" />
-              <Input label={`${L("cms.set.ownerName")} (عربي)`} name="ownerNameAr" defaultValue={idn.ownerNameAr} dir="rtl" />
-              <Input label={`${L("cms.set.ownerName")} (English)`} name="ownerNameEn" defaultValue={idn.ownerNameEn} dir="ltr" />
-              <Input label={`${L("cms.set.ownerTitle")} (عربي)`} name="ownerTitleAr" defaultValue={idn.ownerTitleAr} dir="rtl" />
-              <Input label={`${L("cms.set.ownerTitle")} (English)`} name="ownerTitleEn" defaultValue={idn.ownerTitleEn} dir="ltr" />
-              <ImageSelect name="ownerPhotoFileId" value={idn.ownerPhotoFileId} images={images} label={L("cms.set.ownerPhoto")} locale={locale} />
-              <ImageSelect name="logoFileId" value={idn.logoFileId} images={images} label={L("cms.set.logo")} locale={locale} />
-              <ImageSelect name="faviconFileId" value={idn.faviconFileId} images={images} label={L("cms.set.favicon")} locale={locale} />
-              <ImageSelect name="heroImageFileId" value={idn.heroImageFileId} images={images} label={L("cms.set.heroImage")} locale={locale} />
-              <ImageSelect name="aboutImageFileId" value={idn.aboutImageFileId} images={images} label={L("cms.set.aboutImage")} locale={locale} />
-              <Input label={L("cms.set.contactPhone")} name="contactPhone" defaultValue={idn.contactPhone} dir="ltr" />
-              <Input label={L("cms.set.contactEmail")} name="contactEmail" defaultValue={idn.contactEmail} dir="ltr" type="email" />
-              <Input label={`${L("cms.set.contactAddress")} (عربي)`} name="contactAddressAr" defaultValue={idn.contactAddressAr} dir="rtl" />
-              <Input label={`${L("cms.set.contactAddress")} (English)`} name="contactAddressEn" defaultValue={idn.contactAddressEn} dir="ltr" />
-              <SocialHub identity={idn} locale={locale} L={L} />
-              <Input label={`${L("cms.set.copyright")} (عربي)`} name="copyrightAr" defaultValue={idn.copyrightAr} dir="rtl" />
-              <Input label={`${L("cms.set.copyright")} (English)`} name="copyrightEn" defaultValue={idn.copyrightEn} dir="ltr" />
-              <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>
-            </Form>
-          </CardBody>
-        </Card>
+        <IdentityEditor idn={idn} images={images} locale={locale} L={L} />
       ) : tab === "theme" ? (
         <Card>
           <CardHeader title={L("cms.ui.theme")} description={L("cms.set.colorHint")} />

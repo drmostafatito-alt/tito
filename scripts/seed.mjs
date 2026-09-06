@@ -16,8 +16,23 @@
  * Usage: npm run db:seed:local
  */
 import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 // wrangler >= 4.12x: root export exposes getPlatformProxy
 import { getPlatformProxy } from "wrangler";
+
+/**
+ * Deterministic UUID v5-style id derived from a stable name. Fixture/catalog
+ * rows use this so that a fresh LOCAL reseed yields the SAME primary keys —
+ * admin deep links (content/question/product/page editors) stay valid across
+ * resets instead of 404ing on freshly-rolled UUIDs. Dev/demo seed only.
+ */
+function detId(name) {
+  const h = createHash("sha1").update("educore-seed:" + name).digest();
+  h[6] = (h[6] & 0x0f) | 0x50; // version 5
+  h[8] = (h[8] & 0x3f) | 0x80; // RFC 4122 variant
+  const s = h.toString("hex");
+  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20, 32)}`;
+}
 
 // minimal .dev.vars loader
 function loadDevVars() {
@@ -155,17 +170,21 @@ await exec(`INSERT INTO settings (key, value, updated_at) VALUES ('video', ?, ?)
 async function ensureContent(table, slug, cols) {
   const found = slug ? await DB.prepare(`SELECT id FROM ${table} WHERE slug = ?`).bind(slug).first() : null;
   if (found) return found.id;
-  const id = cols.id ?? crypto.randomUUID();
+  // Resolve the id: caller-provided, else deterministic from the stable slug,
+  // else random (only for rows with no stable identity).
+  const id = cols.id ?? (slug ? detId(slug) : crypto.randomUUID());
+  const insertCols = { id, ...cols };
   await exec(
-    `INSERT INTO ${table} (${Object.keys(cols).join(",")}) VALUES (${Object.keys(cols).map(() => "?").join(",")})`,
-    Object.values(cols).map((v) => (v === undefined ? null : v))
+    `INSERT INTO ${table} (${Object.keys(insertCols).join(",")}) VALUES (${Object.keys(insertCols)
+      .map(() => "?")
+      .join(",")})`,
+    Object.values(insertCols).map((v) => (v === undefined ? null : v))
   );
   return id;
 }
 
 const programId = await ensureContent("programs", "al-Thanawiya-al-3amma", {
-  id: crypto.randomUUID(),
-  slug: "al-Thanawiya-al-3amma",
+    slug: "al-Thanawiya-al-3amma",
   title_ar: "الثانوية العامة",
   title_en: "General Secondary",
   status: "published",
@@ -174,8 +193,7 @@ const programId = await ensureContent("programs", "al-Thanawiya-al-3amma", {
   updated_at: now,
 });
 const gradeId = await ensureContent("grades", "grade-3-secondary", {
-  id: crypto.randomUUID(),
-  program_id: programId,
+    program_id: programId,
   slug: "grade-3-secondary",
   title_ar: "الصف الثالث الثانوي",
   title_en: "Grade 12 (3rd Secondary)",
@@ -185,8 +203,7 @@ const gradeId = await ensureContent("grades", "grade-3-secondary", {
   updated_at: now,
 });
 const subjectId = await ensureContent("subjects", "physics-3s", {
-  id: crypto.randomUUID(),
-  grade_id: gradeId,
+    grade_id: gradeId,
   slug: "physics-3s",
   title_ar: "الفيزياء",
   title_en: "Physics",
@@ -196,8 +213,7 @@ const subjectId = await ensureContent("subjects", "physics-3s", {
   updated_at: now,
 });
 const courseId = await ensureContent("courses", "physics-3s-full", {
-  id: crypto.randomUUID(),
-  subject_id: subjectId,
+    subject_id: subjectId,
   slug: "physics-3s-full",
   title_ar: "مراجعة شاملة — فيزياء الثالث الثانوي",
   title_en: "Full Revision — Physics 3rd Secondary",
@@ -211,8 +227,7 @@ const courseId = await ensureContent("courses", "physics-3s-full", {
   updated_at: now,
 });
 const freeCourseId = await ensureContent("courses", "study-skills", {
-  id: crypto.randomUUID(),
-  subject_id: subjectId,
+    subject_id: subjectId,
   slug: "study-skills",
   title_ar: "مهارات الدراسة (مجاني)",
   title_en: "Study Skills (Free)",
@@ -226,15 +241,14 @@ const freeCourseId = await ensureContent("courses", "study-skills", {
 // units have no slug — idempotency via title lookup
 let unitId = (await DB.prepare("SELECT id FROM units WHERE course_id = ? AND title_en = ?").bind(courseId, "Unit 1: Electrostatics").first())?.id;
 if (!unitId) {
-  unitId = crypto.randomUUID();
+  unitId = detId("unit:electrostatics");
   await exec(
     `INSERT INTO units (id, course_id, title_ar, title_en, status, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)`,
     [unitId, courseId, "الوحدة الأولى: الكهرباء الساكنة", "Unit 1: Electrostatics", "published", 0, now, now]
   );
 }
 const lesson1Id = await ensureContent("lessons", "electrostatics-intro", {
-  id: crypto.randomUUID(),
-  unit_id: unitId,
+    unit_id: unitId,
   slug: "electrostatics-intro",
   title_ar: "مقدمة الشحنات الكهربائية",
   title_en: "Introduction to Electric Charges",
@@ -246,8 +260,7 @@ const lesson1Id = await ensureContent("lessons", "electrostatics-intro", {
   updated_at: now,
 });
 const lesson2Id = await ensureContent("lessons", "coulomb-law", {
-  id: crypto.randomUUID(),
-  unit_id: unitId,
+    unit_id: unitId,
   slug: "coulomb-law",
   title_ar: "قانون كولوم",
   title_en: "Coulomb's Law",
@@ -263,7 +276,7 @@ const lesson2Id = await ensureContent("lessons", "coulomb-law", {
 const existingVideo = await DB.prepare("SELECT id FROM videos WHERE metadata LIKE '%\"title\":\"Demo: Coulomb intro\"%'").first();
 let videoId;
 if (!existingVideo) {
-  videoId = crypto.randomUUID();
+  videoId = detId("video:coulomb-intro");
   const assetId = `mock-asset-${crypto.randomUUID()}`;
   await exec(
     `INSERT INTO videos (id, provider, provider_asset_id, playback_id, status, duration_seconds, metadata, created_at, updated_at)
@@ -281,7 +294,7 @@ if (!existingItem) {
 }
 
 // demo PDF in R2 private-files + attach to lesson 2
-const demoPdfId = crypto.randomUUID();
+const demoPdfId = detId("file:physics-revision");
 const pdfKey = `private/pdf/${demoPdfId}/physics-revision.pdf`;
 const existingPdf = await DB.prepare("SELECT id FROM files WHERE original_filename = ?").bind("physics-revision.pdf").first();
 let pdfFileId;
@@ -325,7 +338,7 @@ const examConfig = {
 async function ensureQuestion(stemEn, cols, choices) {
   const found = await DB.prepare("SELECT id FROM questions WHERE stem_en = ? AND deleted_at IS NULL").bind(stemEn).first();
   if (found) return found.id;
-  const id = crypto.randomUUID();
+  const id = detId("question:" + stemEn);
   await exec(
     `INSERT INTO questions (id, type, stem_ar, stem_en, explanation_ar, explanation_en, difficulty, points_default, subject_id, course_id, unit_id, lesson_id, status, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'published', ?, ?)`,
@@ -361,7 +374,7 @@ const q2Id = await ensureQuestion("The unit of electric charge is the coulomb.",
 const existingExam = await DB.prepare("SELECT id FROM exams WHERE slug = ?").bind("electrostatics-check").first();
 let demoExamId;
 if (!existingExam) {
-  demoExamId = crypto.randomUUID();
+  demoExamId = detId("exam:electrostatics-check");
   await exec(
     `INSERT INTO exams (id, slug, title_ar, title_en, description_ar, description_en, course_id, lesson_id, config, status, created_at, updated_at)
      VALUES (?, 'electrostatics-check', ?, ?, ?, ?, NULL, ?, ?, 'published', ?, ?)`,
@@ -398,8 +411,7 @@ await exec(`INSERT INTO settings (key, value, updated_at) VALUES ('payments', ?,
 ]);
 
 const demoProductId = await ensureContent("products", "physics-3s-full-access", {
-  id: crypto.randomUUID(),
-  kind: "course",
+    kind: "course",
   slug: "physics-3s-full-access",
   name_ar: "فيزياء ٣ث — وصول كامل للدورة",
   name_en: "Physics 3S — Full Course Access",
@@ -471,7 +483,7 @@ async function seedCmsPage({ slug, titleAr, titleEn, sections, note = "Initial s
     await exec(`DELETE FROM page_versions WHERE page_id = ?`, [found.id]);
     await exec(`DELETE FROM pages WHERE id = ?`, [found.id]);
   }
-  const pageId = cmsId();
+  const pageId = detId("page:" + slug);
   const snapshot = { v: 1, page: { slug, titleAr, titleEn, seo: {} }, sections };
   await exec(
     `INSERT INTO pages (id, slug, title_ar, title_en, status, seo, published_snapshot, published_at, sort_order, created_by, created_at, updated_at, deleted_at)
@@ -518,7 +530,7 @@ const heroFilename = "hero-philosophy.webp";
 const heroPath = "public/hero-philosophy.webp";
 let heroFileId = (await DB.prepare("SELECT id FROM files WHERE original_filename = ?").bind(heroFilename).first())?.id ?? null;
 if (!heroFileId && existsSync(heroPath)) {
-  heroFileId = crypto.randomUUID();
+  heroFileId = detId("file:hero-philosophy");
   const buf = readFileSync(heroPath);
   const key = `public/images/${heroFileId}/${heroFilename}`;
   await env.PUBLIC_ASSETS.put(key, buf, { httpMetadata: { contentType: "image/webp" } });
@@ -631,7 +643,7 @@ await seedSimplePage({
 // --- header navigation (existing menu builder location) ----------------------
 let headerMenuId = (await DB.prepare("SELECT id FROM menus WHERE location = 'header'").first())?.id;
 if (!headerMenuId) {
-  headerMenuId = cmsId();
+  headerMenuId = detId("menu:header");
   await exec(`INSERT INTO menus (id, location, updated_at) VALUES (?, 'header', ?)`, [headerMenuId, cmsNow]);
 }
 const existingNav = await DB.prepare("SELECT count(*) AS n FROM menu_items WHERE menu_id = ?").bind(headerMenuId).first();

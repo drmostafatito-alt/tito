@@ -29,6 +29,7 @@ import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
+import { ImagePicker } from "~/components/ui/ImagePicker";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Node editor: edit fields, status/visibility/access, ordering, archive, children creation. */
@@ -52,6 +53,10 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
   if (!node) throw new Response("Not Found", { status: 404 });
 
   let childRows: Array<{ id: string; titleAr?: string; titleEn?: string; slug?: string; status?: string; label?: string }> = [];
+  let outline: Array<{
+    id: string; titleAr: string; titleEn: string; status: string;
+    lessons: Array<{ id: string; titleAr: string; titleEn: string; status: string; items: number }>;
+  }> | null = null;
   if (type !== "lesson" && type !== "lessonItem") {
     const tree = await adminTree(db);
     const find = (nodes: typeof tree): (typeof tree)[number] | null => {
@@ -66,6 +71,16 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
     childRows = (self?.children ?? []).map((c) => ({
       id: c.id, titleAr: c.titleAr, titleEn: c.titleEn, slug: c.slug, status: c.status, label: c.type,
     }));
+    // Course builder overview: units -> lessons (with their content-item counts).
+    if (self && type === "course") {
+      outline = (self?.children ?? []).map((u) => ({
+        id: u.id, titleAr: String(u.titleAr), titleEn: String(u.titleEn), status: String(u.status),
+        lessons: (u.children ?? []).map((l) => ({
+          id: l.id, titleAr: String(l.titleAr), titleEn: String(l.titleEn), status: String(l.status),
+          items: (l.children ?? []).length,
+        })),
+      }));
+    }
   }
 
   const imageFiles = type === "subject" || type === "course" ? await listFiles(db, 200) : [];
@@ -92,7 +107,8 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
       type === "subject" ? "create-course" :
       type === "course" ? "create-unit" :
       type === "unit" ? "create-lesson" : null,
-    imageFiles: imageFiles.map((f) => ({ id: f.id, name: f.originalFilename })),
+    imageFiles: imageFiles.map((f) => ({ id: f.id, label: f.originalFilename })),
+    outline,
     allFiles: allFiles.map((f) => ({ id: f.id, name: f.originalFilename, kind: f.kind, visibility: f.visibility })),
     allVideos: allVideos.map((v) => ({ id: v.id, status: v.status, title: (v.metadata as { title?: string } | null)?.title ?? v.playbackId ?? v.id })),
     lessonItems: items.map((i) => ({
@@ -237,7 +253,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
-  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, allExams } = loaderData;
+  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, allExams, outline } = loaderData;
   const label = locale === "ar" ? String(node.titleAr ?? node.id) : String(node.titleEn ?? node.id);
 
   const input = "rounded-lg border border-slate-300 px-3 py-2";
@@ -306,15 +322,9 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
               </select>
             </label>
             {hasThumb && (
-              <label className="grid gap-1 text-sm">
-                <span>{t(locale, "content.thumbnail")}</span>
-                <select name="thumbnailFileId" defaultValue={String(node.thumbnailFileId ?? "")} className={input}>
-                  <option value="">—</option>
-                  {imageFiles.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                </select>
-              </label>
+              <div className="sm:col-span-2">
+                <ImagePicker name="thumbnailFileId" value={String(node.thumbnailFileId ?? "")} images={imageFiles} locale={locale} label={t(locale, "content.thumbnail")} compact />
+              </div>
             )}
             {isCourse && (
               <>
@@ -378,6 +388,55 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
           </Form>
         </CardBody>
       </Card>
+
+      {isCourse && (
+        <Card>
+          <CardHeader
+            title={t(locale, "content.courseOutline")}
+            description={t(locale, "content.courseOutlineHint")}
+          />
+          <CardBody>
+            {!outline || outline.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center">
+                <span className="text-3xl text-slate-300" aria-hidden="true">📚</span>
+                <p className="font-medium text-slate-700">{t(locale, "content.noUnits")}</p>
+                <p className="max-w-sm text-sm text-slate-500">{t(locale, "content.noUnitsHint")}</p>
+                <span className="text-sm text-slate-400">{t(locale, "content.addFirstUnit")} ↓</span>
+              </div>
+            ) : (
+              <ol className="flex flex-col gap-3">
+                {outline.map((u, ui) => (
+                  <li key={u.id} className="overflow-hidden rounded-xl border border-slate-200">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-700">{ui + 1}</span>
+                      <Link to={`/admin/content/unit/${u.id}`} className="text-sm font-semibold text-slate-800 hover:text-brand-700 hover:underline">
+                        {locale === "ar" ? u.titleAr : u.titleEn}
+                      </Link>
+                      {u.status !== "published" && <Badge tone="warning">{t(locale, "content.inDraft")}</Badge>}
+                    </div>
+                    {u.lessons.length === 0 ? (
+                      <p className="px-4 py-3 text-sm text-slate-400">{t(locale, "content.noUnitsHint")}</p>
+                    ) : (
+                      <ul className="flex flex-col">
+                        {u.lessons.map((l) => (
+                          <li key={l.id} className="flex items-center gap-2 border-b border-slate-50 px-4 py-2 text-sm last:border-0">
+                            <Link to={`/admin/content/lesson/${l.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-slate-700 hover:text-brand-700 hover:underline">
+                              <span aria-hidden="true">▶</span>
+                              <span className="truncate">{locale === "ar" ? l.titleAr : l.titleEn}</span>
+                            </Link>
+                            <span className="text-xs text-slate-400">{t(locale, "content.lessonItemsCount", { n: l.items })}</span>
+                            {l.status !== "published" && <Badge tone="warning">{t(locale, "content.inDraft")}</Badge>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       {childAction && (
         <Card>

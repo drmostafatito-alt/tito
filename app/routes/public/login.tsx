@@ -26,7 +26,16 @@ export async function action({ context, request }: Route.ActionArgs) {
 
   const result = await login(env, { email, password }, request);
   if (!result.ok) {
-    return { error: result.code, email };
+    const payload: { error: string; email: string; retryAfterSeconds?: number } = {
+      error: result.code,
+      email,
+    };
+    // Surface the retry window so the UI can give explicit, honest guidance.
+    if (result.code === "rate_limited") {
+      const rl = result as { code: string; retryAfterMs?: number };
+      if (rl.retryAfterMs) payload.retryAfterSeconds = Math.max(1, Math.ceil(rl.retryAfterMs / 1000));
+    }
+    return payload;
   }
 
   const headers = new Headers();
@@ -59,7 +68,23 @@ export default function Login() {
           </div>
         )}
 
-        {actionData?.error && (
+        {actionData?.error === "rate_limited" && (
+          <div className="mb-4 space-y-1">
+            <Alert kind="error">
+              <span className="font-medium">{t(locale, "auth.errors.rate_limitedTitle")}</span>
+              <span className="mt-1 block text-sm opacity-90">{t(locale, "auth.errors.rate_limitedBody")}</span>
+              {actionData.retryAfterSeconds != null && (
+                <span className="mt-1 block text-sm font-medium">
+                  {actionData.retryAfterSeconds === 1
+                    ? t(locale, "auth.errors.rate_limitedRetryOne")
+                    : t(locale, "auth.errors.rate_limitedRetry", { s: String(actionData.retryAfterSeconds) })}
+                </span>
+              )}
+            </Alert>
+          </div>
+        )}
+
+        {actionData?.error && actionData.error !== "rate_limited" && (
           <div className="mb-4">
             <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>
           </div>

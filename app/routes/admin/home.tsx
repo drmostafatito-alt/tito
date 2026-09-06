@@ -7,7 +7,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings, updateSettingsGroup } from "~server/settings/service.server";
 import { canPlatform } from "~server/auth/permissions.server";
-import { adminOverview } from "~server/analytics/service.server";
+import { adminOverview, coursePerformance } from "~server/analytics/service.server";
 import { parseRange, RANGE_KEYS } from "~server/analytics/ranges";
 import { auditLogs } from "~server/db/schema";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
@@ -17,26 +17,30 @@ import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
 import { Badge } from "~/components/ui/Badge";
+import { EmptyState } from "~/components/ui/EmptyState";
 import { fmtDuration } from "~/lib/format";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
 /**
- * Admin dashboard (P7 §3) — real aggregates over the tables the product
- * already writes; zero hardcoded metrics, one batched read model, integer
- * minor units for every money figure (formatMoney at the display edge).
+ * Admin dashboard (Phase 2) — real aggregates over the tables the product
+ * already writes; zero hardcoded metrics. Adds a personalised welcome, honest
+ * quick actions (every target is a real route), and a real "course
+ * performance" panel alongside the existing domain KPI groups. All existing
+ * `home-metric-*` test ids and their semantics are preserved.
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { settings, auth } = await requireRole(context, request, 3);
   const db = getDb(getEnv(context));
   const range = parseRange(new URL(request.url).searchParams.get("range"));
 
-  const [canAnalytics, recentAudit] = await Promise.all([
+  const [canAnalytics, recentAudit, courses] = await Promise.all([
     canPlatform(db, auth, "analytics.read"),
     db
       .select({ id: auditLogs.id, action: auditLogs.action, entityType: auditLogs.entityType, createdAt: auditLogs.createdAt, actorRole: auditLogs.actorRole })
       .from(auditLogs)
       .orderBy(desc(auditLogs.createdAt))
       .limit(6),
+    coursePerformance(db, 6),
   ]);
   const overview = canAnalytics ? await adminOverview(db, range) : null;
 
@@ -46,6 +50,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     range,
     overview,
     recentAudit,
+    courses,
+    adminName: auth.user.fullName,
   };
 }
 
@@ -93,6 +99,18 @@ function Section({ title, cols, children }: { title: string; cols?: string; chil
   );
 }
 
+const QUICK = [
+  { to: "/admin/assessment/questions/new", key: "dash.qQuestion", tone: "bg-violet-600 text-white" },
+  { to: "/admin/assessment/exams/new", key: "dash.qExam", tone: "bg-indigo-600 text-white" },
+  { to: "/admin/files", key: "dash.qMedia", tone: "bg-slate-700 text-white" },
+  { to: "/admin/content", key: "dash.qContent", tone: "bg-brand-600 text-white" },
+  { to: "/admin/announcements?new=1", key: "dash.qAnnounce", tone: "bg-slate-600 text-white" },
+] as const;
+
+function courseLabel(c: { titleAr: string; titleEn: string }, locale: Locale) {
+  return locale === "ar" ? c.titleAr || c.titleEn : c.titleEn || c.titleAr;
+}
+
 export default function AdminHome({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
@@ -101,9 +119,31 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">{t(locale, "admin.overview")}</h1>
+      {/* Welcome */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {t(locale, "dash.welcome", { name: loaderData.adminName || "Admin" })}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">{t(locale, "dash.subtitle")}</p>
+        </div>
         <RangeSwitcher range={loaderData.range} locale={locale} base="/admin" ranges={RANGE_KEYS} />
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t(locale, "dash.quickTitle")}</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" data-testid="quick-actions">
+          {QUICK.map((qa) => (
+            <Link
+              key={qa.to}
+              to={qa.to}
+              className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 ${qa.tone}`}
+            >
+              {t(locale, qa.key)}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {actionData?.toggled && <Alert kind="success">{t(locale, "admin.maintenanceDone")}</Alert>}
@@ -112,7 +152,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
         <Alert kind="warning"><span data-testid="metrics-denied">{t(locale, "admin.metricsDenied")}</span></Alert>
       )}
 
-      {o && (
+      {o ? (
         <>
           <Section title={t(locale, "admin.secUsers")}>
             <StatCard testid="home-metric-users-total" label={t(locale, "admin.mTotalUsers")} value={o.users.total} />
@@ -152,51 +192,99 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
             <StatCard testid="home-metric-pending-payments" label={t(locale, "admin.mPendingPayments")} value={o.commerce.pendingPaymentReview} />
             <StatCard testid="home-metric-redemptions" label={t(locale, "admin.mRedemptions")} value={o.commerce.redemptions} />
           </Section>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader title={t(locale, "admin.recentActivity")} action={<Link to="/admin/analytics" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navAnalytics")}</Link>} />
-              <CardBody>
-                {o.recentActivity.length === 0 ? (
-                  <p className="text-sm text-slate-500" data-testid="activity-empty">{t(locale, "admin.activityEmpty")}</p>
-                ) : (
-                  <ul className="flex flex-col gap-2.5">
-                    {o.recentActivity.map((e) => (
-                      <li key={e.id} className="flex items-center justify-between gap-2 text-sm" data-testid="activity-row">
-                        <span className="font-mono text-xs text-slate-600" dir="ltr">
-                          {e.type}{e.resourceType ? ` · ${e.resourceType}` : ""}
-                        </span>
-                        <span className="text-xs text-slate-400">{formatDate(locale, e.createdAt)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardHeader title={t(locale, "admin.mRecentRegs")} action={<Link to="/admin/users" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navUsers")}</Link>} />
-              <CardBody>
-                {o.users.recent.length === 0 ? (
-                  <p className="text-sm text-slate-500">{t(locale, "adminUsers.empty")}</p>
-                ) : (
-                  <ul className="flex flex-col gap-2.5">
-                    {o.users.recent.map((u) => (
-                      <li key={u.id} className="flex items-center justify-between gap-2 text-sm" data-testid="recent-reg-row">
-                        <Link to={`/admin/users/${u.id}`} className="truncate text-blue-700 hover:underline">{u.fullName}</Link>
-                        <span className="flex items-center gap-2">
-                          <Badge tone="neutral">{t(locale, `adminUsers.role_${u.roleId}`)}</Badge>
-                          <span className="text-xs text-slate-400">{formatDate(locale, u.createdAt)}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardBody>
-            </Card>
-          </div>
         </>
+      ) : (
+        <EmptyState icon="📊" title={t(locale, "dash.noMetrics")} />
       )}
+
+      {/* Course performance — real published courses + lesson/engaged counts */}
+      <Card data-testid="course-performance">
+        <CardHeader
+          title={t(locale, "dash.coursesTitle")}
+          action={<Link to="/admin/content" className="text-sm text-brand-700 hover:underline">{t(locale, "dash.viewAllCourses")}</Link>}
+        />
+        <CardBody>
+          {loaderData.courses.length === 0 ? (
+            <EmptyState
+              icon="🎓"
+              title={t(locale, "dash.coursesEmpty")}
+              body={t(locale, "dash.coursesEmptyHint")}
+              action={<Link to="/admin/content" className="inline-flex min-h-9 items-center rounded-lg bg-brand-600 px-3 text-sm font-medium text-white">{t(locale, "dash.courseEmptyAction")}</Link>}
+            />
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {loaderData.courses.map((c) => (
+                <li key={c.id}>
+                  <Link to={`/admin/content/course/${c.id}`} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-100 px-3 py-2.5 transition hover:border-brand-300 hover:bg-brand-50/40">
+                    {c.thumbnailFileId ? (
+                      <img src={`/files/${c.thumbnailFileId}`} alt="" className="h-12 w-16 rounded-md border border-slate-100 bg-slate-50 object-cover" />
+                    ) : (
+                      <span className="flex h-12 w-16 items-center justify-center rounded-md bg-slate-100 text-xl text-slate-400" aria-hidden="true">🎓</span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-800">{courseLabel(c, locale)}</p>
+                      <p className="truncate text-xs text-slate-400">{c.subjectAr || c.subjectEn ? courseLabel({ titleAr: c.subjectAr ?? "", titleEn: c.subjectEn ?? "" }, locale) : ""}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Badge tone="success">{t(locale, "dash.published")}</Badge>
+                      <span className="tabular-nums">{t(locale, "dash.labelLessons")}: {c.lessons}</span>
+                      <span className="tabular-nums">{t(locale, "dash.labelStudents")}: {c.engagedStudents}</span>
+                      <span className="hidden text-slate-400 md:inline">{formatDate(locale, c.updatedAt)}</span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader title={t(locale, "admin.recentActivity")} action={<Link to="/admin/analytics" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navAnalytics")}</Link>} />
+          <CardBody>
+            {o?.recentActivity.length === 0 ? (
+              <p className="text-sm text-slate-500" data-testid="activity-empty">{t(locale, "admin.activityEmpty")}</p>
+            ) : o?.recentActivity ? (
+              <ul className="flex flex-col gap-2.5">
+                {o.recentActivity.map((e) => (
+                  <li key={e.id} className="flex items-center justify-between gap-2 text-sm" data-testid="activity-row">
+                    <span className="font-mono text-xs text-slate-600" dir="ltr">
+                      {e.type}{e.resourceType ? ` · ${e.resourceType}` : ""}
+                    </span>
+                    <span className="text-xs text-slate-400">{formatDate(locale, e.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState icon="📋" title={t(locale, "dash.noMetrics")} />
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader title={t(locale, "admin.mRecentRegs")} action={<Link to="/admin/users" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navUsers")}</Link>} />
+          <CardBody>
+            {o?.users.recent.length === 0 ? (
+              <EmptyState icon="👤" title={t(locale, "adminUsers.empty")} />
+            ) : o?.users.recent ? (
+              <ul className="flex flex-col gap-2.5">
+                {o.users.recent.map((u) => (
+                  <li key={u.id} className="flex items-center justify-between gap-2 text-sm" data-testid="recent-reg-row">
+                    <Link to={`/admin/users/${u.id}`} className="truncate text-blue-700 hover:underline">{u.fullName}</Link>
+                    <span className="flex items-center gap-2">
+                      <Badge tone="neutral">{t(locale, `adminUsers.role_${u.roleId}`)}</Badge>
+                      <span className="text-xs text-slate-400">{formatDate(locale, u.createdAt)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState icon="👤" title={t(locale, "dash.noMetrics")} />
+            )}
+          </CardBody>
+        </Card>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
