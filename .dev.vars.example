@@ -7,7 +7,9 @@ SESSION_PEPPER=dev-only-pepper-change-me
 # PBKDF2 iterations (see docs/SECURITY.md §2 — Workers free-plan CPU tradeoff; raise on paid plan)
 AUTH_PBKDF2_ITERATIONS=100000
 
-# Seed: super admin account created by `npm run db:seed:local`
+# Seed / bootstrap: super admin email. LOCAL DEV ONLY — never a production
+# identity. Production uses wrangler secret / env ADMIN_BOOTSTRAP_EMAIL
+# (scripts/bootstrap-admin.mjs --remote refuses @educore.local).
 ADMIN_BOOTSTRAP_EMAIL=admin@educore.local
 
 # Environment: dev | preview | production. UNKNOWN/MISSING is treated as

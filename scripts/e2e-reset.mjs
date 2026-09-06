@@ -71,7 +71,7 @@ await DB.prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE email
   .run();
 await proxy.dispose();
 
-console.log(`\n✓ E2E data ready:`);
-console.log(`  admin    ${E2E_ADMIN_EMAIL} / ${E2E_ADMIN_PASSWORD}`);
-console.log(`  student  student@educore.local / Student#12345`);
-console.log(`  demo content: /courses/physics-3s-full · /exams/electrostatics-check · /products/physics-3s-full-access`);
+console.log(`\n✓ E2E data ready (LOCAL fixture — not a production identity):`);
+console.log(`  admin    ${E2E_ADMIN_EMAIL} (password not printed; see tests/e2e/helpers.ts)`);
+console.log(`  student  student@educore.local (LOCAL fixture, blocked in production readiness)`);
+console.log(`  demo catalog (LMS fixtures, not site identity): physics-3s-full · electrostatics-check`);

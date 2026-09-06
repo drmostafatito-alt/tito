@@ -1,7 +1,18 @@
 #!/usr/bin/env node
 /**
- * Local seed: roles, default settings, super admin (one-time generated password),
- * demo student. Runs against the LOCAL miniflare D1 (wrangler dev state).
+ * LOCAL-DEV seed only. Never run against production.
+ *
+ * Production configuration (identity of the live site):
+ *   - platform name/tagline: د/ مصطفى تيتو / Dr mostafa tito — Philosophy & Psychology
+ *   - CMS homepage + menus: philosophy & psychology marketing copy
+ *   - admin email: ADMIN_BOOTSTRAP_EMAIL (env / .dev.vars). The fallback
+ *     admin@educore.local is a LOCAL placeholder, not a production identity.
+ *
+ * Demo/fixture catalog (LMS feature coverage for e2e/smoke — NOT site identity):
+ *   - subject physics-3s, course physics-3s-full, exam electrostatics-check
+ *   - product physics-3s-full-access, student@educore.local
+ *   Production-readiness gate rejects all of the above.
+ *
  * Usage: npm run db:seed:local
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -87,14 +98,25 @@ const themeSettings = {
   shadow: "md",
   density: "normal",
   fontScale: "normal",
+  headingFont: "cairo",
+  bodyFont: "cairo",
 };
 await exec(
   `INSERT INTO settings (key, value, updated_at) VALUES ('theme', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
   [JSON.stringify(themeSettings), now],
 );
 
-// super admin
-const adminEmail = (env.ADMIN_BOOTSTRAP_EMAIL || "admin@educore.local").toLowerCase();
+// super admin — email from ADMIN_BOOTSTRAP_EMAIL only. The educore.local
+// fallback is LOCAL DEVELOPMENT, never a production identity (bootstrap-admin
+// --remote already refuses it).
+const configuredEmail = String(env.ADMIN_BOOTSTRAP_EMAIL || "").toLowerCase().trim();
+const isDev = String(env.ENVIRONMENT || "") === "development";
+if (!configuredEmail && !isDev) {
+  console.error("ADMIN_BOOTSTRAP_EMAIL is required (env or .dev.vars).");
+  await proxy.dispose();
+  process.exit(2);
+}
+const adminEmail = configuredEmail || "admin@educore.local";
 const existingAdmin = await DB.prepare("SELECT id FROM users WHERE email = ?").bind(adminEmail).first();
 let adminUserId = existingAdmin?.id ?? null;
 let adminPassword = "(existing — unchanged)";
@@ -120,7 +142,9 @@ if (!existingStudent) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 2 demo content (idempotent: keyed by fixed slugs)
+// Phase 2 demo/fixture catalog (idempotent: keyed by fixed slugs).
+// LMS feature coverage for e2e/smoke only — NOT production identity.
+// Production-readiness gate rejects these rows. Do not delete the schema.
 // ---------------------------------------------------------------------------
 const videoSettings = { provider: "mock", playbackTokenTtlSeconds: 45, fileUrlTtlSeconds: 120 };
 await exec(`INSERT INTO settings (key, value, updated_at) VALUES ('video', ?, ?) ON CONFLICT(key) DO NOTHING`, [
@@ -271,9 +295,9 @@ trailer<</Root 1 0 R>>
 %%EOF`;
   await env.PRIVATE_FILES.put(pdfKey, pdf, { httpMetadata: { contentType: "application/pdf" } });
   await exec(
-    `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, created_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-    [demoPdfId, pdfKey, "PRIVATE_FILES", "pdf", "physics-revision.pdf", "application/pdf", pdf.length, "seed-demo", "private", 1, now]
+    `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, alt_ar, alt_en, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [demoPdfId, pdfKey, "PRIVATE_FILES", "pdf", "physics-revision.pdf", "application/pdf", pdf.length, "seed-demo", "private", 1, "", "", now, now]
   );
   pdfFileId = demoPdfId;
 } else {
@@ -499,9 +523,9 @@ if (!heroFileId && existsSync(heroPath)) {
   const key = `public/images/${heroFileId}/${heroFilename}`;
   await env.PUBLIC_ASSETS.put(key, buf, { httpMetadata: { contentType: "image/webp" } });
   await exec(
-    `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, created_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-    [heroFileId, key, "PUBLIC_ASSETS", "image", heroFilename, "image/webp", buf.length, "seed-hero-philosophy", "public", 0, cmsNow]
+    `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, alt_ar, alt_en, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [heroFileId, key, "PUBLIC_ASSETS", "image", heroFilename, "image/webp", buf.length, "seed-hero-philosophy", "public", 0, "تكوين بصري للفلسفة وعلم النفس", "Abstract philosophy and psychology visual", cmsNow, cmsNow]
   );
 }
 
@@ -629,10 +653,10 @@ if (!existingNav?.n) {
 }
 
 console.log("Seed complete.");
-console.log(`  super admin : ${adminEmail} / ${adminPassword}`);
-console.log(`  demo student: student@educore.local / Student#12345`);
-console.log(`  demo course : /courses/physics-3s-full (lesson 1 free preview, lesson 2 entitled)`);
-console.log(`  demo exam   : /exams/electrostatics-check (lesson 2, required exam item)`);
-console.log(`  demo product: /products/physics-3s-full-access (300.00 EGP, manual rail)`);
+console.log(`  super admin email : ${adminEmail} (source: ADMIN_BOOTSTRAP_EMAIL; local placeholder if unset in development)`);
+console.log("  password          : not printed — change via Profile → Security or the reset flow");
+console.log("  demo student      : student@educore.local (LOCAL fixture, blocked in production readiness)");
+console.log("  demo catalog      : physics-3s-full / electrostatics-check (LMS fixtures, not site identity)");
+console.log("  production identity: د/ مصطفى تيتو / Philosophy & Psychology (CMS homepage)");
 
 await proxy.dispose();

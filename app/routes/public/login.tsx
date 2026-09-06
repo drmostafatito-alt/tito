@@ -104,8 +104,8 @@ export default function Login() {
         {envDevNote(locale) && (
           <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs leading-relaxed text-slate-500" dir="ltr">
             <p className="mb-1 font-semibold">{t(locale, "auth.demoAccounts")}</p>
-            <p>admin@educore.local / (from seed output)</p>
-            <p>student@educore.local / Student#12345</p>
+            <p>admin@educore.local (local seed only — not a production identity)</p>
+            <p>student@educore.local (local fixture)</p>
           </div>
         )}
       </Card>

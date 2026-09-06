@@ -9,7 +9,7 @@ import { canCms } from "~server/cms/service.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { files } from "~server/db/schema";
 import { cmsLabel, ICON_IDS } from "~/cms/registry";
-import { namedSocialsFromLinks, resolveSocialLinks, type SocialLink } from "~/cms/social";
+import { namedSocialsFromLinks, socialLinksForEditor, type SocialLink } from "~/cms/social";
 import { useState } from "react";
 import { DASHBOARD_MODULE_IDS } from "~server/settings/schema";
 import { Alert } from "~/components/ui/Alert";
@@ -212,16 +212,26 @@ const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 tex
 
 function SocialHub({ identity, locale, L }: { identity: { socialLinks?: SocialLink[]; facebook: string; youtube: string; instagram: string; tiktok: string; twitter: string; linkedin: string; telegram: string }; locale: Loc; L: (k: string) => string }) {
   void locale;
-  const initial = resolveSocialLinks(identity);
+  const initial = socialLinksForEditor(identity);
   const [rows, setRows] = useState(initial.length ? initial : [{
     id: "new", network: "globe", url: "", labelAr: "", labelEn: "", enabled: true, sortOrder: 0,
     showHeader: false, showFooter: true, showHome: true, showContact: true,
   }]);
+  const move = (from: number, dir: -1 | 1) => {
+    setRows((rs) => {
+      const to = from + dir;
+      if (to < 0 || to >= rs.length) return rs;
+      const next = rs.slice();
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next.map((r, i) => ({ ...r, sortOrder: i }));
+    });
+  };
   return (
     <fieldset className="sm:col-span-2 flex flex-col gap-3 rounded-lg border border-slate-200 p-4">
       <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.socialHub")}</legend>
       {rows.map((row, i) => (
-        <div key={row.id + String(i)} className="grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 sm:grid-cols-2">
+        <div key={row.id} className="grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 sm:grid-cols-2">
           <input type="hidden" name={`sl.${i}.id`} value={row.id} />
           <label className="flex flex-col text-sm">
             <span className="mb-1 font-medium">{L("cms.f.network")}</span>
@@ -237,7 +247,11 @@ function SocialHub({ identity, locale, L }: { identity: { socialLinks?: SocialLi
           <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showFooter`} defaultChecked={row.showFooter} className="h-4 w-4" /> {L("cms.ui.showFooter")}</label>
           <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showHome`} defaultChecked={row.showHome} className="h-4 w-4" /> {L("cms.ui.showHome")}</label>
           <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showContact`} defaultChecked={row.showContact} className="h-4 w-4" /> {L("cms.ui.showContact")}</label>
-          <button type="button" className="w-fit text-xs text-red-600" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>{L("cms.ui.removeRow")}</button>
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+            <button type="button" className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs" onClick={() => move(i, -1)} disabled={i === 0} aria-label="↑">↑</button>
+            <button type="button" className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs" onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label="↓">↓</button>
+            <button type="button" className="w-fit text-xs text-red-600" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>{L("cms.ui.removeRow")}</button>
+          </div>
         </div>
       ))}
       <button
