@@ -55,6 +55,21 @@
   .cms-richtext p:last-child {
     margin-block-end: 0;
   }
+  .cms-richtext h2 { font-size: 1.5rem; font-weight: 800; margin-block: 0 0.5em; }
+  .cms-richtext h3 { font-size: 1.25rem; font-weight: 700; margin-block: 0 0.4em; }
+  .cms-richtext ul, .cms-richtext ol { padding-inline-start: 1.25rem; margin-block: 0.5em; }
+  .cms-richtext a { color: var(--color-brand-700, #6d28d9); text-decoration: underline; }
+  .cms-richtext .rt-c-brand, .rt-c-brand { color: var(--color-brand-700, #6d28d9); }
+  .cms-richtext .rt-c-accent, .rt-c-accent { color: var(--color-accent-700, #4338ca); }
+  .cms-richtext .rt-c-success, .rt-c-success { color: var(--color-success, #059669); }
+  .cms-richtext .rt-c-warning, .rt-c-warning { color: var(--color-warning, #d97706); }
+  .cms-richtext .rt-c-error, .rt-c-error { color: var(--color-error, #e11d48); }
+  .cms-richtext .rt-c-ink, .rt-c-ink { color: var(--color-ink, #0f172a); }
+  .cms-richtext .rt-align-start { text-align: start; }
+  .cms-richtext .rt-align-center { text-align: center; }
+  .cms-richtext .rt-align-end { text-align: end; }
+  .cms-richtext .rt-w-bold { font-weight: 700; }
+  h1, h2, h3, h4 { font-family: var(--font-heading, "Cairo"), "IBM Plex Sans Arabic", ui-sans-serif, sans-serif; }
 }
 
 /* iOS safe areas for fixed/sticky chrome (ARCHITECTURE §15) */

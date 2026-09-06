@@ -1,5 +1,5 @@
-import type { IconId } from "./registry";
-import { ICON_IDS } from "./registry";
+import type { IconId } from "./icon-ids";
+import { ICON_IDS } from "./icon-ids";
 
 /**
  * Controlled icon registry (owner brief §ICON SYSTEM).

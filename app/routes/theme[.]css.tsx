@@ -88,6 +88,13 @@ export async function loader({ context }: Route.LoaderArgs) {
     `html{font-size:${FONT_SCALE[t.fontScale] ?? "100%"};}`,
     "body{background-color:var(--color-page-bg);color:var(--color-ink);}",
   ];
+  const FONT_STACK: Record<string, string> = {
+    cairo: '"Cairo", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif',
+    ibm: '"IBM Plex Sans Arabic", "Cairo", ui-sans-serif, system-ui, sans-serif',
+  };
+  lines.push(`:root{--font-heading:${FONT_STACK[t.headingFont] ?? FONT_STACK.cairo};--font-body:${FONT_STACK[t.bodyFont] ?? FONT_STACK.cairo};}`);
+  lines.push("body,button,input,select,textarea{font-family:var(--font-body);}");
+  lines.push("h1,h2,h3,h4{font-family:var(--font-heading);}");
   return new Response(lines.join("\n"), {
     headers: {
       "Content-Type": "text/css; charset=utf-8",

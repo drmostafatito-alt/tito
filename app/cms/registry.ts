@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { ICON_IDS } from "./icon-ids";
+import { safeHref } from "./links";
+import { seoSchema, type PageSeo, type PageSnapshot, type SnapshotComponent, type SnapshotSection } from "./seo-schema";
 
 /**
  * CMS block registry (Phase 3, Stage 1) — the SINGLE SOURCE OF TRUTH for:
@@ -25,45 +28,11 @@ import { z } from "zod";
 // Icons — controlled registry of SAFE IDENTIFIERS only (never raw SVG storage).
 // Rendered by <Icon name=…> in app/cms/icons.tsx.
 // ---------------------------------------------------------------------------
-export const ICON_IDS = [
-  "book-open", "play-circle", "graduation-cap", "file-text", "check", "check-circle",
-  "star", "phone", "mail", "map-pin", "clock", "calendar", "users", "user", "award",
-  "target", "zap", "shield", "lock", "heart", "arrow-right", "arrow-left", "chevron-down",
-  "chevron-up", "menu", "close", "search", "settings", "image", "video", "microphone",
-  "download", "external-link", "quote", "help-circle", "info", "alert-triangle",
-  "sparkles", "briefcase", "globe", "credit-card", "tag", "layers", "grid", "list",
-  "monitor", "smartphone", "tablet", "sun", "moon", "palette", "message-circle",
-  "send", "thumbs-up", "trophy", "medal", "chart", "whatsapp", "telegram", "facebook",
-  "youtube", "instagram", "tiktok", "twitter", "linkedin",
-  // generic academic / philosophy & psychology visual language (homepage redesign)
-  "brain", "scale", "lightbulb", "landmark", "pencil", "puzzle", "compass", "scroll",
-] as const;
-export type IconId = (typeof ICON_IDS)[number];
+export { ICON_IDS, SOCIAL_NETWORKS, type IconId } from "./icon-ids";
+export { safeHref } from "./links";
+export { ls, type LStr } from "./l10n";
+export { seoSchema, type PageSeo, type PageSnapshot, type SnapshotComponent, type SnapshotSection };
 
-export const SOCIAL_NETWORKS = ["whatsapp", "telegram", "facebook", "youtube", "instagram", "tiktok", "twitter", "linkedin"] as const;
-
-// ---------------------------------------------------------------------------
-// Link safety — internal relative paths or https externals ONLY.
-// No javascript:, data:, vbscript:, no protocol-relative //, no bare domains.
-// ---------------------------------------------------------------------------
-export function safeHref(href: string): boolean {
-  if (href === "") return true; // empty = no link
-  if (href.startsWith("/") && !href.startsWith("//")) {
-    // internal route: path chars only, no embedded credentials/backslashes
-    return /^\/[A-Za-z0-9\-._~%!$&'()*+,;=:@/[\]?#]*$/.test(href) && !href.includes("\\");
-  }
-  if (/^https:\/\//i.test(href)) {
-    try {
-      const u = new URL(href);
-      return u.protocol === "https:" && Boolean(u.hostname) && !u.hostname.includes("\\");
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}
-
-// ---------------------------------------------------------------------------
 // Field descriptors (drive validation + builder UI + form parsing)
 // ---------------------------------------------------------------------------
 export type FieldKind =
@@ -520,7 +489,7 @@ export const BLOCKS: Record<string, BlockDef> = {
       {
         name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.socialItem", maxItems: 10,
         items: [
-          { name: "network", kind: "select", labelKey: "cms.f.network", options: SOCIAL_NETWORKS.map((v) => ({ value: v, labelKey: `cms.social.${v}` })) },
+          { name: "network", kind: "icon", labelKey: "cms.f.network" },
           { name: "url", kind: "link", labelKey: "cms.f.url" },
           { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 60 },
         ],
@@ -631,19 +600,7 @@ export type BlockType = keyof typeof BLOCKS;
 export const COMPONENT_TYPES = Object.keys(BLOCKS).filter((k) => !BLOCKS[k].section);
 export const BLOCK_GROUPS = ["content", "media", "cta", "social", "form", "data", "layout"] as const;
 
-// ---------------------------------------------------------------------------
-// Page SEO (per-page metadata, validated)
-// ---------------------------------------------------------------------------
-export const seoSchema = z.object({
-  title: lstr(120),
-  description: lstr(300),
-  canonical: z.string().max(500).refine((s) => s === "" || /^https:\/\/[^\s]+$/i.test(s), "canonical must be an absolute https URL").default(""),
-  ogTitle: lstr(120),
-  ogDescription: lstr(300),
-  ogImage: z.string().max(36).refine((s) => s === "" || /^[0-9a-f-]{36}$/i.test(s)).default(""),
-  robots: z.enum(["index,follow", "noindex,follow", "noindex,nofollow", "index,nofollow"]).default("index,follow"),
-});
-export type PageSeo = z.infer<typeof seoSchema>;
+// Page SEO schema: seo-schema.ts (public meta must not import this file).
 export const seoFields: FieldDef[] = [
   { name: "title", kind: "ltext", labelKey: "cms.seo.title", max: 120 },
   { name: "description", kind: "ltextarea", labelKey: "cms.seo.description", max: 300 },
@@ -653,17 +610,6 @@ export const seoFields: FieldDef[] = [
   { name: "ogImage", kind: "image", labelKey: "cms.seo.ogImage" },
   { name: "robots", kind: "select", labelKey: "cms.seo.robots", options: ["index,follow", "noindex,follow", "noindex,nofollow", "index,nofollow"].map((v) => ({ value: v, labelKey: `cms.robots.${v.replace(",", "_")}` })) },
 ];
-
-// ---------------------------------------------------------------------------
-// Snapshot shape (what publishing serializes and the public route renders)
-// ---------------------------------------------------------------------------
-export interface SnapshotComponent { id: string; type: string; props: Record<string, unknown>; visible: boolean }
-export interface SnapshotSection extends SnapshotComponent { type: "section"; children: SnapshotComponent[] }
-export interface PageSnapshot {
-  v: 1;
-  page: { slug: string; titleAr: string; titleEn: string; seo: PageSeo };
-  sections: SnapshotSection[];
-}
 
 /** Slugs a CMS page may never take (app routes + reserved system paths). */
 export const RESERVED_SLUGS = new Set([
@@ -679,17 +625,6 @@ export function validPageSlug(slug: string): boolean {
   return PAGE_SLUG_RE.test(slug) && !RESERVED_SLUGS.has(slug);
 }
 
-/** Localized string helper for renderers. */
-export type LStr = { ar: string; en: string };
-export function ls(value: unknown, locale: "ar" | "en"): string {
-  if (value && typeof value === "object") {
-    const o = value as Partial<LStr>;
-    return (locale === "ar" ? o.ar : o.en) || o.ar || o.en || "";
-  }
-  return typeof value === "string" ? value : "";
-}
-
-// ---------------------------------------------------------------------------
 // Bilingual labels for the registry (self-contained: adding a block type never
 // requires touching locale files). Resolved with cmsLabel(key, locale).
 // ---------------------------------------------------------------------------
@@ -1080,7 +1015,26 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.ui.published": { ar: "تم النشر", en: "Published" },
   "cms.ui.draftOnly": { ar: "مسودة (غير منشور)", en: "Draft (unpublished)" },
   "cms.ui.validationFailed": { ar: "تحقق من الحقول المطلوبة.", en: "Check the highlighted fields." },
-  "cms.ui.richtextHint": { ar: "HTML بسيط مسموح: فقرات، روابط، قوائم، تنسيق. يتم تعقيمه عند الحفظ.", en: "Simple HTML allowed: paragraphs, links, lists, emphasis. Sanitized on save." },
+  "cms.ui.richtextHint": { ar: "شريط التنسيق: عريض/مائل/تسطير/رابط/عناوين/محاذاة وألوان من ثيم الموقع فقط. يُعقّم عند الحفظ.", en: "Toolbar: bold/italic/underline/link/headings/align and theme-token colors only. Sanitized on save." },
+  "cms.ui.templates": { ar: "قوالب الصفحات", en: "Page templates" },
+  "cms.ui.applyTemplate": { ar: "تطبيق قالب", en: "Apply template" },
+  "cms.ui.saveAsTemplate": { ar: "حفظ كقالب", en: "Save as template" },
+  "cms.ui.descriptionAr": { ar: "الوصف (عربي)", en: "Description (Arabic)" },
+  "cms.ui.descriptionEn": { ar: "الوصف (إنجليزي)", en: "Description (English)" },
+  "cms.ui.confirmReplace": { ar: "أؤكد استبدال مسودة هذه الصفحة بالقالب (الصفحة المنشورة لا تتغير حتى أنشر).", en: "I confirm replacing this page's draft with the template (the live page is unchanged until I publish)." },
+  "cms.ui.templateApplied": { ar: "تم تطبيق القالب على المسودة", en: "Template applied to the draft" },
+  "cms.ui.templateSaved": { ar: "تم حفظ القالب", en: "Template saved" },
+  "cms.ui.noTemplates": { ar: "لا توجد قوالب بعد.", en: "No templates yet." },
+  "cms.ui.builtin": { ar: "مدمج", en: "Built-in" },
+  "cms.ui.socialHub": { ar: "وسائل التواصل", en: "Social media" },
+  "cms.ui.showHeader": { ar: "إظهار في الرأس", en: "Show in header" },
+  "cms.ui.showFooter": { ar: "إظهار في التذييل", en: "Show in footer" },
+  "cms.ui.showHome": { ar: "إظهار في الرئيسية", en: "Show on home" },
+  "cms.ui.showContact": { ar: "إظهار في التواصل", en: "Show on contact" },
+  "cms.set.headingFont": { ar: "خط العناوين", en: "Heading font" },
+  "cms.set.bodyFont": { ar: "خط النص", en: "Body font" },
+  "cms.font.cairo": { ar: "Cairo (موصى به للعربي)", en: "Cairo (recommended for Arabic)" },
+  "cms.font.ibm": { ar: "IBM Plex Sans Arabic", en: "IBM Plex Sans Arabic" },
   "cms.ui.linkHint": { ar: "رابط داخلي (/…) أو https://", en: "Internal path (/…) or https://" },
   "cms.ui.theme": { ar: "الألوان والتصميم", en: "Colors & design" },
   "cms.ui.identity": { ar: "الهوية والتواصل", en: "Identity & contact" },

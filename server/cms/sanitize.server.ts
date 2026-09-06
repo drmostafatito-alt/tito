@@ -12,16 +12,24 @@
  * the admin preview path — public rendering trusts the snapshot but the schema
  * re-validation at render still applies.
  */
-import { safeHref } from "../../app/cms/registry";
+import { safeHref } from "../../app/cms/links";
+import { filterRtClassAttr } from "../../app/cms/richtext";
 
 const ALLOWED_TAGS = new Set([
   "p", "br", "strong", "b", "em", "i", "u", "s", "a", "ul", "ol", "li",
   "h2", "h3", "h4", "blockquote", "code", "pre", "span", "hr", "small", "sup", "sub",
 ]);
 /** tag → allowed attributes (everything else is stripped). */
+const CLASS_OK = new Set(["class", "dir", "lang"]);
 const ALLOWED_ATTRS: Record<string, Set<string>> = {
-  a: new Set(["href", "title", "target", "rel"]),
-  span: new Set(["dir", "lang"]),
+  a: new Set(["href", "title", "target", "rel", "class"]),
+  span: CLASS_OK,
+  p: CLASS_OK,
+  h2: CLASS_OK,
+  h3: CLASS_OK,
+  h4: CLASS_OK,
+  li: CLASS_OK,
+  blockquote: CLASS_OK,
   code: new Set(["dir", "lang"]),
   pre: new Set(["dir", "lang"]),
 };
@@ -46,6 +54,12 @@ class SanitizingHandler implements HTMLRewriterElementContentHandlers {
       const name = rawName.toLowerCase();
       if (name.startsWith("on") || !allowed.has(name)) {
         el.removeAttribute(rawName);
+        continue;
+      }
+      if (name === "class") {
+        const filtered = filterRtClassAttr(rawValue);
+        if (filtered) el.setAttribute("class", filtered);
+        else el.removeAttribute(rawName);
         continue;
       }
       if (name === "href") {

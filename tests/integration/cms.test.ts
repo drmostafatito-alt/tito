@@ -21,6 +21,7 @@ import {
 } from "~server/cms/service.server";
 import { renderSnapshot, resolvePublicImageUrls } from "~server/cms/render.server";
 import { sanitizeRichText } from "~server/cms/sanitize.server";
+import { applyTemplate, cloneSectionsIndependent, savePageAsTemplate } from "~server/cms/templates.server";
 import { createCourse, createGrade, createProgram, createSubject, createUnit } from "~server/content/service.server";
 import { auditLogs, files as filesTable } from "~server/db/schema";
 import type { PageSnapshot } from "~/cms/registry";
@@ -32,7 +33,7 @@ async function wipe() {
   const db = getDb(env);
   for (const table of [
     "form_submissions", "form_fields", "forms", "menu_items", "menus",
-    "page_versions", "blocks", "pages", "role_permissions",
+    "page_versions", "blocks", "pages", "page_templates", "role_permissions",
     "units", "courses", "subjects", "grades", "programs", "files", "audit_logs",
   ]) {
     await db.run(`DELETE FROM ${table}`);
@@ -62,6 +63,17 @@ describe("rich-text sanitizer (no arbitrary HTML/script execution)", () => {
 
   it("empty input sanitizes to empty string", async () => {
     expect(await sanitizeRichText("   ")).toBe("");
+  });
+
+  it("keeps theme-token classes and strips arbitrary class/style injection", async () => {
+    const out = await sanitizeRichText(
+      `<p class="rt-c-brand rt-align-center text-red-500" style="color:red">ok</p>`
+    );
+    expect(out).toContain("rt-c-brand");
+    expect(out).toContain("rt-align-center");
+    expect(out).not.toContain("text-red-500");
+    expect(out).not.toContain("style=");
+    expect(out).not.toContain("color:red");
   });
 });
 

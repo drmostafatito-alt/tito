@@ -10,6 +10,7 @@ import { resolvePublicImageUrls } from "~server/cms/render.server";
 import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { Icon } from "~/cms/icons";
+import { resolveSocialLinks, socialsFor, socialIconName } from "~/cms/social";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -35,6 +36,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   ]);
   const idn = settings.identity;
   const images = await resolvePublicImageUrls(db, [idn.logoFileId].filter(Boolean));
+  const waUrl = settings.platform.whatsapp ? `https://wa.me/${settings.platform.whatsapp.replace(/[^\d]/g, "")}` : "";
+  const socialAll = resolveSocialLinks(idn, waUrl);
 
   const toItem = (i: { id: string; parentId: string | null; labelAr: string; labelEn: string; href: string; external: boolean; icon: string | null; visible: boolean }) => ({
     id: i.id, labelAr: i.labelAr, labelEn: i.labelEn, href: i.href, external: i.external, icon: i.icon,
@@ -56,14 +59,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       contactEmail: idn.contactEmail,
       contactAddress: { ar: idn.contactAddressAr, en: idn.contactAddressEn },
       copyright: { ar: idn.copyrightAr, en: idn.copyrightEn },
-      socials: (["whatsapp", "telegram", "facebook", "youtube", "instagram", "tiktok", "twitter", "linkedin"] as const)
-        .map((network) => {
-          const url = network === "whatsapp"
-            ? (settings.platform.whatsapp ? `https://wa.me/${settings.platform.whatsapp.replace(/[^\d]/g, "")}` : "")
-            : idn[network === "telegram" ? "telegram" : network];
-          return { network, url };
-        })
-        .filter((s) => s.url),
+      socialsHeader: socialsFor(socialAll, "header").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: s.labelAr, labelEn: s.labelEn })),
+      socialsFooter: socialsFor(socialAll, "footer").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: s.labelAr, labelEn: s.labelEn })),
     },
   };
 }
@@ -161,6 +158,22 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           )}
 
           <div className="flex items-center gap-1.5">
+            {idn.socialsHeader.length > 0 && (
+              <div className="hidden items-center gap-1 sm:flex">
+                {idn.socialsHeader.map((s) => (
+                  <a
+                    key={s.network + s.url}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    aria-label={locale === "ar" ? s.labelAr || s.network : s.labelEn || s.network}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100"
+                  >
+                    <Icon name={s.network} size="sm" colorRole="default" className="text-current" />
+                  </a>
+                ))}
+              </div>
+            )}
             <LanguageSwitcher locale={locale} />
             {loaderData.user ? (
               <>
@@ -263,9 +276,9 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               {idn.logoUrl ? <img src={idn.logoUrl} alt={appName} className="h-9 w-auto object-contain" /> : <BrandMark name={appName} />}
             </Link>
             {tagline && <p className="text-sm text-slate-500">{tagline}</p>}
-            {idn.socials.length > 0 && (
+            {idn.socialsFooter.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {idn.socials.map((s) => (
+                {idn.socialsFooter.map((s) => (
                   <a
                     key={s.network}
                     href={s.url}

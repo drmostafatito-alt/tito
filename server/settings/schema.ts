@@ -107,6 +107,20 @@ export const identitySettingsSchema = z.object({
   linkedin: httpsOrEmpty,
   copyrightAr: z.string().max(200).default(""),
   copyrightEn: z.string().max(200).default(""),
+  /** Data-driven social accounts (not a closed platform list). Empty → named URL fields are used. */
+  socialLinks: z.array(z.object({
+    id: z.string().max(40).default(""),
+    network: z.string().max(40).default("globe"),
+    url: httpsOrEmpty,
+    labelAr: z.string().max(80).default(""),
+    labelEn: z.string().max(80).default(""),
+    enabled: z.boolean().default(true),
+    sortOrder: z.number().int().min(0).max(99).default(0),
+    showHeader: z.boolean().default(false),
+    showFooter: z.boolean().default(true),
+    showHome: z.boolean().default(true),
+    showContact: z.boolean().default(true),
+  })).max(20).default([]),
 });
 export type IdentitySettings = z.infer<typeof identitySettingsSchema>;
 
@@ -131,6 +145,8 @@ export const themeSettingsSchema = z.object({
   shadow: z.enum(["none", "sm", "md", "lg"]).default("md"),
   density: z.enum(["compact", "normal", "relaxed"]).default("normal"),
   fontScale: z.enum(["compact", "normal", "large"]).default("normal"),
+  headingFont: z.enum(["cairo", "ibm"]).default("cairo"),
+  bodyFont: z.enum(["cairo", "ibm"]).default("cairo"),
 });
 export type ThemeSettings = z.infer<typeof themeSettingsSchema>;
 

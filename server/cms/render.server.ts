@@ -23,6 +23,7 @@ import type {
 } from "../../app/cms/render-types";
 import type { Settings } from "../settings/schema";
 import { collectFileRefs } from "./service.server";
+import { resolveSocialLinks } from "../../app/cms/social";
 
 /**
  * CMS render resolvers (Phase 3). The CONTENT ↔ PRESENTATION boundary lives
@@ -82,10 +83,12 @@ export function buildIdentityView(settings: Settings, images: Record<string, str
   const p = settings.platform;
   const idn = settings.identity;
   const img = (fileId: string): string | null => (fileId && images[fileId] ? images[fileId] : null);
-  const socials: Array<{ network: string; url: string }> = [];
-  for (const network of ["facebook", "youtube", "instagram", "tiktok", "twitter", "linkedin", "telegram"] as const) {
-    if (idn[network]) socials.push({ network, url: idn[network] });
-  }
+  const wa = (p.whatsapp ?? "").replace(/[^\d]/g, "");
+  const waUrl = wa ? `https://wa.me/${wa}` : "";
+  const socials = resolveSocialLinks(idn, waUrl).map((s) => ({
+    network: s.network, url: s.url, labelAr: s.labelAr, labelEn: s.labelEn,
+    showHeader: s.showHeader, showFooter: s.showFooter, showHome: s.showHome, showContact: s.showContact,
+  }));
   return {
     platformName: L(p.nameAr, p.nameEn),
     shortName: L(idn.shortNameAr || p.nameAr, idn.shortNameEn || p.nameEn),

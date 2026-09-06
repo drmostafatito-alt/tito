@@ -1,6 +1,6 @@
 import type { MetaDescriptor } from "react-router";
 import type { Locale } from "~/lib/i18n";
-import { seoSchema, type PageSeo, type PageSnapshot } from "~/cms/registry";
+import { seoSchema, type PageSeo, type PageSnapshot } from "~/cms/seo-schema";
 
 /**
  * Pure, client-safe SEO/snapshot helpers shared by route loaders AND meta()

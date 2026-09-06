@@ -3,9 +3,11 @@ import {
   DASHBOARD_MODULE_IDS,
   dashboardSettingsSchema,
   deviceSettingsSchema,
+  identitySettingsSchema,
   localeSettingsSchema,
   platformSettingsSchema,
   securitySettingsSchema,
+  themeSettingsSchema,
   videoSettingsSchema,
 } from "~server/settings/schema";
 

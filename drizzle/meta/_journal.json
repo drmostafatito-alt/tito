@@ -57,6 +57,13 @@
       "when": 1788641576540,
       "tag": "0007_little_aqueduct",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788700000000,
+      "tag": "0008_cms_customization",
+      "breakpoints": true
     }
   ]
 }

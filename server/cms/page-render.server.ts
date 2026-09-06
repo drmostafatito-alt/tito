@@ -14,11 +14,11 @@ import type { FormResultView } from "../../app/cms/render-types";
  */
 
 /** Locale for a public request (cookie → user pref → platform default; Accept-Language is ignored). */
-export function requestLocale(request: Request, settings: Settings): Locale {
+export function requestLocale(request: Request, settings: Settings, userPref: string | null = null): Locale {
   const cookieLocale = parseCookieHeader(request.headers.get("cookie")).get(LOCALE_COOKIE);
   return resolveLocale({
     cookieValue: isLocale(cookieLocale) ? cookieLocale : null,
-    userPref: null,
+    userPref: isLocale(userPref) ? userPref : null,
     acceptLanguage: request.headers.get("accept-language"),
     defaultLocale: settings.locale.default,
     enabled: settings.locale.enabled,

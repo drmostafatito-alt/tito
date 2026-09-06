@@ -459,6 +459,13 @@ export const en: Dictionary = {
     uploaded: "File uploaded",
     tooLarge: "File exceeds the size cap",
     badType: "Unsupported file type",
+    saveMeta: "Save name & alt",
+    replace: "Replace file",
+    delete: "Delete",
+    confirmDelete: "Delete this file? This cannot be undone if it is unused.",
+    usage: "Usage",
+    unused: "Not used",
+    inUse: "File is in use and cannot be deleted",
   },
   videosAdmin: {
     title: "Video",

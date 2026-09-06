@@ -359,7 +359,25 @@ if (!existingExamItem) {
 
 // ---------------------------------------------------------------------------
 // Phase 6 demo commerce (idempotent: keyed by fixed slug). The readiness gate
-// flags these rows — dev/demo only, never productiللدورة",
+// flags these rows — dev/demo only, never production.
+// ---------------------------------------------------------------------------
+const paymentsSettings = {
+  manualEnabled: true,
+  manualInstructionsAr: "حوالة إنستاباي إلى 01000000000 — اكتب رقم الطلب في البيان",
+  manualInstructionsEn: "Instapay transfer to 01000000000 — write the order number as the reference",
+  orderTtlMinutes: 4320,
+  refundWindowDays: 14,
+};
+await exec(`INSERT INTO settings (key, value, updated_at) VALUES ('payments', ?, ?) ON CONFLICT(key) DO NOTHING`, [
+  JSON.stringify(paymentsSettings),
+  now,
+]);
+
+const demoProductId = await ensureContent("products", "physics-3s-full-access", {
+  id: crypto.randomUUID(),
+  kind: "course",
+  slug: "physics-3s-full-access",
+  name_ar: "فيزياء ٣ث — وصول كامل للدورة",
   name_en: "Physics 3S — Full Course Access",
   description_ar: "افتح كل دروس دورة الفيزياء: الشرح والملفات والامتحانات.",
   description_en: "Unlock every physics lesson: videos, files and exams.",
@@ -606,19 +624,6 @@ if (!existingNav?.n) {
     await exec(
       `INSERT INTO menu_items (id, menu_id, parent_id, label_ar, label_en, href, external, icon, sort_order, visible, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
       [cmsId(), headerMenuId, null, navItems[i][0], navItems[i][1], navItems[i][2], 0, null, i, 1, cmsNow, cmsNow]
-    );
-  }
-}
-
-console.log("Seed complete.");
-console.log(`  super admin : ${adminEmail} / ${adminPassword}`);
-console.log(`  demo student: student@educore.local / Student#12345`);
-console.log(`  demo course : /courses/physics-3s-full (lesson 1 free preview, lesson 2 entitled)`);
-console.log(`  demo exam   : /exams/electrostatics-check (lesson 2, required exam item)`);
-console.log(`  demo product: /products/physics-3s-full-access (300.00 EGP, manual rail)`);
-
-await proxy.dispose();
-[i][2], 0, null, i, 1, cmsNow, cmsNow]
     );
   }
 }

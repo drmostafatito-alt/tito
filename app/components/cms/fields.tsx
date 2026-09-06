@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Icon } from "~/cms/icons";
-import { cmsLabel, ICON_IDS, ls, type FieldDef } from "~/cms/registry";
+import { cmsLabel, ICON_IDS, type FieldDef } from "~/cms/registry";
+import { ls } from "~/cms/l10n";
+import { RichTextEditor } from "~/components/cms/RichTextEditor";
 
 /**
  * Descriptor-driven builder inputs (Phase 3 admin). Input names follow the
@@ -65,8 +67,10 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
               <span className="mb-1 text-xs text-slate-400">{lng === "ar" ? "عربي" : "English"}</span>
               {Edit === "input" ? (
                 <input name={`${name}.${lng}`} defaultValue={lng === "ar" ? ar : en} maxLength={field.max} className={inputCls} dir={lng === "ar" ? "rtl" : "ltr"} />
+              ) : field.kind === "lrichtext" ? (
+                <RichTextEditor name={`${name}.${lng}`} defaultValue={lng === "ar" ? ar : en} dir={lng === "ar" ? "rtl" : "ltr"} rows={6} />
               ) : (
-                <textarea name={`${name}.${lng}`} defaultValue={lng === "ar" ? ar : en} rows={field.kind === "lrichtext" ? 6 : 3} className={inputCls} dir={lng === "ar" ? "rtl" : "ltr"} />
+                <textarea name={`${name}.${lng}`} defaultValue={lng === "ar" ? ar : en} rows={3} className={inputCls} dir={lng === "ar" ? "rtl" : "ltr"} />
               )}
             </div>
           ))}

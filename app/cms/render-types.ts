@@ -1,4 +1,4 @@
-import type { LStr } from "./registry";
+import type { LStr } from "./l10n";
 
 /**
  * View-models handed from the page loader to the CMS renderers.
@@ -57,7 +57,7 @@ export interface IdentityView {
   contactAddress: LStr;
   whatsapp: string;                // digits or ""
   telegram: string;                // https URL or ""
-  socials: Array<{ network: string; url: string }>;
+  socials: Array<{ network: string; url: string; labelAr?: string; labelEn?: string; showHeader?: boolean; showFooter?: boolean; showHome?: boolean; showContact?: boolean }>;
   copyright: LStr;
 }
 

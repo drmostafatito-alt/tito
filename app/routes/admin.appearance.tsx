@@ -8,7 +8,9 @@ import { getSettings, updateSettingsGroup } from "~server/settings/service.serve
 import { canCms } from "~server/cms/service.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { files } from "~server/db/schema";
-import { cmsLabel } from "~/cms/registry";
+import { cmsLabel, ICON_IDS } from "~/cms/registry";
+import { namedSocialsFromLinks, resolveSocialLinks, type SocialLink } from "~/cms/social";
+import { useState } from "react";
 import { DASHBOARD_MODULE_IDS } from "~server/settings/schema";
 import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
@@ -95,6 +97,26 @@ export async function action({ context, request }: Route.ActionArgs) {
     }
     let patch: Record<string, unknown>;
     if (group === "identity") {
+      const socialLinks: SocialLink[] = [];
+      for (let i = 0; i < 20; i++) {
+        const url = str(`sl.${i}.url`);
+        const network = str(`sl.${i}.network`);
+        if (!url && !network) continue;
+        socialLinks.push({
+          id: str(`sl.${i}.id`) || crypto.randomUUID(),
+          network: network || "globe",
+          url,
+          labelAr: str(`sl.${i}.labelAr`),
+          labelEn: str(`sl.${i}.labelEn`),
+          enabled: on(`sl.${i}.enabled`),
+          sortOrder: i,
+          showHeader: on(`sl.${i}.showHeader`),
+          showFooter: on(`sl.${i}.showFooter`),
+          showHome: on(`sl.${i}.showHome`),
+          showContact: on(`sl.${i}.showContact`),
+        });
+      }
+      const named = namedSocialsFromLinks(socialLinks);
       patch = {
         shortNameAr: str("shortNameAr"), shortNameEn: str("shortNameEn"),
         ownerNameAr: str("ownerNameAr"), ownerNameEn: str("ownerNameEn"),
@@ -104,9 +126,9 @@ export async function action({ context, request }: Route.ActionArgs) {
         aboutImageFileId: str("aboutImageFileId"),
         contactPhone: str("contactPhone"), contactEmail: str("contactEmail"),
         contactAddressAr: str("contactAddressAr"), contactAddressEn: str("contactAddressEn"),
-        telegram: str("telegram"), facebook: str("facebook"), youtube: str("youtube"),
-        instagram: str("instagram"), tiktok: str("tiktok"), twitter: str("twitter"), linkedin: str("linkedin"),
+        ...named,
         copyrightAr: str("copyrightAr"), copyrightEn: str("copyrightEn"),
+        socialLinks,
       };
     } else if (group === "theme") {
       const num = (k: string) => Number(str(k) || 0);
@@ -117,6 +139,7 @@ export async function action({ context, request }: Route.ActionArgs) {
         success: str("success"), warning: str("warning"), error: str("error"),
         radiusBase: num("radiusBase"), radiusButton: num("radiusButton"), radiusCard: num("radiusCard"),
         shadow: str("shadow"), density: str("density"), fontScale: str("fontScale"),
+        headingFont: str("headingFont") || "cairo", bodyFont: str("bodyFont") || "cairo",
       };
     } else if (group === "presentation") {
       patch = {
@@ -186,6 +209,47 @@ function Check({ name, checked, label }: { name: string; checked: boolean; label
 }
 
 const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none";
+
+function SocialHub({ identity, locale, L }: { identity: { socialLinks?: SocialLink[]; facebook: string; youtube: string; instagram: string; tiktok: string; twitter: string; linkedin: string; telegram: string }; locale: Loc; L: (k: string) => string }) {
+  void locale;
+  const initial = resolveSocialLinks(identity);
+  const [rows, setRows] = useState(initial.length ? initial : [{
+    id: "new", network: "globe", url: "", labelAr: "", labelEn: "", enabled: true, sortOrder: 0,
+    showHeader: false, showFooter: true, showHome: true, showContact: true,
+  }]);
+  return (
+    <fieldset className="sm:col-span-2 flex flex-col gap-3 rounded-lg border border-slate-200 p-4">
+      <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.socialHub")}</legend>
+      {rows.map((row, i) => (
+        <div key={row.id + String(i)} className="grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 sm:grid-cols-2">
+          <input type="hidden" name={`sl.${i}.id`} value={row.id} />
+          <label className="flex flex-col text-sm">
+            <span className="mb-1 font-medium">{L("cms.f.network")}</span>
+            <select name={`sl.${i}.network`} defaultValue={row.network} className={selectCls}>
+              {ICON_IDS.map((id) => <option key={id} value={id}>{id}</option>)}
+            </select>
+          </label>
+          <Input label={L("cms.f.url")} name={`sl.${i}.url`} defaultValue={row.url} dir="ltr" placeholder="https://…" />
+          <Input label={`${L("cms.f.label")} (عربي)`} name={`sl.${i}.labelAr`} defaultValue={row.labelAr} dir="rtl" />
+          <Input label={`${L("cms.f.label")} (English)`} name={`sl.${i}.labelEn`} defaultValue={row.labelEn} dir="ltr" />
+          <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.enabled`} defaultChecked={row.enabled} className="h-4 w-4" /> {L("cms.ui.enabled")}</label>
+          <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showHeader`} defaultChecked={row.showHeader} className="h-4 w-4" /> {L("cms.ui.showHeader")}</label>
+          <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showFooter`} defaultChecked={row.showFooter} className="h-4 w-4" /> {L("cms.ui.showFooter")}</label>
+          <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showHome`} defaultChecked={row.showHome} className="h-4 w-4" /> {L("cms.ui.showHome")}</label>
+          <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showContact`} defaultChecked={row.showContact} className="h-4 w-4" /> {L("cms.ui.showContact")}</label>
+          <button type="button" className="w-fit text-xs text-red-600" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>{L("cms.ui.removeRow")}</button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="inline-flex min-h-11 w-fit items-center rounded-lg border border-dashed border-slate-300 px-4 text-sm"
+        onClick={() => setRows((rs) => [...rs, { id: crypto.randomUUID(), network: "globe", url: "", labelAr: "", labelEn: "", enabled: true, sortOrder: rs.length, showHeader: false, showFooter: true, showHome: true, showContact: true }])}
+      >
+        + {L("cms.ui.addRow")}
+      </button>
+    </fieldset>
+  );
+}
 
 function ColorInput({ name, value, label }: { name: string; value: string; label: string }) {
   return (
@@ -263,9 +327,7 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
               <Input label={L("cms.set.contactEmail")} name="contactEmail" defaultValue={idn.contactEmail} dir="ltr" type="email" />
               <Input label={`${L("cms.set.contactAddress")} (عربي)`} name="contactAddressAr" defaultValue={idn.contactAddressAr} dir="rtl" />
               <Input label={`${L("cms.set.contactAddress")} (English)`} name="contactAddressEn" defaultValue={idn.contactAddressEn} dir="ltr" />
-              {(["telegram", "facebook", "youtube", "instagram", "tiktok", "twitter", "linkedin"] as const).map((net) => (
-                <Input key={net} label={`${L(`cms.social.${net}`)} URL`} name={net} defaultValue={idn[net]} dir="ltr" placeholder="https://…" />
-              ))}
+              <SocialHub identity={idn} locale={locale} L={L} />
               <Input label={`${L("cms.set.copyright")} (عربي)`} name="copyrightAr" defaultValue={idn.copyrightAr} dir="rtl" />
               <Input label={`${L("cms.set.copyright")} (English)`} name="copyrightEn" defaultValue={idn.copyrightEn} dir="ltr" />
               <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>
@@ -309,6 +371,20 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                 <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.fontScale")}</span>
                 <select name="fontScale" defaultValue={theme.fontScale} className={selectCls}>
                   {["compact", "normal", "large"].map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.headingFont")}</span>
+                <select name="headingFont" defaultValue={theme.headingFont} className={selectCls}>
+                  <option value="cairo">{L("cms.font.cairo")}</option>
+                  <option value="ibm">{L("cms.font.ibm")}</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.bodyFont")}</span>
+                <select name="bodyFont" defaultValue={theme.bodyFont} className={selectCls}>
+                  <option value="cairo">{L("cms.font.cairo")}</option>
+                  <option value="ibm">{L("cms.font.ibm")}</option>
                 </select>
               </div>
               <SubmitButton className="w-fit sm:col-span-3">{L("cms.ui.saveGroup")}</SubmitButton>

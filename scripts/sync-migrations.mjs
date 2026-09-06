@@ -24,11 +24,12 @@ for (const entry of journal.entries) {
   const source = join(drizzleDir, `${entry.tag}.sql`);
   if (!existsSync(source)) continue;
   // drizzle-kit tags already carry the zero-padded sequence (e.g. 0000_init)
-  const target = join(outDir, `${entry.tag}.sql`);
+  const targetName = `${entry.tag}.sql`;
+  const target = join(outDir, targetName);
   const content = readFileSync(source, "utf8");
-  if (!existing.has(target.name) || readFileSync(target, "utf8") !== content) {
+  if (!existing.has(targetName) || (existsSync(target) && readFileSync(target, "utf8") !== content) || !existsSync(target)) {
     cpSync(source, target);
-    console.log(`  migrations ← ${target.split("/").pop()}`);
+    console.log(`  migrations ← ${targetName}`);
     copied++;
   }
 }

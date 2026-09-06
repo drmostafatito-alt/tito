@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { DB } from "../db/client.server";
-import { files, lessonItems } from "../db/schema";
+import { blocks, courses, files, lessonItems, pages, settings as settingsTable, subjects } from "../db/schema";
 import { hmacSha256Hex, timingSafeEqualHex } from "../crypto/hmac.server";
 
 /**
@@ -102,8 +102,11 @@ export async function insertFile(
     checksumSha256: row.checksumSha256,
     visibility: row.visibility,
     downloadAllowed: row.downloadAllowed ?? false,
+    altAr: "",
+    altEn: "",
     createdBy: row.createdBy ?? null,
     createdAt: Date.now(),
+    updatedAt: Date.now(),
   });
   return id;
 }
@@ -185,6 +188,55 @@ export function sandboxCspFor(mime: string): string | null {
   const norm = mime.split(";")[0].trim().toLowerCase();
   const active = norm === "image/svg+xml" || norm === "text/html" || norm === "application/xhtml+xml";
   return active ? "sandbox" : null;
+}
+
+export async function updateFileMeta(db: DB, id: string, patch: { originalFilename?: string; altAr?: string; altEn?: string }): Promise<void> {
+  const next: Record<string, unknown> = { updatedAt: Date.now() };
+  if (typeof patch.originalFilename === "string" && patch.originalFilename.trim()) next.originalFilename = patch.originalFilename.trim().slice(0, 200);
+  if (typeof patch.altAr === "string") next.altAr = patch.altAr.slice(0, 200);
+  if (typeof patch.altEn === "string") next.altEn = patch.altEn.slice(0, 200);
+  await db.update(files).set(next).where(eq(files.id, id));
+}
+
+/** Replace bytes in place (same file id — CMS references stay valid). */
+export async function replaceFileBytes(
+  db: DB,
+  env: Env,
+  id: string,
+  buf: ArrayBuffer,
+  mime: string,
+  originalFilename: string
+): Promise<boolean> {
+  const row = await getFile(db, id);
+  if (!row) return false;
+  const checksum = await sha256HexOf(buf);
+  await bucketOf(env, row).put(row.r2Key, buf, { httpMetadata: { contentType: mime } });
+  await db.update(files).set({
+    mime,
+    byteSize: buf.byteLength,
+    checksumSha256: checksum,
+    originalFilename: originalFilename.slice(0, 200),
+    updatedAt: Date.now(),
+  }).where(eq(files.id, id));
+  return true;
+}
+
+export async function fileUsage(db: DB, fileId: string): Promise<string[]> {
+  const like = `%${fileId}%`;
+  const hits: string[] = [];
+  const [pageHits, blockHits, settingHits, courseHits, subjectHits] = await Promise.all([
+    db.select({ id: pages.id, slug: pages.slug }).from(pages).where(sql`cast(${pages.publishedSnapshot} as text) like ${like}`).limit(20),
+    db.select({ id: blocks.id, pageId: blocks.pageId }).from(blocks).where(sql`cast(${blocks.props} as text) like ${like}`).limit(20),
+    db.select({ key: settingsTable.key }).from(settingsTable).where(sql`cast(${settingsTable.value} as text) like ${like}`).limit(20),
+    db.select({ id: courses.id }).from(courses).where(eq(courses.thumbnailFileId, fileId)).limit(20),
+    db.select({ id: subjects.id }).from(subjects).where(eq(subjects.thumbnailFileId, fileId)).limit(20),
+  ]);
+  for (const p of pageHits) hits.push(`page:${p.slug}`);
+  for (const b of blockHits) hits.push(`block:${b.id}`);
+  for (const s of settingHits) hits.push(`settings:${s.key}`);
+  for (const c of courseHits) hits.push(`course:${c.id}`);
+  for (const s of subjectHits) hits.push(`subject:${s.id}`);
+  return hits;
 }
 
 export async function deleteFile(db: DB, env: Env, id: string): Promise<boolean> {

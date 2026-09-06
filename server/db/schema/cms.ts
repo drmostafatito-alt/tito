@@ -162,6 +162,22 @@ export const formSubmissions = sqliteTable(
 );
 
 /** Fine-grained CMS permissions per role (owner brief §PERMISSIONS). super_admin (rank 4) bypasses. */
+/** Saved page templates (independent snapshots). Built-ins live in code; custom rows here. */
+export const pageTemplates = sqliteTable("page_templates", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  titleAr: text("title_ar").notNull(),
+  titleEn: text("title_en").notNull(),
+  descriptionAr: text("description_ar").notNull().default(""),
+  descriptionEn: text("description_en").notNull().default(""),
+  thumbnailFileId: text("thumbnail_file_id"),
+  snapshot: text("snapshot", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
+  builtin: integer("builtin", { mode: "boolean" }).notNull().default(false),
+  createdBy: text("created_by"),
+  createdAt: integer("created_at", { mode: "number" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+});
+
 export const rolePermissions = sqliteTable(
   "role_permissions",
   {

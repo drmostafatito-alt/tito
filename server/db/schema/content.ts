@@ -218,8 +218,11 @@ export const files = sqliteTable(
     checksumSha256: text("checksum_sha256").notNull(),
     visibility: text("visibility", { enum: ["public", "private"] }).notNull().default("private"),
     downloadAllowed: integer("download_allowed", { mode: "boolean" }).notNull().default(false),
+    altAr: text("alt_ar").notNull().default(""),
+    altEn: text("alt_en").notNull().default(""),
     createdBy: text("created_by"),
     createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull().default(0),
   },
   (t) => [index("files_kind_idx").on(t.kind, t.visibility)]
 );

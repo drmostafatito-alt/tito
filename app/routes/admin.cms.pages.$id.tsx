@@ -27,6 +27,7 @@ import {
 } from "~server/cms/service.server";
 import { courses, files, programs, subjects, videos } from "~server/db/schema";
 import { requestLocale } from "~server/cms/page-render.server";
+import { applyTemplate, listTemplates, savePageAsTemplate } from "~server/cms/templates.server";
 import { readPropsFromForm } from "~/cms/formdata";
 import { BLOCKS, SECTION_FIELDS, cmsLabel, seoFields } from "~/cms/registry";
 import { FieldEditors, type PickerData } from "~/components/cms/fields";
@@ -92,16 +93,17 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const page = await getPage(db, params.id);
   if (!page) throw new Response("Not Found", { status: 404 });
   if (!guard.allowed) {
-    return { denied: true as const, page: null, tree: [], versions: [], pickers: null, perms: null };
+    return { denied: true as const, page: null, tree: [], versions: [], pickers: null, perms: null, templates: [] };
   }
   const adminLocale = requestLocale(request, guard.settings) === "en" ? "en" as const : "ar" as const;
-  const [tree, versions, pickers, canEdit, canPublish, canSeo] = await Promise.all([
+  const [tree, versions, pickers, canEdit, canPublish, canSeo, templates] = await Promise.all([
     blocksForPage(db, page.id),
     listVersions(db, page.id),
     loadPickers(db, adminLocale),
     canCms(db, guard.auth, "cms.edit"),
     canCms(db, guard.auth, "cms.publish"),
     canCms(db, guard.auth, "cms.manage_seo"),
+    listTemplates(db),
   ]);
   return {
     denied: false as const,
@@ -110,6 +112,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     versions,
     pickers,
     perms: { canEdit, canPublish, canSeo },
+    templates,
   };
 }
 
@@ -172,6 +175,17 @@ export async function action({ context, params, request }: Route.ActionArgs) {
       case "restore-version":
         await restoreVersion(db, pageId, String(form.get("versionId") ?? ""), actor);
         return { ok: true as const };
+      case "apply-template":
+        await applyTemplate(db, pageId, String(form.get("templateId") ?? ""), actor, form.get("confirm") === "on");
+        return { ok: true as const, templateApplied: true as const };
+      case "save-as-template":
+        await savePageAsTemplate(db, pageId, {
+          titleAr: String(form.get("titleAr") ?? ""),
+          titleEn: String(form.get("titleEn") ?? ""),
+          descriptionAr: String(form.get("descriptionAr") ?? ""),
+          descriptionEn: String(form.get("descriptionEn") ?? ""),
+        }, actor);
+        return { ok: true as const, templateSaved: true as const };
       default:
         return { error: "generic" as const };
     }
@@ -249,7 +263,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
   if (loaderData.denied || !loaderData.page || !loaderData.pickers || !loaderData.perms) {
     return <Alert kind="error">{L("cms.ui.permissionDenied")}</Alert>;
   }
-  const { page, tree, versions, pickers, perms } = loaderData;
+  const { page, tree, versions, pickers, perms, templates } = loaderData;
   const title = locale === "ar" ? page.titleAr || page.titleEn : page.titleEn || page.titleAr;
   const statusTone = page.status === "published" ? "success" : page.status === "archived" ? "neutral" : "warning";
   const groupedBlocks = BLOCK_GROUPS.map((g) => ({
@@ -286,6 +300,12 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
       {actionData && "issues" in actionData && actionData.issues && <Alert kind="error">{L("cms.ui.validationFailed")} — {actionData.issues.join(" · ")}</Alert>}
       {actionData && "ok" in actionData && actionData.ok && "publishedVersion" in actionData && (
         <Alert kind="success">{L("cms.ui.published")} — v{String(actionData.publishedVersion)}</Alert>
+      )}
+      {actionData && "ok" in actionData && actionData.ok && "templateApplied" in actionData && (
+        <Alert kind="success">{L("cms.ui.templateApplied")}</Alert>
+      )}
+      {actionData && "ok" in actionData && actionData.ok && "templateSaved" in actionData && (
+        <Alert kind="success">{L("cms.ui.templateSaved")}</Alert>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -387,6 +407,39 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
               </Form>
             </CardBody>
           </Card>
+
+          {perms.canEdit && (
+            <Card>
+              <CardHeader title={L("cms.ui.templates")} />
+              <CardBody className="flex flex-col gap-4">
+                <Form method="post" className="flex flex-col gap-2">
+                  <input type="hidden" name="_action" value="apply-template" />
+                  <select name="templateId" required className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                    <option value="">{L("cms.ui.applyTemplate")}…</option>
+                    {templates.map((tpl) => (
+                      <option key={tpl.id} value={tpl.id}>
+                        {locale === "ar" ? tpl.titleAr || tpl.titleEn : tpl.titleEn || tpl.titleAr}
+                        {tpl.builtin ? ` · ${L("cms.ui.builtin")}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="flex items-start gap-2 text-sm text-slate-600">
+                    <input type="checkbox" name="confirm" className="mt-1 h-4 w-4" required />
+                    <span>{L("cms.ui.confirmReplace")}</span>
+                  </label>
+                  <SubmitButton variant="secondary">{L("cms.ui.applyTemplate")}</SubmitButton>
+                </Form>
+                <Form method="post" className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+                  <input type="hidden" name="_action" value="save-as-template" />
+                  <Input label={L("cms.ui.titleAr")} name="titleAr" defaultValue={page.titleAr} dir="rtl" />
+                  <Input label={L("cms.ui.titleEn")} name="titleEn" defaultValue={page.titleEn} dir="ltr" />
+                  <Input label={L("cms.ui.descriptionAr")} name="descriptionAr" dir="rtl" />
+                  <Input label={L("cms.ui.descriptionEn")} name="descriptionEn" dir="ltr" />
+                  <SubmitButton variant="secondary">{L("cms.ui.saveAsTemplate")}</SubmitButton>
+                </Form>
+              </CardBody>
+            </Card>
+          )}
 
           {perms.canSeo && page.seo !== undefined && (
             <Card>

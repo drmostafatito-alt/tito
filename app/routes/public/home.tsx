@@ -6,6 +6,7 @@ import { getSettings } from "~server/settings/service.server";
 import { getPageBySlug } from "~server/cms/service.server";
 import { renderSnapshot, resolvePublicImageUrls } from "~server/cms/render.server";
 import { handleCmsFormAction, requestLocale } from "~server/cms/page-render.server";
+import { resolveAuth } from "~server/auth/session.server";
 import { asSnapshot, parseSeo, seoMeta } from "~/cms/seo";
 import { PageView } from "~/components/cms/blocks";
 import { EmptyState } from "~/components/ui/EmptyState";
@@ -21,7 +22,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const env = getEnv(context);
   const db = getDb(env);
   const settings = await getSettings(db);
-  const locale = requestLocale(request, settings);
+  const { auth } = await resolveAuth(db, env, request);
+  const locale = requestLocale(request, settings, auth?.user.localePref ?? null);
 
   const page = await getPageBySlug(db, "home");
   const snapshot = page && page.status === "published" ? asSnapshot(page.publishedSnapshot) : null;

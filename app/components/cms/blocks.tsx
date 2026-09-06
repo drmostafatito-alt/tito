@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "~/cms/icons";
-import { ls, type LStr } from "~/cms/registry";
+import { ls, type LStr } from "~/cms/l10n";
+import { socialIconName } from "~/cms/social";
 import type { CardView, CmsRenderCtx, FormView } from "~/cms/render-types";
-import { VideoPlayer } from "~/components/player/VideoPlayer";
+
+const VideoPlayer = lazy(() => import("~/components/player/VideoPlayer").then((m) => ({ default: m.VideoPlayer })));
 
 /**
  * CMS block renderers (Phase 3). STRUCTURE ONLY — every visible string, image,
@@ -313,7 +315,9 @@ function VideoCta({ videoId, label }: { videoId: string; label: string }) {
       </button>
       {open && (
         <div id={`hero-video-${videoId}`} className="w-full max-w-xl">
-          <VideoPlayer videoId={videoId} />
+          <Suspense fallback={<div className="h-40 rounded-xl bg-slate-100" />}>
+            <VideoPlayer videoId={videoId} />
+          </Suspense>
         </div>
       )}
     </div>
@@ -506,7 +510,9 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!videoId) return null;
       return (
         <div className="mx-auto w-full max-w-3xl">
-          <VideoPlayer videoId={videoId} title={str(p, "caption", L) || undefined} />
+          <Suspense fallback={<div className="h-40 rounded-xl bg-slate-100" />}>
+            <VideoPlayer videoId={videoId} title={str(p, "caption", L) || undefined} />
+          </Suspense>
           {str(p, "caption", L) && <p className="mt-2 text-center text-sm text-slate-500">{str(p, "caption", L)}</p>}
         </div>
       );
