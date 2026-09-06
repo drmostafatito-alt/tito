@@ -301,8 +301,44 @@ describe("homepage composition (philosophy & psychology redesign)", () => {
     expect(rendered.sections[0].children[0].type).toBe("hero_showcase");
     expect(rendered.sections[1].children[0].type).toBe("statistics");
     expect(rendered.sections[2].children[0].type).toBe("feature_cards");
-    // no image/video seeded → no resolved images, empty-first (no placeholder assets)
+    // no CMS image/video on this fixture → no resolved images (the renderer may
+    // still show the static abstract visual, which is not a CMS file id)
     expect(rendered.ctx.images).toEqual({});
+  });
+
+  it("resolves a public CMS hero image onto the published snapshot", async () => {
+    const db = getDb(env);
+    const now = Date.now();
+    const fileId = crypto.randomUUID();
+    await db.insert(filesTable).values({
+      id: fileId, r2Key: `k/${fileId}`, bucket: "PUBLIC_ASSETS",
+      kind: "image", originalFilename: "hero-philosophy.webp", mime: "image/webp", byteSize: 12,
+      checksumSha256: "0", visibility: "public", downloadAllowed: false, createdBy: null, createdAt: now,
+    });
+
+    const page = await createPage(db, { titleAr: "الرئيسية", titleEn: "Home", slug: "home-img" }, actor);
+    const section = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const hero = await addBlock(db, { pageId: page.id, parentId: section.id, type: "hero_showcase" }, actor);
+    await updateBlockProps(db, hero.id, {
+      eyebrow: { ar: "", en: "" },
+      heading: { ar: "عنوان", en: "Title" },
+      subtitle: { ar: "", en: "" },
+      ctas: [],
+      videoLabel: { ar: "", en: "" },
+      videoId: "",
+      image: fileId,
+      imageAlt: { ar: "تكوين", en: "Visual" },
+      badges: [],
+    }, actor);
+    await publishPage(db, page.id, actor);
+
+    const settings = await getSettings(db);
+    const row = await getPageBySlug(db, page.slug);
+    const rendered = await renderSnapshot(db, row!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "ar" });
+    expect(rendered.ctx.images[fileId]).toBe(`/files/${fileId}`);
+
+    const restored = await listVersions(db, page.id);
+    expect(restored.length).toBeGreaterThanOrEqual(1);
   });
 
   it("hero_showcase with no image/video still renders (badges flow inline), and drops unknown/broken blocks", async () => {

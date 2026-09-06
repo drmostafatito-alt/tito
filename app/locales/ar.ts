@@ -1,7 +1,7 @@
 /** Arabic dictionary (default locale). Keys are the contract — `en` must match this shape. */
 export const ar = {
   common: {
-    appName: "منصة إيدوكور",
+    appName: "د/ مصطفى تيتو",
     login: "تسجيل الدخول",
     register: "إنشاء حساب",
     logout: "تسجيل الخروج",

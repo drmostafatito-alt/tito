@@ -44,7 +44,7 @@ await exec(
 
 // default settings groups (mirrors server/settings/schema.ts defaults)
 const defaults = {
-  platform: { nameAr: "منصة إيدوكور", nameEn: "EduCore", taglineAr: "تعلم بثقة — من مرحلة إلى مرحلة", taglineEn: "Learn with confidence", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null },
+  platform: { nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito", taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null },
   // Owner identity (content/branding integration). ONLY owner-confirmed fields
   // are set here; the Facebook page is scrape-blocked (HTTP 403), so title /
   // bio / specialty / photo / other links stay empty until the owner provides
@@ -63,12 +63,35 @@ const defaults = {
   security: { sessionDays: 30, resetTokenMinutes: 60, rateLimits: { loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5 } },
 };
 for (const [key, value] of Object.entries(defaults)) {
-  await exec(`INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO NOTHING`, [
-    key,
-    JSON.stringify(value),
-    now,
-  ]);
+  const sql = key === "platform"
+    ? `INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+    : `INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO NOTHING`;
+  await exec(sql, [key, JSON.stringify(value), now]);
 }
+
+const themeSettings = {
+  primary: "#7c3aed",
+  secondary: "#4f46e5",
+  accent: "#6366f1",
+  background: "#faf8ff",
+  surface: "#ffffff",
+  text: "#0f172a",
+  mutedText: "#64748b",
+  border: "#e2e8f0",
+  success: "#059669",
+  warning: "#d97706",
+  error: "#e11d48",
+  radiusBase: 12,
+  radiusButton: 16,
+  radiusCard: 20,
+  shadow: "md",
+  density: "normal",
+  fontScale: "normal",
+};
+await exec(
+  `INSERT INTO settings (key, value, updated_at) VALUES ('theme', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+  [JSON.stringify(themeSettings), now],
+);
 
 // super admin
 const adminEmail = (env.ADMIN_BOOTSTRAP_EMAIL || "admin@educore.local").toLowerCase();
@@ -336,25 +359,7 @@ if (!existingExamItem) {
 
 // ---------------------------------------------------------------------------
 // Phase 6 demo commerce (idempotent: keyed by fixed slug). The readiness gate
-// flags these rows — dev/demo only, never production.
-// ---------------------------------------------------------------------------
-const paymentsSettings = {
-  manualEnabled: true,
-  manualInstructionsAr: "حوالة إنستاباي إلى 01000000000 — اكتب رقم الطلب في البيان",
-  manualInstructionsEn: "Instapay transfer to 01000000000 — write the order number as the reference",
-  orderTtlMinutes: 4320,
-  refundWindowDays: 14,
-};
-await exec(`INSERT INTO settings (key, value, updated_at) VALUES ('payments', ?, ?) ON CONFLICT(key) DO NOTHING`, [
-  JSON.stringify(paymentsSettings),
-  now,
-]);
-
-const demoProductId = await ensureContent("products", "physics-3s-full-access", {
-  id: crypto.randomUUID(),
-  kind: "course",
-  slug: "physics-3s-full-access",
-  name_ar: "فيزياء ٣ث — وصول كامل للدورة",
+// flags these rows — dev/demo only, never productiللدورة",
   name_en: "Physics 3S — Full Course Access",
   description_ar: "افتح كل دروس دورة الفيزياء: الشرح والملفات والامتحانات.",
   description_en: "Unlock every physics lesson: videos, files and exams.",
@@ -416,9 +421,14 @@ const sectionProps = (over = {}) => ({
   ...over,
 });
 
-async function seedCmsPage({ slug, titleAr, titleEn, sections, note = "Initial seed" }) {
+async function seedCmsPage({ slug, titleAr, titleEn, sections, note = "Initial seed", replace = false }) {
   const found = await DB.prepare("SELECT id FROM pages WHERE slug = ?").bind(slug).first();
-  if (found) return found.id;
+  if (found && !replace) return found.id;
+  if (found && replace) {
+    await exec(`DELETE FROM blocks WHERE page_id = ?`, [found.id]);
+    await exec(`DELETE FROM page_versions WHERE page_id = ?`, [found.id]);
+    await exec(`DELETE FROM pages WHERE id = ?`, [found.id]);
+  }
   const pageId = cmsId();
   const snapshot = { v: 1, page: { slug, titleAr, titleEn, seo: {} }, sections };
   await exec(
@@ -461,6 +471,22 @@ async function seedSimplePage({ slug, titleAr, titleEn, headingAr, headingEn, te
   });
 }
 
+// --- hero visual (abstract philosophy + psychology; CMS-replaceable) --------
+const heroFilename = "hero-philosophy.webp";
+const heroPath = "public/hero-philosophy.webp";
+let heroFileId = (await DB.prepare("SELECT id FROM files WHERE original_filename = ?").bind(heroFilename).first())?.id ?? null;
+if (!heroFileId && existsSync(heroPath)) {
+  heroFileId = crypto.randomUUID();
+  const buf = readFileSync(heroPath);
+  const key = `public/images/${heroFileId}/${heroFilename}`;
+  await env.PUBLIC_ASSETS.put(key, buf, { httpMetadata: { contentType: "image/webp" } });
+  await exec(
+    `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, created_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    [heroFileId, key, "PUBLIC_ASSETS", "image", heroFilename, "image/webp", buf.length, "seed-hero-philosophy", "public", 0, cmsNow]
+  );
+}
+
 // --- homepage sections -----------------------------------------------------
 const heroSection = section(
   sectionProps({ bg: "default", padding: "none", container: "full" }),
@@ -468,21 +494,21 @@ const heroSection = section(
     eyebrow: L("الفلسفة وعلم النفس", "Philosophy & Psychology"),
     heading: L("أهلاً بيكم في منصتكم!", "Welcome to your platform!"),
     subtitle: L(
-      "<p>منصة متكاملة لدراسة الفلسفة وعلم النفس — كورسات، مذكرات، بنوك أسئلة واختبارات إلكترونية في مكان واحد.</p>",
-      "<p>A complete platform for studying philosophy and psychology — courses, notes, question banks and online tests in one place.</p>"
+      "<p>مع <strong>د/ مصطفى تيتو</strong> — منصة متكاملة لدراسة الفلسفة وعلم النفس: محاضرات، ملخصات، بنوك أسئلة واختبارات في مكان واحد.</p>",
+      "<p>With <strong>Dr mostafa tito</strong> — a complete platform for studying philosophy and psychology: lectures, notes, question banks and tests in one place.</p>"
     ),
     ctas: [
-      { label: L("استكشف الكورسات", "Browse courses"), href: "/courses", target: "_self", variant: "primary", icon: "" },
-      { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "secondary", icon: "" },
+      { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "primary", icon: "" },
+      { label: L("تسجيل الدخول", "Log in"), href: "/login", target: "_self", variant: "secondary", icon: "" },
     ],
     videoLabel: L("", ""),
     videoId: "",
-    image: "",
-    imageAlt: L("", ""),
+    image: heroFileId ?? "",
+    imageAlt: L("تكوين بصري تجريدي للفلسفة وعلم النفس", "Abstract philosophy and psychology visual"),
     badges: [
       { icon: "book-open", title: L("كورسات الفلسفة", "Philosophy courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "bottom-start" },
       { icon: "brain", title: L("كورسات علم النفس", "Psychology courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "top-end" },
-      { icon: "check-circle", title: L("بنوك أسئلة", "Question banks"), text: L("تدريب وتقييم", "Practice & assessment"), position: "top-start" },
+      { icon: "lightbulb", title: L("بنوك أسئلة", "Question banks"), text: L("تدريب وتقييم", "Practice & assessment"), position: "top-start" },
     ],
   })
 );
@@ -490,14 +516,14 @@ const heroSection = section(
 // Trust bar: platform offerings (NOT fabricated counts — owner fills verified
 // numbers later). value/label/icon/link are all CMS-editable and sortable.
 const statsSection = section(
-  sectionProps({ padding: "md" }),
+  sectionProps({ padding: "md", container: "wide" }),
   component("statistics", {
     style: "bar",
     items: [
       { value: "الفلسفة", label: L("كورسات ومراجعات", "Courses & revision"), icon: "book-open", href: "/courses" },
       { value: "علم النفس", label: L("كورسات ومراجعات", "Courses & revision"), icon: "brain", href: "/courses" },
-      { value: "بنوك أسئلة", label: L("تدريبات", "Practice"), icon: "list", href: "" },
-      { value: "اختبارات إلكترونية", label: L("تقييم ذاتي", "Self assessment"), icon: "check-circle", href: "" },
+      { value: "بنوك أسئلة", label: L("تدريبات", "Practice"), icon: "list", href: "/exams" },
+      { value: "اختبارات إلكترونية", label: L("تقييم ومتابعة", "Assessment"), icon: "chart", href: "/exams" },
     ],
   })
 );
@@ -505,27 +531,26 @@ const statsSection = section(
 const featuresSection = section(
   sectionProps({
     heading: L("ماذا ستجد في المنصة؟", "What will you find on the platform?"),
-    subheading: L("كل ما تحتاجه لدراسة الفلسفة وعلم النفس في مكان واحد منظّم.", "Everything you need to study philosophy and psychology in one organized place."),
-    bg: "surface", padding: "lg", align: "center",
+    subheading: L("كل ما تحتاجه لتحقيق التفوق في الفلسفة وعلم النفس في مكان واحد.", "Everything you need to excel in philosophy and psychology, in one place."),
+    bg: "default", padding: "lg", align: "center", container: "wide",
   }),
   component("feature_cards", {
     items: [
-      { icon: "book-open", title: L("كورسات الفلسفة", "Philosophy courses"), text: L("دروس وشروحات منظمة في الفلسفة.", "Organized lessons in philosophy."), ctaLabel: L("تصفح الكورسات", "Browse courses"), href: "/courses", tint: "brand" },
-      { icon: "brain", title: L("كورسات علم النفس", "Psychology courses"), text: L("دروس وشروحات منظمة في علم النفس.", "Organized lessons in psychology."), ctaLabel: L("تصفح الكورسات", "Browse courses"), href: "/courses", tint: "accent" },
-      { icon: "file-text", title: L("مذكرات وملخصات", "Notes & summaries"), text: L("ملفات وملخصات للمراجعة.", "Files and summaries for revision."), ctaLabel: L("", ""), href: "", tint: "success" },
-      { icon: "list", title: L("بنوك أسئلة", "Question banks"), text: L("مجموعات أسئلة للتدريب.", "Question sets for practice."), ctaLabel: L("", ""), href: "", tint: "warning" },
-      { icon: "check-circle", title: L("اختبارات إلكترونية", "Online tests"), text: L("اختبارات لقياس المستوى.", "Tests to measure your level."), ctaLabel: L("", ""), href: "", tint: "brand" },
-      { icon: "sparkles", title: L("مراجعات شاملة", "Comprehensive reviews"), text: L("مراجعات نهائية للمنهج.", "Final reviews of the syllabus."), ctaLabel: L("", ""), href: "", tint: "accent" },
+      { icon: "play-circle", title: L("محاضرات ودروس", "Lectures & lessons"), text: L("شروحات منظمة لكل دروس الفلسفة وعلم النفس.", "Organized lessons in philosophy and psychology."), ctaLabel: L("تصفح الكورسات", "Browse courses"), href: "/courses", tint: "error" },
+      { icon: "file-text", title: L("ملخصات ومذكرات", "Notes & summaries"), text: L("ملفات منظمة تساعدك على المراجعة السريعة.", "Organized files for quick revision."), ctaLabel: L("مكتبة المصادر", "Resource library"), href: "/p/resources", tint: "success" },
+      { icon: "layers", title: L("بنوك أسئلة", "Question banks"), text: L("تدرّب على الأسئلة المصنفة حسب كل وحدة ودرس.", "Practice questions grouped by unit and lesson."), ctaLabel: L("الاختبارات", "Exams"), href: "/exams", tint: "warning" },
+      { icon: "check-circle", title: L("اختبارات وتقييمات", "Tests & assessments"), text: L("قيّم مستواك بتصحيح فوري داخل المنصة.", "Check your level with instant in-platform grading."), ctaLabel: L("الاختبارات", "Exams"), href: "/exams", tint: "brand" },
+      { icon: "chart", title: L("متابعة التقدم", "Progress tracking"), text: L("تابع مستواك وتعرف على نقاط القوة والضعف.", "Track your level and see where to focus next."), ctaLabel: L("لوحة الطالب", "Dashboard"), href: "/dashboard", tint: "muted" },
     ],
   })
 );
 
 const ctaSection = section(
-  sectionProps({ heading: L("ابدأ رحلتك اليوم", "Start your journey today"), subheading: L("أنشئ حسابك وابدأ التعلم.", "Create your account and start learning."), padding: "xl", align: "center" }),
+  sectionProps({ heading: L("ابدأ التعلم اليوم", "Start learning today"), subheading: L("أنشئ حسابك وابدأ رحلتك في الفلسفة وعلم النفس.", "Create your account and start your journey in philosophy and psychology."), padding: "xl", align: "center" }),
   component("buttons", {
     items: [
-      { label: L("استكشف الكورسات", "Browse courses"), href: "/courses", target: "_self", variant: "primary", icon: "" },
-      { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "secondary", icon: "" },
+      { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "primary", icon: "" },
+      { label: L("استكشف الكورسات", "Browse courses"), href: "/courses", target: "_self", variant: "secondary", icon: "" },
     ],
     align: "center",
     stackMobile: true,
@@ -537,7 +562,8 @@ await seedCmsPage({
   titleAr: "الرئيسية",
   titleEn: "Home",
   sections: [heroSection, statsSection, featuresSection, ctaSection],
-  note: "Homepage redesign (philosophy & psychology)",
+  note: "Homepage visual redesign (philosophy & psychology)",
+  replace: true,
 });
 
 // Minimal CMS subpages so the header navigation resolves (all editable).
@@ -580,6 +606,19 @@ if (!existingNav?.n) {
     await exec(
       `INSERT INTO menu_items (id, menu_id, parent_id, label_ar, label_en, href, external, icon, sort_order, visible, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
       [cmsId(), headerMenuId, null, navItems[i][0], navItems[i][1], navItems[i][2], 0, null, i, 1, cmsNow, cmsNow]
+    );
+  }
+}
+
+console.log("Seed complete.");
+console.log(`  super admin : ${adminEmail} / ${adminPassword}`);
+console.log(`  demo student: student@educore.local / Student#12345`);
+console.log(`  demo course : /courses/physics-3s-full (lesson 1 free preview, lesson 2 entitled)`);
+console.log(`  demo exam   : /exams/electrostatics-check (lesson 2, required exam item)`);
+console.log(`  demo product: /products/physics-3s-full-access (300.00 EGP, manual rail)`);
+
+await proxy.dispose();
+[i][2], 0, null, i, 1, cmsNow, cmsNow]
     );
   }
 }

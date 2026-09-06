@@ -3,8 +3,12 @@ import type { LocaleCode } from "./schema";
 export const LOCALE_COOKIE = "edu_locale";
 
 /**
- * Locale resolution order: explicit cookie → user preference → Accept-Language →
- * platform default. Pure + testable; the set-locale resource route writes the cookie.
+ * Locale resolution order: explicit cookie → user preference → platform default.
+ *
+ * Fresh visitors always get the platform default (Arabic) so `lang="ar"` / `dir="rtl"`
+ * even when the browser sends `Accept-Language: en-US`. The language switcher still
+ * wins via the locale cookie, and a logged-in user's `localePref` still wins.
+ * `acceptLanguage` is accepted for API compatibility but is not consulted.
  */
 export function resolveLocale(args: {
   cookieValue?: string | null;
@@ -17,7 +21,6 @@ export function resolveLocale(args: {
   const candidates: (string | null | undefined)[] = [
     args.cookieValue,
     args.userPref,
-    parseAcceptLanguage(args.acceptLanguage),
   ];
   for (const c of candidates) {
     if (!c) continue;
@@ -25,12 +28,6 @@ export function resolveLocale(args: {
     if (enabled.includes(base)) return base;
   }
   return args.defaultLocale;
-}
-
-function parseAcceptLanguage(header: string | null | undefined): string | null {
-  if (!header) return null;
-  const first = header.split(",")[0]?.trim();
-  return first?.split(";")[0]?.trim() || null;
 }
 
 export function dirOf(locale: LocaleCode): "rtl" | "ltr" {

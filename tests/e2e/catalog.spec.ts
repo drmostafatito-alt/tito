@@ -3,17 +3,22 @@ import { FIXTURES } from "./helpers";
 
 /**
  * W4 — Catalog / course navigation journey (anonymous, no auth).
- * Anonymous requests render per Accept-Language (Playwright default = en-US),
- * so English seed titles are deterministic here.
+ * Fresh visitors default to Arabic; these tests pin English via the locale
+ * cookie so English seed titles stay deterministic.
  */
+
+const setEn = async (page: import("@playwright/test").Page) =>
+  page.context().addCookies([{ name: "edu_locale", value: "en", url: "http://127.0.0.1:5173" }]);
 
 test.describe("catalog & course navigation", () => {
   test("catalog lists the published demo course", async ({ page }) => {
+    await setEn(page);
     await page.goto("/courses");
     await expect(page.locator("body")).toContainText("Full Revision — Physics 3rd Secondary");
   });
 
   test("course detail renders with a buy CTA (entitled course, anonymous)", async ({ page }) => {
+    await setEn(page);
     await page.goto(`/courses/${FIXTURES.courseSlug}`);
     await expect(page.locator("body")).toContainText("Full Revision — Physics 3rd Secondary");
     await expect(page.getByTestId("course-buy-cta")).toBeVisible();
@@ -25,6 +30,7 @@ test.describe("catalog & course navigation", () => {
   });
 
   test("program listing resolves from the public hierarchy", async ({ page }) => {
+    await setEn(page);
     await page.goto("/programs");
     await expect(page.locator("body")).toContainText("General Secondary");
   });

@@ -2,7 +2,7 @@ import type { Dictionary } from "./ar";
 
 export const en: Dictionary = {
   common: {
-    appName: "EduCore",
+    appName: "Dr mostafa tito",
     login: "Log in",
     register: "Create account",
     logout: "Log out",

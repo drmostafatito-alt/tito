@@ -118,15 +118,16 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const idn = loaderData.identity;
   const hasContact = Boolean(idn.contactPhone || idn.contactEmail || idn.contactAddress.ar || idn.contactAddress.en);
   const copyrightText = locale === "ar" ? idn.copyright.ar || idn.copyright.en : idn.copyright.en || idn.copyright.ar;
-  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100";
+  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900";
+  const navActiveCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-2 text-sm font-semibold text-brand-700";
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 pt-safe backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
-          <Link to="/" aria-label={appName} className="inline-flex min-h-11 items-center">
+      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 pt-safe backdrop-blur-md">
+        <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 px-4">
+          <Link to="/" aria-label={appName} className="inline-flex min-h-11 shrink-0 items-center">
             {idn.logoUrl ? (
-              <img src={idn.logoUrl} alt={appName} className="h-9 w-auto object-contain" />
+              <img src={idn.logoUrl} alt={appName} className="h-10 w-auto object-contain" />
             ) : (
               <BrandMark name={appName} />
             )}
@@ -134,10 +135,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
 
           {/* Desktop navigation (admin menu builder) */}
           {loaderData.header.length > 0 && (
-            <nav aria-label={t(locale, "common.navMain")} className="hidden items-center gap-1 md:flex">
+            <nav aria-label={t(locale, "common.navMain")} className="hidden items-center gap-0.5 lg:flex">
               {loaderData.header.map((node) =>
                 node.children.length === 0 ? (
-                  <NavLink key={node.id} item={node} locale={locale} className={navLinkCls} />
+                  <NavLink key={node.id} item={node} locale={locale} className={node.href === "/" ? navActiveCls : navLinkCls} />
                 ) : (
                   <details key={node.id} className="group relative">
                     <summary className={`${navLinkCls} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
@@ -163,36 +164,38 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             <LanguageSwitcher locale={locale} />
             {loaderData.user ? (
               <>
-                <Link to="/courses" className="hidden rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 md:inline-flex">
+                <Link to="/courses" className="hidden min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 md:inline-flex">
                   {t(locale, "content.catalogTitle")}
                 </Link>
                 <Link
                   to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
-                  className="rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                  className="inline-flex min-h-11 items-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
                 >
                   {loaderData.user.rank >= 3 ? t(locale, "common.admin") : t(locale, "common.dashboard")}
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/courses" className="hidden rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 md:inline-flex">
-                  {t(locale, "content.catalogTitle")}
-                </Link>
-                <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                <Link
+                  to="/login"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  <Icon name="user" size="sm" colorRole="default" className="text-current" />
                   {t(locale, "common.login")}
                 </Link>
                 <Link
                   to="/register"
-                  className="hidden rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-700 sm:inline-flex"
+                  className="hidden min-h-11 items-center gap-1.5 rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 sm:inline-flex"
                 >
+                  <Icon name="user" size="sm" colorRole="invert" className="text-white" />
                   {t(locale, "common.register")}
                 </Link>
               </>
             )}
-            {loaderData.header.length > 0 && (
+            {(loaderData.header.length > 0 || !loaderData.user) && (
               <button
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 md:hidden"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100 lg:hidden"
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-nav"
                 aria-label={t(locale, "common.menu")}
@@ -205,8 +208,8 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
         </div>
 
         {/* Mobile navigation panel */}
-        {mobileOpen && loaderData.header.length > 0 && (
-          <nav id="mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-slate-200 bg-white px-4 py-2 md:hidden">
+        {mobileOpen && (
+          <nav id="mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-slate-200 bg-white px-4 py-2 lg:hidden">
             <ul className="flex flex-col">
               {loaderData.header.map((node) => (
                 <li key={node.id}>
@@ -232,6 +235,17 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                   )}
                 </li>
               ))}
+              {!loaderData.user && (
+                <li className="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:hidden">
+                  <Link
+                    to="/register"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {t(locale, "common.register")}
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
         )}
@@ -242,7 +256,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
       </main>
 
       <footer className="border-t border-slate-200 bg-white pb-safe">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
           <div className="flex flex-col gap-3">
             <Link to="/" aria-label={appName} className="inline-flex items-center">

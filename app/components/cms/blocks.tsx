@@ -48,15 +48,18 @@ function SmartLink({ href, className, children, ariaLabel }: { href: string; cla
 }
 
 const BUTTON_VARIANT = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700",
-  secondary: "bg-white text-brand-700 border border-brand-200 hover:bg-brand-50",
+  primary: "bg-brand-600 text-white shadow-md shadow-brand-600/20 hover:bg-brand-700",
+  secondary: "bg-white text-slate-800 border border-slate-200 shadow-sm hover:bg-slate-50",
   outline: "border border-slate-300 text-slate-800 hover:bg-slate-50",
   ghost: "text-brand-700 hover:bg-brand-50",
 } as const;
 
+/** Temporary abstract philosophy/psychology visual — CMS image replaces this. */
+const FALLBACK_HERO_SRC = "/hero-philosophy.webp";
+
 function CtaButton({ label, href, target, variant, icon, className = "" }: { label: string; href: string; target?: string; variant?: string; icon?: string; className?: string }) {
   if (!label && !href) return null; // nothing configured → render nothing
-  const base = `inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] px-6 py-3 text-base font-semibold transition-colors ${BUTTON_VARIANT[(variant ?? "primary") as keyof typeof BUTTON_VARIANT] ?? BUTTON_VARIANT.primary} ${className}`;
+  const base = `inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-7 py-3 text-base font-semibold transition-colors ${BUTTON_VARIANT[(variant ?? "primary") as keyof typeof BUTTON_VARIANT] ?? BUTTON_VARIANT.primary} ${className}`;
   if (href && href.startsWith("/") && target !== "_blank") {
     return <Link to={href} className={base}>{icon ? <Icon name={icon} size="sm" colorRole="default" className="text-current" /> : null}{label}</Link>;
   }
@@ -270,13 +273,24 @@ const BADGE_POS: Record<string, string> = {
 
 /** Soft tinted icon-chip surface per color role (feature_cards). */
 const TINT_CHIP: Record<string, string> = {
-  default: "bg-slate-100",
-  brand: "bg-brand-100",
-  accent: "bg-accent-100",
-  success: "bg-emerald-100",
-  warning: "bg-amber-100",
-  error: "bg-rose-100",
-  muted: "bg-slate-100",
+  default: "bg-white",
+  brand: "bg-white",
+  accent: "bg-white",
+  success: "bg-white",
+  warning: "bg-white",
+  error: "bg-white",
+  muted: "bg-white",
+};
+
+/** Pastel card surfaces matching the premium educational visual language. */
+const CARD_SURFACE: Record<string, string> = {
+  default: "bg-violet-50 ring-violet-100",
+  brand: "bg-violet-50 ring-violet-100",
+  accent: "bg-indigo-50 ring-indigo-100",
+  success: "bg-emerald-50 ring-emerald-100",
+  warning: "bg-amber-50 ring-amber-100",
+  error: "bg-rose-50 ring-rose-100",
+  muted: "bg-sky-50 ring-sky-100",
 };
 
 /** Hero intro-video CTA: a real button that reveals the server-minted player. */
@@ -290,10 +304,12 @@ function VideoCta({ videoId, label }: { videoId: string; label: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={open ? `hero-video-${videoId}` : undefined}
-        className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+        className="inline-flex min-h-12 items-center gap-3 rounded-full px-1 py-1 text-start text-sm font-semibold text-slate-800 hover:bg-white/70"
       >
-        <Icon name="play-circle" size="md" colorRole="brand" />
-        {label}
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow-md shadow-brand-600/30">
+          <Icon name="play-circle" size="md" colorRole="invert" className="text-white" />
+        </span>
+        <span className="max-w-[10rem] leading-snug">{label}</span>
       </button>
       {open && (
         <div id={`hero-video-${videoId}`} className="w-full max-w-xl">
@@ -347,79 +363,72 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const videoLabel = str(p, "videoLabel", L);
       const videoId = raw(p, "videoId");
       const imageId = raw(p, "image");
-      const hasImage = Boolean(imageId && ctx.images[imageId]);
+      const cmsSrc = imageId && ctx.images[imageId] ? ctx.images[imageId] : null;
+      const visualSrc = cmsSrc || FALLBACK_HERO_SRC;
       const badges = arr(p, "badges").filter((b) => raw(b, "icon") || str(b, "title", L) || str(b, "text", L));
-      if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !hasImage) return null;
+      if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !visualSrc) return null;
       const imageAlt = str(p, "imageAlt", L) || heading;
       const badgeChips = badges.map((b, idx) => (
-        <div key={idx} className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white/95 p-3 shadow-md backdrop-blur">
+        <div key={idx} className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white p-3 shadow-lg shadow-slate-900/5">
           {raw(b, "icon") && (
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
               <Icon name={raw(b, "icon")} size="md" colorRole="brand" />
             </span>
           )}
-          <span className="flex flex-col">
+          <span className="flex min-w-0 flex-col">
             {str(b, "title", L) && <span className="text-sm font-bold text-slate-900">{str(b, "title", L)}</span>}
             {str(b, "text", L) && <span className="text-xs leading-snug text-slate-500">{str(b, "text", L)}</span>}
           </span>
         </div>
       ));
       return (
-        <div className="relative isolate -mx-4 overflow-hidden bg-gradient-to-b from-brand-50/70 via-white to-white px-4 sm:mx-0 sm:rounded-[var(--radius-card)]">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -end-24 -top-24 -z-10 h-72 w-72 rounded-full bg-gradient-to-br from-brand-200/60 to-accent-100/50 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-24 -start-24 -z-10 h-72 w-72 rounded-full bg-gradient-to-tr from-accent-100/40 to-brand-100/50 blur-3xl"
-          />
-          <div className={`mx-auto grid w-full max-w-6xl items-center gap-10 py-[calc(3.5rem*var(--density,1))] lg:py-[calc(5rem*var(--density,1))] ${hasImage ? "lg:grid-cols-2" : ""}`}>
-            {/* text column */}
+        <div className="relative isolate overflow-hidden bg-gradient-to-b from-brand-50/80 via-[#faf8ff] to-transparent">
+          <div aria-hidden="true" className="pointer-events-none absolute -end-16 top-8 -z-10 h-64 w-64 rounded-full bg-emerald-200/50 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -start-20 bottom-0 -z-10 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute end-1/4 top-0 -z-10 h-40 w-40 rounded-full bg-amber-100/60 blur-3xl" />
+          <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-[calc(3rem*var(--density,1))] lg:grid-cols-2 lg:gap-12 lg:py-[calc(4.5rem*var(--density,1))]">
             <div className="flex flex-col items-start gap-5">
               {eyebrow && (
-                <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-4 py-1.5 text-sm font-semibold text-brand-700 shadow-sm">
+                <span className="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-white/90 px-4 py-1.5 text-sm font-semibold text-brand-700 shadow-sm">
                   <Icon name="sparkles" size="sm" colorRole="brand" />
                   {eyebrow}
                 </span>
               )}
-              {heading && <h1 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-4xl xl:text-5xl">{heading}</h1>}
+              {heading && <h1 className="text-4xl font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-5xl xl:text-6xl">{heading}</h1>}
               {subtitleHtml && <RichText html={subtitleHtml} className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg" />}
               {(ctas.length > 0 || (videoLabel && videoId)) && (
-                <div className="mt-1 flex w-full flex-col gap-3">
-                  {ctas.length > 0 && (
-                    <div className="flex flex-wrap gap-3">
-                      {ctas.map((cta, idx) => (
-                        <CtaButton key={idx} label={str(cta, "label", L)} href={raw(cta, "href")} target={raw(cta, "target")} variant={raw(cta, "variant") || "primary"} icon={raw(cta, "icon")} className="max-sm:w-full" />
-                      ))}
-                    </div>
-                  )}
+                <div className="mt-1 flex w-full flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+                  {ctas.map((cta, idx) => (
+                    <CtaButton key={idx} label={str(cta, "label", L)} href={raw(cta, "href")} target={raw(cta, "target")} variant={raw(cta, "variant") || "primary"} icon={raw(cta, "icon")} className="max-sm:w-full" />
+                  ))}
                   {videoLabel && videoId && <VideoCta videoId={videoId} label={videoLabel} />}
                 </div>
               )}
-              {/* floating feature badges without a hero image → inline row below the CTAs */}
-              {badges.length > 0 && !hasImage && <div className="mt-2 flex flex-wrap gap-3">{badgeChips}</div>}
             </div>
 
-            {/* image column (optional — no placeholder substitution, ever) */}
-            {hasImage && (
-              <div className="relative mx-auto w-full max-w-md">
-                <div
-                  aria-hidden="true"
-                  className="absolute -inset-4 -z-10 rounded-[2.5rem] bg-gradient-to-br from-brand-200/70 via-brand-100/40 to-accent-100/60"
-                />
-                <CmsImage fileId={imageId} alt={imageAlt} ctx={ctx} fit="cover" aspect="3:4" rounded eager className="max-h-[32rem]" />
-                {badges.length > 0 && (
-                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:pointer-events-none lg:absolute lg:inset-0 lg:mt-0 lg:block">
-                    {badges.map((b, idx) => (
-                      <div key={idx} className={`lg:pointer-events-auto lg:absolute ${BADGE_POS[raw(b, "position")] ?? "lg:bottom-6 lg:start-6"}`}>
-                        {badgeChips[idx]}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
+              <div aria-hidden="true" className="absolute -end-6 -top-8 h-36 w-36 rounded-full bg-emerald-300/70 blur-[2px] lg:h-44 lg:w-44" />
+              <div aria-hidden="true" className="absolute -bottom-4 -start-8 h-28 w-28 rounded-full bg-amber-200/80 blur-[1px]" />
+              <img
+                data-hero-visual="true"
+                src={visualSrc}
+                alt={imageAlt}
+                width={900}
+                height={1205}
+                decoding="async"
+                fetchPriority="high"
+                className="relative z-10 mx-auto max-h-[28rem] w-full object-contain lg:max-h-[34rem]"
+              />
+              {badges.length > 0 && (
+                <div className="relative z-20 mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:pointer-events-none lg:absolute lg:inset-0 lg:mt-0 lg:block">
+                  {badges.map((b, idx) => (
+                    <div key={idx} className={`lg:pointer-events-auto lg:absolute ${BADGE_POS[raw(b, "position")] ?? "lg:bottom-6 lg:start-6"}`}>
+                      {badgeChips[idx]}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -547,22 +556,28 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "feature_cards": {
       const items = arr(p, "items").filter((i) => str(i, "title", L) || str(i, "text", L));
       if (!items.length) return null;
+      const cols = items.length >= 5 ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-3";
       return (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`grid gap-4 ${cols}`}>
           {items.map((item, idx) => {
             const tint = raw(item, "tint") || "brand";
+            const href = raw(item, "href");
+            const cta = str(item, "ctaLabel", L);
             return (
-              <div key={idx} className="flex flex-col items-start gap-3 rounded-[var(--radius-card)] border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div key={idx} className={`flex flex-col items-start gap-3 rounded-[1.5rem] p-6 ring-1 transition-shadow hover:shadow-md ${CARD_SURFACE[tint] ?? CARD_SURFACE.brand}`}>
                 {raw(item, "icon") && (
-                  <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${TINT_CHIP[tint] ?? TINT_CHIP.brand}`}>
-                    <Icon name={raw(item, "icon")} size="md" colorRole={tint} />
+                  <span className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ${TINT_CHIP[tint] ?? TINT_CHIP.brand}`}>
+                    <Icon name={raw(item, "icon")} size="md" colorRole={tint === "muted" ? "brand" : tint} />
                   </span>
                 )}
-                {str(item, "title", L) && <h3 className="text-lg font-semibold text-slate-900">{str(item, "title", L)}</h3>}
+                {str(item, "title", L) && <h3 className="text-lg font-bold text-slate-900">{str(item, "title", L)}</h3>}
                 {str(item, "text", L) && <p className="text-sm leading-relaxed text-slate-600">{str(item, "text", L)}</p>}
-                {str(item, "ctaLabel", L) && raw(item, "href") && (
-                  <SmartLink href={raw(item, "href")} className="mt-auto inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800">
-                    {str(item, "ctaLabel", L)}
+                {href && (
+                  <SmartLink
+                    href={href}
+                    ariaLabel={cta || str(item, "title", L) || str(item, "text", L)}
+                    className="mt-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-slate-700 shadow-sm ring-1 ring-black/5 transition hover:bg-white hover:shadow"
+                  >
                     <span aria-hidden="true" className="rtl:rotate-180">→</span>
                   </SmartLink>
                 )}
@@ -610,33 +625,37 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const items = arr(p, "items").filter((i) => raw(i, "value") || str(i, "label", L));
       if (!items.length) return null;
       const style = raw(p, "style") || "cards";
-      const StatBody = ({ item }: { item: P }) => {
-        const label = str(item, "label", L);
-        const value = raw(item, "value");
-        const icon = raw(item, "icon");
-        const href = raw(item, "href");
-        const inner = (
-          <>
-            {icon && <Icon name={icon} size="md" colorRole={style === "bar" ? "invert" : "accent"} />}
-            <span className="text-2xl font-extrabold sm:text-3xl" dir="auto">{value}</span>
-            {label && <span className={`text-sm ${style === "bar" ? "text-brand-100" : "text-slate-500"}`}>{label}</span>}
-          </>
-        );
-        return href ? (
-          <SmartLink href={href} className={`flex flex-col items-center gap-1 text-center ${style === "bar" ? "rounded-2xl p-4 transition-colors hover:bg-white/10" : ""}`}>
-            {inner}
-          </SmartLink>
-        ) : (
-          <div className="flex flex-col items-center gap-1 text-center">{inner}</div>
-        );
-      };
       if (style === "bar") {
         return (
-          <div className="rounded-[var(--radius-card)] bg-gradient-to-r from-brand-600 via-brand-700 to-brand-800 px-6 py-8 text-white shadow-md">
-            <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-              {items.map((item, idx) => (
-                <StatBody key={idx} item={item} />
-              ))}
+          <div className="rounded-[1.75rem] bg-white px-3 py-4 shadow-lg shadow-slate-900/5 ring-1 ring-slate-100 sm:px-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4">
+              {items.map((item, idx) => {
+                const label = str(item, "label", L);
+                const value = raw(item, "value");
+                const icon = raw(item, "icon");
+                const href = raw(item, "href");
+                const inner = (
+                  <span className="flex items-center gap-3">
+                    {icon && (
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+                        <Icon name={icon} size="md" colorRole="brand" />
+                      </span>
+                    )}
+                    <span className="flex min-w-0 flex-col">
+                      {value && <span className="text-base font-extrabold text-slate-900 sm:text-lg" dir="auto">{value}</span>}
+                      {label && <span className="text-sm text-slate-500">{label}</span>}
+                    </span>
+                  </span>
+                );
+                const wrapCls = `flex min-h-16 items-center px-4 py-3 ${idx < items.length - 1 ? "lg:border-e lg:border-slate-100" : ""}`;
+                return href ? (
+                  <SmartLink key={idx} href={href} className={`${wrapCls} rounded-2xl transition-colors hover:bg-slate-50`}>
+                    {inner}
+                  </SmartLink>
+                ) : (
+                  <div key={idx} className={wrapCls}>{inner}</div>
+                );
+              })}
             </div>
           </div>
         );
@@ -773,8 +792,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = block.type === "login_cta" ? "/login" : "/register";
       const label = str(p, "label", L) || (block.type === "login_cta" ? (L === "ar" ? "تسجيل الدخول" : "Log in") : L === "ar" ? "إنشاء حساب" : "Create account");
       return (
-        <div className="flex flex-col items-center gap-3 rounded-[var(--radius-card)] border border-brand-200 bg-brand-50/60 p-8 text-center">
-          {str(p, "sublabel", L) && <p className="max-w-md text-slate-600">{str(p, "sublabel", L)}</p>}
+        <div className="flex flex-col items-center gap-4 rounded-[1.75rem] bg-gradient-to-b from-brand-50 to-white p-10 text-center ring-1 ring-brand-100">
+          {str(p, "sublabel", L) && <p className="max-w-md text-lg text-slate-600">{str(p, "sublabel", L)}</p>}
           <CtaButton label={label} href={href} variant="primary" />
         </div>
       );
@@ -945,7 +964,7 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
   const columns = raw(p, "columns") || "1";
   const headingEl = heading || subheading ? (
     <div className={`mb-8 flex flex-col gap-2 ${align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start"}`}>
-      {heading && <h2 className="text-2xl font-bold sm:text-3xl">{heading}</h2>}
+      {heading && <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{heading}</h2>}
       {subheading && <p className={`max-w-2xl ${bg === "brand" || bg === "dark" ? "text-slate-300" : "text-slate-600"}`}>{subheading}</p>}
     </div>
   ) : null;

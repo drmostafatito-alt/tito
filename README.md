@@ -1,4 +1,4 @@
-# EduCore (working title)
+# د/ مصطفى تيتو — Dr mostafa tito
 
 Production-grade educational platform on Cloudflare (React Router 7 framework mode + D1 + R2, served by `workers/app.ts`), Arabic/English with RTL, admin-first configurability, provider-abstracted video & payments.
 

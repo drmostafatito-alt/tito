@@ -13,7 +13,7 @@ import type { FormResultView } from "../../app/cms/render-types";
  * READ frozen snapshots and resolve view data (no drafts ever leak here).
  */
 
-/** Locale for a public request (cookie → accept-language → default). */
+/** Locale for a public request (cookie → user pref → platform default; Accept-Language is ignored). */
 export function requestLocale(request: Request, settings: Settings): Locale {
   const cookieLocale = parseCookieHeader(request.headers.get("cookie")).get(LOCALE_COOKIE);
   return resolveLocale({

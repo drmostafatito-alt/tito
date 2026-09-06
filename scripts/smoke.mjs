@@ -197,7 +197,7 @@ const run = async () => {
   const anon = makeClient("anon");
   const home = await anon.get("/");
   check("GET / → 200", home.status === 200, `got ${home.status}`);
-  check("home renders RTL Arabic shell from D1 settings", home.text.includes('dir="rtl"') && home.text.includes("منصة إيدوكور"));
+  check("home renders RTL Arabic shell from D1 settings", home.text.includes('dir="rtl"') && home.text.includes("مصطفى تيتو"));
   check("home carries all 6 security headers", hasSecurityHeaders(home));
   check("CSP is strict (no unsafe-inline in production build)", !(home.headers.get("content-security-policy") ?? "").includes("unsafe-inline"));
 

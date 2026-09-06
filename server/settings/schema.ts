@@ -4,10 +4,10 @@ export const localeCodeSchema = z.enum(["ar", "en"]);
 export type LocaleCode = z.infer<typeof localeCodeSchema>;
 
 export const platformSettingsSchema = z.object({
-  nameAr: z.string().min(1).max(120).default("منصة إيدوكور"),
-  nameEn: z.string().min(1).max(120).default("EduCore"),
-  taglineAr: z.string().max(200).default("تعلم بثقة — من مرحلة إلى مرحلة"),
-  taglineEn: z.string().max(200).default("Learn with confidence"),
+  nameAr: z.string().min(1).max(120).default("د/ مصطفى تيتو"),
+  nameEn: z.string().min(1).max(120).default("Dr mostafa tito"),
+  taglineAr: z.string().max(200).default("الفلسفة وعلم النفس"),
+  taglineEn: z.string().max(200).default("Philosophy & Psychology"),
   maintenance: z.boolean().default(false),
   supportEmail: z.string().email().nullish().default(null),
   supportPhone: z.string().max(32).nullish().default(null),
@@ -114,21 +114,21 @@ export type IdentitySettings = z.infer<typeof identitySettingsSchema>;
 const hex = (fallback: string) => z.string().regex(/^#[0-9a-fA-F]{6}$/, "must be #rrggbb").default(fallback);
 
 export const themeSettingsSchema = z.object({
-  primary: hex("#0d9488"),
-  secondary: hex("#0f766e"),
-  accent: hex("#f59e0b"),
-  background: hex("#ffffff"),
-  surface: hex("#f8fafc"),
+  primary: hex("#7c3aed"),
+  secondary: hex("#4f46e5"),
+  accent: hex("#6366f1"),
+  background: hex("#faf8ff"),
+  surface: hex("#ffffff"),
   text: hex("#0f172a"),
   mutedText: hex("#64748b"),
   border: hex("#e2e8f0"),
   success: hex("#059669"),
   warning: hex("#d97706"),
   error: hex("#e11d48"),
-  radiusBase: z.number().int().min(0).max(32).default(8),
-  radiusButton: z.number().int().min(0).max(32).default(8),
-  radiusCard: z.number().int().min(0).max(32).default(14),
-  shadow: z.enum(["none", "sm", "md", "lg"]).default("sm"),
+  radiusBase: z.number().int().min(0).max(32).default(12),
+  radiusButton: z.number().int().min(0).max(32).default(16),
+  radiusCard: z.number().int().min(0).max(32).default(20),
+  shadow: z.enum(["none", "sm", "md", "lg"]).default("md"),
   density: z.enum(["compact", "normal", "relaxed"]).default("normal"),
   fontScale: z.enum(["compact", "normal", "large"]).default("normal"),
 });
