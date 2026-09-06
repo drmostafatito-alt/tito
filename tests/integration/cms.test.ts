@@ -199,6 +199,49 @@ describe("configurable forms: declarative validation, consent, storage", () => {
   });
 });
 
+describe("resolveForms batches multiple form blocks (W9 regression)", () => {
+  it("resolves all forms on a page with correct field grouping and ordering", async () => {
+    const db = getDb(env);
+
+    // Two forms with distinct fields and a deliberately different sort order.
+    const formA = await createForm(db, { titleAr: "أ", titleEn: "Form A" }, actor);
+    await addFormField(db, formA.id, { name: "email", type: "email", labelAr: "بريد", labelEn: "Email", required: true }, actor);
+    await addFormField(db, formA.id, { name: "name", type: "text", labelAr: "اسم", labelEn: "Name" }, actor);
+
+    const formB = await createForm(db, { titleAr: "ب", titleEn: "Form B" }, actor);
+    await addFormField(db, formB.id, { name: "phone", type: "text", labelAr: "هاتف", labelEn: "Phone" }, actor);
+
+    // One page with two form blocks referencing the two different forms.
+    const page = await createPage(db, { titleAr: "ن", titleEn: "Forms Page" }, actor);
+    const section = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const blockA = await addBlock(db, { pageId: page.id, parentId: section.id, type: "form_block" }, actor);
+    const blockB = await addBlock(db, { pageId: page.id, parentId: section.id, type: "form_block" }, actor);
+    await updateBlockProps(db, blockA.id, { formId: formA.id, heading: { ar: "", en: "" } }, actor);
+    await updateBlockProps(db, blockB.id, { formId: formB.id, heading: { ar: "", en: "" } }, actor);
+    await publishPage(db, page.id, actor);
+
+    const settings = await getSettings(db);
+    const row = await getPageBySlug(db, page.slug);
+    const rendered = await renderSnapshot(db, row!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "en" });
+
+    // Both forms resolved (by id and by slug alias), each with its own fields.
+    const a = rendered.ctx.forms[formA.id];
+    const b = rendered.ctx.forms[formB.id];
+    expect(a).toBeDefined();
+    expect(b).toBeDefined();
+    expect(a.title.en).toBe("Form A");
+    expect(b.title.en).toBe("Form B");
+    expect(rendered.ctx.forms[formA.slug]).toBe(a);
+    expect(rendered.ctx.forms[formB.slug]).toBe(b);
+
+    // Field grouping is per-form (no cross-contamination) and order is preserved.
+    expect(a.fields.map((f) => f.name)).toEqual(["email", "name"]);
+    expect(b.fields.map((f) => f.name)).toEqual(["phone"]);
+    expect(a.fields[0].required).toBe(true);
+    expect(b.fields[0].required).toBe(false);
+  });
+});
+
 describe("navigation builder rejects authorization-bypassing / unsafe links", () => {
   it("javascript: and data: hrefs are refused", async () => {
     const db = getDb(env);

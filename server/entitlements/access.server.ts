@@ -16,7 +16,12 @@ export interface SubjectInfo {
   roleRank: number; // 0 anon, 1 student, 2 teacher, 3 admin, 4 super_admin
 }
 
-async function entitlementsFor(db: DB, studentId: string, resourceIds: string[]): Promise<EntitlementLike[]> {
+/**
+ * Loads the student's entitlement rows covering any of `resourceIds` (or a plan).
+ * Exported (W9) so batch callers can fetch entitlements ONCE for many chains
+ * instead of once per chain — the pure resolver still decides every verdict.
+ */
+export async function entitlementsFor(db: DB, studentId: string, resourceIds: string[]): Promise<EntitlementLike[]> {
   const conditions = [
     eq(entitlements.studentId, studentId),
     inArray(entitlements.status, ["active", "expired", "revoked"]),
@@ -33,7 +38,7 @@ async function entitlementsFor(db: DB, studentId: string, resourceIds: string[])
   }));
 }
 
-function chainRefsOf(chain: ChainRow): ContentRef[] {
+export function chainRefsOf(chain: ChainRow): ContentRef[] {
   const refs: ContentRef[] = [];
   if (chain.lessonId) refs.push({ type: "lesson", id: chain.lessonId });
   if (chain.unitId) refs.push({ type: "unit", id: chain.unitId });

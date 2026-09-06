@@ -2,12 +2,13 @@ import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { DB } from "~server/db/client.server";
 import {
-  examAnswers, examAttempts, examQuestions, exams, events,
-  questionChoices, questionTags, questions, tags,
+  courses, examAnswers, examAttempts, examQuestions, exams, events,
+  lessons, questionChoices, questionTags, questions, subjects, tags, units,
 } from "~server/db/schema";
-import { slugify } from "~server/content/service.server";
+import { slugify, type ChainRow } from "~server/content/service.server";
 import { chainForCourse, chainForLesson } from "~server/content/service.server";
-import { resolveContentAccess } from "~server/entitlements/access.server";
+import { chainRefsOf, entitlementsFor, resolveContentAccess } from "~server/entitlements/access.server";
+import { resolveAccess, type AccessVerdict } from "~server/entitlements/resolver.server";
 
 /**
  * Assessment engine (Phase 5 — FEATURE-SPEC §5/§6, ADR-022).
@@ -1411,23 +1412,156 @@ export async function attemptReview(
 
 export async function listPublishedExamsForActor(db: DB, actor: AttemptActor, nowMs: number) {
   const rows = await db.select().from(exams).where(eq(exams.status, "published")).orderBy(desc(exams.createdAt));
+  if (rows.length === 0) return [];
+
+  // W9: the old loop resolved each exam's ancestry chain + entitlements +
+  // attempt counts with ~6 sequential queries PER exam (N+1). Batch instead:
+  // load every referenced node in a constant number of queries, fetch the
+  // actor's entitlements once, and let the pure resolver decide each verdict.
+  const lessonIds = [...new Set(rows.map((e) => e.lessonId).filter((x): x is string => Boolean(x)))];
+  const directCourseIds = [...new Set(rows.map((e) => e.courseId).filter((x): x is string => Boolean(x)))];
+
+  const lessonRows = lessonIds.length
+    ? await db.select().from(lessons).where(inArray(lessons.id, lessonIds))
+    : [];
+  const unitIds = [...new Set(lessonRows.map((l) => l.unitId))];
+  const unitRows = unitIds.length
+    ? await db.select().from(units).where(inArray(units.id, unitIds))
+    : [];
+  const chainCourseIds = [...new Set(unitRows.map((u) => u.courseId))];
+  const allCourseIds = [...new Set([...directCourseIds, ...chainCourseIds])];
+  const courseRows = allCourseIds.length
+    ? await db.select().from(courses).where(inArray(courses.id, allCourseIds))
+    : [];
+  const subjectIds = [...new Set(courseRows.map((c) => c.subjectId))];
+  const subjectRows = subjectIds.length
+    ? await db.select().from(subjects).where(inArray(subjects.id, subjectIds))
+    : [];
+
+  const lessonById = new Map(lessonRows.map((l) => [l.id, l]));
+  const unitById = new Map(unitRows.map((u) => [u.id, u]));
+  const courseById = new Map(courseRows.map((c) => [c.id, c]));
+  const subjectById = new Map(subjectRows.map((s) => [s.id, s]));
+
+  // Rebuilds the exact ChainRow shape chainForLesson/chainForCourse produce
+  // (including "missing node → null"), so resolver semantics are unchanged.
+  const lessonChain = (id: string): ChainRow | null => {
+    const lesson = lessonById.get(id);
+    if (!lesson) return null;
+    const unit = unitById.get(lesson.unitId);
+    if (!unit) return null;
+    const course = courseById.get(unit.courseId);
+    if (!course) return null;
+    const subject = subjectById.get(course.subjectId);
+    if (!subject) return null;
+    return {
+      lessonId: lesson.id,
+      unitId: unit.id,
+      courseId: course.id,
+      subjectId: subject.id,
+      accessLevel: lesson.accessLevel,
+      freePreview: lesson.freePreview,
+      status: lesson.status,
+      publishAt: lesson.publishAt ?? null,
+      expiresAt: lesson.expiresAt ?? null,
+    };
+  };
+  const courseChain = (id: string): ChainRow | null => {
+    const course = courseById.get(id);
+    if (!course) return null;
+    const subject = subjectById.get(course.subjectId);
+    if (!subject) return null;
+    return {
+      courseId: course.id,
+      subjectId: subject.id,
+      accessLevel: course.accessLevel,
+      freePreview: false,
+      status: course.status,
+      publishAt: course.publishAt ?? null,
+      expiresAt: course.expiresAt ?? null,
+    };
+  };
+
+  // One entitlement fetch covering every referenced node (+ plan), shared by
+  // all exams. resolveAccess only matches entitlements that cover a given
+  // chain, so a superset yields identical verdicts to per-exam fetches.
+  const allRefIds = [
+    ...lessonIds,
+    ...unitIds,
+    ...allCourseIds,
+    ...subjectIds,
+  ];
+  const grants = actor.userId ? await entitlementsFor(db, actor.userId, allRefIds) : [];
+
+  // One attempt aggregate for every exam at once (grouped), not one per exam.
+  const attemptByExam = new Map<string, { n: number; live: number }>();
+  if (actor.userId) {
+    const examIds = rows.map((e) => e.id);
+    const attemptRows = await db
+      .select({
+        examId: examAttempts.examId,
+        n: sql<number>`COUNT(*)`,
+        live: sql<number>`SUM(CASE WHEN ${examAttempts.status} = 'in_progress' THEN 1 ELSE 0 END)`,
+      })
+      .from(examAttempts)
+      .where(and(inArray(examAttempts.examId, examIds), eq(examAttempts.studentId, actor.userId), ne(examAttempts.status, "cancelled")))
+      .groupBy(examAttempts.examId);
+    for (const r of attemptRows) attemptByExam.set(r.examId, { n: Number(r.n), live: Number(r.live ?? 0) });
+  }
+
   const out = [];
   for (const exam of rows) {
-    const access = await examAccess(db, actor, exam);
+    // Mirrors examAccess(): resolve the chain (lesson → course → neither) and
+    // delegate to the SAME pure resolver, only with pre-fetched inputs.
+    let access: AccessVerdict | { allowed: false; reason: "not_found" };
+    if (exam.lessonId) {
+      const chain = lessonChain(exam.lessonId);
+      access = chain
+        ? resolveAccess({
+            subject: actor,
+            resource: {
+              accessLevel: chain.accessLevel,
+              status: chain.status,
+              publishAt: chain.publishAt,
+              expiresAt: chain.expiresAt,
+              freePreview: chain.freePreview,
+            },
+            chain: chainRefsOf(chain),
+            entitlements: grants,
+            now: nowMs,
+          })
+        : { allowed: false, reason: "not_found" as const };
+    } else if (exam.courseId) {
+      const chain = courseChain(exam.courseId);
+      access = chain
+        ? resolveAccess({
+            subject: actor,
+            resource: {
+              accessLevel: chain.accessLevel,
+              status: chain.status,
+              publishAt: chain.publishAt,
+              expiresAt: chain.expiresAt,
+              freePreview: chain.freePreview,
+            },
+            chain: chainRefsOf(chain),
+            entitlements: grants,
+            now: nowMs,
+          })
+        : { allowed: false, reason: "not_found" as const };
+    } else {
+      access = actor.userId
+        ? { allowed: true, reason: "authenticated" as const }
+        : { allowed: false, reason: "anon" as const };
+    }
+
     if (!access.allowed && actor.roleRank < 3) continue; // never list exams the student cannot access
     const config = parseExamConfig(exam.config);
     const { starts_at: startsAt, ends_at: endsAt } = config.availability;
     let state: "available" | "before_window" | "after_window" = "available";
     if (startsAt !== null && nowMs < startsAt) state = "before_window";
     else if (endsAt !== null && nowMs >= endsAt) state = "after_window";
-    const attemptRows = actor.userId
-      ? await db
-          .select({ n: sql<number>`COUNT(*)`, live: sql<number>`SUM(CASE WHEN ${examAttempts.status} = 'in_progress' THEN 1 ELSE 0 END)` })
-          .from(examAttempts)
-          .where(and(eq(examAttempts.examId, exam.id), eq(examAttempts.studentId, actor.userId), ne(examAttempts.status, "cancelled")))
-      : [];
-    const used = attemptRows[0] ? Number(attemptRows[0].n) : 0;
-    const hasLive = attemptRows[0] ? Number(attemptRows[0].live ?? 0) > 0 : false;
+    const used = attemptByExam.get(exam.id)?.n ?? 0;
+    const hasLive = (attemptByExam.get(exam.id)?.live ?? 0) > 0;
     out.push({
       slug: exam.slug,
       titleAr: exam.titleAr,
