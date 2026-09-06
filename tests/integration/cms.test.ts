@@ -251,3 +251,81 @@ describe("navigation builder rejects authorization-bypassing / unsafe links", ()
     expect(ok).toBeTruthy();
   });
 });
+
+describe("homepage composition (philosophy & psychology redesign)", () => {
+  it("composes and publishes hero_showcase + statistics bar + tinted feature cards; renders without placeholder substitution", async () => {
+    const db = getDb(env);
+    const page = await createPage(db, { titleAr: "الرئيسية", titleEn: "Home", slug: "home" }, actor);
+
+    // Hero
+    const heroSection = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const hero = await addBlock(db, { pageId: page.id, parentId: heroSection.id, type: "hero_showcase" }, actor);
+    await updateBlockProps(db, hero.id, {
+      eyebrow: { ar: "الفلسفة وعلم النفس", en: "Philosophy & Psychology" },
+      heading: { ar: "أهلاً بيكم في منصتكم!", en: "Welcome to your platform!" },
+      subtitle: { ar: "<p>مقدمة</p>", en: "<p>Intro</p>" },
+      ctas: [{ label: { ar: "ابدأ", en: "Start" }, href: "/courses", target: "_self", variant: "primary", icon: "" }],
+      videoLabel: { ar: "", en: "" },
+      videoId: "",
+      image: "",
+      imageAlt: { ar: "", en: "" },
+      badges: [{ icon: "brain", title: { ar: "علم النفس", en: "Psychology" }, text: { ar: "", en: "" }, position: "top-start" }],
+    }, actor);
+
+    // Statistics bar
+    const statsSection = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const stats = await addBlock(db, { pageId: page.id, parentId: statsSection.id, type: "statistics" }, actor);
+    await updateBlockProps(db, stats.id, {
+      style: "bar",
+      items: [
+        { value: "الفلسفة", label: { ar: "كورسات", en: "Courses" }, icon: "book-open", href: "/courses" },
+        { value: "علم النفس", label: { ar: "كورسات", en: "Courses" }, icon: "brain", href: "" },
+      ],
+    }, actor);
+
+    // Tinted feature cards
+    const featuresSection = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const features = await addBlock(db, { pageId: page.id, parentId: featuresSection.id, type: "feature_cards" }, actor);
+    await updateBlockProps(db, features.id, {
+      items: [
+        { icon: "brain", title: { ar: "علم النفس", en: "Psychology" }, text: { ar: "دروس", en: "Lessons" }, ctaLabel: { ar: "", en: "" }, href: "", tint: "accent" },
+      ],
+    }, actor);
+
+    await publishPage(db, page.id, actor, "homepage redesign");
+    const settings = await getSettings(db);
+    const row = await getPageBySlug(db, page.slug);
+    const rendered = await renderSnapshot(db, row!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "ar" });
+
+    expect(rendered.sections).toHaveLength(3);
+    expect(rendered.sections[0].children[0].type).toBe("hero_showcase");
+    expect(rendered.sections[1].children[0].type).toBe("statistics");
+    expect(rendered.sections[2].children[0].type).toBe("feature_cards");
+    // no image/video seeded → no resolved images, empty-first (no placeholder assets)
+    expect(rendered.ctx.images).toEqual({});
+  });
+
+  it("hero_showcase with no image/video still renders (badges flow inline), and drops unknown/broken blocks", async () => {
+    const db = getDb(env);
+    const page = await createPage(db, { titleAr: "الرئيسية", titleEn: "Home", slug: "home-bare" }, actor);
+    const section = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const hero = await addBlock(db, { pageId: page.id, parentId: section.id, type: "hero_showcase" }, actor);
+    await updateBlockProps(db, hero.id, {
+      eyebrow: { ar: "", en: "" },
+      heading: { ar: "عنوان", en: "Title" },
+      subtitle: { ar: "", en: "" },
+      ctas: [],
+      videoLabel: { ar: "", en: "" },
+      videoId: "",
+      image: "",
+      imageAlt: { ar: "", en: "" },
+      badges: [],
+    }, actor);
+    await publishPage(db, page.id, actor);
+    const settings = await getSettings(db);
+    const row = await getPageBySlug(db, page.slug);
+    const rendered = await renderSnapshot(db, row!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "ar" });
+    expect(rendered.sections).toHaveLength(1);
+    expect(rendered.sections[0].children[0].type).toBe("hero_showcase");
+  });
+});

@@ -260,6 +260,50 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
 // Individual block renderers
 // ---------------------------------------------------------------------------
 
+/** Floating badge anchor positions (desktop); below lg badges flow as a normal grid. */
+const BADGE_POS: Record<string, string> = {
+  "top-start": "lg:top-6 lg:start-6",
+  "top-end": "lg:top-6 lg:end-6",
+  "bottom-start": "lg:bottom-6 lg:start-6",
+  "bottom-end": "lg:bottom-6 lg:end-6",
+};
+
+/** Soft tinted icon-chip surface per color role (feature_cards). */
+const TINT_CHIP: Record<string, string> = {
+  default: "bg-slate-100",
+  brand: "bg-brand-100",
+  accent: "bg-accent-100",
+  success: "bg-emerald-100",
+  warning: "bg-amber-100",
+  error: "bg-rose-100",
+  muted: "bg-slate-100",
+};
+
+/** Hero intro-video CTA: a real button that reveals the server-minted player. */
+function VideoCta({ videoId, label }: { videoId: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  if (!videoId) return null;
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={open ? `hero-video-${videoId}` : undefined}
+        className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+      >
+        <Icon name="play-circle" size="md" colorRole="brand" />
+        {label}
+      </button>
+      {open && (
+        <div id={`hero-video-${videoId}`} className="w-full max-w-xl">
+          <VideoPlayer videoId={videoId} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P }; ctx: CmsRenderCtx }) {
   const p = block.props;
   const L = ctx.locale;
@@ -292,6 +336,91 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               ))}
             </div>
           )}
+        </div>
+      );
+    }
+    case "hero_showcase": {
+      const eyebrow = str(p, "eyebrow", L);
+      const heading = str(p, "heading", L);
+      const subtitleHtml = str(p, "subtitle", L);
+      const ctas = arr(p, "ctas").filter((i) => str(i, "label", L) || raw(i, "href"));
+      const videoLabel = str(p, "videoLabel", L);
+      const videoId = raw(p, "videoId");
+      const imageId = raw(p, "image");
+      const hasImage = Boolean(imageId && ctx.images[imageId]);
+      const badges = arr(p, "badges").filter((b) => raw(b, "icon") || str(b, "title", L) || str(b, "text", L));
+      if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !hasImage) return null;
+      const imageAlt = str(p, "imageAlt", L) || heading;
+      const badgeChips = badges.map((b, idx) => (
+        <div key={idx} className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white/95 p-3 shadow-md backdrop-blur">
+          {raw(b, "icon") && (
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
+              <Icon name={raw(b, "icon")} size="md" colorRole="brand" />
+            </span>
+          )}
+          <span className="flex flex-col">
+            {str(b, "title", L) && <span className="text-sm font-bold text-slate-900">{str(b, "title", L)}</span>}
+            {str(b, "text", L) && <span className="text-xs leading-snug text-slate-500">{str(b, "text", L)}</span>}
+          </span>
+        </div>
+      ));
+      return (
+        <div className="relative isolate -mx-4 overflow-hidden bg-gradient-to-b from-brand-50/70 via-white to-white px-4 sm:mx-0 sm:rounded-[var(--radius-card)]">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -end-24 -top-24 -z-10 h-72 w-72 rounded-full bg-gradient-to-br from-brand-200/60 to-accent-100/50 blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-24 -start-24 -z-10 h-72 w-72 rounded-full bg-gradient-to-tr from-accent-100/40 to-brand-100/50 blur-3xl"
+          />
+          <div className={`mx-auto grid w-full max-w-6xl items-center gap-10 py-[calc(3.5rem*var(--density,1))] lg:py-[calc(5rem*var(--density,1))] ${hasImage ? "lg:grid-cols-2" : ""}`}>
+            {/* text column */}
+            <div className="flex flex-col items-start gap-5">
+              {eyebrow && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-4 py-1.5 text-sm font-semibold text-brand-700 shadow-sm">
+                  <Icon name="sparkles" size="sm" colorRole="brand" />
+                  {eyebrow}
+                </span>
+              )}
+              {heading && <h1 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-4xl xl:text-5xl">{heading}</h1>}
+              {subtitleHtml && <RichText html={subtitleHtml} className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg" />}
+              {(ctas.length > 0 || (videoLabel && videoId)) && (
+                <div className="mt-1 flex w-full flex-col gap-3">
+                  {ctas.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {ctas.map((cta, idx) => (
+                        <CtaButton key={idx} label={str(cta, "label", L)} href={raw(cta, "href")} target={raw(cta, "target")} variant={raw(cta, "variant") || "primary"} icon={raw(cta, "icon")} className="max-sm:w-full" />
+                      ))}
+                    </div>
+                  )}
+                  {videoLabel && videoId && <VideoCta videoId={videoId} label={videoLabel} />}
+                </div>
+              )}
+              {/* floating feature badges without a hero image → inline row below the CTAs */}
+              {badges.length > 0 && !hasImage && <div className="mt-2 flex flex-wrap gap-3">{badgeChips}</div>}
+            </div>
+
+            {/* image column (optional — no placeholder substitution, ever) */}
+            {hasImage && (
+              <div className="relative mx-auto w-full max-w-md">
+                <div
+                  aria-hidden="true"
+                  className="absolute -inset-4 -z-10 rounded-[2.5rem] bg-gradient-to-br from-brand-200/70 via-brand-100/40 to-accent-100/60"
+                />
+                <CmsImage fileId={imageId} alt={imageAlt} ctx={ctx} fit="cover" aspect="3:4" rounded eager className="max-h-[32rem]" />
+                {badges.length > 0 && (
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:pointer-events-none lg:absolute lg:inset-0 lg:mt-0 lg:block">
+                    {badges.map((b, idx) => (
+                      <div key={idx} className={`lg:pointer-events-auto lg:absolute ${BADGE_POS[raw(b, "position")] ?? "lg:bottom-6 lg:start-6"}`}>
+                        {badgeChips[idx]}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
@@ -420,18 +549,26 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!items.length) return null;
       return (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item, idx) => (
-            <div key={idx} className="flex flex-col items-start gap-3 rounded-[var(--radius-card)] border border-slate-200 bg-white p-6">
-              {raw(item, "icon") && <Icon name={raw(item, "icon")} size="lg" colorRole="brand" />}
-              {str(item, "title", L) && <h3 className="text-lg font-semibold text-slate-900">{str(item, "title", L)}</h3>}
-              {str(item, "text", L) && <p className="text-sm leading-relaxed text-slate-600">{str(item, "text", L)}</p>}
-              {str(item, "ctaLabel", L) && raw(item, "href") && (
-                <SmartLink href={raw(item, "href")} className="mt-auto inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:text-brand-800">
-                  {str(item, "ctaLabel", L)}
-                </SmartLink>
-              )}
-            </div>
-          ))}
+          {items.map((item, idx) => {
+            const tint = raw(item, "tint") || "brand";
+            return (
+              <div key={idx} className="flex flex-col items-start gap-3 rounded-[var(--radius-card)] border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+                {raw(item, "icon") && (
+                  <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${TINT_CHIP[tint] ?? TINT_CHIP.brand}`}>
+                    <Icon name={raw(item, "icon")} size="md" colorRole={tint} />
+                  </span>
+                )}
+                {str(item, "title", L) && <h3 className="text-lg font-semibold text-slate-900">{str(item, "title", L)}</h3>}
+                {str(item, "text", L) && <p className="text-sm leading-relaxed text-slate-600">{str(item, "text", L)}</p>}
+                {str(item, "ctaLabel", L) && raw(item, "href") && (
+                  <SmartLink href={raw(item, "href")} className="mt-auto inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800">
+                    {str(item, "ctaLabel", L)}
+                    <span aria-hidden="true" className="rtl:rotate-180">→</span>
+                  </SmartLink>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -472,13 +609,45 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "statistics": {
       const items = arr(p, "items").filter((i) => raw(i, "value") || str(i, "label", L));
       if (!items.length) return null;
+      const style = raw(p, "style") || "cards";
+      const StatBody = ({ item }: { item: P }) => {
+        const label = str(item, "label", L);
+        const value = raw(item, "value");
+        const icon = raw(item, "icon");
+        const href = raw(item, "href");
+        const inner = (
+          <>
+            {icon && <Icon name={icon} size="md" colorRole={style === "bar" ? "invert" : "accent"} />}
+            <span className="text-2xl font-extrabold sm:text-3xl" dir="auto">{value}</span>
+            {label && <span className={`text-sm ${style === "bar" ? "text-brand-100" : "text-slate-500"}`}>{label}</span>}
+          </>
+        );
+        return href ? (
+          <SmartLink href={href} className={`flex flex-col items-center gap-1 text-center ${style === "bar" ? "rounded-2xl p-4 transition-colors hover:bg-white/10" : ""}`}>
+            {inner}
+          </SmartLink>
+        ) : (
+          <div className="flex flex-col items-center gap-1 text-center">{inner}</div>
+        );
+      };
+      if (style === "bar") {
+        return (
+          <div className="rounded-[var(--radius-card)] bg-gradient-to-r from-brand-600 via-brand-700 to-brand-800 px-6 py-8 text-white shadow-md">
+            <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+              {items.map((item, idx) => (
+                <StatBody key={idx} item={item} />
+              ))}
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
           {items.map((item, idx) => (
             <div key={idx} className="flex flex-col items-center gap-1 rounded-[var(--radius-card)] border border-slate-200 bg-white p-5 text-center">
               {raw(item, "icon") && <Icon name={raw(item, "icon")} size="md" colorRole="accent" />}
-              <span className="text-2xl font-extrabold text-slate-900" dir="ltr">{raw(item, "value")}</span>
-              <span className="text-sm text-slate-500">{str(item, "label", L)}</span>
+              <span className="text-2xl font-extrabold text-slate-900" dir="auto">{raw(item, "value")}</span>
+              {str(item, "label", L) && <span className="text-sm text-slate-500">{str(item, "label", L)}</span>}
             </div>
           ))}
         </div>
@@ -805,12 +974,16 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
   );
 }
 
-export function PageView({ sections, ctx }: { sections: RenderBlock[]; ctx: CmsRenderCtx }) {
+export function PageView({ sections, ctx, main = true }: { sections: RenderBlock[]; ctx: CmsRenderCtx; main?: boolean }) {
+  // `main` is false when the page is already wrapped in a <main> landmark by its
+  // layout (e.g. the public layout) — nesting a second <main> would violate the
+  // "one main landmark" rule (axe: landmark-no-duplicate-main / landmark-unique).
+  const Wrapper = main ? "main" : "div";
   return (
-    <main className="flex flex-col">
+    <Wrapper className="flex flex-col">
       {sections.map((s) => (
         <SectionView key={s.id} section={s} ctx={ctx} />
       ))}
-    </main>
+    </Wrapper>
   );
 }

@@ -35,6 +35,8 @@ export const ICON_IDS = [
   "monitor", "smartphone", "tablet", "sun", "moon", "palette", "message-circle",
   "send", "thumbs-up", "trophy", "medal", "chart", "whatsapp", "telegram", "facebook",
   "youtube", "instagram", "tiktok", "twitter", "linkedin",
+  // generic academic / philosophy & psychology visual language (homepage redesign)
+  "brain", "scale", "lightbulb", "landmark", "pencil", "puzzle", "compass", "scroll",
 ] as const;
 export type IconId = (typeof ICON_IDS)[number];
 
@@ -172,6 +174,7 @@ const alignOpts: FieldOption[] = [
 const iconSizeOpts: FieldOption[] = ["sm", "md", "lg", "xl"].map((v) => ({ value: v, labelKey: `cms.size.${v}` }));
 const colorRoleOpts: FieldOption[] = ["default", "brand", "accent", "success", "warning", "error", "muted"].map((v) => ({ value: v, labelKey: `cms.color.${v}` }));
 const variantOpts: FieldOption[] = ["primary", "secondary", "outline", "ghost"].map((v) => ({ value: v, labelKey: `cms.variant.${v}` }));
+const badgePosOpts: FieldOption[] = ["top-start", "top-end", "bottom-start", "bottom-end"].map((v) => ({ value: v, labelKey: `cms.badge.${v.replace("-", "_")}` }));
 
 /** Layout fields shared by the section container (spacing/alignment/background/columns). */
 export const SECTION_FIELDS: FieldDef[] = [
@@ -211,6 +214,42 @@ export const BLOCKS: Record<string, BlockDef> = {
           { name: "target", kind: "select", labelKey: "cms.f.target", options: targetOpts },
           { name: "variant", kind: "select", labelKey: "cms.f.variant", options: variantOpts },
           { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+        ],
+      },
+    ],
+  },
+
+  // Premium split hero (homepage redesign): eyebrow + headline + rich subtitle +
+  // CTA group + optional intro video, plus a large configurable image with a
+  // decorative gradient and optional floating feature badges. Fully CMS-driven —
+  // every string/image/video/badge is editable; nothing is hardcoded.
+  hero_showcase: {
+    labelKey: "cms.blocks.hero_showcase", group: "content",
+    fields: [
+      { name: "eyebrow", kind: "ltext", labelKey: "cms.f.eyebrow", max: 120 },
+      { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
+      { name: "subtitle", kind: "lrichtext", labelKey: "cms.f.subtitle", max: 4000 },
+      {
+        name: "ctas", kind: "repeater", labelKey: "cms.f.ctas", itemLabelKey: "cms.f.ctaItem", maxItems: 3,
+        items: [
+          { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 80 },
+          { name: "href", kind: "link", labelKey: "cms.f.link" },
+          { name: "target", kind: "select", labelKey: "cms.f.target", options: targetOpts },
+          { name: "variant", kind: "select", labelKey: "cms.f.variant", options: variantOpts },
+          { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+        ],
+      },
+      { name: "videoLabel", kind: "ltext", labelKey: "cms.f.videoLabel", max: 80 },
+      { name: "videoId", kind: "videoRef", labelKey: "cms.f.video" },
+      { name: "image", kind: "image", labelKey: "cms.f.image" },
+      { name: "imageAlt", kind: "ltext", labelKey: "cms.f.alt", max: 200 },
+      {
+        name: "badges", kind: "repeater", labelKey: "cms.f.badges", itemLabelKey: "cms.f.badgeItem", maxItems: 4,
+        items: [
+          { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+          { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 80 },
+          { name: "text", kind: "ltext", labelKey: "cms.f.text", max: 160 },
+          { name: "position", kind: "select", labelKey: "cms.f.badgePos", options: badgePosOpts },
         ],
       },
     ],
@@ -387,6 +426,7 @@ export const BLOCKS: Record<string, BlockDef> = {
         { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 400 },
         { name: "ctaLabel", kind: "ltext", labelKey: "cms.f.ctaLabel", max: 60 },
         { name: "href", kind: "link", labelKey: "cms.f.link" },
+        { name: "tint", kind: "select", labelKey: "cms.f.iconColor", options: colorRoleOpts },
       ],
     }],
   },
@@ -410,14 +450,18 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   statistics: {
     labelKey: "cms.blocks.statistics", group: "content",
-    fields: [{
-      name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.stat", maxItems: 8,
-      items: [
-        { name: "value", kind: "text", labelKey: "cms.f.value", max: 20 },
-        { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 120 },
-        { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
-      ],
-    }],
+    fields: [
+      { name: "style", kind: "select", labelKey: "cms.f.style", options: ["cards", "bar"].map((v) => ({ value: v, labelKey: `cms.statStyle.${v}` })) },
+      {
+        name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.stat", maxItems: 8,
+        items: [
+          { name: "value", kind: "text", labelKey: "cms.f.value", max: 40 },
+          { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 120 },
+          { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+          { name: "href", kind: "link", labelKey: "cms.f.link" },
+        ],
+      },
+    ],
   },
   testimonials: {
     labelKey: "cms.blocks.testimonials", group: "content",
@@ -653,6 +697,7 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   // block types
   "cms.blocks.section": { ar: "قسم", en: "Section" },
   "cms.blocks.hero": { ar: "واجهة رئيسية (Hero)", en: "Hero" },
+  "cms.blocks.hero_showcase": { ar: "واجهة رئيسية مميزة (Hero)", en: "Showcase hero" },
   "cms.f.height": { ar: "الارتفاع", en: "Height" },
   "cms.height.sm": { ar: "منخفض", en: "Short" },
   "cms.height.md": { ar: "متوسط", en: "Medium" },
@@ -698,6 +743,18 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   // field labels
   "cms.f.heading": { ar: "العنوان", en: "Heading" },
   "cms.f.subheading": { ar: "العنوان الفرعي", en: "Subheading" },
+  "cms.f.eyebrow": { ar: "الشارة العلوية", en: "Eyebrow / badge" },
+  "cms.f.subtitle": { ar: "النص التعريفي (منسّق)", en: "Intro text (rich)" },
+  "cms.f.videoLabel": { ar: "نص زر الفيديو", en: "Video button label" },
+  "cms.f.badges": { ar: "البطاقات العائمة", en: "Floating badges" },
+  "cms.f.badgeItem": { ar: "بطاقة عائمة", en: "Floating badge" },
+  "cms.f.badgePos": { ar: "موضع البطاقة", en: "Badge position" },
+  "cms.badge.top_start": { ar: "أعلى البداية", en: "Top start" },
+  "cms.badge.top_end": { ar: "أعلى النهاية", en: "Top end" },
+  "cms.badge.bottom_start": { ar: "أسفل البداية", en: "Bottom start" },
+  "cms.badge.bottom_end": { ar: "أسفل النهاية", en: "Bottom end" },
+  "cms.statStyle.cards": { ar: "بطاقات", en: "Cards" },
+  "cms.statStyle.bar": { ar: "شريط أفقي مميز", en: "Premium bar" },
   "cms.f.bg": { ar: "الخلفية", en: "Background" },
   "cms.f.bgImage": { ar: "صورة الخلفية", en: "Background image" },
   "cms.f.padding": { ar: "الحشو", en: "Padding" },

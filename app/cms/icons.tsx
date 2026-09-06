@@ -64,6 +64,15 @@ const GLYPHS: Record<IconId, React.ReactNode> = {
   moon: <path d="M20 14.3A8.5 8.5 0 0 1 9.7 4a8.5 8.5 0 1 0 10.3 10.3z" />,
   palette: <S><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2s-.6-1.6-.6-2.4c0-.8.6-1.6 1.6-1.6H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z" /><path d="M7.5 12h.01M9.5 8.5h.01M14 7.5h.01" /></S>,
   "message-circle": <path d="M20.5 11.7a7.7 7.7 0 0 1-8.8 7.6L4.5 21l1.8-6.6A7.7 7.7 0 1 1 20.5 11.7z" />,
+  // academic / philosophy & psychology visual language (homepage redesign)
+  brain: <S><path d="M9.5 4.5a2.5 2.5 0 0 0-4.6 1.5A2.5 2.5 0 0 0 3 10.6a2.6 2.6 0 0 0 1 4.9 2.5 2.5 0 0 0 4.4 1.3M14.5 4.5a2.5 2.5 0 0 1 4.6 1.5 2.5 2.5 0 0 1 1.9 4.6 2.6 2.6 0 0 1-1 4.9 2.5 2.5 0 0 1-4.4 1.3M9.5 4.5v12.3M14.5 4.5v12.3M12 2.5v3M12 18.5v3" /></S>,
+  scale: <S><path d="M12 3v18M8 21h8M5 7h14M6 7l-3 6a3.5 3.5 0 0 0 6 0L6 7zM18 7l-3 6a3.5 3.5 0 0 0 6 0l-3-6z" /></S>,
+  lightbulb: <S><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 3.8 10.7c-.7.6-1.3 1.5-1.3 2.3h-5c0-.8-.6-1.7-1.3-2.3A6 6 0 0 1 12 3z" /></S>,
+  landmark: <S><path d="M3.5 21h17M4 18h16M6 18V9M10 18V9M14 18V9M18 18V9M12 3 3.5 7h17L12 3z" /></S>,
+  pencil: <S><path d="M4 20h4L20.5 7.5a2.1 2.1 0 0 0-3-3L5 17z" /><path d="m13.5 6.5 3 3" /></S>,
+  puzzle: <S><path d="M10 4.5a2 2 0 1 1 4 0V6h4a2 2 0 0 1 2 2v4h1.5a2 2 0 1 1 0 4H20v4a2 2 0 0 1-2 2h-4v-1.5a2 2 0 1 0-4 0V20H6a2 2 0 0 1-2-2v-4h1.5a2 2 0 1 0 0-4H4V6a2 2 0 0 1 2-2h4z" /></S>,
+  compass: <S><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2 5-5 2 2-5z" /></S>,
+  scroll: <S><path d="M7 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z" /><path d="M7 3v3a1 1 0 0 1-1 1H4.5M9 9h7M9 13h7" /></S>,
   send: <S><path d="M21.5 2.5 10.8 13.2" /><path d="m21.5 2.5-6.8 19-3.9-8.3-8.3-3.9z" /></S>,
   "thumbs-up": <S><path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z" /><path d="M7 10 11.5 2a2.5 2.5 0 0 1 2.4 3.1L13 9h5.5a2 2 0 0 1 2 2.4l-1.3 6A2.5 2.5 0 0 1 16.7 19.5H7" /></S>,
   trophy: <S><path d="M7 4h10v5a5 5 0 0 1-10 0z" /><path d="M7 5.5H4.5a3 3 0 0 0 3 3M17 5.5h2.5a3 3 0 0 1-3 3" /><path d="M10 14h4l.5 3.5h-5z" /><path d="M8 20.5h8" /><path d="M12 17.5v3" /></S>,
@@ -97,6 +106,7 @@ export const ICON_COLOR_CLASS: Record<string, string> = {
   warning: "text-amber-600",
   error: "text-rose-600",
   muted: "text-slate-400",
+  invert: "text-white",
 };
 
 export function Icon({ name, size = "md", colorRole = "default", className = "" }: { name: string; size?: string; colorRole?: string; className?: string }) {

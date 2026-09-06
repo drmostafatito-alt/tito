@@ -100,7 +100,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <h1 className="sr-only">{pageTitle || "EduCore"}</h1>
-      <PageView sections={loaderData.sections} ctx={ctx} />
+      {/* public layout already provides the page's <main> landmark */}
+      <PageView sections={loaderData.sections} ctx={ctx} main={false} />
     </>
   );
 }
