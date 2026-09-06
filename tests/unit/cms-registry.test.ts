@@ -104,9 +104,19 @@ describe("block registry", () => {
     expect(schema.safeParse({ videoId: "https://youtube.com/x" }).success).toBe(false);
   });
 
-  it("statistics: bar/cards styles, optional per-item link, value is free text", () => {
+  it("statistics: bar/cards styles, optional per-item link, value is localized (legacy string coerced)", () => {
     const schema = zodForBlock("statistics")!;
-    expect(schema.safeParse({ style: "bar", items: [{ value: "الفلسفة", label: { ar: "", en: "" }, icon: "book-open", href: "/courses" }] }).success).toBe(true);
+    const fromString = schema.safeParse({ style: "bar", items: [{ value: "الفلسفة", label: { ar: "", en: "" }, icon: "book-open", href: "/courses" }] });
+    expect(fromString.success).toBe(true);
+    if (fromString.success) {
+      const items = fromString.data.items as Array<{ value: { ar: string; en: string } }>;
+      expect(items[0].value).toEqual({ ar: "الفلسفة", en: "الفلسفة" });
+    }
+    const bilingual = schema.safeParse({
+      style: "bar",
+      items: [{ value: { ar: "الفلسفة", en: "Philosophy" }, label: { ar: "كورسات", en: "Courses" }, icon: "book-open", href: "/courses" }],
+    });
+    expect(bilingual.success).toBe(true);
     expect(schema.safeParse({ style: "cards", items: [] }).success).toBe(true);
     expect(schema.safeParse({ style: "nonsense", items: [] }).success).toBe(false);
     expect(schema.safeParse({ style: "bar", items: [{ value: "x", label: { ar: "", en: "" }, icon: "book-open", href: "javascript:x" }] }).success).toBe(false);

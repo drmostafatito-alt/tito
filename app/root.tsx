@@ -7,7 +7,9 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-} from "react-router";import { applySecurityHeaders, applyPrivateCacheControl } from "~server/http/headers.server";
+  useLoaderData,
+} from "react-router";
+import { applySecurityHeaders, applyPrivateCacheControl } from "~server/http/headers.server";
 import { resolveAuth, SESSION_COOKIE } from "~server/auth/session.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
@@ -94,31 +96,39 @@ function readNonce(context: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * Document shell MUST live in Layout. React Router 7 only commits `<html lang
+ * dir>` from this export; putting it on the default App meant client
+ * revalidation could update route content while the live documentElement
+ * stayed on the previous locale.
+ */
 export function Layout({ children }: { children: React.ReactNode }) {
-  return children;
-}
-
-export default function App({ loaderData }: Route.ComponentProps) {
-  const locale = loaderData.locale as Locale;
-  const appName = locale === "ar" ? loaderData.platform.nameAr : loaderData.platform.nameEn;
+  const data = useLoaderData() as
+    | { locale?: Locale; platform?: { nameAr: string; nameEn: string } }
+    | undefined;
+  const locale = (data?.locale ?? "ar") as Locale;
+  const appName = locale === "ar" ? (data?.platform?.nameAr ?? "") : (data?.platform?.nameEn ?? "");
   return (
     <html lang={locale} dir={dirOf(locale)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="color-scheme" content="light" />
-        {/* React 19 hoists <title> into <head> — locale-aware without a meta function */}
         <title>{appName}</title>
         <Meta />
         <Links />
       </head>
       <body className="min-h-dvh">
-        <Outlet />
+        {children}
         <ScrollRestoration />
         <Scripts />
       </body>
     </html>
   );
+}
+
+export default function App() {
+  return <Outlet />;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -128,31 +138,19 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       : { title: t("ar", "errors.errorTitle"), body: t("ar", "errors.errorBody") }
     : { title: t("ar", "errors.errorTitle"), body: t("ar", "errors.errorBody") };
 
-  // server-side logging (never shown raw to users)
   console.error("[error-boundary]", error);
 
   return (
-    <html lang="ar" dir="rtl">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <title>{message.title}</title>
-        <Links />
-      </head>
-      <body className="min-h-dvh bg-slate-50">
-        <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
-          <p className="text-5xl font-bold text-brand-700">{isRouteErrorResponse(error) ? error.status : "500"}</p>
-          <h1 className="text-2xl font-bold">{message.title}</h1>
-          <p className="text-slate-600">{message.body}</p>
-          <Link
-            to="/"
-            className="mt-2 rounded-lg bg-brand-600 px-5 py-2.5 font-medium text-white hover:bg-brand-700"
-          >
-            {t("ar", "errors.goHome")}
-          </Link>
-        </main>
-        <Scripts />
-      </body>
-    </html>
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-slate-50 px-6 text-center">
+      <p className="text-5xl font-bold text-brand-700">{isRouteErrorResponse(error) ? error.status : "500"}</p>
+      <h1 className="text-2xl font-bold">{message.title}</h1>
+      <p className="text-slate-600">{message.body}</p>
+      <Link
+        to="/"
+        className="mt-2 rounded-lg bg-brand-600 px-5 py-2.5 font-medium text-white hover:bg-brand-700"
+      >
+        {t("ar", "errors.goHome")}
+      </Link>
+    </main>
   );
 }

@@ -1,9 +1,9 @@
 {
-  "wallMs": 1122,
+  "wallMs": 561,
   "htmlStatus": 200,
-  "htmlTtfbMs": 165.651,
+  "htmlTtfbMs": 220.877,
   "htmlBytes": 0,
-  "requestCount": 26,
+  "requestCount": 25,
   "byType": {
     "document": {
       "n": 1,
@@ -13,21 +13,17 @@
       "n": 1,
       "bytes": 35718
     },
-    "stylesheet": {
-      "n": 2,
-      "bytes": 0
-    },
     "script": {
       "n": 13,
       "bytes": 0
     },
+    "stylesheet": {
+      "n": 2,
+      "bytes": 0
+    },
     "font": {
       "n": 8,
-      "bytes": 257368
-    },
-    "fetch": {
-      "n": 1,
-      "bytes": 0
+      "bytes": 115936
     }
   },
   "uniqueDuplicateUrls": [],
@@ -37,182 +33,175 @@
       "status": 200,
       "type": "document",
       "bytes": 0,
-      "ttfbMs": 166
+      "ttfbMs": 221
     },
     {
-      "url": "/files/606c3845-4004-4f27-b2e3-d4762514969e",
+      "url": "/files/b14bda27-3714-4e8d-90db-bc07310feed5",
       "status": 200,
       "type": "image",
       "bytes": 35718,
-      "ttfbMs": 28
+      "ttfbMs": 22
     },
     {
-      "url": "/assets/root-D1wDaIP3.css",
-      "status": 200,
-      "type": "stylesheet",
-      "bytes": 0,
-      "ttfbMs": 29
-    },
-    {
-      "url": "/assets/root-CSnNb2Ab.js",
+      "url": "/assets/layout-Bs4WqmTA.js",
       "status": 200,
       "type": "script",
       "bytes": 0,
-      "ttfbMs": 39
+      "ttfbMs": 22
     },
     {
-      "url": "/assets/layout-CMA5XvGX.js",
+      "url": "/assets/root-BVmnJD_b.js",
       "status": 200,
       "type": "script",
       "bytes": 0,
-      "ttfbMs": 35
+      "ttfbMs": 27
     },
     {
       "url": "/assets/i18n-D7INPQbh.js",
       "status": 200,
       "type": "script",
       "bytes": 0,
-      "ttfbMs": 36
-    },
-    {
-      "url": "/assets/jsx-runtime-Dff_7Ky7.js",
-      "status": 200,
-      "type": "script",
-      "bytes": 0,
-      "ttfbMs": 32
+      "ttfbMs": 20
     },
     {
       "url": "/assets/entry.client-BFVSr1DO.js",
       "status": 200,
       "type": "script",
       "bytes": 0,
-      "ttfbMs": 37
+      "ttfbMs": 26
     },
     {
-      "url": "/assets/home-CHN-QlZQ.js",
+      "url": "/assets/jsx-runtime-Dff_7Ky7.js",
       "status": 200,
       "type": "script",
       "bytes": 0,
-      "ttfbMs": 69
+      "ttfbMs": 26
     },
     {
-      "url": "/assets/EmptyState-BrlWC_J0.js",
+      "url": "/assets/root-DhV_RAz9.css",
       "status": 200,
-      "type": "script",
+      "type": "stylesheet",
       "bytes": 0,
-      "ttfbMs": 77
-    },
-    {
-      "url": "/assets/blocks-Cwv1ku1G.js",
-      "status": 200,
-      "type": "script",
-      "bytes": 0,
-      "ttfbMs": 87
-    },
-    {
-      "url": "/assets/l10n-C4o-Zpoa.js",
-      "status": 200,
-      "type": "script",
-      "bytes": 0,
-      "ttfbMs": 107
-    },
-    {
-      "url": "/assets/seo-schema-B4qI82oV.js",
-      "status": 200,
-      "type": "script",
-      "bytes": 0,
-      "ttfbMs": 92
-    },
-    {
-      "url": "/assets/icons-BNmuCRwm.js",
-      "status": 200,
-      "type": "script",
-      "bytes": 0,
-      "ttfbMs": 126
-    },
-    {
-      "url": "/assets/icon-ids-C52GANDy.js",
-      "status": 200,
-      "type": "script",
-      "bytes": 0,
-      "ttfbMs": 127
-    },
-    {
-      "url": "/assets/LanguageSwitcher-Cljm42OT.js",
-      "status": 200,
-      "type": "script",
-      "bytes": 0,
-      "ttfbMs": 127
+      "ttfbMs": 94
     },
     {
       "url": "/theme.css",
       "status": 200,
       "type": "stylesheet",
       "bytes": 0,
-      "ttfbMs": 131
+      "ttfbMs": 107
     },
     {
-      "url": "/assets/ibm-plex-sans-arabic-latin-700-normal-BzSf6GNr.woff2",
+      "url": "/assets/LanguageSwitcher-BItaWIaT.js",
       "status": 200,
-      "type": "font",
-      "bytes": 19504,
-      "ttfbMs": 17
-    },
-    {
-      "url": "/assets/ibm-plex-sans-arabic-latin-600-normal-KrqB56Mw.woff2",
-      "status": 200,
-      "type": "font",
-      "bytes": 20500,
-      "ttfbMs": 12
-    },
-    {
-      "url": "/assets/ibm-plex-sans-arabic-arabic-600-normal-0pRdybE_.woff2",
-      "status": 200,
-      "type": "font",
-      "bytes": 45688,
-      "ttfbMs": 11
-    },
-    {
-      "url": "/assets/ibm-plex-sans-arabic-arabic-700-normal-DrtBj6UE.woff2",
-      "status": 200,
-      "type": "font",
-      "bytes": 44280,
-      "ttfbMs": 16
-    },
-    {
-      "url": "/assets/ibm-plex-sans-arabic-latin-500-normal-Cd6jVIg7.woff2",
-      "status": 200,
-      "type": "font",
-      "bytes": 20088,
-      "ttfbMs": 37
-    },
-    {
-      "url": "/assets/ibm-plex-sans-arabic-arabic-500-normal-C4MQITzh.woff2",
-      "status": 200,
-      "type": "font",
-      "bytes": 45296,
-      "ttfbMs": 37
-    },
-    {
-      "url": "/assets/ibm-plex-sans-arabic-latin-400-normal-Bo5KPYvw.woff2",
-      "status": 200,
-      "type": "font",
-      "bytes": 19164,
-      "ttfbMs": 38
-    },
-    {
-      "url": "/assets/ibm-plex-sans-arabic-arabic-400-normal-CyU-ddYS.woff2",
-      "status": 200,
-      "type": "font",
-      "bytes": 42848,
-      "ttfbMs": 34
-    },
-    {
-      "url": "/__manifest?paths=%2F%2C%2Fcourses%2C%2Fdashboard%2C%2Fexams%2C%2Flogin%2C%2Fp%2C%2Fp%2Fcontact%2C%2Fp%2Ffaq%2C%2Fp%2Fresources%2C%2Fregister&version=3e66164c",
-      "status": 200,
-      "type": "fetch",
+      "type": "script",
       "bytes": 0,
-      "ttfbMs": 15
+      "ttfbMs": 96
+    },
+    {
+      "url": "/assets/icons-BNmuCRwm.js",
+      "status": 200,
+      "type": "script",
+      "bytes": 0,
+      "ttfbMs": 96
+    },
+    {
+      "url": "/fonts/cairo/cairo-ar-600.woff2",
+      "status": 200,
+      "type": "font",
+      "bytes": 13828,
+      "ttfbMs": 8
+    },
+    {
+      "url": "/fonts/cairo/cairo-ar-700.woff2",
+      "status": 200,
+      "type": "font",
+      "bytes": 13964,
+      "ttfbMs": 20
+    },
+    {
+      "url": "/fonts/cairo/cairo-ar-400.woff2",
+      "status": 200,
+      "type": "font",
+      "bytes": 13388,
+      "ttfbMs": 22
+    },
+    {
+      "url": "/fonts/cairo/cairo-lat-400.woff2",
+      "status": 200,
+      "type": "font",
+      "bytes": 15040,
+      "ttfbMs": 23
+    },
+    {
+      "url": "/fonts/cairo/cairo-ar-800.woff2",
+      "status": 200,
+      "type": "font",
+      "bytes": 13880,
+      "ttfbMs": 24
+    },
+    {
+      "url": "/fonts/cairo/cairo-lat-600.woff2",
+      "status": 200,
+      "type": "font",
+      "bytes": 15252,
+      "ttfbMs": 21
+    },
+    {
+      "url": "/fonts/cairo/cairo-lat-700.woff2",
+      "status": 200,
+      "type": "font",
+      "bytes": 15328,
+      "ttfbMs": 28
+    },
+    {
+      "url": "/fonts/cairo/cairo-lat-800.woff2",
+      "status": 200,
+      "type": "font",
+      "bytes": 15256,
+      "ttfbMs": 30
+    },
+    {
+      "url": "/assets/l10n-C4o-Zpoa.js",
+      "status": 200,
+      "type": "script",
+      "bytes": 0,
+      "ttfbMs": 133
+    },
+    {
+      "url": "/assets/EmptyState-BrlWC_J0.js",
+      "status": 200,
+      "type": "script",
+      "bytes": 0,
+      "ttfbMs": 140
+    },
+    {
+      "url": "/assets/blocks-D2C8wt4_.js",
+      "status": 200,
+      "type": "script",
+      "bytes": 0,
+      "ttfbMs": 141
+    },
+    {
+      "url": "/assets/home-W-Q0Gec0.js",
+      "status": 200,
+      "type": "script",
+      "bytes": 0,
+      "ttfbMs": 140
+    },
+    {
+      "url": "/assets/icon-ids-C52GANDy.js",
+      "status": 200,
+      "type": "script",
+      "bytes": 0,
+      "ttfbMs": 141
+    },
+    {
+      "url": "/assets/seo-schema-B4qI82oV.js",
+      "status": 200,
+      "type": "script",
+      "bytes": 0,
+      "ttfbMs": 132
     }
   ]
 }

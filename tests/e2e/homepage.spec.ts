@@ -59,12 +59,17 @@ test.describe("homepage public chrome", () => {
   test("locale switcher writes the cookie on localhost HTTP and flips dir", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    await expect(page.locator("body")).toContainText("كورسات ومراجعات");
     await page.getByRole("button", { name: /english/i }).click();
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     const cookies = await page.context().cookies(BASE);
     expect(cookies.find((c) => c.name === "edu_locale")?.value).toBe("en");
+    await expect(page.locator("body")).toContainText(/Courses & revision/);
+    await expect(page.locator("body")).toContainText(/Question banks/);
+    await expect(page.locator("body")).not.toContainText("كورسات ومراجعات");
+    await expect(page.getByRole("button", { name: /عربي|arabic/i })).toBeVisible();
   });
 
   test("responsive homepage keeps hero visual and nav at a mobile viewport", async ({ page }) => {

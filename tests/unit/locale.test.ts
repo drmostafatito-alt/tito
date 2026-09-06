@@ -47,6 +47,16 @@ describe("locale cookie localhost (no Secure on HTTP)", () => {
   });
 });
 
+describe("language switcher document navigation", () => {
+  it("POSTs /set-locale with a full document reload so html lang/dir revalidate", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(new URL("../../app/components/LanguageSwitcher.tsx", import.meta.url), "utf8");
+    expect(src).toContain("reloadDocument");
+    expect(src).toContain("/set-locale");
+    expect(src).toContain("Form");
+  });
+});
+
 describe("user-facing branding", () => {
   it("does not expose EduCore as the app name", () => {
     expect(ar.common.appName).not.toMatch(/EduCore|إيدوكور/i);

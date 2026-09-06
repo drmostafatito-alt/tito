@@ -1,0 +1,195 @@
+{
+  "note": "Classification is by source, not by the strings themselves.",
+  "sources": {
+    "homepageHeroTrustFeatures": "CMS published snapshot (pages.published_snapshot / blocks)",
+    "headerNav": "CMS menus (menus/menu_items)",
+    "platformNameTagline": "settings.platform",
+    "footerContactPhone": "settings.identity.contactPhone",
+    "footerFacebook": "settings.identity.facebook (data-driven socials)",
+    "loginRegisterCopy": "i18n locales (app/locales/ar.ts + en.ts)",
+    "languageSwitcherLabels": "i18n common.english / common.arabic",
+    "physicsCatalogRows": "demo/fixture LMS seed — not site identity"
+  },
+  "samples": {
+    "/": {
+      "ar": [
+        "الرئيسية",
+        "الكورسات",
+        "الاختبارات",
+        "مكتبة المصادر",
+        "الأسئلة الشائعة",
+        "تواصل معنا",
+        "English",
+        "تسجيل الدخول",
+        "إنشاء حساب",
+        "الفلسفة وعلم النفس",
+        "أهلاً بيكم في منصتكم!",
+        "مع د/ مصطفى تيتو — منصة متكاملة لدراسة الفلسفة وعلم النفس: محاضرات، ملخصات، بنوك أسئلة واختبارات في مكان واحد."
+      ],
+      "en": [
+        "Home",
+        "Courses",
+        "Exams",
+        "Resources",
+        "FAQ",
+        "Contact",
+        "العربية",
+        "Log in",
+        "Create account",
+        "Philosophy & Psychology",
+        "Welcome to your platform!",
+        "With Dr mostafa tito — a complete platform for studying philosophy and psychology: lectures, notes, question banks and tests in one place."
+      ]
+    },
+    "/p/faq": {
+      "ar": [
+        "الرئيسية",
+        "الكورسات",
+        "الاختبارات",
+        "مكتبة المصادر",
+        "الأسئلة الشائعة",
+        "تواصل معنا",
+        "English",
+        "تسجيل الدخول",
+        "إنشاء حساب",
+        "QA-TEMPLATE-B",
+        "عنوان الصفحة",
+        "اكتب المحتوى هنا من محرر النص المنسّق."
+      ],
+      "en": [
+        "Home",
+        "Courses",
+        "Exams",
+        "Resources",
+        "FAQ",
+        "Contact",
+        "العربية",
+        "Log in",
+        "Create account",
+        "QA-TEMPLATE-B",
+        "Page title",
+        "Write the content here in the rich-text editor."
+      ]
+    },
+    "/p/contact": {
+      "ar": [
+        "الرئيسية",
+        "الكورسات",
+        "الاختبارات",
+        "مكتبة المصادر",
+        "الأسئلة الشائعة",
+        "تواصل معنا",
+        "English",
+        "تسجيل الدخول",
+        "إنشاء حساب",
+        "QA-TEMPLATE-A",
+        "عنوان الصفحة",
+        "اكتب المحتوى هنا من محرر النص المنسّق."
+      ],
+      "en": [
+        "Home",
+        "Courses",
+        "Exams",
+        "Resources",
+        "FAQ",
+        "Contact",
+        "العربية",
+        "Log in",
+        "Create account",
+        "QA-TEMPLATE-A",
+        "Page title",
+        "Write the content here in the rich-text editor."
+      ]
+    },
+    "/p/resources": {
+      "ar": [
+        "الرئيسية",
+        "الكورسات",
+        "الاختبارات",
+        "مكتبة المصادر",
+        "الأسئلة الشائعة",
+        "تواصل معنا",
+        "English",
+        "تسجيل الدخول",
+        "إنشاء حساب",
+        "مكتبة المصادر",
+        "ستجد هنا المذكرات والملخصات والملفات المتاحة ضمن الكورسات.",
+        "الفلسفة وعلم النفس"
+      ],
+      "en": [
+        "Home",
+        "Courses",
+        "Exams",
+        "Resources",
+        "FAQ",
+        "Contact",
+        "العربية",
+        "Log in",
+        "Create account",
+        "Resource library",
+        "You'll find the notes, summaries and files available within the courses here.",
+        "Philosophy & Psychology"
+      ]
+    },
+    "/courses": {
+      "ar": [
+        "الرئيسية",
+        "الكورسات",
+        "الاختبارات",
+        "مكتبة المصادر",
+        "الأسئلة الشائعة",
+        "تواصل معنا",
+        "English",
+        "تسجيل الدخول",
+        "إنشاء حساب",
+        "الدورات التدريبية",
+        "يتطلب اشتراك",
+        "★"
+      ],
+      "en": [
+        "Home",
+        "Courses",
+        "Exams",
+        "Resources",
+        "FAQ",
+        "Contact",
+        "العربية",
+        "Log in",
+        "Create account",
+        "Courses",
+        "Requires access",
+        "★"
+      ]
+    },
+    "/login": {
+      "ar": [
+        "الرئيسية",
+        "الكورسات",
+        "الاختبارات",
+        "مكتبة المصادر",
+        "الأسئلة الشائعة",
+        "تواصل معنا",
+        "English",
+        "تسجيل الدخول",
+        "إنشاء حساب",
+        "مرحبًا بعودتك",
+        "سجّل الدخول للمتابعة إلى حسابك",
+        "البريد الإلكتروني"
+      ],
+      "en": [
+        "Home",
+        "Courses",
+        "Exams",
+        "Resources",
+        "FAQ",
+        "Contact",
+        "العربية",
+        "Log in",
+        "Create account",
+        "Welcome back",
+        "Log in to continue to your account",
+        "Email"
+      ]
+    }
+  }
+}

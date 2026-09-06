@@ -67,7 +67,10 @@ export interface BlockDef {
 }
 
 const lstr = (max: number) =>
-  z.object({ ar: z.string().max(max).default(""), en: z.string().max(max).default("") }).default({ ar: "", en: "" });
+  z.preprocess(
+    (v) => (typeof v === "string" ? { ar: v, en: v } : v),
+    z.object({ ar: z.string().max(max).default(""), en: z.string().max(max).default("") }).default({ ar: "", en: "" }),
+  );
 
 export function zodForField(f: FieldDef): z.ZodTypeAny {
   switch (f.kind) {
@@ -424,7 +427,7 @@ export const BLOCKS: Record<string, BlockDef> = {
       {
         name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.stat", maxItems: 8,
         items: [
-          { name: "value", kind: "text", labelKey: "cms.f.value", max: 40 },
+          { name: "value", kind: "ltext", labelKey: "cms.f.value", max: 40 },
           { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 120 },
           { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
           { name: "href", kind: "link", labelKey: "cms.f.link" },

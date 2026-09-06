@@ -26,6 +26,7 @@ export async function action({ request }: Route.ActionArgs) {
       secure: url.protocol === "https:",
     }),
   );
+  headers.set("Cache-Control", "no-store");
   return redirect(next, { headers });
 }
 

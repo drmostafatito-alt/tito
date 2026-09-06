@@ -562,10 +562,10 @@ const statsSection = section(
   component("statistics", {
     style: "bar",
     items: [
-      { value: "الفلسفة", label: L("كورسات ومراجعات", "Courses & revision"), icon: "book-open", href: "/courses" },
-      { value: "علم النفس", label: L("كورسات ومراجعات", "Courses & revision"), icon: "brain", href: "/courses" },
-      { value: "بنوك أسئلة", label: L("تدريبات", "Practice"), icon: "list", href: "/exams" },
-      { value: "اختبارات إلكترونية", label: L("تقييم ومتابعة", "Assessment"), icon: "chart", href: "/exams" },
+      { value: L("الفلسفة", "Philosophy"), label: L("كورسات ومراجعات", "Courses & revision"), icon: "book-open", href: "/courses" },
+      { value: L("علم النفس", "Psychology"), label: L("كورسات ومراجعات", "Courses & revision"), icon: "brain", href: "/courses" },
+      { value: L("بنوك أسئلة", "Question banks"), label: L("تدريبات", "Practice"), icon: "list", href: "/exams" },
+      { value: L("اختبارات إلكترونية", "Online tests"), label: L("تقييم ومتابعة", "Assessment"), icon: "chart", href: "/exams" },
     ],
   })
 );

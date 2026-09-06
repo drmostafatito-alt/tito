@@ -628,7 +628,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       );
     }
     case "statistics": {
-      const items = arr(p, "items").filter((i) => raw(i, "value") || str(i, "label", L));
+      const items = arr(p, "items").filter((i) => str(i, "value", L) || str(i, "label", L));
       if (!items.length) return null;
       const style = raw(p, "style") || "cards";
       if (style === "bar") {
@@ -637,7 +637,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             <div className="grid grid-cols-2 lg:grid-cols-4">
               {items.map((item, idx) => {
                 const label = str(item, "label", L);
-                const value = raw(item, "value");
+                const value = str(item, "value", L);
                 const icon = raw(item, "icon");
                 const href = raw(item, "href");
                 const inner = (
@@ -671,7 +671,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
           {items.map((item, idx) => (
             <div key={idx} className="flex flex-col items-center gap-1 rounded-[var(--radius-card)] border border-slate-200 bg-white p-5 text-center">
               {raw(item, "icon") && <Icon name={raw(item, "icon")} size="md" colorRole="accent" />}
-              <span className="text-2xl font-extrabold text-slate-900" dir="auto">{raw(item, "value")}</span>
+              <span className="text-2xl font-extrabold text-slate-900" dir="auto">{str(item, "value", L)}</span>
               {str(item, "label", L) && <span className="text-sm text-slate-500">{str(item, "label", L)}</span>}
             </div>
           ))}

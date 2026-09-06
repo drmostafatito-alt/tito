@@ -71,10 +71,10 @@ const LANDING: StarterTemplate = {
         block(sid("stats"), "statistics", {
           style: "bar",
           items: [
-            { value: "", label: L("كورسات منظمة", "Structured courses"), icon: "book-open", href: "/courses" },
-            { value: "", label: L("اختبارات", "Exams"), icon: "check-circle", href: "/exams" },
-            { value: "", label: L("شروحات واضحة", "Clear lessons"), icon: "lightbulb", href: "/courses" },
-            { value: "", label: L("متابعة التقدم", "Progress tracking"), icon: "chart", href: "/register" },
+            { value: L("", ""), label: L("كورسات منظمة", "Structured courses"), icon: "book-open", href: "/courses" },
+            { value: L("", ""), label: L("اختبارات", "Exams"), icon: "check-circle", href: "/exams" },
+            { value: L("", ""), label: L("شروحات واضحة", "Clear lessons"), icon: "lightbulb", href: "/courses" },
+            { value: L("", ""), label: L("متابعة التقدم", "Progress tracking"), icon: "chart", href: "/register" },
           ],
         }),
       ]),

@@ -1,5 +1,7 @@
 # Live QA closeout — 2026-09-06
 
+**A–L results:** [`A-L-closeout.md`](./A-L-closeout.md) — 14/14 Playwright QA tests passed (Chromium 153).
+
 Captured against wrangler local + cold D1 (migrations 0000–0008 including `0008_cms_customization.sql`) + `npm run db:seed:local`. Playwright Chromium 153.
 
 ## Screenshots (seed homepage, before Admin mutations)

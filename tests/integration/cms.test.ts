@@ -290,8 +290,8 @@ describe("homepage composition (philosophy & psychology redesign)", () => {
     await updateBlockProps(db, stats.id, {
       style: "bar",
       items: [
-        { value: "الفلسفة", label: { ar: "كورسات", en: "Courses" }, icon: "book-open", href: "/courses" },
-        { value: "علم النفس", label: { ar: "كورسات", en: "Courses" }, icon: "brain", href: "" },
+        { value: { ar: "الفلسفة", en: "Philosophy" }, label: { ar: "كورسات", en: "Courses" }, icon: "book-open", href: "/courses" },
+        { value: { ar: "علم النفس", en: "Psychology" }, label: { ar: "كورسات", en: "Courses" }, icon: "brain", href: "" },
       ],
     }, actor);
 

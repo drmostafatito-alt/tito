@@ -43,6 +43,26 @@ async function shot(page: Page, name: string) {
   await page.screenshot({ path: resolve(OUT, name), fullPage: true });
 }
 
+/**
+ * Builder fields live in closed <details>. Click the visible summary to open,
+ * fill heading, click Save settings. Heading is enough for the public-page stamp.
+ */
+async function stampPageDraft(page: Page, stamp: string) {
+  const details = page
+    .locator("details")
+    .filter({ has: page.locator('input[name="blockTypeDef"][value="section"]') })
+    .first();
+  await details.locator("summary").waitFor({ state: "visible" });
+  const open = await details.evaluate((el) => (el as HTMLDetailsElement).open);
+  if (!open) await details.locator("summary").click();
+
+  const form = details.locator("form").first();
+  await form.locator('input[name="f.heading.ar"]').fill(stamp, { force: true });
+  await form.locator('input[name="f.heading.en"]').fill(stamp, { force: true });
+  await form.locator("button[type=submit]").click();
+  await expect(page.locator('input[name="f.heading.ar"]').first()).toHaveValue(stamp);
+}
+
 test.describe("QA closeout", () => {
   test("1 visual: Desktop AR RTL", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -102,21 +122,29 @@ test.describe("QA closeout", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
-    await page.getByRole("button", { name: /english/i }).click();
+    const [setLocale] = await Promise.all([
+      page.waitForRequest((r) => r.url().includes("/set-locale") && r.method() === "POST"),
+      page.getByRole("button", { name: /english/i }).click(),
+    ]);
+    expect(setLocale.method()).toBe("POST");
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     const cookiesEn = await page.context().cookies(BASE);
     expect(cookiesEn.find((c) => c.name === "edu_locale")?.value).toBe("en");
+    await expect(page.locator("body")).toContainText(/Courses & revision/);
+    await expect(page.locator("body")).not.toContainText("كورسات ومراجعات");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+    await expect(page.locator("body")).toContainText(/Courses & revision/);
 
     await page.getByRole("button", { name: /عربي|arabic/i }).click();
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.locator("body")).toContainText("كورسات ومراجعات");
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -167,6 +195,11 @@ test.describe("QA closeout", () => {
 
   test("7 admin CMS + appearance + templates (one login — 1-device policy)", async ({ page }) => {
     test.setTimeout(180_000);
+    const { execSync } = await import("node:child_process");
+    execSync(`npx wrangler d1 execute DB --local --command "DELETE FROM sessions; DELETE FROM devices;"`, {
+      cwd: process.cwd(),
+      stdio: "pipe",
+    });
     await loginViaUI(page, ADMIN_EMAIL, ADMIN_PASSWORD, /\/admin/);
 
     // --- appearance: platform name, logo, hero, socials, theme/font ---
@@ -262,11 +295,7 @@ test.describe("QA closeout", () => {
     await page.getByRole("button", { name: /تطبيق قالب|Apply template/i }).click();
     await expect(page.locator("body")).toContainText(/تم تطبيق|template applied|Template/i);
 
-    const sectionDetails = page.locator("details").filter({ hasText: /إعدادات القسم|Section settings/ }).first();
-    await sectionDetails.locator("summary").click();
-    await sectionDetails.locator('input[name="f.heading.ar"]').fill("QA-TEMPLATE-A");
-    await sectionDetails.locator('input[name="f.heading.en"]').fill("QA-TEMPLATE-A");
-    await sectionDetails.getByRole("button", { name: /حفظ الإعدادات|Save settings/i }).click();
+    await stampPageDraft(page, "QA-TEMPLATE-A");
     await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
     await page.locator('input[name="note"]').fill("qa-template-publish");
     await page.getByRole("button", { name: /^نشر$|^Publish$/i }).click();
@@ -296,11 +325,7 @@ test.describe("QA closeout", () => {
     await page.goto("/admin/cms");
     await page.getByRole("link", { name: /الأسئلة الشائعة|Frequently asked/i }).first().click();
     await page.waitForURL(/\/admin\/cms\/pages\//);
-    const section2 = page.locator("details").filter({ hasText: /إعدادات القسم|Section settings/ }).first();
-    await section2.locator("summary").click();
-    await section2.locator('input[name="f.heading.ar"]').fill("QA-TEMPLATE-B");
-    await section2.locator('input[name="f.heading.en"]').fill("QA-TEMPLATE-B");
-    await section2.getByRole("button", { name: /حفظ الإعدادات|Save settings/i }).click();
+    await stampPageDraft(page, "QA-TEMPLATE-B");
     await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
     await page.locator('input[name="note"]').fill("qa-source-edit");
     await page.getByRole("button", { name: /^نشر$|^Publish$/i }).click();

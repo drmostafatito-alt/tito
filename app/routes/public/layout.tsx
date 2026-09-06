@@ -119,7 +119,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const navActiveCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-2 text-sm font-semibold text-brand-700";
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col overflow-x-hidden">
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 pt-safe backdrop-blur-md">
         <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 px-4">
           <Link to="/" aria-label={appName} className="inline-flex min-h-11 shrink-0 items-center">
