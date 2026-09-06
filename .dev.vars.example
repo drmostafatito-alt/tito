@@ -10,6 +10,15 @@ AUTH_PBKDF2_ITERATIONS=100000
 # Seed: super admin account created by `npm run db:seed:local`
 ADMIN_BOOTSTRAP_EMAIL=admin@educore.local
 
+# Environment: dev | preview | production. UNKNOWN/MISSING is treated as
+# production-safe (fail-closed). Set "development" only for local work.
+ENVIRONMENT=development
+
+# C1 guard: when "true", the raw password-reset token is returned so the local
+# reset flow can be exercised WITHOUT an email channel. DEV-ONLY — never set in
+# preview/production (the production-readiness gate refuses a deploy that sets it).
+EXPOSE_DEV_RESET_TOKEN=true
+
 # Phase 2 — HMAC secret for short-lived private-file signed URLs
 FILE_URL_SECRET=change-me-long-random
 

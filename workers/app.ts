@@ -1,5 +1,6 @@
 import { RouterContextProvider, createRequestHandler } from "react-router";
 import { cloudflareContext } from "../server/cloudflare-context.server";
+import { cspNonceContext } from "../server/csp.server";
 
 declare global {
   interface CloudflareEnvironment extends Env {}
@@ -25,6 +26,9 @@ export default {
     const loadContext = new RouterContextProvider(
       new Map([[cloudflareContext, { env, ctx }]])
     );
+    // Per-request CSP nonce (see server/csp.server.ts): whitelists React Router's
+    // inline hydration scripts under a strict script-src without 'unsafe-inline'.
+    loadContext.set(cspNonceContext, crypto.randomUUID().replace(/-/g, ""));
     return requestHandler(request, loadContext);
   },
 } satisfies ExportedHandler<CloudflareEnvironment>;

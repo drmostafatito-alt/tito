@@ -13,3 +13,9 @@ migrations/*.sql.bak
 # local artifacts
 backups/
 .wrangler
+.e2e/
+
+# Playwright E2E (W4): browser assembly, test output, persisted session cookies
+test-results/
+playwright-report/
+tests/e2e/.auth/

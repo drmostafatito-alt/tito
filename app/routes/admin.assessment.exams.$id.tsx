@@ -327,8 +327,9 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
     return (
       <div className="space-y-4">
         <nav className="text-sm">
-          <Link to="/admin/assessment?tab=exams" className="text-blue-600 hover:underline">
-            ← {t(locale, "assessment.examsTab")}
+          <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+            <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
+            {t(locale, "assessment.examsTab")}
           </Link>
         </nav>
         <h1 className="text-xl font-bold">{t(locale, "assessment.newExam")}</h1>
@@ -383,8 +384,9 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
   return (
     <div className="space-y-4">
       <nav className="text-sm">
-        <Link to="/admin/assessment?tab=exams" className="text-blue-600 hover:underline">
-          ← {t(locale, "assessment.examsTab")}
+        <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+          <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
+          {t(locale, "assessment.examsTab")}
         </Link>
       </nav>
       <div className="flex flex-wrap items-center gap-2">

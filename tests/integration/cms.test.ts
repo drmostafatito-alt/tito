@@ -199,6 +199,49 @@ describe("configurable forms: declarative validation, consent, storage", () => {
   });
 });
 
+describe("resolveForms batches multiple form blocks (W9 regression)", () => {
+  it("resolves all forms on a page with correct field grouping and ordering", async () => {
+    const db = getDb(env);
+
+    // Two forms with distinct fields and a deliberately different sort order.
+    const formA = await createForm(db, { titleAr: "أ", titleEn: "Form A" }, actor);
+    await addFormField(db, formA.id, { name: "email", type: "email", labelAr: "بريد", labelEn: "Email", required: true }, actor);
+    await addFormField(db, formA.id, { name: "name", type: "text", labelAr: "اسم", labelEn: "Name" }, actor);
+
+    const formB = await createForm(db, { titleAr: "ب", titleEn: "Form B" }, actor);
+    await addFormField(db, formB.id, { name: "phone", type: "text", labelAr: "هاتف", labelEn: "Phone" }, actor);
+
+    // One page with two form blocks referencing the two different forms.
+    const page = await createPage(db, { titleAr: "ن", titleEn: "Forms Page" }, actor);
+    const section = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const blockA = await addBlock(db, { pageId: page.id, parentId: section.id, type: "form_block" }, actor);
+    const blockB = await addBlock(db, { pageId: page.id, parentId: section.id, type: "form_block" }, actor);
+    await updateBlockProps(db, blockA.id, { formId: formA.id, heading: { ar: "", en: "" } }, actor);
+    await updateBlockProps(db, blockB.id, { formId: formB.id, heading: { ar: "", en: "" } }, actor);
+    await publishPage(db, page.id, actor);
+
+    const settings = await getSettings(db);
+    const row = await getPageBySlug(db, page.slug);
+    const rendered = await renderSnapshot(db, row!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "en" });
+
+    // Both forms resolved (by id and by slug alias), each with its own fields.
+    const a = rendered.ctx.forms[formA.id];
+    const b = rendered.ctx.forms[formB.id];
+    expect(a).toBeDefined();
+    expect(b).toBeDefined();
+    expect(a.title.en).toBe("Form A");
+    expect(b.title.en).toBe("Form B");
+    expect(rendered.ctx.forms[formA.slug]).toBe(a);
+    expect(rendered.ctx.forms[formB.slug]).toBe(b);
+
+    // Field grouping is per-form (no cross-contamination) and order is preserved.
+    expect(a.fields.map((f) => f.name)).toEqual(["email", "name"]);
+    expect(b.fields.map((f) => f.name)).toEqual(["phone"]);
+    expect(a.fields[0].required).toBe(true);
+    expect(b.fields[0].required).toBe(false);
+  });
+});
+
 describe("navigation builder rejects authorization-bypassing / unsafe links", () => {
   it("javascript: and data: hrefs are refused", async () => {
     const db = getDb(env);
@@ -206,5 +249,83 @@ describe("navigation builder rejects authorization-bypassing / unsafe links", ()
     await expect(addMenuItem(db, "header", { labelAr: "خ", labelEn: "Bad", href: "data:text/html,<script>" }, actor)).rejects.toBeInstanceOf(CmsValidationError);
     const ok = await addMenuItem(db, "header", { labelAr: "الصفحات", labelEn: "Pages", href: "/p/about" }, actor);
     expect(ok).toBeTruthy();
+  });
+});
+
+describe("homepage composition (philosophy & psychology redesign)", () => {
+  it("composes and publishes hero_showcase + statistics bar + tinted feature cards; renders without placeholder substitution", async () => {
+    const db = getDb(env);
+    const page = await createPage(db, { titleAr: "الرئيسية", titleEn: "Home", slug: "home" }, actor);
+
+    // Hero
+    const heroSection = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const hero = await addBlock(db, { pageId: page.id, parentId: heroSection.id, type: "hero_showcase" }, actor);
+    await updateBlockProps(db, hero.id, {
+      eyebrow: { ar: "الفلسفة وعلم النفس", en: "Philosophy & Psychology" },
+      heading: { ar: "أهلاً بيكم في منصتكم!", en: "Welcome to your platform!" },
+      subtitle: { ar: "<p>مقدمة</p>", en: "<p>Intro</p>" },
+      ctas: [{ label: { ar: "ابدأ", en: "Start" }, href: "/courses", target: "_self", variant: "primary", icon: "" }],
+      videoLabel: { ar: "", en: "" },
+      videoId: "",
+      image: "",
+      imageAlt: { ar: "", en: "" },
+      badges: [{ icon: "brain", title: { ar: "علم النفس", en: "Psychology" }, text: { ar: "", en: "" }, position: "top-start" }],
+    }, actor);
+
+    // Statistics bar
+    const statsSection = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const stats = await addBlock(db, { pageId: page.id, parentId: statsSection.id, type: "statistics" }, actor);
+    await updateBlockProps(db, stats.id, {
+      style: "bar",
+      items: [
+        { value: "الفلسفة", label: { ar: "كورسات", en: "Courses" }, icon: "book-open", href: "/courses" },
+        { value: "علم النفس", label: { ar: "كورسات", en: "Courses" }, icon: "brain", href: "" },
+      ],
+    }, actor);
+
+    // Tinted feature cards
+    const featuresSection = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const features = await addBlock(db, { pageId: page.id, parentId: featuresSection.id, type: "feature_cards" }, actor);
+    await updateBlockProps(db, features.id, {
+      items: [
+        { icon: "brain", title: { ar: "علم النفس", en: "Psychology" }, text: { ar: "دروس", en: "Lessons" }, ctaLabel: { ar: "", en: "" }, href: "", tint: "accent" },
+      ],
+    }, actor);
+
+    await publishPage(db, page.id, actor, "homepage redesign");
+    const settings = await getSettings(db);
+    const row = await getPageBySlug(db, page.slug);
+    const rendered = await renderSnapshot(db, row!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "ar" });
+
+    expect(rendered.sections).toHaveLength(3);
+    expect(rendered.sections[0].children[0].type).toBe("hero_showcase");
+    expect(rendered.sections[1].children[0].type).toBe("statistics");
+    expect(rendered.sections[2].children[0].type).toBe("feature_cards");
+    // no image/video seeded → no resolved images, empty-first (no placeholder assets)
+    expect(rendered.ctx.images).toEqual({});
+  });
+
+  it("hero_showcase with no image/video still renders (badges flow inline), and drops unknown/broken blocks", async () => {
+    const db = getDb(env);
+    const page = await createPage(db, { titleAr: "الرئيسية", titleEn: "Home", slug: "home-bare" }, actor);
+    const section = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
+    const hero = await addBlock(db, { pageId: page.id, parentId: section.id, type: "hero_showcase" }, actor);
+    await updateBlockProps(db, hero.id, {
+      eyebrow: { ar: "", en: "" },
+      heading: { ar: "عنوان", en: "Title" },
+      subtitle: { ar: "", en: "" },
+      ctas: [],
+      videoLabel: { ar: "", en: "" },
+      videoId: "",
+      image: "",
+      imageAlt: { ar: "", en: "" },
+      badges: [],
+    }, actor);
+    await publishPage(db, page.id, actor);
+    const settings = await getSettings(db);
+    const row = await getPageBySlug(db, page.slug);
+    const rendered = await renderSnapshot(db, row!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "ar" });
+    expect(rendered.sections).toHaveLength(1);
+    expect(rendered.sections[0].children[0].type).toBe("hero_showcase");
   });
 });

@@ -5,6 +5,7 @@ import {
   bucketOf,
   dispositionFor,
   getFile,
+  sandboxCspFor,
   verifyFileSignature,
 } from "~server/files/storage.server";
 
@@ -42,6 +43,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   }
 
   const bucket = bucketOf(env, row);
+  // H5: sandbox active/HTML-renderable content (SVG etc.) so direct navigation
+  // can't execute scripts in our origin. Subresource <img> rendering is unaffected.
+  const csp = sandboxCspFor(row.mime);
   const rangeHeader = request.headers.get("range");
 
   if (rangeHeader) {
@@ -59,6 +63,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
           "Content-Range": `bytes ${start}-${end}/${row.byteSize}`,
           "Accept-Ranges": "bytes",
           "Cache-Control": row.visibility === "public" ? "public, max-age=3600" : "private, no-store",
+          ...(csp ? { "Content-Security-Policy": csp } : {}),
         },
       });
     }
@@ -75,6 +80,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       "Accept-Ranges": "bytes",
       "Cache-Control": row.visibility === "public" ? "public, max-age=3600" : "private, no-store",
       "X-Content-Type-Options": "nosniff",
+      ...(csp ? { "Content-Security-Policy": csp } : {}),
     },
   });
 }

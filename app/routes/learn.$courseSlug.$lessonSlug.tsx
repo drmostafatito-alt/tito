@@ -192,8 +192,8 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
   const lessonCompleted = actionData?.completed ?? (progress?.lesson?.status === "completed" || false);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <nav className="mb-2 flex items-center gap-1 text-sm text-slate-500">
+    <main className="mx-auto max-w-3xl px-4 py-8">
+      <nav className="mb-2 flex items-center gap-1 text-sm text-slate-500" aria-label={t(locale, "common.breadcrumb")}>
         <Link to={`/courses/${course.slug}`} className="hover:underline">
           {locale === "ar" ? course.titleAr : course.titleEn}
         </Link>
@@ -318,21 +318,23 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {pres.showPrevNext && (
-      <nav className="mt-8 flex justify-between text-sm">
+      <nav className="mt-8 flex justify-between text-sm" aria-label={t(locale, "common.prevNext")}>
         {prev ? (
-          <Link to={`/learn/${course.slug}/${prev.slug}`} className="text-blue-600 hover:underline">
-            ← {locale === "ar" ? prev.titleAr : prev.titleEn}
+          <Link to={`/learn/${course.slug}/${prev.slug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+            <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
+            {locale === "ar" ? prev.titleAr : prev.titleEn}
           </Link>
         ) : (
           <span />
         )}
         {next && verdict.allowed && (
-          <Link to={`/learn/${course.slug}/${next.slug}`} className="text-blue-600 hover:underline">
-            {locale === "ar" ? next.titleAr : next.titleEn} →
+          <Link to={`/learn/${course.slug}/${next.slug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+            {locale === "ar" ? next.titleAr : next.titleEn}
+            <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
           </Link>
         )}
       </nav>
       )}
-    </div>
+    </main>
   );
 }

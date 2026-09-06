@@ -2,7 +2,9 @@ import { useEffect, useRef } from "react";
 
 /**
  * Accessible modal: role=dialog + aria-modal, Escape closes, backdrop click closes,
- * first field focused, body scroll locked via position:fixed pattern (iOS-safe).
+ * first field focused, focus trapped inside the dialog (Tab/Shift+Tab cycle within),
+ * focus restored to the opener on close, body scroll locked via position:fixed
+ * pattern (iOS-safe).
  */
 export function Modal({
   open,
@@ -20,6 +22,7 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
+    const prevFocused = document.activeElement as HTMLElement | null;
     scrollRef.current = { top: window.scrollY };
     const body = document.body;
     const prev = { position: body.style.position, top: body.style.top, width: body.style.width };
@@ -27,19 +30,44 @@ export function Modal({
     body.style.top = `-${scrollRef.current.top}px`;
     body.style.width = "100%";
 
-    const focusable = dialogRef.current?.querySelector<HTMLElement>(
-      "input, select, textarea, button, [href]"
-    );
-    focusable?.focus();
+    const getFocusable = () =>
+      dialogRef.current?.querySelectorAll<HTMLElement>(
+        'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+      );
+    getFocusable()?.[0]?.focus();
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      // Trap focus: Tab/Shift+Tab cycle within the dialog instead of escaping.
+      const focusable = getFocusable();
+      if (!focusable || focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      const inside = dialogRef.current?.contains(active) ?? false;
+      if (e.shiftKey) {
+        if (active === first || !inside) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !inside) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
       Object.assign(body.style, prev);
       window.scrollTo({ top: scrollRef.current?.top ?? 0 });
+      prevFocused?.focus();
     };
   }, [open, onClose]);
 

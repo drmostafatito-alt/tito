@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:test";
 import { getDb } from "~server/db/client.server";
-import { bucketOf, dispositionFor, getFile, insertFile, listFiles, signFileUrl, verifyFileSignature } from "~server/files/storage.server";
+import { bucketOf, dispositionFor, getFile, insertFile, listFiles, sandboxCspFor, signFileUrl, verifyFileSignature } from "~server/files/storage.server";
+import { loader as filesLoader } from "../../app/routes/files.$id";
 
 /**
  * Private-file protection with REAL R2 + registry rows: signed-URL lifecycle at
@@ -108,5 +109,51 @@ describe("private file protection (R2 + signed URLs)", () => {
     const disp = dispositionFor(hostile, "view");
     expect(disp).not.toContain("\r");
     expect(disp).not.toContain("\n");
+  });
+});
+
+describe("active content serving (H5 — sandbox)", () => {
+  it("sandboxCspFor flags only HTML-renderable/active MIME types", () => {
+    expect(sandboxCspFor("image/svg+xml")).toBe("sandbox");
+    expect(sandboxCspFor("image/svg+xml; charset=utf-8")).toBe("sandbox");
+    expect(sandboxCspFor("text/html")).toBe("sandbox");
+    expect(sandboxCspFor("application/xhtml+xml")).toBe("sandbox");
+    expect(sandboxCspFor("application/pdf")).toBeNull();
+    expect(sandboxCspFor("image/png")).toBeNull();
+    expect(sandboxCspFor("video/mp4")).toBeNull();
+  });
+
+  it("the files route serves an uploaded SVG with a sandbox CSP (actual headers)", async () => {
+    const nonce = crypto.randomUUID();
+    const key = `public/image/${nonce}/diagram.svg`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`;
+    await env.PUBLIC_ASSETS.put(key, svg, { httpMetadata: { contentType: "image/svg+xml" } });
+    const id = await insertFile(db, {
+      r2Key: key,
+      bucket: "PUBLIC_ASSETS",
+      kind: "image",
+      originalFilename: "diagram.svg",
+      mime: "image/svg+xml",
+      byteSize: svg.length,
+      checksumSha256: "test",
+      visibility: "public",
+    });
+
+    const res = await filesLoader({
+      context: { cloudflare: { env, ctx: { waitUntil: () => {} } } },
+      params: { id },
+      request: new Request(`https://app.test/files/${id}`),
+    } as never);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/svg+xml");
+    expect(res.headers.get("Content-Security-Policy")).toBe("sandbox");
+    // a benign image (PDF) gets no sandbox CSP
+    const pdfRes = await filesLoader({
+      context: { cloudflare: { env, ctx: { waitUntil: () => {} } } },
+      params: { id: await putPrivateFile("PDF", { visibility: "public" }) },
+      request: new Request("https://app.test/files/x"),
+    } as never);
+    expect(pdfRes.headers.get("Content-Security-Policy")).toBeNull();
   });
 });

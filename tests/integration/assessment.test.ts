@@ -30,6 +30,7 @@ import {
   getOwnedAttempt,
   getQuestionFull,
   listQuestions,
+  listPublishedExamsForActor,
   moveExamQuestion,
   parseExamConfig,
   publishExam,
@@ -44,7 +45,7 @@ import {
   updateExam,
   updateQuestion,
 } from "~server/assessment/service.server";
-import { events, examAnswers, examAttempts, lessonProgress } from "~server/db/schema";
+import { courses, events, examAnswers, examAttempts, lessonProgress } from "~server/db/schema";
 import { loader as introLoader, action as introAction } from "~/routes/student/exams.$slug";
 import { loader as attemptLoader } from "~/routes/student/exams.$slug.attempt";
 import { action as attemptAction } from "~/routes/api.exam-attempt";
@@ -351,6 +352,41 @@ describe("access, entitlement, eligibility", () => {
     await grantEntitlement(db, { studentId: studentA.id, resourceType: "subject", resourceId: subjectId, days: 30 }, actor);
     expect((await examAccess(db, studentActor(studentA), exam)).allowed).toBe(true);
     expect((await examAccess(db, studentActor(studentB), exam)).allowed).toBe(false);
+  });
+
+  it("listPublishedExamsForActor batches chains/entitlements/attempts without changing verdicts (W9)", async () => {
+    // exam (from beforeEach) is lesson-scoped and entitled.
+    const course = (await db.select().from(courses).limit(1))[0];
+    const courseExam = await createExam(db, { titleAr: "كورس", titleEn: "Course Exam", lessonId: null, courseId: course.id }, actor);
+    await addExamQuestion(db, courseExam.id, (await makePublished("mcq")).id);
+    await publishExam(db, courseExam.id);
+    const openExam = await createExam(db, { titleAr: "عام", titleEn: "Open Exam", lessonId: null, courseId: null }, actor);
+    await addExamQuestion(db, openExam.id, (await makePublished("mcq")).id);
+    await publishExam(db, openExam.id);
+
+    // No entitlements yet: studentB (rank 1) sees only the open/authenticated exam.
+    const anon = await listPublishedExamsForActor(db, { userId: null, roleRank: 0 }, Date.now());
+    expect(anon.map((e) => e.titleEn)).toEqual([]); // all three need auth or entitlement
+
+    const b = await listPublishedExamsForActor(db, studentActor(studentB), Date.now());
+    expect(b.map((e) => e.titleEn)).toEqual(["Open Exam"]);
+
+    // Grant subject entitlement to studentA → lesson + course exams become visible.
+    await grantEntitlement(db, { studentId: studentA.id, resourceType: "subject", resourceId: subjectId, days: 30 }, actor);
+    const lessonExamTitle = (await getExamBySlug(db, examSlug))!.titleEn;
+    const a = await listPublishedExamsForActor(db, studentActor(studentA), Date.now());
+    expect(a.map((e) => e.titleEn).sort()).toEqual(["Course Exam", "Open Exam", lessonExamTitle].sort());
+
+    // Attempt counting is per exam and includes a live in-progress attempt.
+    const started = await startAttempt(db, { examId, actor: studentActor(studentA), nowMs: Date.now() });
+    expect(started.ok).toBe(true);
+    const a2 = await listPublishedExamsForActor(db, studentActor(studentA), Date.now());
+    const lessonEntry = a2.find((e) => e.hasLiveAttempt);
+    expect(lessonEntry).toBeDefined();
+    expect(lessonEntry!.attemptsUsed).toBe(1);
+    const courseEntry = a2.find((e) => e.titleEn === "Course Exam");
+    expect(courseEntry!.attemptsUsed).toBe(0);
+    expect(courseEntry!.hasLiveAttempt).toBe(false);
   });
 
   it("intro route: anon → login redirect; non-entitled → 403; unpublished → 404", async () => {

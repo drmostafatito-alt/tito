@@ -248,7 +248,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/content" className="text-sm text-slate-500 hover:underline">← {t(locale, "admin.navContent")}</Link>
+        <Link to="/admin/content" className="inline-flex min-h-6 items-center text-sm text-slate-500 hover:underline"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {t(locale, "admin.navContent")}</Link>
         <h1 className="text-xl font-bold">{label}</h1>
         <Badge tone="neutral">{type}</Badge>
         {typeof node.slug === "string" && <span className="text-xs text-slate-400">/{String(node.slug)}</span>}

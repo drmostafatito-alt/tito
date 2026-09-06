@@ -167,65 +167,82 @@ export async function resolveDynamicBlocks(
     visibility: "hidden" | "catalog" | "featured"; teacherId: string | null;
     subjectId: string; createdAt: number;
   }
-  let courseRows: CourseLite[] = [];
-  let counts: Record<string, number> = {};
-  let names: Record<string, string> = {};
-  if (needsCourses) {
-    courseRows = (await db
-      .select({
-        id: courses.id, slug: courses.slug, titleAr: courses.titleAr, titleEn: courses.titleEn,
-        descriptionAr: courses.descriptionAr, descriptionEn: courses.descriptionEn,
-        thumbnailFileId: courses.thumbnailFileId, accessLevel: courses.accessLevel,
-        visibility: courses.visibility, teacherId: courses.teacherId, subjectId: courses.subjectId,
-        createdAt: courses.createdAt,
-      })
-      .from(courses)
-      .where(and(eq(courses.status, "published"), isNull(courses.deletedAt), inArray(courses.visibility, ["catalog", "featured"]), publishedWindow(Date.now())))
-      .orderBy(asc(courses.sortOrder))) as CourseLite[];
-    counts = await lessonCounts(db, courseRows.map((r) => r.id));
-    names = await teacherNames(db, courseRows.map((r) => r.teacherId ?? ""));
-  }
 
-  const subjectRows = needsSubjects
-    ? await db
-        .select({
-          id: subjects.id, slug: subjects.slug, titleAr: subjects.titleAr, titleEn: subjects.titleEn,
-          descriptionAr: subjects.descriptionAr, descriptionEn: subjects.descriptionEn,
-          thumbnailFileId: subjects.thumbnailFileId, sortOrder: subjects.sortOrder,
-        })
-        .from(subjects)
-        .innerJoin(grades, eq(subjects.gradeId, grades.id))
-        .innerJoin(programs, eq(grades.programId, programs.id))
-        .where(and(eq(subjects.status, "published"), isNull(subjects.deletedAt), eq(grades.status, "published"), eq(programs.status, "published")))
-        .orderBy(asc(subjects.sortOrder))
-    : [];
+  const needsSubjectCounts = reqs.some((r) => r.kind === "subjects" || (r.kind === "featured" && r.props.kind === "subjects"));
 
-  const programRows = needsPrograms
-    ? await db
-        .select({ id: programs.id, slug: programs.slug, titleAr: programs.titleAr, titleEn: programs.titleEn, descriptionAr: programs.descriptionAr, descriptionEn: programs.descriptionEn, sortOrder: programs.sortOrder })
-        .from(programs)
-        .where(and(eq(programs.status, "published"), isNull(programs.deletedAt)))
-        .orderBy(asc(programs.sortOrder))
-    : [];
+  // W9: the four queries below are mutually independent (course/subject/program
+  // rows + per-subject course counts) — run them in a single round trip instead
+  // of four sequential awaits. Each branch is a Drizzle thenable (PromiseLike),
+  // which Promise.all accepts.
+  const [courseRows, subjectRows, programRows, subjectCourseCountRows] = (await Promise.all([
+    needsCourses
+      ? db
+          .select({
+            id: courses.id, slug: courses.slug, titleAr: courses.titleAr, titleEn: courses.titleEn,
+            descriptionAr: courses.descriptionAr, descriptionEn: courses.descriptionEn,
+            thumbnailFileId: courses.thumbnailFileId, accessLevel: courses.accessLevel,
+            visibility: courses.visibility, teacherId: courses.teacherId, subjectId: courses.subjectId,
+            createdAt: courses.createdAt,
+          })
+          .from(courses)
+          .where(and(eq(courses.status, "published"), isNull(courses.deletedAt), inArray(courses.visibility, ["catalog", "featured"]), publishedWindow(Date.now())))
+          .orderBy(asc(courses.sortOrder))
+      : Promise.resolve([]),
+    needsSubjects
+      ? db
+          .select({
+            id: subjects.id, slug: subjects.slug, titleAr: subjects.titleAr, titleEn: subjects.titleEn,
+            descriptionAr: subjects.descriptionAr, descriptionEn: subjects.descriptionEn,
+            thumbnailFileId: subjects.thumbnailFileId, sortOrder: subjects.sortOrder,
+          })
+          .from(subjects)
+          .innerJoin(grades, eq(subjects.gradeId, grades.id))
+          .innerJoin(programs, eq(grades.programId, programs.id))
+          .where(and(eq(subjects.status, "published"), isNull(subjects.deletedAt), eq(grades.status, "published"), eq(programs.status, "published")))
+          .orderBy(asc(subjects.sortOrder))
+      : Promise.resolve([]),
+    needsPrograms
+      ? db
+          .select({ id: programs.id, slug: programs.slug, titleAr: programs.titleAr, titleEn: programs.titleEn, descriptionAr: programs.descriptionAr, descriptionEn: programs.descriptionEn, sortOrder: programs.sortOrder })
+          .from(programs)
+          .where(and(eq(programs.status, "published"), isNull(programs.deletedAt)))
+          .orderBy(asc(programs.sortOrder))
+      : Promise.resolve([]),
+    needsSubjectCounts
+      ? db
+          .select({ subjectId: courses.subjectId, n: sql<number>`count(*)` })
+          .from(courses)
+          .where(and(eq(courses.status, "published"), isNull(courses.deletedAt), inArray(courses.visibility, ["catalog", "featured"])))
+          .groupBy(courses.subjectId)
+      : Promise.resolve([]),
+  ])) as [
+    CourseLite[],
+    Array<{ id: string; slug: string; titleAr: string; titleEn: string; descriptionAr: string | null; descriptionEn: string | null; thumbnailFileId: string | null; sortOrder: number }>,
+    Array<{ id: string; slug: string; titleAr: string; titleEn: string; descriptionAr: string | null; descriptionEn: string | null; sortOrder: number }>,
+    Array<{ subjectId: string; n: number }>,
+  ];
 
   // course-count per subject (only when subject cards requested)
   const subjectCourseCounts: Record<string, number> = {};
-  if (reqs.some((r) => r.kind === "subjects" || (r.kind === "featured" && r.props.kind === "subjects"))) {
-    const rows = await db
-      .select({ subjectId: courses.subjectId, n: sql<number>`count(*)` })
-      .from(courses)
-      .where(and(eq(courses.status, "published"), isNull(courses.deletedAt), inArray(courses.visibility, ["catalog", "featured"])))
-      .groupBy(courses.subjectId);
-    for (const r of rows) subjectCourseCounts[r.subjectId] = Number(r.n);
-  }
+  for (const r of subjectCourseCountRows) subjectCourseCounts[r.subjectId] = Number(r.n);
 
-  // subject titles for course meta
-  const subjectTitleById: Record<string, LStr> = {};
-  if (needsCourses && courseRows.length) {
-    const ids = [...new Set(courseRows.map((r) => r.subjectId))];
-    const rows = await db.select({ id: subjects.id, titleAr: subjects.titleAr, titleEn: subjects.titleEn }).from(subjects).where(inArray(subjects.id, ids));
-    for (const r of rows) subjectTitleById[r.id] = L(r.titleAr, r.titleEn);
-  }
+  // W9: these three depend only on courseRows (not on each other) — one round
+  // trip instead of three sequential awaits.
+  const [counts, names, subjectTitleById] = needsCourses
+    ? await Promise.all([
+        lessonCounts(db, courseRows.map((r) => r.id)),
+        teacherNames(db, courseRows.map((r) => r.teacherId ?? "")),
+        (async () => {
+          const byId: Record<string, LStr> = {};
+          if (courseRows.length) {
+            const ids = [...new Set(courseRows.map((r) => r.subjectId))];
+            const rows = await db.select({ id: subjects.id, titleAr: subjects.titleAr, titleEn: subjects.titleEn }).from(subjects).where(inArray(subjects.id, ids));
+            for (const r of rows) byId[r.id] = L(r.titleAr, r.titleEn);
+          }
+          return byId;
+        })(),
+      ])
+    : [{}, {}, {} as Record<string, LStr>];
 
   const courseCard = (r: (typeof courseRows)[number], ctaOverride?: LStr | null): CardView => {
     const cc = pres.courseCard;
@@ -393,20 +410,35 @@ export async function resolveForms(db: DB, sections: SnapshotSection[]): Promise
       }
     }
   }
-  const out: Record<string, FormView> = {};
-  for (const id of ids) {
-    const rows = await db.select().from(forms).where(and(eq(forms.id, id), eq(forms.status, "active"))).limit(1);
-    const form = rows[0];
-    if (!form) continue; // deleted/disabled → block collapses at render
-    const fieldRows = (await db
+  if (ids.size === 0) return {};
+
+  const idList = [...ids];
+  // W9: was 2 sequential queries PER form (N+1); now 2 batched queries total.
+  // form_fields is indexed on (form_id, sort_order) so the combined field query
+  // is covered, and grouping by formId preserves each form's original ordering.
+  const [formRows, fieldRows] = await Promise.all([
+    db.select().from(forms).where(and(inArray(forms.id, idList), eq(forms.status, "active"))),
+    (db
       .select()
       .from(formFields)
-      .where(and(eq(formFields.formId, form.id), eq(formFields.enabled, true)))
-      .orderBy(asc(formFields.sortOrder), asc(formFields.createdAt))) as Array<Record<string, unknown>>;
+      .where(and(inArray(formFields.formId, idList), eq(formFields.enabled, true)))
+      .orderBy(asc(formFields.formId), asc(formFields.sortOrder), asc(formFields.createdAt))) as unknown as Array<Record<string, unknown>>,
+  ]);
+
+  const fieldsByForm = new Map<string, Array<Record<string, unknown>>>();
+  for (const f of fieldRows) {
+    const formId = String(f.formId);
+    const list = fieldsByForm.get(formId);
+    if (list) list.push(f);
+    else fieldsByForm.set(formId, [f]);
+  }
+
+  const out: Record<string, FormView> = {};
+  for (const form of formRows) {
     const view: FormView = {
       slug: form.slug,
       title: L(form.titleAr, form.titleEn),
-      fields: fieldRows.map((f) => ({
+      fields: (fieldsByForm.get(form.id) ?? []).map((f) => ({
         name: String(f.name),
         type: String(f.type),
         label: L(f.labelAr as string, f.labelEn as string),

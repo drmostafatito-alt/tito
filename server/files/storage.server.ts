@@ -173,6 +173,20 @@ export function dispositionFor(row: FileRow, perm: FilePerm): string {
   return `${type}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(row.originalFilename)}`;
 }
 
+/**
+ * H5 (Phase 8): active/HTML-renderable content served at our origin could run
+ * scripts when navigated to directly (stored XSS via SVG, for example). A
+ * `sandbox` CSP neutralizes script execution + same-origin access for these
+ * documents WITHOUT affecting <img>/subresource rendering (browsers ignore the
+ * response CSP in subresource contexts). This is the least-impact defense —
+ * SVG uploads stay permitted; only direct document navigation is sandboxed.
+ */
+export function sandboxCspFor(mime: string): string | null {
+  const norm = mime.split(";")[0].trim().toLowerCase();
+  const active = norm === "image/svg+xml" || norm === "text/html" || norm === "application/xhtml+xml";
+  return active ? "sandbox" : null;
+}
+
 export async function deleteFile(db: DB, env: Env, id: string): Promise<boolean> {
   const row = await getFile(db, id);
   if (!row) return false;

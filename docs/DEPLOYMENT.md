@@ -47,6 +47,10 @@ Local: copy `.dev.vars.example` → `.dev.vars` (gitignored; committed file cont
 
 - Every migration is additive-first (expand/contract pattern). Destructive steps are separate, later migrations gated on a verified export.
 - Pre-migration: `wrangler d1 export educore-prod --remote --output backups/$(date +%F).sqlite` (+ R2 master listing). Backup verified (row counts of core tables logged) before applying.
+- Full backup/restore tooling (Phase 8 / W5): `node scripts/backup.mjs` and
+  `node scripts/restore.mjs` — see docs/BACKUP-RESTORE.md for scope, procedure,
+  limitations, and the executed rehearsal. Restore is destructive and
+  environment-gated (`--force`; remote restore requires an explicit unsafe opt-in).
 - Migrations are transactional per D1 batch; a failed batch leaves the previous state.
 
 ## 6. First-deploy runbook (updated for Phase 3 / ADR-020)

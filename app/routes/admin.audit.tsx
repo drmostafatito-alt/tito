@@ -49,7 +49,7 @@ export default function AdminAudit({ loaderData }: Route.ComponentProps) {
         <CardBody className="space-y-3">
           <Form method="get" className="flex flex-wrap items-center gap-2">
             <input name="q" className={inputCls} defaultValue={loaderData.q} placeholder={t(locale, "auditAdmin.searchPh")} dir="ltr" data-testid="audit-search" />
-            <select name="entityType" className={selectCls} defaultValue={loaderData.entityType} data-testid="audit-entity-filter">
+            <select name="entityType" className={selectCls} defaultValue={loaderData.entityType} aria-label={t(locale, "auditAdmin.filterByEntity")} data-testid="audit-entity-filter">
               <option value="">{t(locale, "auditAdmin.allEntities")}</option>
               {loaderData.types.map((et2) => (
                 <option key={et2} value={et2}>{et2}</option>

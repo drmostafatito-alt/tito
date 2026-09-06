@@ -81,6 +81,42 @@ describe("block registry", () => {
     expect(seoSchema.safeParse({ canonical: "http://x" }).success).toBe(false);
     expect(seoSchema.safeParse({ robots: "hacked" }).success).toBe(false);
   });
+
+  it("hero_showcase: full premium hero round-trips, video/image are uuid refs, badges constrained", () => {
+    const schema = zodForBlock("hero_showcase")!;
+    const ok = schema.safeParse({
+      eyebrow: { ar: "الفلسفة وعلم النفس", en: "Philosophy & Psychology" },
+      heading: { ar: "أهلاً بيكم!", en: "Welcome!" },
+      subtitle: { ar: "<p>مقدمة</p>", en: "<p>Intro</p>" },
+      ctas: [{ label: { ar: "ابدأ", en: "Start" }, href: "/courses", target: "_self", variant: "primary", icon: "" }],
+      videoLabel: { ar: "شاهد", en: "Watch" },
+      videoId: "00000000-0000-4000-8000-0000000000aa",
+      image: "00000000-0000-4000-8000-0000000000bb",
+      imageAlt: { ar: "صورة", en: "Image" },
+      badges: [{ icon: "brain", title: { ar: "ت", en: "T" }, text: { ar: "", en: "" }, position: "top-start" }],
+    });
+    expect(ok.success).toBe(true);
+
+    // invalid icon id and unsafe link are rejected
+    expect(schema.safeParse({ badges: [{ icon: "<svg>", title: { ar: "", en: "" }, text: { ar: "", en: "" }, position: "top-start" }] }).success).toBe(false);
+    expect(schema.safeParse({ ctas: [{ label: { ar: "", en: "" }, href: "javascript:x", target: "_self", variant: "primary", icon: "" }] }).success).toBe(false);
+    // videoId must be a uuid (or empty) — never an arbitrary URL
+    expect(schema.safeParse({ videoId: "https://youtube.com/x" }).success).toBe(false);
+  });
+
+  it("statistics: bar/cards styles, optional per-item link, value is free text", () => {
+    const schema = zodForBlock("statistics")!;
+    expect(schema.safeParse({ style: "bar", items: [{ value: "الفلسفة", label: { ar: "", en: "" }, icon: "book-open", href: "/courses" }] }).success).toBe(true);
+    expect(schema.safeParse({ style: "cards", items: [] }).success).toBe(true);
+    expect(schema.safeParse({ style: "nonsense", items: [] }).success).toBe(false);
+    expect(schema.safeParse({ style: "bar", items: [{ value: "x", label: { ar: "", en: "" }, icon: "book-open", href: "javascript:x" }] }).success).toBe(false);
+  });
+
+  it("feature_cards: per-item tint is constrained to the color-role enum", () => {
+    const schema = zodForBlock("feature_cards")!;
+    expect(schema.safeParse({ items: [{ icon: "brain", title: { ar: "", en: "" }, text: { ar: "", en: "" }, ctaLabel: { ar: "", en: "" }, href: "", tint: "brand" }] }).success).toBe(true);
+    expect(schema.safeParse({ items: [{ icon: "brain", title: { ar: "", en: "" }, text: { ar: "", en: "" }, ctaLabel: { ar: "", en: "" }, href: "", tint: "hotpink" }] }).success).toBe(false);
+  });
 });
 
 describe("readPropsFromForm (descriptor-driven form reader)", () => {
