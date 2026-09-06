@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySecurityHeaders } from "~server/http/headers.server";
+import { applySecurityHeaders, applyPrivateCacheControl } from "~server/http/headers.server";
 
 /**
  * Regression tests for the CSP nonce fix (W4 E2E discovered that a strict
@@ -62,5 +62,30 @@ describe("applySecurityHeaders", () => {
     expect(h.get("Permissions-Policy")).toContain("camera=()");
     expect(h.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
     expect(h.get("Content-Security-Policy")).toContain("upgrade-insecure-requests");
+  });
+});
+
+describe("applyPrivateCacheControl (H8 — authenticated HTML never cached)", () => {
+  function render(hasSession: boolean, contentType: string | null): Headers {
+    const headers = new Headers();
+    if (contentType) headers.set("Content-Type", contentType);
+    applyPrivateCacheControl(headers, hasSession, contentType);
+    return headers;
+  }
+
+  it("marks authenticated HTML as private, no-store", () => {
+    const h = render(true, "text/html; charset=utf-8");
+    expect(h.get("Cache-Control")).toBe("private, no-store");
+  });
+
+  it("does not touch HTML without a session (anonymous/public pages stay cacheable-by-default)", () => {
+    const h = render(false, "text/html; charset=utf-8");
+    expect(h.get("Cache-Control")).toBeNull();
+  });
+
+  it("does not touch non-HTML responses (JSON/API/redirects) even with a session", () => {
+    for (const ct of ["application/json", "text/plain", "image/svg+xml", null]) {
+      expect(render(true, ct).get("Cache-Control")).toBeNull();
+    }
   });
 });

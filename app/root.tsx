@@ -7,8 +7,8 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-} from "react-router";import { applySecurityHeaders } from "~server/http/headers.server";
-import { resolveAuth } from "~server/auth/session.server";
+} from "react-router";import { applySecurityHeaders, applyPrivateCacheControl } from "~server/http/headers.server";
+import { resolveAuth, SESSION_COOKIE } from "~server/auth/session.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
@@ -67,6 +67,12 @@ export const middleware: Route.MiddlewareFunction[] = [
       response.headers,
       Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV),
       readNonce(context),
+    );
+    // H8: authenticated HTML must not be cached (see headers.server.ts).
+    applyPrivateCacheControl(
+      response.headers,
+      parseCookieHeader(request.headers.get("cookie")).has(SESSION_COOKIE),
+      response.headers.get("content-type"),
     );
     return response;
   },

@@ -41,3 +41,21 @@ export function applySecurityHeaders(headers: HeaderLike, isDev: boolean, nonce?
   headers.set("Cross-Origin-Opener-Policy", "same-origin");
   headers.set("X-Frame-Options", "DENY");
 }
+
+/**
+ * H8 (Phase 8): authenticated HTML must never be retained by a browser or
+ * shared cache. App-rendered documents are user-specific (header CTA, private
+ * data), so when a session cookie is present we mark them `private, no-store`.
+ * Static assets and /files responses are served outside this handler (the
+ * Workers assets binding and the /files route set their own Cache-Control), so
+ * only app-rendered responses are affected.
+ */
+export function applyPrivateCacheControl(
+  headers: HeaderLike,
+  hasSession: boolean,
+  contentType: string | null,
+): void {
+  if (hasSession && contentType?.includes("text/html")) {
+    headers.set("Cache-Control", "private, no-store");
+  }
+}
