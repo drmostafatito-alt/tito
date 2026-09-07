@@ -1003,6 +1003,14 @@ export async function confirmManualPayment(
     orderId: string;
     transferReference: string;
     note?: string | null;
+    /** Proof screenshot image (private file registered to the student) — Phase D. */
+    proofFileId?: string | null;
+    /** Sender/wallet name as shown on the transfer (Phase D). */
+    senderName?: string | null;
+    /** When the student claims the transfer was made (epoch ms). */
+    transferDateMs?: number | null;
+    /** Amount the student entered; when present it MUST equal the order total. */
+    transferAmountMinor?: number | null;
     paymentsSettings: PaymentsSettings;
     nowMs?: number;
   }
@@ -1012,6 +1020,24 @@ export async function confirmManualPayment(
   if (!order || order.studentId !== opts.studentId) throw new CommerceReferenceError("orderId", opts.orderId);
   if (order.status !== "pending") throw new CommerceStateError("order_not_pending");
   if (!opts.transferReference.trim()) throw new CommerceValidationError("transfer_reference_required");
+
+  // Server-authoritative amount consistency: a stated transfer amount must match
+  // the order total (money never comes from the client — PAYMENTS.md §5).
+  if (opts.transferAmountMinor != null && opts.transferAmountMinor !== order.totalMinor) {
+    throw new CommerceValidationError("amount_mismatch");
+  }
+  // Proof screenshot ownership/kind: must be a PRIVATE image registered to THIS student.
+  if (opts.proofFileId) {
+    const rows = await db
+      .select({ kind: files.kind, visibility: files.visibility, createdBy: files.createdBy })
+      .from(files)
+      .where(eq(files.id, opts.proofFileId))
+      .limit(1);
+    const f = rows[0];
+    if (!f || f.kind !== "image" || f.visibility !== "private" || f.createdBy !== opts.studentId) {
+      throw new CommerceValidationError("invalid_proof_file");
+    }
+  }
 
   const existing = await paymentsOf(db, order.id);
   let payment = existing[0]; // newest first
@@ -1048,14 +1074,22 @@ export async function confirmManualPayment(
 
   const claim = await db
     .update(payments)
-    .set({
-      status: "under_review",
-      updatedAt: nowMs,
-      metadata: {
-        ...(payment.metadata ?? {}),
-        evidence: { transferReference: opts.transferReference.trim().slice(0, 200), note: (opts.note ?? "").slice(0, 500) || null, confirmedAt: nowMs },
-      },
-    })
+      .set({
+        status: "under_review",
+        updatedAt: nowMs,
+        metadata: {
+          ...(payment.metadata ?? {}),
+          evidence: {
+            transferReference: opts.transferReference.trim().slice(0, 200),
+            note: (opts.note ?? "").slice(0, 500) || null,
+            proofFileId: opts.proofFileId ?? null,
+            senderName: (opts.senderName ?? "").trim().slice(0, 200) || null,
+            transferDateMs: opts.transferDateMs ?? null,
+            transferAmountMinor: opts.transferAmountMinor ?? null,
+            confirmedAt: nowMs,
+          },
+        },
+      })
     .where(and(eq(payments.id, payment.id), eq(payments.status, "pending")))
     .run();
   const changes = (claim as unknown as { meta?: { changes?: number } }).meta?.changes ?? 1;
@@ -1301,6 +1335,7 @@ export async function rejectManualPayment(
   const payment = await getPayment(db, opts.paymentId);
   if (!payment) throw new CommerceReferenceError("paymentId", opts.paymentId);
   if (payment.status !== "under_review") throw new CommerceStateError(`${payment.status}_not_reviewable`);
+  if (!opts.reason.trim()) throw new CommerceValidationError("reject_reason_required");
   const claim = await db
     .update(payments)
     .set({
@@ -1308,7 +1343,7 @@ export async function rejectManualPayment(
       reviewedBy: opts.actor.userId,
       reviewedAt: nowMs,
       updatedAt: nowMs,
-      metadata: { ...(payment.metadata ?? {}), rejection: { reason: opts.reason.slice(0, 500), at: nowMs } },
+      metadata: { ...(payment.metadata ?? {}), rejection: { reason: opts.reason.trim().slice(0, 500), at: nowMs } },
     })
     .where(and(eq(payments.id, payment.id), eq(payments.status, "under_review")))
     .run();

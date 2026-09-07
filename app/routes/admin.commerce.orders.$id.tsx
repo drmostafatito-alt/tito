@@ -14,6 +14,7 @@ import {
   rejectManualPayment,
 } from "~server/commerce/service.server";
 import { getSettings } from "~server/settings/service.server";
+import { getFile, signFileUrl } from "~server/files/storage.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { formatMoney } from "~server/commerce/money";
 import { Alert } from "~/components/ui/Alert";
@@ -79,20 +80,33 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
         recurring: i.spec.recurring ?? false,
       },
     })),
-    payments: view.payments.map((p) => ({
-      id: p.id,
-      provider: p.provider,
-      status: p.status,
-      amountMinor: p.amountMinor,
-      currency: p.currency,
-      reference: p.reference,
-      createdAt: p.createdAt,
-      reviewedAt: p.reviewedAt,
-      paidAt: p.paidAt,
-      evidence: ((p.metadata ?? {}) as { evidence?: { transferReference?: string; note?: string | null; confirmedAt?: number } }).evidence ?? null,
-      rejection: ((p.metadata ?? {}) as { rejection?: { reason?: string; at?: number } }).rejection ?? null,
-      refund: ((p.metadata ?? {}) as { refund?: { reason?: string; at?: number; by?: string } }).refund ?? null,
-      fulfilledVia: ((p.metadata ?? {}) as { fulfilledVia?: string }).fulfilledVia ?? null,
+    payments: await Promise.all(view.payments.map(async (p) => {
+      const evidence = ((p.metadata ?? {}) as {
+        evidence?: { transferReference?: string; note?: string | null; proofFileId?: string | null; senderName?: string | null; transferDateMs?: number | null; transferAmountMinor?: number | null; confirmedAt?: number };
+      }).evidence ?? null;
+      // Admin with payments permission may view the proof via a short-lived signed
+      // URL only — never a raw R2 key/path. Others get nothing.
+      let proofPreview: { url: string } | null = null;
+      if (perms.payments && evidence?.proofFileId) {
+        const f = await getFile(db, evidence.proofFileId);
+        if (f) proofPreview = { url: (await signFileUrl(getEnv(context), f.id, "view", 900)).path };
+      }
+      return {
+        id: p.id,
+        provider: p.provider,
+        status: p.status,
+        amountMinor: p.amountMinor,
+        currency: p.currency,
+        reference: p.reference,
+        createdAt: p.createdAt,
+        reviewedAt: p.reviewedAt,
+        paidAt: p.paidAt,
+        evidence,
+        rejection: ((p.metadata ?? {}) as { rejection?: { reason?: string; at?: number } }).rejection ?? null,
+        refund: ((p.metadata ?? {}) as { refund?: { reason?: string; at?: number; by?: string } }).refund ?? null,
+        fulfilledVia: ((p.metadata ?? {}) as { fulfilledVia?: string }).fulfilledVia ?? null,
+        proofPreview,
+      };
     })),
   };
 }
@@ -222,10 +236,22 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
                 </span>
               </div>
               {p.evidence && (
-                <p className="text-xs text-slate-600" dir="ltr" data-testid="admin-evidence">
-                  {t(locale, "commerceAdmin.evidence")}: {p.evidence.transferReference}
-                  {p.evidence.note ? ` — ${p.evidence.note}` : ""}
-                </p>
+                <div className="rounded-lg bg-slate-50 p-3 text-xs" data-testid="admin-evidence">
+                  <p className="font-semibold text-slate-700">{t(locale, "commerceAdmin.evidence")}</p>
+                  <dl className="mt-1 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+                    <div className="flex justify-between gap-3"><dt className="text-slate-500">{t(locale, "commerce.transferReference")}</dt><dd dir="ltr">{p.evidence.transferReference || "—"}</dd></div>
+                    {p.evidence.senderName ? <div className="flex justify-between gap-3"><dt className="text-slate-500">{t(locale, "commerce.senderName")}</dt><dd>{p.evidence.senderName}</dd></div> : null}
+                    {p.evidence.transferAmountMinor != null ? <div className="flex justify-between gap-3"><dt className="text-slate-500">{t(locale, "commerce.transferAmount")}</dt><dd dir="ltr">{formatMoney(p.evidence.transferAmountMinor, p.currency)}</dd></div> : null}
+                    {p.evidence.transferDateMs ? <div className="flex justify-between gap-3"><dt className="text-slate-500">{t(locale, "commerce.transferDate")}</dt><dd>{formatDate(locale, p.evidence.transferDateMs)}</dd></div> : null}
+                  </dl>
+                  {p.evidence.note ? <p className="mt-1 text-slate-600">{p.evidence.note}</p> : null}
+                  {p.proofPreview ? (
+                    <figure className="mt-2">
+                      <img src={p.proofPreview.url} alt={t(locale, "commerce.proofImageAlt")} className="max-h-64 rounded-lg border border-slate-200 bg-white object-contain" data-testid="admin-proof-img" />
+                      <figcaption className="mt-1 text-slate-500">{t(locale, "commerceAdmin.proofView")}</figcaption>
+                    </figure>
+                  ) : null}
+                </div>
               )}
               {p.rejection && (
                 <p className="text-xs text-red-600">{t(locale, "commerceAdmin.rejectedNote")}: {p.rejection.reason}</p>

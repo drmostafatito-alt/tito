@@ -54,6 +54,7 @@ import {
   discountRedemptions,
   entitlements,
   events,
+  files,
   orderItems,
   orders,
   paymentEvents,
@@ -1073,5 +1074,119 @@ describe("RBAC + catalog integration", () => {
     expect(dataA.orders).toHaveLength(1);
     const dataB = (await ordersLoader({ context: routeCtx, request: getUrl("/orders", studentB.cookie), params: {} } as unknown as Parameters<typeof ordersLoader>[0])) as { orders: unknown[] };
     expect(dataB.orders).toHaveLength(0);
+  });
+});
+
+// ═══════════════════════ PHASE D — MANUAL PROOF SAFEGUARDS ═══════════════════════
+
+describe("Phase D — manual payment proof submission & review safeguards", () => {
+  const mkFile = async (ownerId: string, overrides: Record<string, unknown> = {}) => {
+    const id = crypto.randomUUID();
+    await db.insert(files).values({
+      id,
+      r2Key: `private/image/${crypto.randomUUID()}`,
+      bucket: "PRIVATE_FILES",
+      kind: "image",
+      originalFilename: "proof.png",
+      mime: "image/png",
+      byteSize: 1234,
+      checksumSha256: "x",
+      visibility: "private",
+      downloadAllowed: false,
+      altAr: "",
+      altEn: "",
+      createdBy: ownerId,
+      createdAt: Date.now(),
+      updatedAt: 0,
+      ...overrides,
+    });
+    return id;
+  };
+
+  const evidenceOf = async (paymentId: string) => {
+    const row = (await db.select().from(payments).where(eq(payments.id, paymentId)))[0]!;
+    return (row.metadata as { evidence?: Record<string, unknown> }).evidence ?? {};
+  };
+
+  it("persists richer proof evidence (sender, amount, transfer time, private proof file) and enforces amount consistency", async () => {
+    const { product, plan } = await makeProduct(10_000);
+    const r = await createOrder(db, { studentId: studentA.id, productId: product.id, pricePlanId: plan.id, paymentsSettings: paySettings() });
+    const fileId = await mkFile(studentA.id);
+    const c = await confirmManualPayment(db, {
+      studentId: studentA.id, orderId: r.order.id, transferReference: "INSTA-123", senderName: "Ahmed",
+      transferAmountMinor: 10_000, transferDateMs: Date.now(), proofFileId: fileId, paymentsSettings: paySettings(),
+    });
+    const ev = await evidenceOf(c.paymentId);
+    expect(ev.transferReference).toBe("INSTA-123");
+    expect(ev.senderName).toBe("Ahmed");
+    expect(ev.transferAmountMinor).toBe(10_000);
+    expect(ev.proofFileId).toBe(fileId);
+
+    // amount that doesn't match the server-computed order total is rejected
+    const { product: p2, plan: pl2 } = await makeProduct(10_000);
+    const r2 = await createOrder(db, { studentId: studentA.id, productId: p2.id, pricePlanId: pl2.id, paymentsSettings: paySettings() });
+    await expect(
+      confirmManualPayment(db, { studentId: studentA.id, orderId: r2.order.id, transferReference: "X", transferAmountMinor: 9999, paymentsSettings: paySettings() })
+    ).rejects.toThrow(CommerceValidationError);
+  });
+
+  it("rejects a proof file that is not this student's own private image (no cross-user proof refs)", async () => {
+    const { product, plan } = await makeProduct();
+    const r = await createOrder(db, { studentId: studentA.id, productId: product.id, pricePlanId: plan.id, paymentsSettings: paySettings() });
+    // owned by another student
+    const otherFile = await mkFile(studentB.id);
+    await expect(
+      confirmManualPayment(db, { studentId: studentA.id, orderId: r.order.id, transferReference: "X", proofFileId: otherFile, paymentsSettings: paySettings() })
+    ).rejects.toThrow(CommerceValidationError);
+    // owned by student A but is a PUBLIC image (must be private)
+    const publicFile = await mkFile(studentA.id, { visibility: "public" });
+    await expect(
+      confirmManualPayment(db, { studentId: studentA.id, orderId: r.order.id, transferReference: "X", proofFileId: publicFile, paymentsSettings: paySettings() })
+    ).rejects.toThrow(CommerceValidationError);
+    // owned by student A but is a PDF (must be an image)
+    const pdfFile = await mkFile(studentA.id, { kind: "pdf", mime: "application/pdf" });
+    await expect(
+      confirmManualPayment(db, { studentId: studentA.id, orderId: r.order.id, transferReference: "X", proofFileId: pdfFile, paymentsSettings: paySettings() })
+    ).rejects.toThrow(CommerceValidationError);
+    // an own private image passes (ownership + type are accepted)
+    const ownFile = await mkFile(studentA.id);
+    await expect(
+      confirmManualPayment(db, { studentId: studentA.id, orderId: r.order.id, transferReference: "OK", proofFileId: ownFile, paymentsSettings: paySettings() })
+    ).resolves.toMatchObject({ paymentId: expect.any(String) });
+  });
+
+  it("rejection REQUIRES a reason (server-enforced), then fails the payment; approval stays the only grant path", async () => {
+    const { product, plan } = await makeProduct(10_000);
+    const r = await createOrder(db, { studentId: studentA.id, productId: product.id, pricePlanId: plan.id, paymentsSettings: paySettings() });
+    const c = await confirmManualPayment(db, { studentId: studentA.id, orderId: r.order.id, transferReference: "TX", paymentsSettings: paySettings() });
+    // empty reason rejected by the service (not just UI)
+    await expect(rejectManualPayment(db, { paymentId: c.paymentId, reason: "   ", actor })).rejects.toThrow(CommerceValidationError);
+    const still = (await db.select().from(payments).where(eq(payments.id, c.paymentId)))[0]!;
+    expect(still.status).toBe("under_review");
+    // valid reason works and stores reviewer/reason; no entitlement is granted
+    await expect(rejectManualPayment(db, { paymentId: c.paymentId, reason: "reference not in bank statement", actor })).resolves.toBe(true);
+    const after = (await db.select().from(payments).where(eq(payments.id, c.paymentId)))[0]!;
+    expect(after.status).toBe("failed");
+    expect((after.metadata as { rejection: { reason: string } }).rejection.reason).toBe("reference not in bank statement");
+    expect(await entitlementCount(studentA.id)).toBe(0);
+    expect(await eventCount(studentA.id, "purchase", "paid")).toBe(0);
+  });
+
+  it("route confirms richer proof and surfaces amount mismatch without granting", async () => {
+    const { product, plan } = await makeProduct(10_000); // total = 10_000 minor = 100.00 EGP
+    const r = await createOrder(db, { studentId: studentA.id, productId: product.id, pricePlanId: plan.id, paymentsSettings: paySettings() });
+    const ok = (await asJson(
+      callOrderDetailAction(postForm(`/orders/${r.order.orderNumber}`, { _action: "confirm_payment", transferReference: "R-77", senderName: "Mona", transferAmount: "100.00" }, studentA.cookie), r.order.orderNumber)
+    )) as { ok?: boolean };
+    expect(ok.ok).toBe(true);
+
+    // a fresh order with a mismatched amount is refused by the route
+    const { product: p2, plan: pl2 } = await makeProduct(10_000);
+    const r2 = await createOrder(db, { studentId: studentA.id, productId: p2.id, pricePlanId: pl2.id, paymentsSettings: paySettings() });
+    const bad = (await asJson(
+      callOrderDetailAction(postForm(`/orders/${r2.order.orderNumber}`, { _action: "confirm_payment", transferReference: "R-88", senderName: "Mona", transferAmount: "90.00" }, studentA.cookie), r2.order.orderNumber)
+    )) as { error?: string };
+    expect(bad.error).toBe("amount_mismatch");
+    expect(await entitlementCount(studentA.id)).toBe(0);
   });
 });
