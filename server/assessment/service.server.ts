@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { DB } from "~server/db/client.server";
 import {
   courses, examAnswers, examAttempts, examQuestions, exams, events,
-  lessons, questionChoices, questionTags, questions, subjects, tags, units, users,
+  files, lessons, questionChoices, questionTags, questions, subjects, tags, units, users,
 } from "~server/db/schema";
 import { slugify, type ChainRow } from "~server/content/service.server";
 import { chainForCourse, chainForLesson } from "~server/content/service.server";
@@ -977,12 +977,14 @@ export async function attemptContext(
   questions: LiveQuestion[];
   answers: Record<string, string[]>;
   textAnswers: Record<string, string>;
+  /** essay handwritten-work attachments (PRIVATE files) keyed by question id. */
+  essayFiles: Record<string, { fileId: string; originalFilename: string; mime: string; byteSize: number }>;
   remainingSeconds: number | null;
   expired: boolean;
 }> {
   const { attempt, config, nowMs } = opts;
   const { questionOrder, points } = attemptMetadata(attempt);
-  if (!questionOrder.length) return { questions: [], answers: {}, textAnswers: {}, remainingSeconds: null, expired: false };
+  if (!questionOrder.length) return { questions: [], answers: {}, textAnswers: {}, essayFiles: {}, remainingSeconds: null, expired: false };
 
   const qRows = await db.select().from(questions).where(inArray(questions.id, questionOrder));
   const qMap = new Map(qRows.map((q) => [q.id, q]));
@@ -1007,20 +1009,28 @@ export async function attemptContext(
   }
 
   const aRows = await db
-    .select({ questionId: examAnswers.questionId, choiceIds: examAnswers.choiceIds, textAnswer: examAnswers.textAnswer })
+    .select({ questionId: examAnswers.questionId, choiceIds: examAnswers.choiceIds, textAnswer: examAnswers.textAnswer, fileId: examAnswers.fileId })
     .from(examAnswers)
     .where(eq(examAnswers.attemptId, attempt.id));
   const answers: Record<string, string[]> = {};
   const textAnswers: Record<string, string> = {};
+  const essayFiles: Record<string, { fileId: string; originalFilename: string; mime: string; byteSize: number }> = {};
+  const fileIds = [...new Set(aRows.map((a) => a.fileId).filter((x): x is string => Boolean(x)))];
+  const fileRows = fileIds.length ? await db.select().from(files).where(inArray(files.id, fileIds)) : [];
+  const fileById = new Map(fileRows.map((f) => [f.id, f]));
   for (const a of aRows) {
     answers[a.questionId] = (a.choiceIds as string[] | null) ?? [];
     if (a.textAnswer != null) textAnswers[a.questionId] = a.textAnswer;
+    if (a.fileId) {
+      const f = fileById.get(a.fileId);
+      if (f) essayFiles[a.questionId] = { fileId: f.id, originalFilename: f.originalFilename, mime: f.mime, byteSize: f.byteSize };
+    }
   }
 
   const remainingSeconds =
     attempt.deadlineAt !== null ? Math.max(0, Math.ceil((attempt.deadlineAt - nowMs) / 1000)) : null;
   const expired = attempt.deadlineAt !== null && nowMs > attempt.deadlineAt;
-  return { questions: liveQuestions, answers, textAnswers, remainingSeconds, expired };
+  return { questions: liveQuestions, answers, textAnswers, essayFiles, remainingSeconds, expired };
 }
 
 // ---------------------------------------------------------------------------
@@ -1546,6 +1556,87 @@ export async function gradeEssayAnswer(
   return { attemptId: attempt.id, questionId: essay.id, points: clamped, finalized };
 }
 
+/**
+ * Attaches (or replaces) a handwritten-work file to an essay answer. Uploads to
+ * R2 are done by the caller BEFORE this (route writes PRIVATE_FILES bytes +
+ * registry row); here we only associate the file with the answer and return the
+ * previously attached file id (so the caller can delete the old private object).
+ */
+export async function setEssayAnswerFile(
+  db: DB,
+  input: { attemptId: string; questionId: string; fileId: string; nowMs?: number }
+): Promise<{ ok: true; priorFileId: string | null }> {
+  const ts = input.nowMs ?? Date.now();
+  const attempt = await getAttempt(db, input.attemptId);
+  if (!attempt) throw new AssessmentReferenceError("attemptId", "attempt not found");
+  if (attempt.status !== "in_progress") {
+    throw new AssessmentValidationError([{ path: "attemptId", message: "an essay file can only be attached while the attempt is open" }]);
+  }
+  const { questionOrder } = attemptMetadata(attempt);
+  const qRows = questionOrder.length
+    ? await db.select({ id: questions.id }).from(questions).where(and(inArray(questions.id, questionOrder), eq(questions.type, "essay")))
+    : [];
+  if (!qRows.some((q) => q.id === input.questionId)) {
+    throw new AssessmentValidationError([{ path: "questionId", message: "not an essay question in this attempt" }]);
+  }
+  const fRows = await db.select({ id: files.id, visibility: files.visibility }).from(files).where(eq(files.id, input.fileId)).limit(1);
+  if (!fRows[0]) throw new AssessmentReferenceError("fileId", "file not found");
+  if (fRows[0].visibility !== "private") throw new AssessmentValidationError([{ path: "fileId", message: "essay submissions must be private files" }]);
+
+  const existing = await db
+    .select()
+    .from(examAnswers)
+    .where(and(eq(examAnswers.attemptId, attempt.id), eq(examAnswers.questionId, input.questionId)))
+    .limit(1);
+  const priorFileId = existing[0]?.fileId ?? null;
+  if (existing[0]) {
+    await db
+      .update(examAnswers)
+      .set({ fileId: input.fileId, updatedAt: ts })
+      .where(eq(examAnswers.id, existing[0].id));
+  } else {
+    await db.insert(examAnswers).values({
+      id: crypto.randomUUID(),
+      attemptId: attempt.id,
+      questionId: input.questionId,
+      choiceIds: null,
+      textAnswer: null,
+      fileId: input.fileId,
+      pointsEarned: null,
+      isCorrect: null,
+      gradedBy: null,
+      gradedAt: null,
+      feedback: null,
+      version: 1,
+      updatedAt: ts,
+    });
+  }
+  return { ok: true, priorFileId };
+}
+
+/** Removes the file association (returns the detached id for R2 cleanup). */
+export async function clearEssayAnswerFile(
+  db: DB,
+  input: { attemptId: string; questionId: string; nowMs?: number }
+): Promise<{ ok: true; priorFileId: string | null }> {
+  const ts = input.nowMs ?? Date.now();
+  const attempt = await getAttempt(db, input.attemptId);
+  if (!attempt) throw new AssessmentReferenceError("attemptId", "attempt not found");
+  if (attempt.status !== "in_progress") {
+    throw new AssessmentValidationError([{ path: "attemptId", message: "an essay file can only be removed while the attempt is open" }]);
+  }
+  const existing = await db
+    .select()
+    .from(examAnswers)
+    .where(and(eq(examAnswers.attemptId, attempt.id), eq(examAnswers.questionId, input.questionId)))
+    .limit(1);
+  const priorFileId = existing[0]?.fileId ?? null;
+  if (existing[0]?.fileId) {
+    await db.update(examAnswers).set({ fileId: null, updatedAt: ts }).where(eq(examAnswers.id, existing[0].id));
+  }
+  return { ok: true, priorFileId };
+}
+
 /** Recomputes an essay attempt's aggregate once every essay has a score. */
 async function recomputeEssayAttempt(db: DB, attemptId: string): Promise<boolean> {
   const attempt = await getAttempt(db, attemptId);
@@ -1794,6 +1885,8 @@ export interface AdminReviewQuestion {
   /** graders-only written-answer reference (never sent to students). */
   modelAnswerAr: string | null;
   modelAnswerEn: string | null;
+  /** handwritten-work attachment metadata (private file); URL minted by the route after auth. */
+  file: { id: string; originalFilename: string; mime: string; byteSize: number } | null;
   feedback: string | null;
   gradedBy: string | null;
   gradedAt: number | null;
@@ -1848,6 +1941,9 @@ export async function adminAttemptReview(db: DB, attemptId: string): Promise<Adm
     for (const c of cRows) byQ.set(c.questionId, [...(byQ.get(c.questionId) ?? []), c]);
     const aRows = await db.select().from(examAnswers).where(eq(examAnswers.attemptId, att.id));
     const aMap = new Map(aRows.map((a) => [a.questionId, a]));
+    const essayFileIds = [...new Set(aRows.map((a) => a.fileId).filter((x): x is string => Boolean(x)))];
+    const fileRows = essayFileIds.length ? await db.select().from(files).where(inArray(files.id, essayFileIds)) : [];
+    const fileById = new Map(fileRows.map((f) => [f.id, f]));
     for (const qid of questionOrder) {
       const q = qMap.get(qid);
       if (!q) continue;
@@ -1862,11 +1958,19 @@ export async function adminAttemptReview(db: DB, attemptId: string): Promise<Adm
         earned: answer?.pointsEarned ?? null,
         answered: Boolean(
           answer &&
-            (((answer.choiceIds as string[] | null)?.length ?? 0) > 0 || (answer.textAnswer && answer.textAnswer.trim().length > 0))
+            (((answer.choiceIds as string[] | null)?.length ?? 0) > 0 ||
+              (answer.textAnswer && answer.textAnswer.trim().length > 0) ||
+              Boolean(answer.fileId))
         ),
         textAnswer: answer?.textAnswer ?? null,
         modelAnswerAr: q.modelAnswerAr,
         modelAnswerEn: q.modelAnswerEn,
+        file: answer?.fileId
+          ? (() => {
+              const f = fileById.get(answer.fileId!);
+              return f ? { id: f.id, originalFilename: f.originalFilename, mime: f.mime, byteSize: f.byteSize } : null;
+            })()
+          : null,
         feedback: answer?.feedback ?? null,
         gradedBy: answer?.gradedBy ?? null,
         gradedAt: answer?.gradedAt ?? null,

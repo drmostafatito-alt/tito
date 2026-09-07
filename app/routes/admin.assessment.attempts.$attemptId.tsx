@@ -11,6 +11,7 @@ import {
   adminAttemptReview,
   gradeEssayAnswer,
 } from "~server/assessment/service.server";
+import { signFileUrl } from "~server/files/storage.server";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
@@ -31,12 +32,25 @@ function fmtTime(seconds: number | null): string {
 const areaCls = "w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm";
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
-  const { auth } = await requireRole(context, request, 3);
-  const db = getDb(getEnv(context));
+  const { auth, settings } = await requireRole(context, request, 3);
+  const env = getEnv(context);
+  const db = getDb(env);
   const review = await adminAttemptReview(db, params.attemptId);
   if (!review) throw new Response("Not Found", { status: 404 });
   const canGrade = await canAssessment(db, auth, "assessment.grade");
-  return { review, canGrade };
+  // Authorized graders only: a view URL is minted AFTER rank/permission checks;
+  // without the fresh short-TTL signature the private bytes never stream.
+  const ttl = settings.video.fileUrlTtlSeconds;
+  const questions = [];
+  for (const q of review.questions) {
+    let fileUrl: string | null = null;
+    if (q.file) {
+      const signed = await signFileUrl(env, q.file.id, "view", ttl);
+      fileUrl = signed.path;
+    }
+    questions.push({ ...q, fileUrl });
+  }
+  return { review: { ...review, questions }, canGrade };
 }
 
 export async function action({ context, params, request }: Route.ActionArgs) {
@@ -178,6 +192,20 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                         <p className="text-xs text-slate-500">{t(locale, "assessment.studentAnswer")}</p>
                         {q.textAnswer ? <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700" dir="auto">{q.textAnswer}</p> : <p className="text-sm text-slate-500">{t(locale, "assessment.notAnswered")}</p>}
                       </div>
+                      {q.file && q.fileUrl && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <a
+                            href={q.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            data-essay-file-link
+                            className="min-h-9 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                          >
+                            {t(locale, "assessment.viewSubmissionFile")}
+                          </a>
+                          <span dir="ltr" className="max-w-[16rem] truncate text-xs text-slate-500">{q.file.originalFilename}</span>
+                        </div>
+                      )}
                       {(q.modelAnswerAr || q.modelAnswerEn) && (
                         <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
                           <p className="text-xs font-medium text-emerald-700">{t(locale, "assessment.modelAnswer")}</p>

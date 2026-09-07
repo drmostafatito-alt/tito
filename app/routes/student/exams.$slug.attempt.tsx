@@ -13,6 +13,7 @@ import {
   getExamBySlug,
   parseExamConfig,
 } from "~server/assessment/service.server";
+import { signFileUrl } from "~server/files/storage.server";
 import { Alert } from "~/components/ui/Alert";
 import { Modal } from "~/components/ui/Modal";
 import { t, type Locale } from "~/lib/i18n";
@@ -65,6 +66,15 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     return redirect(`/exams/${exam.slug}?expired=1`);
   }
 
+  const env = getEnv(context);
+  const ttl = settings.video.fileUrlTtlSeconds;
+  const essayFiles: Record<string, { fileId: string; url: string; originalFilename: string; mime: string; byteSize: number }> = {};
+  for (const qid of Object.keys(ctx.essayFiles)) {
+    const f = ctx.essayFiles[qid];
+    const signed = await signFileUrl(env, f.fileId, "view", ttl);
+    essayFiles[qid] = { ...f, url: signed.path };
+  }
+
   return {
     examSlug: exam.slug,
     examTitleAr: exam.titleAr,
@@ -74,6 +84,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     questions: ctx.questions,
     answers: ctx.answers,
     textAnswers: ctx.textAnswers,
+    essayFiles,
     remainingSeconds: ctx.remainingSeconds,
   };
 }
@@ -88,17 +99,31 @@ function fmtClock(total: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
+function fileErrorLabel(locale: Locale, code: string): string {
+  const map: Record<string, string> = {
+    invalid_type: "exam.fileInvalidType",
+    too_large: "exam.fileTooLarge",
+    no_file: "exam.noFile",
+    rate_limited: "exam.fileTooMany",
+    closed: "exam.attemptLocked",
+  };
+  return t(locale, map[code] ?? "exam.fileUploadError");
+}
+
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 export default function AttemptPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { examSlug, examTitleAr, examTitleEn, attemptId, questions, answers, textAnswers, remainingSeconds } = loaderData;
+  const { examSlug, examTitleAr, examTitleEn, attemptId, questions, answers, textAnswers, essayFiles, remainingSeconds } = loaderData;
   const title = locale === "ar" ? examTitleAr : examTitleEn;
 
   const [idx, setIdx] = useState(0);
   const [selections, setSelections] = useState<Record<string, string[]>>(answers);
   const [texts, setTexts] = useState<Record<string, string>>(textAnswers);
+  const [files, setFiles] = useState<Record<string, { fileId: string; url: string; originalFilename: string; mime: string; byteSize: number }>>(essayFiles ?? {});
+  const [fileBusy, setFileBusy] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [remaining, setRemaining] = useState<number | null>(remainingSeconds);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -112,7 +137,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
   const submittingRef = useRef(false);
 
   const isAnswered = (q: (typeof questions)[number]) =>
-    q.type === "essay" ? ((texts[q.id] ?? "").trim().length > 0) : ((selections[q.id] ?? []).length > 0);
+    q.type === "essay" ? ((texts[q.id] ?? "").trim().length > 0 || Boolean(files[q.id])) : ((selections[q.id] ?? []).length > 0);
 
   const current = questions[idx] ?? null;
 
@@ -189,6 +214,55 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
     if (!current || closed || submittingRef.current || current.type !== "essay") return;
     setTexts((s) => ({ ...s, [current.id]: value }));
     void persist(current.id, { text: value });
+  }
+
+  async function uploadEssayFile(qid: string, file: File) {
+    if (!current || closed || submittingRef.current || current.type !== "essay") return;
+    setFileBusy(true);
+    setFileError(null);
+    const fd = new FormData();
+    fd.set("_action", "upload");
+    fd.set("attemptId", attemptId);
+    fd.set("questionId", qid);
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/exam-attempt", { method: "POST", body: fd });
+      const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+      if (json && json.ok) {
+        setFiles((s) => ({
+          ...s,
+          [qid]: { fileId: String(json.fileId), url: String(json.url), originalFilename: String(json.originalFilename), mime: String(json.mime), byteSize: Number(json.byteSize) },
+        }));
+      } else {
+        setFileError((json && json.error ? String(json.error) : "error"));
+      }
+    } catch {
+      setFileError("error");
+    }
+    setFileBusy(false);
+  }
+
+  async function removeEssayFile(qid: string) {
+    if (!current || closed || submittingRef.current || current.type !== "essay") return;
+    setFileBusy(true);
+    setFileError(null);
+    const p = new URLSearchParams({ _action: "clear-file", attemptId, questionId: qid });
+    try {
+      const res = await fetch("/api/exam-attempt", { method: "POST", body: p });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean } | null;
+      if (json && json.ok) {
+        setFiles((s) => {
+          const next = { ...s };
+          delete next[qid];
+          return next;
+        });
+      } else {
+        setFileError("error");
+      }
+    } catch {
+      setFileError("error");
+    }
+    setFileBusy(false);
   }
 
   async function doSubmit() {
@@ -288,16 +362,63 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
               <p className="mb-2 text-xs text-slate-500">{t(locale, "exam.essayHint")}</p>
             )}
             {current.type === "essay" ? (
-              <textarea
-                data-essay-input
-                dir="auto"
-                value={texts[current.id] ?? ""}
-                onChange={(e) => updateText(e.target.value)}
-                disabled={submitting}
-                rows={8}
-                aria-label={t(locale, "exam.essayLabel")}
-                className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-              />
+              <div className="space-y-3">
+                <textarea
+                  data-essay-input
+                  dir="auto"
+                  value={texts[current.id] ?? ""}
+                  onChange={(e) => updateText(e.target.value)}
+                  disabled={submitting}
+                  rows={6}
+                  aria-label={t(locale, "exam.essayLabel")}
+                  className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                />
+                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-3">
+                  <p className="mb-2 text-xs text-slate-500">{t(locale, "exam.essayUploadHint")}</p>
+                  {files[current.id] ? (
+                    <div className="flex flex-wrap items-center gap-2" data-essay-file>
+                      <a
+                        href={files[current.id].url}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-essay-file-link
+                        className="min-h-9 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                      >
+                        {t(locale, "exam.viewSubmission")}
+                      </a>
+                      <span dir="ltr" className="max-w-[14rem] truncate text-xs text-slate-500">{files[current.id].originalFilename}</span>
+                      <button
+                        type="button"
+                        onClick={() => void removeEssayFile(current.id)}
+                        disabled={fileBusy || submitting}
+                        className="min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {t(locale, "exam.removeFile")}
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-brand-400 disabled:opacity-50">
+                      {fileBusy ? t(locale, "exam.uploading") : t(locale, "exam.uploadFile")}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                        className="sr-only"
+                        disabled={fileBusy || submitting}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void uploadEssayFile(current.id, f);
+                          e.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                  {fileError && (
+                    <p className="mt-2 text-xs text-red-600" data-file-error>
+                      {fileErrorLabel(locale, fileError)}
+                    </p>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="space-y-2" role={current.type === "multi_select" ? "group" : "radiogroup"}>
                 {current.choices.map((c) => {

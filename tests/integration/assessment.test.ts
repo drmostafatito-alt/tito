@@ -49,11 +49,13 @@ import {
   updateExam,
   updateQuestion,
 } from "~server/assessment/service.server";
-import { courses, events, examAnswers, examAttempts, lessonProgress } from "~server/db/schema";
+import { courses, events, examAnswers, examAttempts, files, lessonProgress } from "~server/db/schema";
 import { loader as introLoader, action as introAction } from "~/routes/student/exams.$slug";
 import { loader as attemptLoader } from "~/routes/student/exams.$slug.attempt";
 import { action as attemptAction } from "~/routes/api.exam-attempt";
 import { loader as resultLoader } from "~/routes/student/results.$attemptId";
+import { loader as filesLoader } from "~/routes/files.$id";
+import { signFileUrl } from "~server/files/storage.server";
 
 /**
  * Phase 5 assessment engine on REAL D1 + REAL route loaders/actions:
@@ -1099,5 +1101,139 @@ describe("essay (written-response) grading", () => {
     expect(q).toBeTruthy();
     expect(q && "modelAnswerAr" in q).toBe(false);
     expect(q && "modelAnswerEn" in q).toBe(false);
+  });
+});
+
+// ===========================================================================
+describe("essay handwritten-work file upload (secure R2)", () => {
+  async function makeEssayExam() {
+    const q = await createQuestion(
+      db,
+      { type: "essay", stemAr: "مقال مصور", stemEn: "Picture essay", pointsDefault: 5, modelAnswerAr: "نموذجية", modelAnswerEn: "Model", choices: [] },
+      actor
+    );
+    await setQuestionStatus(db, q.id, "in_review", actor);
+    await setQuestionStatus(db, q.id, "published", actor);
+    const exam = await createExam(db, { titleAr: "مقال مصور", titleEn: "Picture Exam" }, actor);
+    await addExamQuestion(db, exam.id, q.id);
+    await publishExam(db, exam.id);
+    return { exam, questionId: q.id };
+  }
+  async function startFor(student: { id: string }) {
+    const e = await makeEssayExam();
+    const res = await startAttempt(db, { examId: e.exam.id, actor: studentActor(student), nowMs: Date.now() });
+    if (!res.ok) throw new Error("start failed");
+    return { ...e, attempt: res.attempt };
+  }
+  function uploadRequest(attemptId: string, questionId: string, cookie: string, file: File) {
+    const fd = new FormData();
+    fd.set("_action", "upload");
+    fd.set("attemptId", attemptId);
+    fd.set("questionId", questionId);
+    fd.append("file", file);
+    return new Request("https://app.test/api/exam-attempt", {
+      method: "POST",
+      headers: { cookie, "user-agent": UA },
+      body: fd,
+    });
+  }
+  const json = async (req: Request) => {
+    const res = await attemptAction({ context: routeCtx, request: req, params: {} } as unknown as Parameters<typeof attemptAction>[0]);
+    return { status: (res as Response).status, body: (await (res as Response).json()) as Record<string, unknown> };
+  };
+
+  it("authorized student uploads a valid image that is stored private + associated with the answer", async () => {
+    const { attempt, questionId } = await startFor(studentA);
+    const png = new File([new Uint8Array([137, 80, 78, 71])], "scan.png", { type: "image/png" });
+    const out = await json(uploadRequest(attempt.id, questionId, studentA.cookie, png));
+    expect(out.status).toBe(200);
+    expect(out.body.ok).toBe(true);
+    const fileId = out.body.fileId as string;
+    expect(fileId).toBeTruthy();
+
+    const row = await db.select().from(examAnswers).where(eq(examAnswers.attemptId, attempt.id));
+    expect(row[0]?.fileId).toBe(fileId);
+
+    // registry row is a PRIVATE file (never publicly exposed by raw key)
+    const f = (await db.select().from(files).where(eq(files.id, fileId)))[0];
+    expect(f?.visibility).toBe("private");
+    expect(f?.kind).toBe("image");
+
+    // owner can stream their own submission via the signed url the loader returns
+    const signed = await signFileUrl(env, fileId, "view", 60);
+    const url = new URL(`https://app.test${signed.path}`);
+    const req = new Request(url, { headers: { "user-agent": UA } });
+    const streamRes = await filesLoader({ context: routeCtx, request: req, params: { id: fileId } } as unknown as Parameters<typeof filesLoader>[0]);
+    expect(streamRes.status).toBe(200);
+    expect([...new Uint8Array(await streamRes.arrayBuffer())]).toEqual([137, 80, 78, 71]);
+  });
+
+  it("unauthorized student cannot attach a file to another student's attempt (404)", async () => {
+    const { attempt, questionId } = await startFor(studentA);
+    const png = new File([new Uint8Array([1, 2, 3])], "x.png", { type: "image/png" });
+    const out = await json(uploadRequest(attempt.id, questionId, studentB.cookie, png));
+    expect(out.status).toBe(404);
+    expect(out.body.error).toBe("not_found");
+  });
+
+  it("rejects invalid MIME (not image/pdf) before any storage write", async () => {
+    const { attempt, questionId } = await startFor(studentA);
+    const bad = new File([new TextEncoder().encode("hello")], "notes.docx", { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    const out = await json(uploadRequest(attempt.id, questionId, studentA.cookie, bad));
+    expect(out.status).toBe(400);
+    expect(out.body.error).toBe("invalid_type");
+    // nothing associated
+    const row = await db.select().from(examAnswers).where(eq(examAnswers.attemptId, attempt.id));
+    expect(row.length).toBe(0);
+  });
+
+  it("rejects oversized uploads (size cap)", async () => {
+    const { attempt, questionId } = await startFor(studentA);
+    const big = new File([new Uint8Array(11 * 1024 * 1024)], "big.png", { type: "image/png" });
+    const out = await json(uploadRequest(attempt.id, questionId, studentA.cookie, big));
+    expect(out.status).toBe(413);
+    expect(out.body.error).toBe("too_large");
+  });
+
+  it("private file cannot be streamed without a valid signature (no public exposure)", async () => {
+    const { attempt, questionId } = await startFor(studentA);
+    const png = new File([new Uint8Array([7, 7, 7])], "a.png", { type: "image/png" });
+    const out = await json(uploadRequest(attempt.id, questionId, studentA.cookie, png));
+    const fileId = out.body.fileId as string;
+    // raw path with no signature -> 404-shaped
+    const req = new Request(`https://app.test/files/${fileId}`, { headers: { "user-agent": UA } });
+    await expect(filesLoader({ context: routeCtx, request: req, params: { id: fileId } } as unknown as Parameters<typeof filesLoader>[0])).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("typed answer + uploaded file coexist on one essay answer", async () => {
+    const { attempt, questionId } = await startFor(studentA);
+    await saveAnswer(db, { attempt, questionId, choiceIds: [], text: "إجابة مكتوبة", nowMs: Date.now() });
+    const png = new File([new Uint8Array([1, 1, 1])], "b.png", { type: "image/png" });
+    const out = await json(uploadRequest(attempt.id, questionId, studentA.cookie, png));
+    expect(out.body.ok).toBe(true);
+    const row = (await db.select().from(examAnswers).where(eq(examAnswers.attemptId, attempt.id)))[0];
+    expect(row?.textAnswer).toBe("إجابة مكتوبة");
+    expect(row?.fileId).toBe(out.body.fileId);
+  });
+
+  it("a file-only essay can be submitted, queued, and graded with the file visible to the grader", async () => {
+    const { attempt, questionId } = await startFor(studentA);
+    const png = new File([new Uint8Array([3, 3, 3])], "c.png", { type: "image/png" });
+    const out = await json(uploadRequest(attempt.id, questionId, studentA.cookie, png));
+    const fileId = out.body.fileId as string;
+
+    const submitted = await submitAttempt(db, { attempt, graceSeconds: 30, nowMs: Date.now(), videoThresholdPct: 90 });
+    expect(submitted.pendingGrading).toBe(true);
+
+    await gradeEssayAnswer(db, { attemptId: attempt.id, questionId, points: 4, grader: { userId: actor.userId, role: actor.role } });
+    const graded = (await getAttempt(db, attempt.id))!;
+    expect(graded.status).toBe("graded");
+    expect(graded.score).toBe(4);
+
+    // grader review surfaces the private file metadata (model answer stays grader-only)
+    const adminView = await adminAttemptReview(db, attempt.id);
+    const q = adminView?.questions[0];
+    expect(q?.file?.id).toBe(fileId);
+    expect(q?.file?.mime).toBe("image/png");
   });
 });

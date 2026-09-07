@@ -154,6 +154,8 @@ export const examAnswers = sqliteTable(
     choiceIds: text("choice_ids", { mode: "json" }).$type<string[]>(),
     /** reserved for essay/manual grading (Phase 5 attaches objective questions only) */
     textAnswer: text("text_answer"),
+    /** essay handwritten-work attachment (app-ref to files, PRIVATE_FILES bucket — ADR-017) */
+    fileId: text("file_id"),
     pointsEarned: real("points_earned"),
     isCorrect: integer("is_correct", { mode: "boolean" }),
     gradedBy: text("graded_by"),
