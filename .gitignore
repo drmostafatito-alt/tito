@@ -19,3 +19,6 @@ backups/
 test-results/
 playwright-report/
 tests/e2e/.auth/
+
+# Overnight QA harness artifacts (screenshots, sweep JSON, persisted auth states)
+qa-out/

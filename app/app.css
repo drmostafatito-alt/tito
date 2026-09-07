@@ -1,8 +1,21 @@
 @import "tailwindcss";
-@import "@fontsource/ibm-plex-sans-arabic/400.css";
-@import "@fontsource/ibm-plex-sans-arabic/500.css";
-@import "@fontsource/ibm-plex-sans-arabic/600.css";
-@import "@fontsource/ibm-plex-sans-arabic/700.css";
+/* Subset-scoped fontsource imports (arabic + latin + latin-ext ONLY).
+ * The blanket `400.css`…`700.css` imports pull the cyrillic-ext subset too;
+ * those files are <4 KB so Vite inlines them as data: URIs, which CSP
+ * `font-src 'self'` blocks → 8 console errors on every page. This site is
+ * Arabic/English — cyrillic is never rendered. CSP stays strict (no data:). */
+@import "@fontsource/ibm-plex-sans-arabic/arabic-400.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-400.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-ext-400.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-500.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-500.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-ext-500.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-600.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-600.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-ext-600.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-700.css";
+@import "@fontsource/ibm-plex-sans-arabic/latin-ext-700.css";
 
 /* Self-hosted Cairo (ADMIN-CUSTOMIZATION §5). Files live at /fonts/cairo. */
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 400; src: url("/fonts/cairo/cairo-ar-400.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFF; }

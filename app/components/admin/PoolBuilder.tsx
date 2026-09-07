@@ -184,7 +184,7 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lesson
           <div className="mt-3 flex flex-wrap items-end justify-between gap-2 border-t border-slate-200 pt-3">
             <label className="grid gap-1">
               <span className="text-xs font-medium text-slate-500">{t(locale, "assessment.poolQty")}</span>
-              <input type="number" min={1} max={100} className={inputCls} disabled={disabled} value={p.count} onChange={(e) => patch(i, { count: e.target.value })} style={{ width: 110 }} />
+              <input type="number" min={1} max={100} className={`${inputCls} w-[110px]`} disabled={disabled} value={p.count} onChange={(e) => patch(i, { count: e.target.value })} />
             </label>
             <button type="button" onClick={() => setPools((prev) => prev.filter((_, idx) => idx !== i))} disabled={disabled || pools.length <= 1} className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">
               {t(locale, "assessment.removePool")}

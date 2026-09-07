@@ -146,7 +146,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
   const { order, items, payments, perms } = loaderData;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" key={`order-${order?.id}`}>
       <nav className="text-xs text-slate-500">
         <Link to="/admin/commerce?tab=orders" className="hover:text-brand-600">{t(locale, "commerceAdmin.title")}</Link>
         <span aria-hidden="true"> › </span>

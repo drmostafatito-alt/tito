@@ -131,7 +131,7 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
               <select name="type" className={selectCls} defaultValue={loaderData.type} aria-label={t(locale, "securityAdmin.filterByType")} data-testid="sec-type-filter">
                 <option value="">{t(locale, "securityAdmin.allTypes")}</option>
                 {EVENT_TYPE_OPTIONS.map((ty) => (
-                  <option key={ty} value={ty}>{ty}</option>
+                  <option key={ty} value={ty}>{t(locale, `securityAdmin.ev_${ty}`)}</option>
                 ))}
               </select>
               <SubmitButton variant="secondary">{t(locale, "securityAdmin.filter")}</SubmitButton>
@@ -140,13 +140,15 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
             {loaderData.eventsQ.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "securityAdmin.emptyEvents")}</p>}
             {loaderData.eventsQ.rows.map((e) => (
               <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="security-event-row">
-                <span className="font-mono text-xs text-slate-700" dir="ltr">{e.type}</span>
+                <span className="text-xs font-medium text-slate-700" title={e.type}>
+                  {t(locale, `securityAdmin.ev_${e.type}`)}
+                </span>
                 {e.userEmail ? (
                   <Link to={`/admin/users/${e.userId}`} className="text-xs text-blue-700 hover:underline" dir="ltr">{e.userEmail}</Link>
                 ) : (
                   <span className="text-xs text-slate-400">{t(locale, "securityAdmin.anonymous")}</span>
                 )}
-                {e.userRole && <Badge tone={e.userRole === "student" ? "neutral" : "warning"}>{e.userRole}</Badge>}
+                {e.userRole && <Badge tone={e.userRole === "student" ? "neutral" : "warning"}>{t(locale, `adminUsers.role_${e.userRole}`)}</Badge>}
                 <span className="text-xs text-slate-400">{formatDate(locale, e.createdAt)}</span>
               </div>
             ))}

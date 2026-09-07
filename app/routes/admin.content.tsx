@@ -154,6 +154,111 @@ function TreeNode({ node, locale, depth = 0 }: { node: AdminTreeNode; locale: Lo
   );
 }
 
+/** Flatten the tree for search/filter results (each hit keeps its breadcrumb). */
+function flatten(nodes: AdminTreeNode[], trail: AdminTreeNode[] = []): Array<{ node: AdminTreeNode; trail: AdminTreeNode[] }> {
+  const out: Array<{ node: AdminTreeNode; trail: AdminTreeNode[] }> = [];
+  for (const n of nodes) {
+    out.push({ node: n, trail });
+    if (n.children.length) out.push(...flatten(n.children, [...trail, n]));
+  }
+  return out;
+}
+
+function matches(node: AdminTreeNode, needle: string): boolean {
+  if (!needle) return true;
+  return (
+    node.titleAr.toLowerCase().includes(needle) ||
+    node.titleEn.toLowerCase().includes(needle) ||
+    (node.slug ?? "").toLowerCase().includes(needle)
+  );
+}
+
+const TYPE_LABEL_KEY: Record<string, string> = {
+  program: "content.program",
+  grade: "content.grade",
+  subject: "content.subject",
+  course: "content.course",
+  unit: "content.unit",
+  lesson: "content.lesson",
+};
+
+function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }) {
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("");
+  const [type, setType] = useState("");
+  const needle = q.trim().toLowerCase();
+
+  const filtering = Boolean(needle || status || type);
+  const rows = useMemo(() => {
+    if (!filtering) return null;
+    return flatten(tree).filter(({ node }) =>
+      matches(node, needle) && (!status || node.status === status) && (!type || node.type === type)
+    );
+  }, [tree, needle, status, type, filtering]);
+
+  const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t(locale, "content.searchTree")}
+          aria-label={t(locale, "content.searchTree")}
+          className="h-[42px] min-w-[12rem] flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+          data-testid="content-tree-search"
+        />
+        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label={t(locale, "content.status")} className={selectCls} data-testid="content-tree-status">
+          <option value="">{t(locale, "content.status")}: {t(locale, "content.all")}</option>
+          <option value="draft">{t(locale, "content.statusDraft")}</option>
+          <option value="published">{t(locale, "content.statusPublished")}</option>
+          <option value="archived">{t(locale, "content.statusArchived")}</option>
+        </select>
+        <select value={type} onChange={(e) => setType(e.target.value)} aria-label={t(locale, "content.filterType")} className={selectCls} data-testid="content-tree-type">
+          <option value="">{t(locale, "content.filterType")}: {t(locale, "content.all")}</option>
+          {Object.entries(TYPE_LABEL_KEY).map(([ty, key]) => (
+            <option key={ty} value={ty}>{t(locale, key)}</option>
+          ))}
+        </select>
+      </div>
+
+      {rows ? (
+        <>
+          <p className="text-xs text-slate-500">{t(locale, "content.resultsCount", { n: rows.length })}</p>
+          {rows.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+              {t(locale, "content.filterNoMatch")}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1.5" data-testid="content-tree-results">
+              {rows.map(({ node, trail }) => (
+                <li key={node.id} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 py-0.5">
+                  <StatusBadge status={node.status} locale={locale} />
+                  {trail.length > 0 && (
+                    <span className="hidden truncate text-xs text-slate-400 sm:inline">
+                      {trail.map((a) => (locale === "ar" ? a.titleAr : a.titleEn)).join(" › ")} ›
+                    </span>
+                  )}
+                  <Link to={`/admin/content/${node.type}/${node.id}`} className="min-w-0 flex-1 text-sm font-medium text-slate-800 hover:underline">
+                    {locale === "ar" ? node.titleAr : node.titleEn}
+                  </Link>
+                  <Badge tone="neutral">{t(locale, TYPE_LABEL_KEY[node.type] ?? "content.type")}</Badge>
+                  {node.slug && <span dir="ltr" className="hidden max-w-[30%] shrink truncate text-xs text-slate-400 md:inline">/{node.slug}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : tree.length === 0 ? (
+        <p className="text-sm text-slate-400">{t(locale, "content.catalogEmpty")}</p>
+      ) : (
+        <ul className="list-none p-0" data-testid="content-tree-full">{tree.map((n) => <TreeNode key={n.id} node={n} locale={locale} />)}</ul>
+      )}
+    </div>
+  );
+}
+
 function collectByType(nodes: AdminTreeNode[], type: string, locale: Locale): Array<{ id: string; label: string }> {
   const out: Array<{ id: string; label: string }> = [];
   const walk = (list: AdminTreeNode[]) => {
@@ -186,11 +291,7 @@ export default function AdminContent({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={t(locale, "admin.navContent")} description="Program → Grade → Subject → Course → Unit → Lesson" />
         <CardBody>
-          {loaderData.tree.length === 0 ? (
-            <p className="text-sm text-slate-400">{t(locale, "content.catalogEmpty")}</p>
-          ) : (
-            <ul className="list-none p-0">{loaderData.tree.map((n) => <TreeNode key={n.id} node={n} locale={locale} />)}</ul>
-          )}
+          <ContentTree tree={loaderData.tree} locale={locale} />
         </CardBody>
       </Card>
 

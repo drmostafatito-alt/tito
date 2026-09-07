@@ -84,7 +84,7 @@ export default function AdminBatchPage({ loaderData }: Route.ComponentProps) {
   const { batch, codes, redemptions, perms } = loaderData;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" key={`batch-${batch?.id}`}>
       <nav className="text-xs text-slate-500">
         <Link to="/admin/commerce?tab=codes" className="hover:text-brand-600">{t(locale, "commerceAdmin.title")}</Link>
         <span aria-hidden="true"> › </span>

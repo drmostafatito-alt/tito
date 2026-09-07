@@ -1,5 +1,5 @@
 import type { Route } from "./+types/admin.assessment.exams.$id";
-import { Form, Link, redirect, useRouteLoaderData, useSearchParams } from "react-router";
+import { Form, Link, redirect, useRouteLoaderData, useParams, useSearchParams } from "react-router";
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
@@ -339,12 +339,13 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
   const [searchParams] = useSearchParams();
+  const params = useParams();
   const { perms, subjects, courses, units, lessons, tags } = loaderData;
   const issues = actionData && "issues" in actionData ? (actionData.issues as Issue[]) : null;
 
   if (loaderData.isNew) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" key={`exam-${params.id ?? "new"}`}>
         <nav className="text-sm">
           <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
             <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>

@@ -415,7 +415,7 @@ export async function duplicateQuestion(db: DB, id: string, actor: ActorCtx) {
 
 export async function listQuestions(
   db: DB,
-  filter: { status?: string; type?: string; q?: string; subjectId?: string; tagId?: string; limit?: number } = {}
+  filter: { status?: string; type?: string; q?: string; subjectId?: string; tagId?: string; difficulty?: string; limit?: number } = {}
 ) {
   const limit = Math.min(filter.limit ?? 50, 200);
   let idsFilter: string[] | null = null;
@@ -427,6 +427,7 @@ export async function listQuestions(
   const conds = [isNull(questions.deletedAt)];
   if (filter.status) conds.push(eq(questions.status, filter.status as "draft"));
   if (filter.type) conds.push(eq(questions.type, filter.type as "mcq"));
+  if (filter.difficulty) conds.push(eq(questions.difficulty, filter.difficulty as "easy"));
   if (filter.subjectId) conds.push(eq(questions.subjectId, filter.subjectId));
   if (idsFilter) conds.push(inArray(questions.id, idsFilter));
   if (filter.q) {

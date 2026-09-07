@@ -1,0 +1,19 @@
+[
+  { "path": "/admin" },
+  { "path": "/admin/content" },
+  { "path": "/admin/videos" },
+  { "path": "/admin/files" },
+  { "path": "/admin/assessment" },
+  { "path": "/admin/users" },
+  { "path": "/admin/entitlements" },
+  { "path": "/admin/commerce" },
+  { "path": "/admin/cms" },
+  { "path": "/admin/cms/templates" },
+  { "path": "/admin/cms/menus" },
+  { "path": "/admin/cms/forms" },
+  { "path": "/admin/appearance" },
+  { "path": "/admin/announcements" },
+  { "path": "/admin/analytics" },
+  { "path": "/admin/audit" },
+  { "path": "/admin/security" }
+]

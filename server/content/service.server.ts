@@ -368,6 +368,250 @@ export async function archiveNode(db: DB, type: ContentType, id: string, actor: 
 }
 
 // ---------------------------------------------------------------------------
+// Duplicate — deep copy of a node and its descendants through the SAME
+// validated create* paths (slug uniqueness, reference assertions, audit).
+// Safety: copies are always created as DRAFT so nothing publishes implicitly.
+// ---------------------------------------------------------------------------
+
+type DuplicableType = Exclude<ContentType, "lessonItem">;
+
+export async function duplicateNode(
+  db: DB,
+  type: DuplicableType,
+  id: string,
+  actor: ActorCtx
+): Promise<{ ok: true; id: string } | { ok: false; error: "not_found" }> {
+  const node = (await getNode(db, type, id)) as unknown as Record<string, unknown> | null;
+  if (!node) return { ok: false, error: "not_found" };
+
+  const copyTitle = (v: unknown, suffix: string) =>
+    `${String(v ?? "")}${String(v ?? "").trim() === "" ? "" : " "}${suffix}`.trim();
+  const suffixAr = "(نسخة)";
+  const suffixEn = "(copy)";
+
+  let newRootId: string;
+
+  switch (type) {
+    case "program":
+      newRootId = (await createProgram(db, {
+        titleAr: copyTitle(node.titleAr, suffixAr),
+        titleEn: copyTitle(node.titleEn, suffixEn),
+        descriptionAr: (node.descriptionAr as string | null) ?? null,
+        descriptionEn: (node.descriptionEn as string | null) ?? null,
+        status: "draft",
+        sortOrder: (node.sortOrder as number) + 1,
+        slug: undefined,
+      }, actor)).id;
+      break;
+    case "grade":
+      newRootId = (await createGrade(db, {
+        programId: node.programId as string,
+        titleAr: copyTitle(node.titleAr, suffixAr),
+        titleEn: copyTitle(node.titleEn, suffixEn),
+        status: "draft",
+        sortOrder: (node.sortOrder as number) + 1,
+        slug: undefined,
+      }, actor)).id;
+      break;
+    case "subject":
+      newRootId = (await createSubject(db, {
+        gradeId: node.gradeId as string,
+        titleAr: copyTitle(node.titleAr, suffixAr),
+        titleEn: copyTitle(node.titleEn, suffixEn),
+        descriptionAr: (node.descriptionAr as string | null) ?? null,
+        descriptionEn: (node.descriptionEn as string | null) ?? null,
+        thumbnailFileId: (node.thumbnailFileId as string | null) ?? null,
+        status: "draft",
+        sortOrder: (node.sortOrder as number) + 1,
+        slug: undefined,
+      }, actor)).id;
+      break;
+    case "course":
+      newRootId = (await createCourse(db, {
+        subjectId: node.subjectId as string,
+        titleAr: copyTitle(node.titleAr, suffixAr),
+        titleEn: copyTitle(node.titleEn, suffixEn),
+        descriptionAr: (node.descriptionAr as string | null) ?? null,
+        descriptionEn: (node.descriptionEn as string | null) ?? null,
+        thumbnailFileId: (node.thumbnailFileId as string | null) ?? null,
+        visibility: node.visibility as "catalog" | "hidden" | "featured",
+        accessLevel: node.accessLevel as "public" | "authenticated" | "entitled",
+        status: "draft",
+        sortOrder: (node.sortOrder as number) + 1,
+        teacherId: (node.teacherId as string | null) ?? null,
+        publishAt: null,
+        expiresAt: null,
+        slug: undefined,
+      }, actor)).id;
+      break;
+    case "unit":
+      newRootId = (await createUnit(db, {
+        courseId: node.courseId as string,
+        titleAr: copyTitle(node.titleAr, suffixAr),
+        titleEn: copyTitle(node.titleEn, suffixEn),
+        status: "draft",
+        sortOrder: (node.sortOrder as number) + 1,
+      }, actor)).id;
+      break;
+    case "lesson": {
+      newRootId = (await createLesson(db, {
+        unitId: node.unitId as string,
+        titleAr: copyTitle(node.titleAr, suffixAr),
+        titleEn: copyTitle(node.titleEn, suffixEn),
+        descriptionAr: (node.descriptionAr as string | null) ?? null,
+        descriptionEn: (node.descriptionEn as string | null) ?? null,
+        accessLevel: node.accessLevel as "public" | "authenticated" | "entitled",
+        freePreview: false, // never clone a free-preview flag onto a draft copy
+        status: "draft",
+        sortOrder: (node.sortOrder as number) + 1,
+        publishAt: null,
+        expiresAt: null,
+        slug: undefined,
+      }, actor)).id;
+      // lesson items: share the same video/file/exam references (no media copy)
+      const items = await itemsForLesson(db, id);
+      for (const it of items) {
+        await createLessonItem(db, {
+          lessonId: newRootId,
+          itemType: it.itemType as "video" | "file" | "exam",
+          videoId: it.itemType === "video" ? it.videoId : null,
+          fileId: it.itemType === "file" ? it.fileId : null,
+          examId: it.itemType === "exam" ? it.examId : null,
+          sortOrder: it.sortOrder,
+          required: it.required,
+        }, actor);
+      }
+      break;
+    }
+  }
+
+  // Recurse into children (units of a course, lessons of a unit, …).
+  const table = tableFor(type);
+  const childType: DuplicableType | null =
+    type === "program" ? "grade" :
+    type === "grade" ? "subject" :
+    type === "subject" ? "course" :
+    type === "course" ? "unit" :
+    type === "unit" ? "lesson" : null;
+  if (childType) {
+    const childTable = tableFor(childType);
+    const childParentField = PARENT_FIELD[childType]!;
+    const children = (await db
+      .select()
+      .from(childTable)
+      .where(eq((childTable as unknown as Record<string, never>)[childParentField], id as never))
+      .orderBy(asc((childTable as unknown as Record<string, never>)["sortOrder"]))) as unknown as Array<Record<string, unknown>>;
+    for (const child of children) {
+      if (child.deletedAt) continue;
+      await duplicateInto(db, childType, child.id as string, type, newRootId, actor);
+    }
+  }
+  void table;
+  return { ok: true, id: newRootId };
+}
+
+/** Duplicate `srcId` (of `type`) as a child of the new parent `newParentId`. */
+async function duplicateInto(
+  db: DB,
+  type: DuplicableType,
+  srcId: string,
+  parentType: DuplicableType,
+  newParentId: string,
+  actor: ActorCtx
+): Promise<void> {
+  const node = (await getNode(db, type, srcId)) as unknown as Record<string, unknown> | null;
+  if (!node) return;
+  const copyTitle = (v: unknown) => String(v ?? "");
+  let newId: string | null = null;
+  switch (type) {
+    case "grade":
+      if (parentType !== "program") return;
+      newId = (await createGrade(db, {
+        programId: newParentId, titleAr: copyTitle(node.titleAr), titleEn: copyTitle(node.titleEn),
+        status: "draft", sortOrder: node.sortOrder as number, slug: undefined,
+      }, actor)).id;
+      break;
+    case "subject":
+      if (parentType !== "grade") return;
+      newId = (await createSubject(db, {
+        gradeId: newParentId, titleAr: copyTitle(node.titleAr), titleEn: copyTitle(node.titleEn),
+        descriptionAr: (node.descriptionAr as string | null) ?? null,
+        descriptionEn: (node.descriptionEn as string | null) ?? null,
+        thumbnailFileId: (node.thumbnailFileId as string | null) ?? null,
+        status: "draft", sortOrder: node.sortOrder as number, slug: undefined,
+      }, actor)).id;
+      break;
+    case "course":
+      if (parentType !== "subject") return;
+      newId = (await createCourse(db, {
+        subjectId: newParentId, titleAr: copyTitle(node.titleAr), titleEn: copyTitle(node.titleEn),
+        descriptionAr: (node.descriptionAr as string | null) ?? null,
+        descriptionEn: (node.descriptionEn as string | null) ?? null,
+        thumbnailFileId: (node.thumbnailFileId as string | null) ?? null,
+        visibility: node.visibility as "catalog" | "hidden" | "featured",
+        accessLevel: node.accessLevel as "public" | "authenticated" | "entitled",
+        status: "draft", sortOrder: node.sortOrder as number,
+        teacherId: (node.teacherId as string | null) ?? null,
+        publishAt: null, expiresAt: null, slug: undefined,
+      }, actor)).id;
+      break;
+    case "unit":
+      if (parentType !== "course") return;
+      newId = (await createUnit(db, {
+        courseId: newParentId, titleAr: copyTitle(node.titleAr), titleEn: copyTitle(node.titleEn),
+        status: "draft", sortOrder: node.sortOrder as number,
+      }, actor)).id;
+      break;
+    case "lesson": {
+      if (parentType !== "unit") return;
+      newId = (await createLesson(db, {
+        unitId: newParentId, titleAr: copyTitle(node.titleAr), titleEn: copyTitle(node.titleEn),
+        descriptionAr: (node.descriptionAr as string | null) ?? null,
+        descriptionEn: (node.descriptionEn as string | null) ?? null,
+        accessLevel: node.accessLevel as "public" | "authenticated" | "entitled",
+        freePreview: false,
+        status: "draft", sortOrder: node.sortOrder as number,
+        publishAt: null, expiresAt: null, slug: undefined,
+      }, actor)).id;
+      if (newId) {
+        const items = await itemsForLesson(db, srcId);
+        for (const it of items) {
+          await createLessonItem(db, {
+            lessonId: newId,
+            itemType: it.itemType as "video" | "file" | "exam",
+            videoId: it.itemType === "video" ? it.videoId : null,
+            fileId: it.itemType === "file" ? it.fileId : null,
+            examId: it.itemType === "exam" ? it.examId : null,
+            sortOrder: it.sortOrder,
+            required: it.required,
+          }, actor);
+        }
+      }
+      break;
+    }
+  }
+  if (!newId) return;
+  const childType: DuplicableType | null =
+    type === "program" ? "grade" :
+    type === "grade" ? "subject" :
+    type === "subject" ? "course" :
+    type === "course" ? "unit" :
+    type === "unit" ? "lesson" : null;
+  if (!childType) return;
+  const childTable = tableFor(childType);
+  const childParentField = PARENT_FIELD[childType]!;
+  const children = (await db
+    .select()
+    .from(childTable)
+    .where(eq((childTable as unknown as Record<string, never>)[childParentField], srcId as never))
+    .orderBy(asc((childTable as unknown as Record<string, never>)["sortOrder"]))) as unknown as Array<Record<string, unknown>>;
+  for (const child of children) {
+    if (child.deletedAt) continue;
+    await duplicateInto(db, childType, child.id as string, type, newId, actor);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Ordering — renumber siblings deterministically, then swap with the neighbor.
 // ---------------------------------------------------------------------------
 

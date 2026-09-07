@@ -8,8 +8,10 @@ import {
   examAttemptCounts,
   listExams,
   listQuestions,
+  listTags,
   parseExamConfig,
 } from "~server/assessment/service.server";
+import { adminTree } from "~server/content/service.server";
 import { Badge } from "~/components/ui/Badge";
 import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody } from "~/components/ui/Card";
@@ -32,16 +34,32 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     read: await canAssessment(db, auth, "assessment.read"),
     create: await canAssessment(db, auth, "assessment.create"),
   };
-  if (!perms.read) return { tab, perms, questions: [], exams: [], counts: {} as Record<string, { total: number; live: number }> };
+  const emptyBank = {
+    subjects: [] as Array<{ id: string; labelAr: string; labelEn: string }>,
+    tags: [] as Array<{ id: string; labelAr: string; labelEn: string }>,
+  };
+  if (!perms.read) return { tab, perms, questions: [], exams: [], counts: {} as Record<string, { total: number; live: number }>, ...emptyBank };
 
   if (tab === "questions") {
+    // Filter metadata: subjects from the content tree + existing tags.
+    const [tree, tagRows] = await Promise.all([adminTree(db), listTags(db)]);
+    const subjects: Array<{ id: string; labelAr: string; labelEn: string }> = [];
+    for (const p of tree) for (const g of p.children) for (const s of g.children) {
+      if (s.type === "subject") {
+        subjects.push({ id: s.id, labelAr: `${p.titleAr} › ${g.titleAr} › ${s.titleAr}`, labelEn: `${p.titleEn} › ${g.titleEn} › ${s.titleEn}` });
+      }
+    }
+    const tags = tagRows.map((tg) => ({ id: tg.id, labelAr: tg.labelAr, labelEn: tg.labelEn }));
     const questions = await listQuestions(db, {
       status: url.searchParams.get("status") || undefined,
       type: url.searchParams.get("type") || undefined,
+      difficulty: url.searchParams.get("difficulty") || undefined,
+      subjectId: url.searchParams.get("subjectId") || undefined,
+      tagId: url.searchParams.get("tagId") || undefined,
       q: url.searchParams.get("q") || undefined,
       limit: 200,
     });
-    return { tab, perms, questions, exams: [], counts: {} as Record<string, { total: number; live: number }> };
+    return { tab, perms, questions, exams: [], counts: {} as Record<string, { total: number; live: number }>, subjects, tags };
   }
 
   const examRows = await listExams(db);
@@ -60,7 +78,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       updatedAt: e.updatedAt,
     };
   });
-  return { tab, perms, questions: [], exams, counts };
+  return { tab, perms, questions: [], exams, counts, subjects: emptyBank.subjects, tags: emptyBank.tags };
 }
 
 const qStatusTone: Record<string, "neutral" | "warning" | "success" | "brand"> = {
@@ -73,7 +91,7 @@ const qStatusTone: Record<string, "neutral" | "warning" | "success" | "brand"> =
 export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { tab, perms, questions, exams, counts } = loaderData;
+  const { tab, perms, questions, exams, counts, subjects, tags } = loaderData;
 
   return (
     <div className="space-y-4">
@@ -115,12 +133,12 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
 
       {tab === "questions" && perms.read && (
         <>
-          <Form method="get" className="flex flex-wrap items-end gap-2">
+          <Form method="get" className="flex flex-wrap items-end gap-2" data-testid="question-filters">
             <input type="hidden" name="tab" value="questions" />
             <input
               name="q"
               placeholder={t(locale, "assessment.searchPlaceholder")}
-              className="h-[42px] min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+              className="h-[42px] min-w-[10rem] flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
             />
             <select name="status" className={selectCls} defaultValue="">
               <option value="">{t(locale, "assessment.status")}: *</option>
@@ -136,7 +154,25 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
               <option value="multi_select">{t(locale, "assessment.type_multi_select")}</option>
               <option value="essay">{t(locale, "assessment.type_essay")}</option>
             </select>
-            <button type="submit" className={`min-h-11 rounded-lg border px-4 text-sm font-medium ${selectCls}`}>
+            <select name="difficulty" className={selectCls} defaultValue="" aria-label={t(locale, "assessment.difficulty")}>
+              <option value="">{t(locale, "assessment.difficulty")}: *</option>
+              <option value="easy">{t(locale, "assessment.diff_easy")}</option>
+              <option value="medium">{t(locale, "assessment.diff_medium")}</option>
+              <option value="hard">{t(locale, "assessment.diff_hard")}</option>
+            </select>
+            <select name="subjectId" className={selectCls} defaultValue="" aria-label={t(locale, "assessment.filterSubject")}>
+              <option value="">{t(locale, "assessment.filterSubject")}: *</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>{locale === "ar" ? s.labelAr : s.labelEn}</option>
+              ))}
+            </select>
+            <select name="tagId" className={selectCls} defaultValue="" aria-label={t(locale, "assessment.filterTag")}>
+              <option value="">{t(locale, "assessment.filterTag")}: *</option>
+              {tags.map((tg) => (
+                <option key={tg.id} value={tg.id}>{locale === "ar" ? tg.labelAr : tg.labelEn}</option>
+              ))}
+            </select>
+            <button type="submit" className="min-h-[42px] rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium hover:bg-slate-50">
               {t(locale, "common.search")}
             </button>
           </Form>

@@ -1,5 +1,5 @@
 import type { Route } from "./+types/admin.content.$type.$id";
-import { Form, Link, useActionData, useLoaderData, useRouteLoaderData, useNavigation } from "react-router";
+import { Form, Link, redirect, useActionData, useLoaderData, useRouteLoaderData, useNavigation, useSearchParams } from "react-router";
 import { z } from "zod";
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
@@ -8,12 +8,14 @@ import { getExam, listExams } from "~server/assessment/service.server";
 import {
   adminTree,
   archiveNode,
+  chainForLesson,
   createCourse,
   createGrade,
   createLesson,
   createLessonItem,
   createSubject,
   createUnit,
+  duplicateNode,
   getNode,
   itemsForLesson,
   moveNode,
@@ -97,9 +99,29 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
   }
 
   void auth;
+
+  // Public preview URL (only for node types that have a public page + slug).
+  let publicUrl: string | null = null;
+  const slug = typeof node.slug === "string" ? node.slug : null;
+  if (slug) {
+    if (type === "program") publicUrl = `/programs/${slug}`;
+    else if (type === "subject") publicUrl = `/subjects/${slug}`;
+    else if (type === "course") publicUrl = `/courses/${slug}`;
+    else if (type === "lesson") {
+      const chain = await chainForLesson(db, params.id);
+      if (chain?.courseId) {
+        const course = await getNode(db, "course", chain.courseId);
+        if (course && typeof course.slug === "string" && course.slug) {
+          publicUrl = `/learn/${course.slug}/${slug}`;
+        }
+      }
+    }
+  }
+
   return {
     type,
     node,
+    publicUrl,
     childRows,
     childAction:
       type === "program" ? "create-grade" :
@@ -173,6 +195,13 @@ export async function action({ context, request, params }: Route.ActionArgs) {
       case "archive":
         await archiveNode(db, type, id, actor);
         return { ok: true as const };
+      case "duplicate": {
+        if (type === "lessonItem") return { error: "generic" as const };
+        const res = await duplicateNode(db, type, id, actor);
+        if (!res.ok) return { error: res.error };
+        // Land the admin directly in the copy's editor (obvious lifecycle).
+        return redirect(`/admin/content/${type}/${res.id}?duplicated=1`);
+      }
       case "move-up":
       case "move-down": {
         const res = await moveNode(db, type, id, intent === "move-up" ? "up" : "down");
@@ -253,28 +282,47 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
-  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, allExams, outline } = loaderData;
+  const [params] = useSearchParams();
+  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, allExams, outline, publicUrl } = loaderData;
   const label = locale === "ar" ? String(node.titleAr ?? node.id) : String(node.titleEn ?? node.id);
 
   const input = "rounded-lg border border-slate-300 px-3 py-2";
   const isCourse = type === "course";
   const isLesson = type === "lesson";
   const hasThumb = type === "subject" || isCourse;
+  const canDuplicate = type !== "lessonItem";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" key={`${type}-${String(node.id)}`}>
       <div className="flex flex-wrap items-center gap-3">
         <Link to="/admin/content" className="inline-flex min-h-6 items-center text-sm text-slate-500 hover:underline"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {t(locale, "admin.navContent")}</Link>
         <h1 className="text-xl font-bold">{label}</h1>
         <Badge tone="neutral">{type}</Badge>
         {typeof node.slug === "string" && <span className="text-xs text-slate-400">/{String(node.slug)}</span>}
+        {publicUrl && (
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            {t(locale, "content.viewSite")}
+            <span aria-hidden="true" className="text-[10px]">↗</span>
+          </a>
+        )}
       </div>
+
+      {params.get("duplicated") === "1" && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-medium text-green-800">
+          {t(locale, "content.duplicated")}
+        </div>
+      )}
 
       <Card>
         <CardHeader
           title={t(locale, "content.edit")}
           action={
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Form method="post">
                 <input type="hidden" name="_action" value="move-up" />
                 <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>↑ {t(locale, "content.moveUp")}</button>
@@ -283,6 +331,17 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                 <input type="hidden" name="_action" value="move-down" />
                 <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>↓ {t(locale, "content.moveDown")}</button>
               </Form>
+              {canDuplicate && (
+                <Form
+                  method="post"
+                  onSubmit={(e) => {
+                    if (!confirm(t(locale, "content.confirmDuplicate"))) e.preventDefault();
+                  }}
+                >
+                  <input type="hidden" name="_action" value="duplicate" />
+                  <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>⧉ {t(locale, "content.duplicate")}</button>
+                </Form>
+              )}
               <Form method="post">
                 <input type="hidden" name="_action" value="archive" />
                 <button className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50" disabled={nav.state === "submitting"}>{t(locale, "content.archive")}</button>

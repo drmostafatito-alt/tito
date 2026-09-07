@@ -9,6 +9,18 @@ import { safeHref } from "~/cms/links";
 const btn =
   "inline-flex h-9 min-w-9 items-center justify-center rounded border border-slate-300 bg-white px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50";
 
+/**
+ * CSP `style-src 'self'` (no unsafe-inline) blocks React inline style props —
+ * min-height is expressed as static utility classes (rows × 1.4rem line height).
+ */
+const MIN_HEIGHT: Record<number, string> = {
+  3: "min-h-[4.2rem]",
+  6: "min-h-[8.4rem]",
+  8: "min-h-[11.2rem]",
+  12: "min-h-[16.8rem]",
+  16: "min-h-[22.4rem]",
+};
+
 export function RichTextEditor({
   name,
   defaultValue,
@@ -98,8 +110,7 @@ export function RichTextEditor({
         role="textbox"
         aria-multiline="true"
         dir={dir}
-        className="cms-richtext min-h-[8rem] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-        style={{ minHeight: `${rows * 1.4}rem` }}
+        className={`cms-richtext rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 ${MIN_HEIGHT[rows] ?? "min-h-[8.4rem]"}`}
         dangerouslySetInnerHTML={{ __html: defaultValue }}
         onInput={sync}
         onBlur={sync}

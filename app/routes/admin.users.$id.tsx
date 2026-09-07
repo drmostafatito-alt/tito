@@ -111,7 +111,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
   const now = Date.now();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" key={`user-${detail?.user?.id}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold text-slate-900">{u.fullName}</h1>
         <Link to="/admin/users" className="text-sm text-blue-700 hover:underline">{t(locale, "adminUsers.backToList")}</Link>

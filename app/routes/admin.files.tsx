@@ -291,7 +291,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
             </label>
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <select name="visibility" defaultValue="public" className={inputCls} style={{ width: "auto" }}>
+                <select name="visibility" defaultValue="public" className={`${inputCls} w-auto`}>
                   <option value="public">{L("visibilityPublic")}</option>
                   <option value="private">{L("visibilityPrivate")}</option>
                 </select>
@@ -339,7 +339,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
         </div>
         <label className="flex items-center gap-2 text-sm">
           <span className="text-slate-500">{L("filterKind")}:</span>
-          <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value)} className={inputCls} style={{ width: "auto" }}>
+          <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value)} className={`${inputCls} w-auto`}>
             <option value="all">{L("allKinds")}</option>
             {KINDS.map((k) => (
               <option key={k} value={k}>{L(KIND_LABEL[k])}</option>
@@ -348,7 +348,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
         </label>
         <label className="flex items-center gap-2 text-sm">
           <span className="text-slate-500">{L("filterVisibility")}:</span>
-          <select value={visFilter} onChange={(e) => setVisFilter(e.target.value)} className={inputCls} style={{ width: "auto" }}>
+          <select value={visFilter} onChange={(e) => setVisFilter(e.target.value)} className={`${inputCls} w-auto`}>
             <option value="all">{L("allVisibility")}</option>
             <option value="public">{L("visibilityPublicShort")}</option>
             <option value="private">{L("visibilityPrivateShort")}</option>

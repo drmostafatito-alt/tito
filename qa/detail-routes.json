@@ -1,0 +1,12 @@
+[
+  { "path": "/admin/content/program/0cdae339-0a32-5f4f-8853-70cbd094292a" },
+  { "path": "/admin/content/subject/b1ea1b6c-34e7-5048-bd78-0ff9e334e118" },
+  { "path": "/admin/content/course/0fcde860-0cdb-53cb-8d5e-f26f6ae72113" },
+  { "path": "/admin/content/unit/3042b5b7-3491-5d57-85f1-141fe9e50c16" },
+  { "path": "/admin/content/lesson/030158a3-f300-5e93-8e97-50b810a3f299" },
+  { "path": "/admin/assessment/questions/36a66b02-c8d4-5b84-bda1-650b64f42c29" },
+  { "path": "/admin/assessment/exams/8a344006-fc28-5cad-8c0f-87a98867850b" },
+  { "path": "/admin/commerce/products/0841e843-2899-5999-b0ad-a6774a032df4" },
+  { "path": "/admin/cms/pages/61187222-659d-5bfd-8a83-0cb2ee3c9184" },
+  { "path": "/admin/users/b35542f4-2235-4308-bcf0-39729b4f269a" }
+]
