@@ -8,6 +8,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteLoaderData,
 } from "react-router";
 import { applySecurityHeaders, applyPrivateCacheControl } from "~server/http/headers.server";
 import { resolveAuth, SESSION_COOKIE } from "~server/auth/session.server";
@@ -133,11 +134,17 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  // Honor the request locale (root loader ran before the failing route). When
+  // the root loader itself failed there is no data — Arabic (platform default)
+  // is the safe fallback. Hardcoding "ar" here once rendered English visitors
+  // an Arabic 404 page.
+  const rootData = useRouteLoaderData("root") as { locale?: Locale } | undefined;
+  const locale: Locale = rootData?.locale ?? "ar";
   const message = isRouteErrorResponse(error)
     ? error.status === 404
-      ? { title: t("ar", "errors.notFoundTitle"), body: t("ar", "errors.notFoundBody") }
-      : { title: t("ar", "errors.errorTitle"), body: t("ar", "errors.errorBody") }
-    : { title: t("ar", "errors.errorTitle"), body: t("ar", "errors.errorBody") };
+      ? { title: t(locale, "errors.notFoundTitle"), body: t(locale, "errors.notFoundBody") }
+      : { title: t(locale, "errors.errorTitle"), body: t(locale, "errors.errorBody") }
+    : { title: t(locale, "errors.errorTitle"), body: t(locale, "errors.errorBody") };
 
   console.error("[error-boundary]", error);
 
@@ -150,7 +157,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         to="/"
         className="mt-2 rounded-lg bg-brand-600 px-5 py-2.5 font-medium text-white hover:bg-brand-700"
       >
-        {t("ar", "errors.goHome")}
+        {t(locale, "errors.goHome")}
       </Link>
     </main>
   );
