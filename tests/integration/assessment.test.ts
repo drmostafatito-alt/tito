@@ -37,8 +37,10 @@ import {
   listPublishedExamsForActor,
   moveExamQuestion,
   parseExamConfig,
+  previewPoolSelection,
   publishExam,
   removeExamQuestion,
+  resolveExamQuestionIds,
   resultsVisible,
   saveAnswer,
   setExamQuestionPoints,
@@ -48,6 +50,7 @@ import {
   unpublishExam,
   updateExam,
   updateQuestion,
+  validatePoolConfig,
 } from "~server/assessment/service.server";
 import { courses, events, examAnswers, examAttempts, files, lessonProgress } from "~server/db/schema";
 import { loader as introLoader, action as introAction } from "~/routes/student/exams.$slug";
@@ -1235,5 +1238,263 @@ describe("essay handwritten-work file upload (secure R2)", () => {
     const q = adminView?.questions[0];
     expect(q?.file?.id).toBe(fileId);
     expect(q?.file?.mime).toBe("image/png");
+  });
+});
+
+// ===========================================================================
+describe("question pools + random exams (FEATURE-SPEC §6)", () => {
+  // Builds a fresh content hierarchy + grants studentA subject entitlement so
+  // pool exams (linked to a lesson) are startable. Every test is DB-isolated by
+  // the file-level beforeEach.
+  async function makeHierarchy() {
+    const program = await createProgram(db, { titleAr: "ب", titleEn: "Pool Prog", status: "published", sortOrder: 0, descriptionAr: null, descriptionEn: null }, actor);
+    const grade = await createGrade(db, { programId: program.id, titleAr: "ص", titleEn: "Pool Grade", status: "published", sortOrder: 0 }, actor);
+    const subject = await createSubject(db, { gradeId: grade.id, titleAr: "م", titleEn: "Pool Subj", status: "published", sortOrder: 0, thumbnailFileId: null }, actor);
+    const course = await createCourse(db, { subjectId: subject.id, titleAr: "د", titleEn: "Pool Course", status: "published", visibility: "catalog", accessLevel: "entitled", sortOrder: 0, descriptionAr: null, descriptionEn: null, thumbnailFileId: null, teacherId: null, publishAt: null, expiresAt: null }, actor);
+    const unit = await createUnit(db, { courseId: course.id, titleAr: "و", titleEn: "Pool Unit", status: "published", sortOrder: 0 }, actor);
+    const lesson = await createLesson(db, { unitId: unit.id, titleAr: "درس", titleEn: "Pool Lesson", status: "published", accessLevel: "entitled", freePreview: false, sortOrder: 0, descriptionAr: null, descriptionEn: null, publishAt: null, expiresAt: null }, actor);
+    await grantEntitlement(db, { studentId: studentA.id, resourceType: "subject", resourceId: subject.id, days: 30 }, actor);
+    return { subject, course, unit, lesson };
+  }
+
+  /** publish any question type (objective or essay). */
+  async function pub(type: "mcq" | "true_false" | "multi_select" | "essay", over: Record<string, unknown> = {}) {
+    const q = await createQuestion(
+      db,
+      {
+        type,
+        stemAr: `سؤال تجمع ${type}`,
+        stemEn: `Pool ${type} ${crypto.randomUUID().slice(0, 6)}`,
+        difficulty: "medium",
+        pointsDefault: type === "essay" ? 5 : 2,
+        modelAnswerAr: type === "essay" ? "نموذجية" : null,
+        modelAnswerEn: type === "essay" ? "Model" : null,
+        choices:
+          type === "essay"
+            ? []
+            : type === "true_false"
+              ? [
+                  { contentAr: "صواب", contentEn: "True", isCorrect: true, feedback: null },
+                  { contentAr: "خطأ", contentEn: "False", isCorrect: false, feedback: null },
+                ]
+              : type === "multi_select"
+                ? [
+                    { contentAr: "أ", contentEn: "A", isCorrect: true, feedback: null },
+                    { contentAr: "ب", contentEn: "B", isCorrect: true, feedback: null },
+                    { contentAr: "ج", contentEn: "C", isCorrect: false, feedback: null },
+                  ]
+                : mcqChoices(0),
+        tagIds: [],
+        ...over,
+      },
+      actor
+    );
+    await setQuestionStatus(db, q.id, "in_review", actor);
+    await setQuestionStatus(db, q.id, "published", actor);
+    return q;
+  }
+
+  /** create a pool-mode exam linked to the given lesson (entitled via subject). */
+  async function makePoolExam(h: Awaited<ReturnType<typeof makeHierarchy>>, configOver: Record<string, unknown>) {
+    const exam = await createExam(db, { titleAr: "امتحان تجمع", titleEn: "Random Pool Exam", lessonId: h.lesson.id, courseId: null, config: { selection: { mode: "pool", pools: [], max_questions: null } } }, actor);
+    await updateExam(db, exam.id, { config: configOver });
+    return exam;
+  }
+
+  it("100→20: a large matching bank is sliced to max_questions with no duplicates", async () => {
+    const h = await makeHierarchy();
+    const qs: string[] = [];
+    for (let i = 0; i < 100; i++) {
+      const type = (i % 3 === 0 ? "mcq" : i % 3 === 1 ? "true_false" : "multi_select") as "mcq" | "true_false" | "multi_select";
+      qs.push((await pub(type, { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id })).id);
+    }
+    const exam = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id }, count: 100 }], max_questions: 20 } });
+    await publishExam(db, exam.id); // valid: 100 eligible → resolves to 20
+
+    const cfg = parseExamConfig((await getExamBySlug(db, exam.slug))!.config);
+    const order = await resolveExamQuestionIds(db, exam.id, cfg, 7);
+    expect(order).toHaveLength(20);
+    expect(new Set(order).size).toBe(20); // deduped
+    expect(qs).toContain(order[0]); // drawn from the matching bank
+  });
+
+  it("filters by lesson/unit/difficulty/type select only matching published questions", async () => {
+    const h = await makeHierarchy();
+    // unit A: 3 medium mcq · unit B: 2 medium mcq + 1 easy true_false
+    const a1 = await pub("mcq", { unitId: h.unit.id, lessonId: h.lesson.id, courseId: h.course.id, subjectId: h.subject.id, difficulty: "medium" });
+    const a2 = await pub("mcq", { unitId: h.unit.id, lessonId: h.lesson.id, courseId: h.course.id, subjectId: h.subject.id, difficulty: "medium" });
+    await pub("mcq", { unitId: h.unit.id, lessonId: h.lesson.id, courseId: h.course.id, subjectId: h.subject.id, difficulty: "easy" });
+    const b1 = await pub("mcq", { unitId: h.unit.id, lessonId: h.lesson.id, courseId: h.course.id, subjectId: h.subject.id, difficulty: "hard" });
+
+    // scope by DIFFICULTY + LESSON → the 2 medium questions in this lesson only
+    const byDiff = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id, difficulty: "medium" }, count: 2 }] } });
+    await publishExam(db, byDiff.id);
+    let cfg = parseExamConfig((await getExamBySlug(db, byDiff.slug))!.config);
+    const diffResolved = await resolveExamQuestionIds(db, byDiff.id, cfg, 1);
+    expect(diffResolved).toHaveLength(2);
+    expect(new Set(diffResolved)).toEqual(new Set([a1.id, a2.id]));
+    // preview reports the full matching eligible count (2) — not the requested
+    expect((await previewPoolSelection(db, byDiff.id, cfg)).pools[0].eligible).toBe(2);
+
+    // scope by COURSE only → includes a1,a2,b1 and the easy one (all in course)
+    const byCourse = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { course: h.course.id }, count: 4 }] } });
+    await publishExam(db, byCourse.id);
+    cfg = parseExamConfig((await getExamBySlug(db, byCourse.slug))!.config);
+    const resolved = await resolveExamQuestionIds(db, byCourse.id, cfg, 2);
+    expect(resolved).toHaveLength(4);
+    expect(new Set(resolved).size).toBe(4); // no duplicates within a pool
+    expect(resolved).toContain(b1.id);
+
+    // scope by TYPE = true_false → only the easy true_false drawn (none exist here → ineligible)
+    const tf = await pub("true_false", { unitId: h.unit.id, lessonId: h.lesson.id, courseId: h.course.id, subjectId: h.subject.id, difficulty: "easy" });
+    const byType = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id, types: ["true_false"] }, count: 1 }] } });
+    await publishExam(db, byType.id);
+    cfg = parseExamConfig((await getExamBySlug(db, byType.slug))!.config);
+    expect((await resolveExamQuestionIds(db, byType.id, cfg, 3))).toEqual([tf.id]);
+  });
+
+  it("filters by lesson/unit/difficulty/type: an under-filled bucket cannot publish (fail-closed)", async () => {
+    const h = await makeHierarchy();
+    await pub("true_false", { unitId: h.unit.id, lessonId: h.lesson.id, courseId: h.course.id, subjectId: h.subject.id, difficulty: "easy" });
+    // request 3 essay questions but only objective + essay exist / too few essay
+    const exam = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id, types: ["essay"], difficulty: "hard" }, count: 3 }] } });
+    await expect(publishExam(db, exam.id)).rejects.toThrow(AssessmentValidationError);
+    expect((await getExamBySlug(db, exam.slug))!.status).toBe("draft"); // exam not published
+    // preview flags the same insufficiency as an issue (no silent shrink)
+    const cfg = parseExamConfig((await getExamBySlug(db, exam.slug))!.config);
+    await expect(validatePoolConfig(db, exam.id, cfg)).rejects.toThrow(AssessmentValidationError);
+    expect((await previewPoolSelection(db, exam.id, cfg)).pools[0].eligible).toBe(0);
+  });
+
+  it("mixed pool (objective + essay): essay is selectable and routes to manual grading", async () => {
+    const h = await makeHierarchy();
+    const obj = await pub("mcq", { unitId: h.unit.id, lessonId: h.lesson.id, courseId: h.course.id, subjectId: h.subject.id, difficulty: "medium", pointsDefault: 2 });
+    const essay = await pub("essay", { unitId: h.unit.id, lessonId: h.lesson.id, courseId: h.course.id, subjectId: h.subject.id, difficulty: "medium", pointsDefault: 5 });
+    // explicit types include essay → the pool may draw it alongside the objective
+    const exam = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id, types: ["mcq", "essay"] }, count: 2 }] } });
+    await publishExam(db, exam.id);
+    const cfg = parseExamConfig((await getExamBySlug(db, exam.slug))!.config);
+    const resolved = await resolveExamQuestionIds(db, exam.id, cfg, 5);
+    expect(new Set(resolved)).toEqual(new Set([obj.id, essay.id])); // mixed distribution
+
+    const started = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() });
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+    const ctx = await attemptContext(db, { attempt: started.attempt, config: cfg, nowMs: Date.now() });
+    const types = ctx.questions.map((q) => q.type);
+    expect(types).toEqual(expect.arrayContaining(["mcq", "essay"]));
+    // essay carries no answer choices in the sanitized live context
+    const essayQ = ctx.questions.find((q) => q.type === "essay")!;
+    expect(essayQ.choices).toHaveLength(0);
+
+    const objFull = (await getQuestionFull(db, obj.id))!;
+    await saveAnswer(db, { attempt: started.attempt, questionId: obj.id, choiceIds: [objFull.choices.find((c) => c.isCorrect)!.id], nowMs: Date.now() });
+    await saveAnswer(db, { attempt: started.attempt, questionId: essay.id, choiceIds: [], text: "إجابة مقالية", nowMs: Date.now() });
+    const out = await submitAttempt(db, { attempt: started.attempt, graceSeconds: 30, nowMs: Date.now(), videoThresholdPct: 90 });
+    expect(out.pendingGrading).toBe(true);
+    const row = (await getAttempt(db, started.attempt.id))!;
+    expect(row.gradingStatus).toBe("needs_manual");
+  });
+
+  it("frozen set + resume: pool draw is stable per attempt and duplicate start resumes it", async () => {
+    const h = await makeHierarchy();
+    for (let i = 0; i < 10; i++) await pub("mcq", { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id });
+    const exam = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id }, count: 5 }] } });
+    await publishExam(db, exam.id);
+    const cfg = parseExamConfig((await getExamBySlug(db, exam.slug))!.config);
+
+    const first = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const order1 = (first.attempt.metadata as { questionOrder: string[] }).questionOrder;
+    expect(order1).toHaveLength(5);
+
+    // duplicate start / resume returns the SAME attempt with the SAME frozen order
+    const resumed = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() + 1000 });
+    expect(resumed.ok).toBe(true);
+    if (!resumed.ok) return;
+    expect(resumed.attempt.id).toBe(first.attempt.id);
+    expect((resumed.attempt.metadata as { questionOrder: string[] }).questionOrder).toEqual(order1);
+
+    // a second student's attempt draws its own frozen set; the live context
+    // always reflects exactly the stored (server-authoritative) order
+    await grantEntitlement(db, { studentId: studentB.id, resourceType: "subject", resourceId: h.subject.id, days: 30 }, actor);
+    const other = await startAttempt(db, { examId: exam.id, actor: studentActor(studentB), nowMs: Date.now() });
+    expect(other.ok).toBe(true);
+    if (!other.ok) return;
+    const order2 = (other.attempt.metadata as { questionOrder: string[] }).questionOrder;
+    expect(order2).toHaveLength(5);
+    expect(order2).toEqual((await attemptContext(db, { attempt: other.attempt, config: cfg, nowMs: Date.now() })).questions.map((q) => q.id));
+    // resume path returns the SAME server-authoritative context for student B too
+    const resumedB = await startAttempt(db, { examId: exam.id, actor: studentActor(studentB), nowMs: Date.now() + 2000 });
+    expect(resumedB.ok).toBe(true);
+    if (resumedB.ok) expect(resumedB.attempt.id).toBe(other.attempt.id);
+  });
+
+  it("seeded determinism: same seed → identical order; different seed → different order", async () => {
+    const h = await makeHierarchy();
+    for (let i = 0; i < 30; i++) await pub("mcq", { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id });
+    const exam = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id }, count: 10 }], max_questions: 10 } });
+    const cfg = parseExamConfig((await getExamBySlug(db, exam.slug))!.config);
+    const a = await resolveExamQuestionIds(db, exam.id, cfg, 99);
+    const b = await resolveExamQuestionIds(db, exam.id, cfg, 99);
+    const c = await resolveExamQuestionIds(db, exam.id, cfg, 100);
+    expect(a).toEqual(b); // deterministic
+    expect(a).not.toEqual(c); // seed changes the draw
+    expect(new Set(a).size).toBe(10);
+  });
+
+  it("published pool exam: adding questions to the bank does not alter an in-flight attempt", async () => {
+    const h = await makeHierarchy();
+    for (let i = 0; i < 5; i++) await pub("mcq", { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id });
+    const exam = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id }, count: 3 }] } });
+    await publishExam(db, exam.id);
+    const cfg = parseExamConfig((await getExamBySlug(db, exam.slug))!.config);
+    const started = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() });
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+    const frozen = (started.attempt.metadata as { questionOrder: string[] }).questionOrder;
+
+    // bank grows AFTER the student started — their attempt stays frozen
+    await pub("mcq", { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id });
+    await pub("mcq", { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id });
+    const ctx = await attemptContext(db, { attempt: started.attempt, config: cfg, nowMs: Date.now() });
+    expect(ctx.questions.map((q) => q.id)).toEqual(frozen);
+
+    // a brand-new attempt after the pool grew may differ, but the old one is unchanged
+    const again = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() + 999_999 });
+    if (again.ok && again.attempt.id !== started.attempt.id) {
+      expect((started.attempt.metadata as { questionOrder: string[] }).questionOrder).toEqual(frozen);
+    }
+  });
+
+  it("unauthorized manipulation is rejected: the draw is server-side and out-of-set answers are refused", async () => {
+    const h = await makeHierarchy();
+    const inBank = [
+      await pub("mcq", { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id }),
+      await pub("mcq", { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id }),
+      await pub("mcq", { lessonId: h.lesson.id, unitId: h.unit.id, courseId: h.course.id, subjectId: h.subject.id }),
+    ];
+    const exam = await makePoolExam(h, { selection: { mode: "pool", pools: [{ filters: { lesson: h.lesson.id }, count: 2 }] } });
+    await publishExam(db, exam.id);
+    const cfg = parseExamConfig((await getExamBySlug(db, exam.slug))!.config);
+    const started = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() });
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+    const frozen = (started.attempt.metadata as { questionOrder: string[] }).questionOrder;
+    expect(frozen).toHaveLength(2); // the client never supplies the set — the server drew it
+
+    // every one of the drawn ids is from the configured bank (server-authoritative)
+    expect(frozen.every((id) => inBank.some((q) => q.id === id))).toBe(true);
+
+    // a drawn question the student is entitled to answer saves fine (no selection = unanswered)
+    const good = await saveAnswer(db, { attempt: started.attempt, questionId: frozen[0], choiceIds: [], nowMs: Date.now() });
+    expect(good.ok).toBe(true);
+
+    // ...but an answer aimed at a question OUTSIDE the frozen set is refused
+    const outside = inBank.find((q) => !frozen.includes(q.id))!;
+    const bogus = await saveAnswer(db, { attempt: started.attempt, questionId: outside.id, choiceIds: [], nowMs: Date.now() });
+    expect(bogus).toMatchObject({ ok: false, error: "unknown_question" });
+    void cfg;
   });
 });

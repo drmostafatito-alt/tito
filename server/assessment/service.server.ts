@@ -99,10 +99,13 @@ export const examConfigSchema = z.object({
             filters: z
               .object({
                 subject: uuid.nullable().optional(),
+                course: uuid.nullable().optional(),
                 unit: uuid.nullable().optional(),
                 lesson: uuid.nullable().optional(),
                 tags: z.array(uuid).max(20).optional(),
                 difficulty: z.enum(["easy", "medium", "hard"]).nullable().optional(),
+                /** when omitted, a pool draws objective types only (backward-compatible). */
+                types: z.array(z.enum(["mcq", "true_false", "multi_select", "essay"])).min(1).max(4).optional(),
               })
               .prefault({}),
             count: z.number().int().min(1).max(100).default(5),
@@ -579,12 +582,62 @@ export async function updateExam(
  * pool mode needs pools that currently resolve to ≥1 published question.
  * Config must be contract-valid; essay-only exams cannot publish in Phase 5.
  */
+/**
+ * Validates a pool-mode config will NOT silently under-fill. Rules (FEATURE-SPEC
+ * §6 / Question Pools slice):
+ *  - every pool must have ≥ its requested count of eligible published questions
+ *    (this also catches an insufficient difficulty/type bucket);
+ *  - once pools are combined + deduped + capped by max_questions, the resolved
+ *    set must still reach the intended size (no overlap-induced shrink).
+ * Throws AssessmentValidationError with per-pool issues; no exam is published
+ * with a config that cannot be satisfied.
+ */
+export async function validatePoolConfig(db: DB, examId: string, config: ExamConfig): Promise<void> {
+  const issues: Array<{ path: string; message: string }> = [];
+  let totalRequested = 0;
+  for (let i = 0; i < config.selection.pools.length; i++) {
+    const p = config.selection.pools[i];
+    const f = (p.filters ?? {}) as PoolFilter;
+    const eligible = await poolEligibleCount(db, f);
+    totalRequested += p.count;
+    if (eligible < p.count) {
+      const dims: string[] = [];
+      if (f.difficulty) dims.push(`difficulty=${f.difficulty}`);
+      if (f.types?.length) dims.push(`type=${f.types.join("+")}`);
+      if (f.course) dims.push("course");
+      if (f.unit) dims.push("unit");
+      if (f.lesson) dims.push("lesson");
+      const where = dims.length ? ` (${dims.join(", ")})` : "";
+      issues.push({
+        path: `pools[${i}]`,
+        message: `pool ${i + 1}: requested ${p.count} but only ${eligible} eligible published question${eligible === 1 ? "" : "s"} match${where}`,
+      });
+    }
+  }
+  // After per-pool sufficiency, confirm the combined/deduped set still reaches
+  // the intended count (guards against overlapping pools shrinking the attempt).
+  const intended = config.selection.max_questions
+    ? Math.min(config.selection.max_questions, totalRequested)
+    : totalRequested;
+  const resolved = await resolveExamQuestionIds(db, examId, config, 12345);
+  if (resolved.length < intended) {
+    issues.push({
+      path: "questions",
+      message: `pools only resolve to ${resolved.length} distinct published questions but the exam requests ${intended} (overlapping pools or stale filters)`,
+    });
+  }
+  if (issues.length) throw new AssessmentValidationError(issues);
+}
+
 export async function publishExam(db: DB, id: string) {
   const exam = await getExam(db, id);
   if (!exam) throw new AssessmentReferenceError("id", "exam not found");
   if (exam.status === "published") return { id, status: "published" };
   if (exam.status === "archived") throw new AssessmentValidationError([{ path: "status", message: "archived exams cannot be published (unarchive first)" }]);
   const config = parseExamConfig(exam.config);
+  if (config.selection.mode === "pool") {
+    await validatePoolConfig(db, exam.id, config);
+  }
   const resolved = await resolveExamQuestionIds(db, exam.id, config, 12345);
   if (resolved.length === 0) {
     throw new AssessmentValidationError([
@@ -722,20 +775,112 @@ export function choiceSeed(randomSeed: number, questionId: string): number {
 // Question-set materialization (manual + pool modes)
 // ---------------------------------------------------------------------------
 
-async function poolQuestionIds(db: DB, pool: { filters: Record<string, unknown>; count: number }, seed: number): Promise<string[]> {
-  const conds = [eq(questions.status, "published"), isNull(questions.deletedAt), inArray(questions.type, [...OBJECTIVE_TYPES] as ["mcq"])];
-  const f = pool.filters as { subject?: string | null; unit?: string | null; lesson?: string | null; tags?: string[]; difficulty?: string | null };
-  if (f.subject) conds.push(eq(questions.subjectId, f.subject));
-  if (f.unit) conds.push(eq(questions.unitId, f.unit));
-  if (f.lesson) conds.push(eq(questions.lessonId, f.lesson));
-  if (f.difficulty) conds.push(eq(questions.difficulty, f.difficulty as "easy"));
-  if (f.tags?.length) {
-    const rows = await db.select({ questionId: questionTags.questionId }).from(questionTags).where(inArray(questionTags.tagId, f.tags));
+/** Filterable question dimensions a random pool may scope by (FEATURE-SPEC §6). */
+export interface PoolFilter {
+  subject?: string | null;
+  course?: string | null;
+  unit?: string | null;
+  lesson?: string | null;
+  tags?: string[];
+  difficulty?: "easy" | "medium" | "hard" | null;
+  /** when omitted, a pool draws objective types only (backward-compatible). */
+  types?: QuestionType[];
+}
+
+function poolAllowedTypes(f?: PoolFilter): QuestionType[] {
+  return f?.types && f.types.length ? f.types : [...OBJECTIVE_TYPES];
+}
+
+type PoolCond = Parameters<typeof and>[0];
+
+/**
+ * Builds the WHERE conditions selecting a pool's eligible published questions.
+ * Tags are resolved to matching question ids first (bounded by the tag set).
+ * Returns null when the tag intersection is empty (pool can never be filled).
+ */
+async function poolWhereConds(db: DB, f?: PoolFilter): Promise<PoolCond[] | null> {
+  const types = poolAllowedTypes(f);
+  const conds: PoolCond[] = [
+    eq(questions.status, "published"),
+    isNull(questions.deletedAt),
+    inArray(questions.type, types as unknown as QuestionType[]),
+  ];
+  if (f?.subject) conds.push(eq(questions.subjectId, f.subject));
+  if (f?.course) conds.push(eq(questions.courseId, f.course));
+  if (f?.unit) conds.push(eq(questions.unitId, f.unit));
+  if (f?.lesson) conds.push(eq(questions.lessonId, f.lesson));
+  if (f?.difficulty) conds.push(eq(questions.difficulty, f.difficulty as "easy"));
+  if (f?.tags?.length) {
+    const rows = await db
+      .select({ questionId: questionTags.questionId })
+      .from(questionTags)
+      .where(inArray(questionTags.tagId, f.tags));
     const ids = [...new Set(rows.map((r) => r.questionId))];
-    if (!ids.length) return [];
+    if (!ids.length) return null;
     conds.push(inArray(questions.id, ids));
   }
-  const rows = await db.select({ id: questions.id }).from(questions).where(and(...conds)).orderBy(asc(questions.createdAt));
+  return conds;
+}
+
+/** Count of questions matching a pool's conditions (bounded single aggregate). */
+async function poolEligibleCount(db: DB, f?: PoolFilter): Promise<number> {
+  const conds = await poolWhereConds(db, f);
+  if (!conds) return 0;
+  // conds may include deleted soft-rows? poolWhereConds only checks published.
+  const rows = await db
+    .select({ n: sql<number>`COUNT(*)` })
+    .from(questions)
+    .where(and(...conds));
+  return Number(rows[0]?.n ?? 0);
+}
+
+export interface PoolEligibilityRow {
+  count: number; // requested
+  eligible: number; // published questions matching filters
+  byDifficulty: Record<string, number>;
+  byType: Record<string, number>;
+}
+
+/** Grouped eligibility per difficulty × type (single aggregate query per pool). */
+export async function poolEligibilityBreakdown(db: DB, f?: PoolFilter): Promise<Omit<PoolEligibilityRow, "count">> {
+  const conds = await poolWhereConds(db, f);
+  const empty = { eligible: 0, byDifficulty: {}, byType: {} };
+  if (!conds) return empty;
+  const rows = await db
+    .select({
+      difficulty: questions.difficulty,
+      type: questions.type,
+      n: sql<number>`COUNT(*)`,
+    })
+    .from(questions)
+    .where(and(...conds))
+    .groupBy(questions.difficulty, questions.type);
+  const byDifficulty: Record<string, number> = {};
+  const byType: Record<string, number> = {};
+  let eligible = 0;
+  for (const r of rows) {
+    const c = Number(r.n);
+    byDifficulty[r.difficulty] = (byDifficulty[r.difficulty] ?? 0) + c;
+    byType[r.type] = (byType[r.type] ?? 0) + c;
+    eligible += c;
+  }
+  return { eligible, byDifficulty, byType };
+}
+
+/**
+ * Random selection from a pool. Loads ONLY the eligible candidate ids (id
+ * column, bounded by the pool's filter scope — never the whole bank), then does
+ * a seeded shuffle and slices the requested count. No unbounded query: the
+ * filter conditions already scope the set; `count` ≤ 100.
+ */
+async function poolQuestionIds(db: DB, pool: { filters?: PoolFilter; count: number }, seed: number): Promise<string[]> {
+  const conds = await poolWhereConds(db, pool.filters);
+  if (!conds) return [];
+  const rows = await db
+    .select({ id: questions.id })
+    .from(questions)
+    .where(and(...conds))
+    .orderBy(asc(questions.createdAt));
   return seededShuffle(rows.map((r) => r.id), seed).slice(0, pool.count);
 }
 
@@ -764,7 +909,8 @@ export async function resolveExamQuestionIds(
   const out: string[] = [];
   const seen = new Set<string>();
   for (let i = 0; i < config.selection.pools.length; i++) {
-    const picked = await poolQuestionIds(db, config.selection.pools[i], (seed ^ (i * 0x9e3779b9)) >>> 0);
+    const pool = config.selection.pools[i];
+    const picked = await poolQuestionIds(db, pool, (seed ^ (i * 0x9e3779b9)) >>> 0);
     for (const id of picked) {
       if (seen.has(id)) continue;
       seen.add(id);
@@ -773,6 +919,41 @@ export async function resolveExamQuestionIds(
   }
   const limited = config.selection.max_questions ? out.slice(0, config.selection.max_questions) : out;
   return config.selection.randomize_questions ? seededShuffle(limited, seed) : limited;
+}
+
+/**
+ * Admin preview of a pool-mode selection WITHOUT exposing answer keys. For each
+ * pool reports requested count, eligible count and the difficulty/type
+ * distribution. Also computes the resolved distinct set for the requested total
+ * (bounded — each pool only loads its own scoped candidate ids).
+ */
+export async function previewPoolSelection(
+  db: DB,
+  examId: string,
+  config: ExamConfig
+): Promise<{
+  pools: Array<PoolEligibilityRow & { difficulty: string | null; type: string | null }>;
+  requestedTotal: number;
+  resolvedTotal: number;
+  maxQuestions: number | null;
+}> {
+  const pools = [];
+  for (const p of config.selection.pools) {
+    const f = (p.filters ?? {}) as PoolFilter;
+    const bd = await poolEligibilityBreakdown(db, f);
+    const f2 = f;
+    pools.push({
+      count: p.count,
+      eligible: bd.eligible,
+      byDifficulty: bd.byDifficulty,
+      byType: bd.byType,
+      difficulty: f2.difficulty ?? null,
+      type: f2.types?.length ? f2.types.join(",") : null,
+    });
+  }
+  const requestedTotal = config.selection.pools.reduce((s, p) => s + p.count, 0);
+  const resolved = await resolveExamQuestionIds(db, examId, config, 12345);
+  return { pools, requestedTotal, resolvedTotal: resolved.length, maxQuestions: config.selection.max_questions };
 }
 
 async function pointsForQuestions(db: DB, examId: string, questionIds: string[]): Promise<Record<string, number>> {

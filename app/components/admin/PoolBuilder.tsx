@@ -24,6 +24,7 @@ interface PoolBuilderProps {
   poolsJson: string;
   disabled?: boolean;
   subjects: RefItem[];
+  courses: RefItem[];
   units: RefItem[];
   lessons: RefItem[];
   tags: RefItem[];
@@ -33,11 +34,15 @@ interface PoolBuilderProps {
 interface PoolDraft {
   count: string;
   subject: string;
+  course: string;
   unit: string;
   lesson: string;
   difficulty: string;
+  types: string[];
   tags: string[];
 }
+
+const ALL_TYPES = ["mcq", "true_false", "multi_select", "essay"] as const;
 
 function parsePools(raw: string): PoolDraft[] {
   try {
@@ -48,9 +53,11 @@ function parsePools(raw: string): PoolDraft[] {
       return {
         count: String(p?.count ?? ""),
         subject: f.subject ?? "",
+        course: f.course ?? "",
         unit: f.unit ?? "",
         lesson: f.lesson ?? "",
         difficulty: f.difficulty ?? "",
+        types: Array.isArray(f.types) ? f.types.map(String) : [],
         tags: Array.isArray(f.tags) ? f.tags.map(String) : [],
       };
     });
@@ -64,9 +71,13 @@ function serializePools(pools: PoolDraft[]): string {
     pools.map((p) => {
       const filters: Record<string, unknown> = {};
       if (p.subject) filters.subject = p.subject;
+      if (p.course) filters.course = p.course;
       if (p.unit) filters.unit = p.unit;
       if (p.lesson) filters.lesson = p.lesson;
       if (p.difficulty) filters.difficulty = p.difficulty;
+      // an explicit non-empty types selection is stored; an empty selection means
+      // "objective types only" (the engine default — backward compatible)
+      if (p.types.length) filters.types = p.types;
       if (p.tags.length) filters.tags = p.tags;
       const count = Math.max(1, Math.min(100, Number(p.count) || 1));
       return { filters, count };
@@ -81,10 +92,12 @@ const inputCls =
 
 const DIFF_OPTIONS = ["easy", "medium", "hard"] as const;
 
-export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lessons, tags, locale }: PoolBuilderProps) {
+export function PoolBuilder({ name, poolsJson, disabled, subjects, courses, units, lessons, tags, locale }: PoolBuilderProps) {
   const [pools, setPools] = useState<PoolDraft[]>(() => {
     const init = parsePools(poolsJson);
-    return init.length ? init : [{ count: "5", subject: "", unit: "", lesson: "", difficulty: "", tags: [] }];
+    return init.length
+      ? init
+      : [{ count: "5", subject: "", course: "", unit: "", lesson: "", difficulty: "", types: [], tags: [] }];
   });
 
   function patch(i: number, part: Partial<PoolDraft>) {
@@ -96,6 +109,15 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lesson
         if (idx !== i) return p;
         const next = on ? [...p.tags, id] : p.tags.filter((x) => x !== id);
         return { ...p, tags: next };
+      })
+    );
+  }
+  function setTypes(i: number, type: string, on: boolean) {
+    setPools((prev) =>
+      prev.map((p, idx) => {
+        if (idx !== i) return p;
+        const next = on ? [...new Set([...p.types, type])] : p.types.filter((x) => x !== type);
+        return { ...p, types: next };
       })
     );
   }
@@ -120,11 +142,22 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lesson
           <div className="grid gap-3 md:grid-cols-2">
             {filterRow(
               t(locale, "assessment.filterSubject"),
-              <select className={selectCls} disabled={disabled} value={p.subject} onChange={(e) => patch(i, { subject: e.target.value, unit: "", lesson: "" })}>
+              <select className={selectCls} disabled={disabled} value={p.subject} onChange={(e) => patch(i, { subject: e.target.value, course: "", unit: "", lesson: "" })}>
                 <option value="">{any}</option>
                 {subjects.map((s) => (
                   <option key={s.id} value={s.id}>
                     {locale === "ar" ? s.labelAr : s.labelEn}
+                  </option>
+                ))}
+              </select>
+            )}
+            {filterRow(
+              t(locale, "assessment.filterCourse"),
+              <select className={selectCls} disabled={disabled} value={p.course} onChange={(e) => patch(i, { course: e.target.value, unit: "", lesson: "" })}>
+                <option value="">{any}</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {locale === "ar" ? c.labelAr : c.labelEn}
                   </option>
                 ))}
               </select>
@@ -162,6 +195,27 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lesson
                 ))}
               </select>
             )}
+            <div className="grid gap-1">
+              <span className="text-xs font-medium text-slate-500">{t(locale, "assessment.type")}</span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+                {ALL_TYPES.map((ty) => {
+                  const on = p.types.includes(ty);
+                  return (
+                    <label key={ty} className="flex items-center gap-1.5">
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        disabled={disabled}
+                        onChange={(e) => setTypes(i, ty, e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      {t(locale, `assessment.type_${ty}`)}
+                    </label>
+                  );
+                })}
+              </div>
+              <span className="text-xs text-slate-400">{t(locale, "assessment.poolTypeHint")}</span>
+            </div>
             <div className="grid gap-1 md:col-span-2">
               <span className="text-xs font-medium text-slate-500">{t(locale, "assessment.filterTags")}</span>
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
@@ -196,7 +250,7 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lesson
       {pools.length === 0 && <p className="text-sm text-slate-500">{t(locale, "assessment.poolNoPools")}</p>}
 
       {!disabled && pools.length < 10 && (
-        <button type="button" onClick={() => setPools((prev) => [...prev, { count: "5", subject: "", unit: "", lesson: "", difficulty: "", tags: [] }])} className="min-h-11 rounded-lg border border-dashed border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50">
+        <button type="button" onClick={() => setPools((prev) => [...prev, { count: "5", subject: "", course: "", unit: "", lesson: "", difficulty: "", types: [], tags: [] }])} className="min-h-11 rounded-lg border border-dashed border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50">
           + {t(locale, "assessment.addPool")}
         </button>
       )}

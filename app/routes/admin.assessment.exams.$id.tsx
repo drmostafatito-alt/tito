@@ -20,11 +20,13 @@ import {
   listTags,
   moveExamQuestion,
   parseExamConfig,
+  previewPoolSelection,
   publishExam,
   removeExamQuestion,
   setExamQuestionPoints,
   unpublishExam,
   updateExam,
+  validatePoolConfig,
 } from "~server/assessment/service.server";
 import { adminTree } from "~server/content/service.server";
 import { Badge } from "~/components/ui/Badge";
@@ -88,7 +90,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   }
   const tags = (await listTags(db)).map((tg) => ({ id: tg.id, labelAr: tg.labelAr, labelEn: tg.labelEn }));
 
-  if (isNew) return { isNew: true as const, perms, subjects, courses, units, lessons, tags, exam: null, attached: [], bank: [], counts: { total: 0, live: 0 } };
+  if (isNew)
+    return { isNew: true as const, perms, subjects, courses, units, lessons, tags, exam: null, attached: [], bank: [], counts: { total: 0, live: 0 }, poolPreview: null, poolIssues: [] as Array<{ path: string; message: string }> };
 
   const exam = await getExam(db, params.id);
   if (!exam) throw new Response("Not Found", { status: 404 });
@@ -99,6 +102,20 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const allCounts = await examAttemptCounts(db);
   const attempts = await adminAttemptsForExam(db, exam.id);
 
+  // Pool-mode admin preview: eligible counts + difficulty/type distribution and
+  // validation issues (no answer keys exposed). Only meaningful once pools exist.
+  let poolPreview: Awaited<ReturnType<typeof previewPoolSelection>> | null = null;
+  let poolIssues: Array<{ path: string; message: string }> = [];
+  if (config.selection.mode === "pool" && config.selection.pools.length > 0) {
+    poolPreview = await previewPoolSelection(db, exam.id, config);
+    try {
+      await validatePoolConfig(db, exam.id, config);
+    } catch (err) {
+      if (err instanceof AssessmentValidationError) poolIssues = err.issues;
+      else throw err;
+    }
+  }
+
   return {
     isNew: false as const,
     perms,
@@ -107,6 +124,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     units,
     lessons,
     tags,
+    poolPreview,
+    poolIssues,
     exam: {
       id: exam.id,
       slug: exam.slug,
@@ -396,7 +415,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
     );
   }
 
-  const { exam, attached, bank, counts, attempts } = loaderData;
+  const { exam, attached, bank, counts, attempts, poolPreview, poolIssues } = loaderData;
   const draft = exam.status === "draft";
   const cfg = exam.config;
   const totalPoints = attached.reduce((s, a) => s + a.points, 0);
@@ -575,6 +594,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                   poolsJson={cfg.poolsJson}
                   disabled={!draft || !perms.edit}
                   subjects={subjects}
+                  courses={courses}
                   units={units}
                   lessons={lessons}
                   tags={tags}
@@ -590,6 +610,59 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
           </CardBody>
         </Card>
       </Form>
+
+      {poolPreview && cfg.mode === "pool" && (
+        <Card data-testid="pool-preview">
+          <CardBody className="space-y-3">
+            <h2 className="text-sm font-semibold">{t(locale, "assessment.poolPreviewTitle")}</h2>
+            {poolIssues.length > 0 && (
+              <Alert kind="error">
+                <ul className="list-inside list-disc">
+                  {poolIssues.map((i, idx) => (
+                    <li key={idx}>
+                      {i.path}: {i.message}
+                    </li>
+                  ))}
+                </ul>
+              </Alert>
+            )}
+            {poolIssues.length === 0 && <Alert kind="success">{t(locale, "assessment.poolPreviewOk")}</Alert>}
+            <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
+                {t(locale, "assessment.requestedTotal")}: <span className="font-bold">{poolPreview.requestedTotal}</span>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
+                {t(locale, "assessment.resolvedTotal")}: <span className="font-bold">{poolPreview.resolvedTotal}</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] border-collapse text-xs">
+                <thead>
+                  <tr className="border-b text-start text-slate-500">
+                    <th className="py-1 pe-2 text-start font-medium">{t(locale, "assessment.poolN", { n: "" }).trim() || "Pool"}</th>
+                    <th className="py-1 pe-2 text-start font-medium">{t(locale, "assessment.filterDifficulty")}</th>
+                    <th className="py-1 pe-2 text-start font-medium">{t(locale, "assessment.type")}</th>
+                    <th className="py-1 pe-2 text-start font-medium">{t(locale, "assessment.requestedCount")}</th>
+                    <th className="py-1 pe-2 text-start font-medium">{t(locale, "assessment.eligibleCount")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {poolPreview.pools.map((p, i) => (
+                    <tr key={i} className="border-b border-slate-100">
+                      <td className="py-1 pe-2 font-medium">{i + 1}</td>
+                      <td className="py-1 pe-2">{p.difficulty ? t(locale, `assessment.diff_${p.difficulty}`) : "—"}</td>
+                      <td className="py-1 pe-2" dir="ltr">{p.type ?? t(locale, "assessment.poolObjectiveDefault")}</td>
+                      <td className="py-1 pe-2">{p.count}</td>
+                      <td className={`py-1 pe-2 ${p.eligible < p.count ? "font-bold text-red-600" : ""}`}>{p.eligible}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-slate-500">{t(locale, "assessment.poolPreviewNote")}</p>
+          </CardBody>
+        </Card>
+      )}
 
       {/* attached questions */}
       <Card>
