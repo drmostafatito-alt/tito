@@ -33,6 +33,8 @@ export default [
     route("profile", "routes/student/profile.tsx"),
     route("exams", "routes/student/exams.tsx"),
     route("exams/:slug", "routes/student/exams.$slug.tsx"),
+    route("assignments", "routes/student/assignments.tsx"),
+    route("assignments/:id", "routes/student/assignments.$id.tsx"),
     route("results", "routes/student/results.tsx"),
     route("results/:attemptId", "routes/student/results.$attemptId.tsx"),
     route("checkout/:productSlug", "routes/student/checkout.$productSlug.tsx"),

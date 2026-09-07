@@ -82,6 +82,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
     { to: "/courses", label: t(locale, "content.catalogTitle") },
     { to: "/programs", label: t(locale, "catalog.programs") },
     { to: "/exams", label: t(locale, "exam.listTitle") },
+    { to: "/assignments", label: t(locale, "assignment.myAssignments") },
     { to: "/orders", label: t(locale, "commerce.myOrders") },
     { to: "/notifications", label: t(locale, "notifications.navLabel"), badge: loaderData.unreadNotifications },
     { to: "/profile", label: t(locale, "profile.title") },
