@@ -2,13 +2,14 @@ import type { Route } from "./+types/api.mock-stream.$videoId.$file";
 import { getEnv } from "~server/cf.server";
 import { mockTokenSecret, signMockToken } from "~server/video/providers/mock.server";
 import { timingSafeEqualHex } from "~server/crypto/hmac.server";
+import { getMockSegmentBytes } from "~server/video/mock-segment.server";
 
 /**
  * Mock provider stream endpoint. Verifies the HMAC playback token (uid|exp,
- * ≤45s TTL) before serving a synthetic HLS playlist / poster — mirroring the
- * signed-credential discipline of the production provider. Placeholder media
- * segments make the security flow fully exercisable offline; actual A/V
- * decoding is intentionally NOT simulated (documented limitation).
+ * ≤45s TTL) before serving a synthetic HLS playlist / segment / poster — mirroring the
+ * signed-credential discipline of the production provider. Real decodable placeholder media
+ * segments (H.264 baseline 160x90) make the security and MSE playback flow fully
+ * exercisable offline.
  */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const env = getEnv(context);
@@ -16,7 +17,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const uid = url.searchParams.get("uid") ?? "";
   const exp = Number(url.searchParams.get("exp") ?? "0");
   const token = url.searchParams.get("token") ?? "";
-  const scope = params.file.endsWith(".m3u8") ? "playback" : "thumbnail";
+  const isPlayback = params.file.endsWith(".m3u8") || params.file.endsWith(".ts");
+  const scope = isPlayback ? "playback" : "thumbnail";
 
   if (!uid || !Number.isFinite(exp) || exp <= 0 || !token) {
     return new Response("Not Found", { status: 404 });
@@ -41,8 +43,15 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 
   const qs = `uid=${encodeURIComponent(uid)}&exp=${exp}&token=${token}`;
 
+  if (params.file === "segment.ts") {
+    const bytes = getMockSegmentBytes();
+    return new Response(bytes as unknown as BodyInit, {
+      headers: { "Content-Type": "video/mp2t", "Cache-Control": "private, no-store" },
+    });
+  }
+
   if (params.file === "media.m3u8") {
-    const media = ["#EXTM3U", "#EXT-X-VERSION:3", "#EXT-X-TARGETDURATION:2", "#EXTINF:2.0,", `segment.ts?${qs}`, "#EXT-X-ENDLIST", ""].join("\n");
+    const media = ["#EXTM3U", "#EXT-X-VERSION:3", "#EXT-X-TARGETDURATION:3", "#EXTINF:3.0,", `segment.ts?${qs}`, "#EXT-X-ENDLIST", ""].join("\n");
     return new Response(media, {
       headers: { "Content-Type": "application/vnd.apple.mpegurl", "Cache-Control": "private, no-store" },
     });
@@ -52,7 +61,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const master = [
     "#EXTM3U",
     "#EXT-X-VERSION:3",
-    `#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=640x360`,
+    `#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=160x90`,
     `media.m3u8?${qs}`,
     "",
   ].join("\n");

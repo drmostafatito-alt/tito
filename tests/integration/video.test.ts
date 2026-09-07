@@ -11,6 +11,8 @@ import { resolveContentAccess } from "~server/entitlements/access.server";
 import { getVideo, listVideos, mintPlayback, registerMockVideo, syncVideo } from "~server/video/service.server";
 import { MockVideoProvider, signMockToken } from "~server/video/providers/mock.server";
 import { timingSafeEqualHex } from "~server/crypto/hmac.server";
+import { loader as mockStreamLoader } from "~/routes/api.mock-stream.$videoId.$file";
+import { getMockSegmentBytes } from "~server/video/mock-segment.server";
 
 /**
  * Video pipeline with REAL bindings: mock provider playback minting, token
@@ -189,5 +191,46 @@ describe("mock token helper parity", () => {
     expect(timingSafeEqualHex(token, again)).toBe(true);
     const other = await signMockToken(secret, { videoId: "v", scope: "playback", studentId: "OTHER", expiresAt: 123 });
     expect(timingSafeEqualHex(token, other)).toBe(false);
+  });
+});
+
+describe("mock stream route loader", () => {
+  it("serves real decodable segment.ts with playback token", async () => {
+    const secret = env.MOCK_VIDEO_SECRET!;
+    const expiresAt = Date.now() + 30_000;
+    const playbackToken = await signMockToken(secret, {
+      videoId,
+      scope: "playback",
+      studentId,
+      expiresAt,
+    });
+    const ctx = { cloudflare: { env } } as never;
+
+    // segment.ts request with valid playback token
+    const segmentReq = new Request(`https://app.test/api/mock-stream/${videoId}/segment.ts?uid=${encodeURIComponent(studentId)}&exp=${expiresAt}&token=${playbackToken}`);
+    const segmentRes = await mockStreamLoader({ context: ctx, params: { videoId, file: "segment.ts" }, request: segmentReq } as never);
+    expect(segmentRes.status).toBe(200);
+    expect(segmentRes.headers.get("Content-Type")).toBe("video/mp2t");
+    const segmentBytes = new Uint8Array(await segmentRes.arrayBuffer());
+    expect(segmentBytes.length).toBe(getMockSegmentBytes().length);
+    expect(segmentBytes[0]).toBe(0x47); // MPEG-TS sync byte
+
+    // media.m3u8 request
+    const mediaReq = new Request(`https://app.test/api/mock-stream/${videoId}/media.m3u8?uid=${encodeURIComponent(studentId)}&exp=${expiresAt}&token=${playbackToken}`);
+    const mediaRes = await mockStreamLoader({ context: ctx, params: { videoId, file: "media.m3u8" }, request: mediaReq } as never);
+    expect(mediaRes.status).toBe(200);
+    const mediaText = await mediaRes.text();
+    expect(mediaText).toContain("segment.ts?");
+
+    // thumbnail token cannot access segment.ts (cross-scope rejection)
+    const thumbToken = await signMockToken(secret, {
+      videoId,
+      scope: "thumbnail",
+      studentId,
+      expiresAt,
+    });
+    const crossReq = new Request(`https://app.test/api/mock-stream/${videoId}/segment.ts?uid=${encodeURIComponent(studentId)}&exp=${expiresAt}&token=${thumbToken}`);
+    const crossRes = await mockStreamLoader({ context: ctx, params: { videoId, file: "segment.ts" }, request: crossReq } as never);
+    expect(crossRes.status).toBe(404);
   });
 });
