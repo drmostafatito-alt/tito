@@ -182,7 +182,8 @@ function slugPos(html, slug) {
 
 /** Why did a login POST fail? (localized error copy → stable codes) */
 function loginFailureKind(html) {
-  if (html.includes("محاولات كثيرة") || html.includes("Too many attempts")) return "rate_limited";
+  // needles match auth.errors.rate_limitedTitle/Body in app/locales (ar/en)
+  if (html.includes("محدود مؤقتًا") || html.includes("rate limited")) return "rate_limited";
   if (html.includes("Device limit") || html.includes("الحد الأقصى للأجهزة") || html.includes("device")) return "device_limit?";
   if (html.includes("غير صحيحة") || html.includes("Incorrect email")) return "invalid_credentials";
   return "unknown";
