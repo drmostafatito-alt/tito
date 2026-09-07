@@ -144,7 +144,7 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
                   <p className="font-semibold">
                     {(locale === "ar" ? o.items[0]?.titleAr : o.items[0]?.titleEn) || o.orderNumber}
                   </p>
-                  <p className="text-xs text-slate-400" dir="ltr">
+                  <p className="text-xs text-slate-500" dir="ltr">
                     {o.orderNumber} · {formatDate(locale, o.createdAt)}
                   </p>
                 </div>

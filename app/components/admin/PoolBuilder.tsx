@@ -166,7 +166,7 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lesson
               <span className="text-xs font-medium text-slate-500">{t(locale, "assessment.filterTags")}</span>
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
                 {tags.length === 0 ? (
-                  <span className="text-xs text-slate-400">{t(locale, "assessment.anyFilter")}</span>
+                  <span className="text-xs text-slate-500">{t(locale, "assessment.anyFilter")}</span>
                 ) : (
                   tags.map((tg) => {
                     const on = p.tags.includes(tg.id);
@@ -193,7 +193,7 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lesson
         </fieldset>
       ))}
 
-      {pools.length === 0 && <p className="text-sm text-slate-400">{t(locale, "assessment.poolNoPools")}</p>}
+      {pools.length === 0 && <p className="text-sm text-slate-500">{t(locale, "assessment.poolNoPools")}</p>}
 
       {!disabled && pools.length < 10 && (
         <button type="button" onClick={() => setPools((prev) => [...prev, { count: "5", subject: "", unit: "", lesson: "", difficulty: "", tags: [] }])} className="min-h-11 rounded-lg border border-dashed border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50">
@@ -201,7 +201,7 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, units, lesson
         </button>
       )}
 
-      <p className="text-xs text-slate-400">{t(locale, "assessment.filtersHint")}</p>
+      <p className="text-xs text-slate-500">{t(locale, "assessment.filtersHint")}</p>
     </div>
   );
 }

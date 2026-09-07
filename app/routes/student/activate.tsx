@@ -75,7 +75,7 @@ export default function ActivatePage({}: Route.ComponentProps) {
               />
             </label>
             <SubmitButton name="_action" value="redeem">{t(locale, "commerce.redeemButton")}</SubmitButton>
-            <p className="text-xs text-slate-400">{t(locale, "commerce.redeemNotice")}</p>
+            <p className="text-xs text-slate-500">{t(locale, "commerce.redeemNotice")}</p>
           </Form>
         </CardBody>
       </Card>

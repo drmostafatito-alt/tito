@@ -67,7 +67,7 @@ export default function AdminCmsTemplates({ loaderData }: Route.ComponentProps) 
                     <span className="font-semibold text-slate-900">{title}</span>
                     {tpl.builtin && <Badge tone="brand">{L("cms.ui.builtin")}</Badge>}
                     {desc && <span className="w-full text-sm text-slate-500">{desc}</span>}
-                    <span className="ms-auto text-xs text-slate-400" dir="ltr">{tpl.slug}</span>
+                    <span className="ms-auto text-xs text-slate-500" dir="ltr">{tpl.slug}</span>
                     {!tpl.builtin && (
                       <Form method="post">
                         <input type="hidden" name="_action" value="delete" />

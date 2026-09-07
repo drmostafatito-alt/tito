@@ -115,7 +115,7 @@ export default function AdminBatchPage({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={t(locale, "commerceAdmin.codesList")} />
         <CardBody>
-          <p className="mb-2 text-xs text-slate-400">{t(locale, "commerceAdmin.codesHashedNote")}</p>
+          <p className="mb-2 text-xs text-slate-500">{t(locale, "commerceAdmin.codesHashedNote")}</p>
           <div className="space-y-2">
             {codes.map((c) => (
               <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-sm last:border-0" data-testid="code-row">
@@ -170,7 +170,7 @@ export default function AdminBatchPage({ loaderData }: Route.ComponentProps) {
           {redemptions.map((r) => (
             <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-sm last:border-0" data-testid="redemption-row">
               <span dir="ltr" className="text-xs text-slate-600">{r.studentEmail ?? r.id.slice(0, 8)}</span>
-              <span className="text-xs text-slate-400">{formatDate(locale, r.createdAt)}</span>
+              <span className="text-xs text-slate-500">{formatDate(locale, r.createdAt)}</span>
             </div>
           ))}
         </CardBody>

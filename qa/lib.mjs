@@ -42,12 +42,13 @@ export async function saveAuth(context, who) {
  * Ensure an authenticated context. Returns { page, ctx } — creates the context
  * with the saved state when present; otherwise performs a UI login and saves.
  */
-export async function ensureAuth(browser, who, { locale = "en", viewport }) {
+export async function ensureAuth(browser, who, { locale = "en", viewport, bypassCSP = false }) {
   const creds = CREDS[who];
   if (!creds) throw new Error(`unknown account: ${who}`);
   const saved = loadAuth(who);
   const ctx = await browser.newContext({
     ...(viewport ? { viewport } : {}),
+    ...(bypassCSP ? { bypassCSP: true } : {}),
     storageState: saved ?? undefined,
   });
   if (!saved) {

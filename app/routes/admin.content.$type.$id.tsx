@@ -295,10 +295,10 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-6" key={`${type}-${String(node.id)}`}>
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/content" className="inline-flex min-h-6 items-center text-sm text-slate-500 hover:underline"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {t(locale, "admin.navContent")}</Link>
+        <Link to="/admin/content" className="inline-flex min-h-6 items-center text-sm text-slate-600 hover:underline"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {t(locale, "admin.navContent")}</Link>
         <h1 className="text-xl font-bold">{label}</h1>
         <Badge tone="neutral">{type}</Badge>
-        {typeof node.slug === "string" && <span className="text-xs text-slate-400">/{String(node.slug)}</span>}
+        {typeof node.slug === "string" && <span className="text-xs text-slate-600">/{String(node.slug)}</span>}
         {publicUrl && (
           <a
             href={publicUrl}
@@ -460,7 +460,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                 <span className="text-3xl text-slate-300" aria-hidden="true">📚</span>
                 <p className="font-medium text-slate-700">{t(locale, "content.noUnits")}</p>
                 <p className="max-w-sm text-sm text-slate-500">{t(locale, "content.noUnitsHint")}</p>
-                <span className="text-sm text-slate-400">{t(locale, "content.addFirstUnit")} ↓</span>
+                <span className="text-sm text-slate-500">{t(locale, "content.addFirstUnit")} ↓</span>
               </div>
             ) : (
               <ol className="flex flex-col gap-3">
@@ -474,7 +474,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                       {u.status !== "published" && <Badge tone="warning">{t(locale, "content.inDraft")}</Badge>}
                     </div>
                     {u.lessons.length === 0 ? (
-                      <p className="px-4 py-3 text-sm text-slate-400">{t(locale, "content.noUnitsHint")}</p>
+                      <p className="px-4 py-3 text-sm text-slate-500">{t(locale, "content.noUnitsHint")}</p>
                     ) : (
                       <ul className="flex flex-col">
                         {u.lessons.map((l) => (
@@ -483,7 +483,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                               <span aria-hidden="true">▶</span>
                               <span className="truncate">{locale === "ar" ? l.titleAr : l.titleEn}</span>
                             </Link>
-                            <span className="text-xs text-slate-400">{t(locale, "content.lessonItemsCount", { n: l.items })}</span>
+                            <span className="text-xs text-slate-500">{t(locale, "content.lessonItemsCount", { n: l.items })}</span>
                             {l.status !== "published" && <Badge tone="warning">{t(locale, "content.inDraft")}</Badge>}
                           </li>
                         ))}
@@ -560,8 +560,8 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                     <Link to={`/admin/content/${c.label}/${c.id}`} className="hover:underline">
                       {locale === "ar" ? c.titleAr : c.titleEn}
                     </Link>
-                    {c.slug && <span className="text-xs text-slate-400">/{c.slug}</span>}
-                    {c.status && <span className="text-xs text-slate-400">({c.status})</span>}
+                    {c.slug && <span className="text-xs text-slate-500">/{c.slug}</span>}
+                    {c.status && <span className="text-xs text-slate-500">({c.status})</span>}
                   </li>
                 ))}
               </ul>
@@ -581,10 +581,10 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                     {t(locale, i.itemType === "video" ? "content.videoItem" : i.itemType === "file" ? "content.fileItem" : "content.examItem")}
                   </Badge>
                   <span className="max-w-[50%] truncate text-slate-600">{i.label}</span>
-                  {i.required && <span className="text-xs text-slate-400">{t(locale, "content.required")}</span>}
+                  {i.required && <span className="text-xs text-slate-500">{t(locale, "content.required")}</span>}
                 </li>
               ))}
-              {lessonItems.length === 0 && <li className="text-sm text-slate-400">—</li>}
+              {lessonItems.length === 0 && <li className="text-sm text-slate-500">—</li>}
             </ul>
             <Form method="post" className="grid gap-3 sm:grid-cols-4">
               <input type="hidden" name="_action" value="add-item" />

@@ -74,8 +74,8 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
   const description = locale === "ar" ? product.descriptionAr : product.descriptionEn;
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
-      <nav className="text-xs text-slate-500" aria-label={t(locale, "common.navMain")}>
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
+      <nav className="text-xs text-slate-500" aria-label={t(locale, "common.breadcrumb")}>
         <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
         <span aria-hidden="true"> › </span>
         <span className="text-slate-700">{name}</span>
@@ -116,7 +116,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                   <div className="flex items-center gap-3">
                     <div className="text-end">
                       {plan.compareAtMinor !== null && plan.compareAtMinor > plan.effectiveMinor && (
-                        <p className="text-xs text-slate-400 line-through" dir="ltr">
+                        <p className="text-xs text-slate-500 line-through" dir="ltr">
                           {formatMoney(plan.compareAtMinor, plan.currency)}
                         </p>
                       )}
@@ -147,11 +147,11 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
             })}
           </div>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             <Link to="/activate" className="underline hover:text-brand-600">{t(locale, "commerce.haveCode")}</Link>
           </p>
         </CardBody>
       </Card>
-    </main>
+    </div>
   );
 }

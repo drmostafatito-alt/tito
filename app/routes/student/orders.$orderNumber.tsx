@@ -177,7 +177,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
               <span dir="ltr">{formatMoney(order.totalMinor, order.currency)}</span>
             </div>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             {t(locale, "common.createdAt")}: {formatDate(locale, order.createdAt)}
           </p>
         </CardBody>
@@ -196,7 +196,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
                 {locale === "ar" ? latest.instructions.instructionsAr : latest.instructions.instructionsEn}
               </p>
             ) : (
-              <p className="text-xs text-slate-400">{t(locale, "commerce.instructionsNotConfigured")}</p>
+              <p className="text-xs text-slate-500">{t(locale, "commerce.instructionsNotConfigured")}</p>
             )}
 
             {latest.status === "under_review" ? (
@@ -230,7 +230,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
                   <SubmitButton name="_action" value="confirm_payment">{t(locale, "commerce.confirmPayment")}</SubmitButton>
                   <SubmitButton variant="secondary" name="_action" value="cancel_order">{t(locale, "commerce.cancelOrder")}</SubmitButton>
                 </div>
-                <p className="text-xs text-slate-400">{t(locale, "commerce.confirmDisclaimer")}</p>
+                <p className="text-xs text-slate-500">{t(locale, "commerce.confirmDisclaimer")}</p>
               </Form>
             )}
           </CardBody>

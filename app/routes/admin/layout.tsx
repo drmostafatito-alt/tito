@@ -53,7 +53,7 @@ function PageCrumbs({ pathname, locale }: { pathname: string; locale: Locale }) 
       <Link to="/admin" className="truncate font-medium text-slate-500 hover:text-slate-800">
         {root}
       </Link>
-      <span aria-hidden="true" className="text-slate-400">
+      <span aria-hidden="true" className="text-slate-500">
         /
       </span>
       <span className="truncate font-semibold text-slate-900">{label}</span>

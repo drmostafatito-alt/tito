@@ -170,7 +170,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           {t(locale, course.accessLevel === "public" ? "content.accessPublic" : course.accessLevel === "authenticated" ? "content.accessAuthenticated" : "content.accessEntitled")}
         </Badge>
         {!verdict.allowed && course.status !== "published" && (
-          <span className="text-sm text-slate-400">{t(locale, "content.notAvailable")}</span>
+          <span className="text-sm text-slate-500">{t(locale, "content.notAvailable")}</span>
         )}
       </div>
       <h1 className="text-2xl font-bold">{title}</h1>
@@ -284,12 +284,12 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                     </li>
                   );
                 })}
-                {unit.lessons.length === 0 && <li className="text-sm text-slate-400">—</li>}
+                {unit.lessons.length === 0 && <li className="text-sm text-slate-500">—</li>}
               </ol>
             </CardBody>
           </Card>
         ))}
-        {units.length === 0 && <p className="text-sm text-slate-400">{t(locale, "content.catalogEmpty")}</p>}
+        {units.length === 0 && <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>}
       </div>
     </div>
   );

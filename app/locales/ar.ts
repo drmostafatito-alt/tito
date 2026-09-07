@@ -765,6 +765,7 @@ export const ar = {
     colStatus: "الحالة",
     colScore: "الدرجة",
     colResult: "النتيجة",
+    attemptView: "عرض المحاولة",
     reviewAttempt: "مراجعة",
     resultPass: "ناجح",
     resultFail: "راسب",

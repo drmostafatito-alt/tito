@@ -88,14 +88,14 @@ export function ImagePicker({
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-slate-800">{current.label}</p>
-            <p className="truncate text-xs text-slate-400" dir="ltr">{val}</p>
+            <p className="truncate text-xs text-slate-500" dir="ltr">{val}</p>
           </div>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-center">
           <span className="text-2xl text-slate-300" aria-hidden="true">🖼️</span>
           <span className="text-sm font-medium text-slate-600">{t(locale, "media.noImage")}</span>
-          <span className="text-xs text-slate-400">{t(locale, "media.noImageHint")}</span>
+          <span className="text-xs text-slate-500">{t(locale, "media.noImageHint")}</span>
         </div>
       )}
 
@@ -143,14 +143,14 @@ export function ImagePicker({
 
       {open && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-          <p className="mb-2 text-xs text-slate-400">{t(locale, "media.uploadNote")}</p>
+          <p className="mb-2 text-xs text-slate-500">{t(locale, "media.uploadNote")}</p>
           <ul
             className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-4"
             role="listbox"
             aria-label={label}
           >
             {images.length === 0 ? (
-              <li className="col-span-full p-3 text-center text-xs text-slate-400">
+              <li className="col-span-full p-3 text-center text-xs text-slate-500">
                 {t(locale, "media.noLibraryItems")}
               </li>
             ) : (

@@ -171,13 +171,13 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
             {perms.superAdmin && !isSelf && (
               <Form method="post" className="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="_action" value="set-role" />
-                <select name="roleId" className={selectCls} defaultValue={u.roleId} data-testid="role-select">
+                <select name="roleId" aria-label={t(locale, "adminUsers.filterByRole")} className={selectCls} defaultValue={u.roleId} data-testid="role-select">
                   {ROLE_OPTIONS.map((r) => (
                     <option key={r} value={r}>{t(locale, `adminUsers.role_${r}`)}</option>
                   ))}
                 </select>
                 <span data-testid="set-role-btn"><SubmitButton variant="secondary">{t(locale, "adminUsers.applyRole")}</SubmitButton></span>
-                <p className="w-full text-xs text-slate-400">{t(locale, "adminUsers.roleNote")}</p>
+                <p className="w-full text-xs text-slate-500">{t(locale, "adminUsers.roleNote")}</p>
               </Form>
             )}
           </CardBody>
@@ -220,12 +220,12 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
                   <span className="font-medium">
                     {t(locale, `adminUsers.res_${e.resourceType}`)}{" "}
                     {(locale === "ar" ? e.resourceTitleAr || e.resourceTitleEn : e.resourceTitleEn || e.resourceTitleAr) ??
-                      (e.resourceId ? <span className="font-mono text-xs text-slate-400" dir="ltr"> #{e.resourceId.slice(0, 8)}</span> : null)}
+                      (e.resourceId ? <span className="font-mono text-xs text-slate-500" dir="ltr"> #{e.resourceId.slice(0, 8)}</span> : null)}
                   </span>
                   <span className="text-xs text-slate-500">{t(locale, `adminUsers.src_${e.sourceType}`)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400" dir="ltr">
+                  <span className="text-xs text-slate-500" dir="ltr">
                     {formatDate(locale, e.startsAt)} → {e.expiresAt ? formatDate(locale, e.expiresAt) : t(locale, "adminUsers.noExpiry")}
                   </span>
                   {active && perms.manage && (
@@ -252,7 +252,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
                 <span className="truncate">{locale === "ar" ? p.titleAr || p.titleEn : p.titleEn || p.titleAr}</span>
                 <span className="flex items-center gap-2">
                   <Badge tone={p.status === "completed" ? "success" : "neutral"}>{p.status === "completed" ? t(locale, "adminUsers.completed") : t(locale, "adminUsers.inProgress")}</Badge>
-                  <span className="text-xs text-slate-400">{formatDate(locale, p.lastActivityAt)}</span>
+                  <span className="text-xs text-slate-500">{formatDate(locale, p.lastActivityAt)}</span>
                 </span>
               </div>
             ))}
@@ -288,7 +288,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
                 <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-blue-700 hover:underline" dir="ltr">{o.orderNumber}</Link>
                 <span className="flex items-center gap-2">
                   <Badge tone={o.status === "paid" ? "success" : o.status === "pending" ? "warning" : "neutral"}>{t(locale, `commerce.order_${o.status}`)}</Badge>
-                  <span className="text-xs text-slate-400">{formatDate(locale, o.createdAt)}</span>
+                  <span className="text-xs text-slate-500">{formatDate(locale, o.createdAt)}</span>
                 </span>
               </div>
             ))}
@@ -302,7 +302,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
             {detail.recentSecurity.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-2 text-sm" data-testid="user-security-row">
                 <span className="font-mono text-xs text-slate-600" dir="ltr">{s.type}</span>
-                <span className="text-xs text-slate-400">{formatDate(locale, s.createdAt)}</span>
+                <span className="text-xs text-slate-500">{formatDate(locale, s.createdAt)}</span>
               </div>
             ))}
           </CardBody>
@@ -314,10 +314,10 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
             {detail.devicesList.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
             {detail.devicesList.map((d) => (
               <div key={d.id} className="flex items-center justify-between gap-2 text-sm" data-testid="user-device-row">
-                <span className="truncate">{d.label} <span className="text-xs text-slate-400">({d.platform})</span></span>
+                <span className="truncate">{d.label} <span className="text-xs text-slate-500">({d.platform})</span></span>
                 <span className="flex items-center gap-2">
                   <Badge tone={d.status === "active" ? "success" : "danger"}>{d.status === "active" ? t(locale, "adminUsers.devActive") : t(locale, "adminUsers.devRevoked")}</Badge>
-                  <span className="text-xs text-slate-400">{formatDate(locale, d.lastSeenAt)}</span>
+                  <span className="text-xs text-slate-500">{formatDate(locale, d.lastSeenAt)}</span>
                 </span>
               </div>
             ))}
@@ -330,7 +330,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
             {detail.activeSessions.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
             {detail.activeSessions.map((s) => (
               <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-sm" data-testid="user-session-row">
-                <span className="truncate">{s.deviceLabel} <span className="text-xs text-slate-400">{formatDate(locale, s.lastSeenAt)}</span></span>
+                <span className="truncate">{s.deviceLabel} <span className="text-xs text-slate-500">{formatDate(locale, s.lastSeenAt)}</span></span>
                 {perms.manage && !isSelf && (
                   <Form method="post">
                     <input type="hidden" name="_action" value="revoke-session" />

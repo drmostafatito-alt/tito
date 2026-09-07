@@ -97,7 +97,7 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
             <Card>
               <CardBody className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="text-sm text-slate-400">{i + 1}.</span>
+                  <span className="text-sm text-slate-500">{i + 1}.</span>
                   {l.progress?.status === "completed" && (
                     <Icon name="check-circle" className="h-4 w-4 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
                   )}
@@ -128,7 +128,7 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
             </Card>
           </li>
         ))}
-        {lessons.length === 0 && <p className="text-sm text-slate-400">—</p>}
+        {lessons.length === 0 && <p className="text-sm text-slate-500">—</p>}
       </ol>
       {!courseAllowed && (
         <p className="mt-4 text-sm text-slate-500">{t(locale, "content.locked")}</p>

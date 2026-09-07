@@ -115,7 +115,7 @@ function CardGrid({ rows, ctx, ctaFallback }: { rows: CardView[]; ctx: CmsRender
               )}
             </div>
             {ls(row.desc, L) && <p className="line-clamp-2 text-sm text-slate-600">{ls(row.desc, L)}</p>}
-            {row.meta && ls(row.meta, L) && <p className="text-xs text-slate-400">{ls(row.meta, L)}</p>}
+            {row.meta && ls(row.meta, L) && <p className="text-xs text-slate-500">{ls(row.meta, L)}</p>}
             <div className="mt-auto pt-2">
               <SmartLink href={row.href} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:text-brand-800">
                 {(row.cta && ls(row.cta, L)) || (ctaFallback ? ls(ctaFallback, L) : "") || ls(row.title, L)}
@@ -243,7 +243,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             {f.type !== "checkbox" && f.type !== "radio" && label}
             {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-sm font-medium text-slate-700">{ls(f.label, L)}{f.required && <span className="text-rose-600"> *</span>}</span>}
             {control}
-            {ls(f.help, L) && <p className="mt-1 text-xs text-slate-400">{ls(f.help, L)}</p>}
+            {ls(f.help, L) && <p className="mt-1 text-xs text-slate-500">{ls(f.help, L)}</p>}
             {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
           </div>
         );

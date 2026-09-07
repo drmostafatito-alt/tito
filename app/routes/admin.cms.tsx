@@ -157,7 +157,7 @@ export default function AdminCmsPages({ loaderData }: Route.ComponentProps) {
                     <Link to={`/admin/cms/pages/${page.id}`} className="text-sm font-semibold text-slate-900 hover:underline">
                       {title}
                     </Link>
-                    <span className="text-xs text-slate-400" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
+                    <span className="text-xs text-slate-500" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
                     <span className="ms-auto flex flex-wrap items-center gap-1.5">
                       {page.status === "published" && (
                         <Link to={page.slug === "home" ? "/" : `/p/${page.slug}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
@@ -174,7 +174,7 @@ export default function AdminCmsPages({ loaderData }: Route.ComponentProps) {
                         <RowForm action="unarchive" pageId={page.id}>{L("cms.ui.unarchive")}</RowForm>
                       )}
                       {page.status !== "published" && <RowForm action="delete" pageId={page.id}>{L("cms.ui.delete")}</RowForm>}
-                      <span className="hidden text-xs text-slate-400 lg:inline">{new Date(page.updatedAt).toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
+                      <span className="hidden text-xs text-slate-500 lg:inline">{new Date(page.updatedAt).toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
                     </span>
                   </li>
                 );

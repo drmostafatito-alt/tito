@@ -134,14 +134,14 @@ export default function Security() {
                     <span className="text-xs font-normal text-brand-700">· {t(locale, "security.thisDevice")}</span>
                   )}
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   {t(locale, "security.lastSeen")}: {formatDate(locale, d.lastSeenAt)}
                 </p>
               </div>
               <Badge tone={d.status === "active" ? "success" : "neutral"}>{d.status}</Badge>
             </div>
           ))}
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             {locale === "ar"
               ? "إدارة الأجهزة الكاملة (إلغاء/استبدال) متاحة للإدارة وتُفتح للطالب في المرحلة ٣."
               : "Full device management (revoke/replace) is admin-side in Phase 1 and opens to students in Phase 3."}

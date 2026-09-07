@@ -177,7 +177,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                     <MenuLinkNode key={child.id} item={child} locale={locale} className={navLinkCls + " w-full ltr:pl-7 rtl:pr-7"} onNavigate={close} />
                   ))}
                   {!node.href && node.children.length === 0 && (
-                    <span className={`${navLinkCls} w-full text-slate-400`}>
+                    <span className={`${navLinkCls} w-full text-slate-500`}>
                       {locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}
                     </span>
                   )}

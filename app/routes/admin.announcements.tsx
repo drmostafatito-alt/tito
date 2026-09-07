@@ -170,11 +170,11 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
                   </select>
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldPublishAt")} <span className="text-xs text-slate-400">({t(locale, "announcementsAdmin.optional")})</span></span>
+                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldPublishAt")} <span className="text-xs text-slate-500">({t(locale, "announcementsAdmin.optional")})</span></span>
                   <input type="datetime-local" name="publishAt" className={selectCls} defaultValue={toLocalInput(editing?.publishAt ?? null)} data-testid="ann-publish-at" />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldExpiresAt")} <span className="text-xs text-slate-400">({t(locale, "announcementsAdmin.optional")})</span></span>
+                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldExpiresAt")} <span className="text-xs text-slate-500">({t(locale, "announcementsAdmin.optional")})</span></span>
                   <input type="datetime-local" name="expiresAt" className={selectCls} defaultValue={toLocalInput(editing?.expiresAt ?? null)} data-testid="ann-expires-at" />
                 </label>
               </div>
@@ -204,7 +204,7 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
             <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid="announcement-row">
               <div className="flex min-w-0 flex-col">
                 <span className="truncate font-medium text-slate-800">{locale === "ar" ? a.titleAr : a.titleEn}</span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-500">
                   {t(locale, "adminUsers.colUpdated")}: {formatDate(locale, a.updatedAt)}
                   {a.publishAt ? ` · ${t(locale, "announcementsAdmin.fieldPublishAt")}: ${formatDate(locale, a.publishAt)}` : ""}
                   {a.expiresAt ? ` · ${t(locale, "announcementsAdmin.fieldExpiresAt")}: ${formatDate(locale, a.expiresAt)}` : ""}

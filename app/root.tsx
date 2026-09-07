@@ -108,13 +108,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
     | undefined;
   const locale = (data?.locale ?? "ar") as Locale;
   const appName = locale === "ar" ? (data?.platform?.nameAr ?? "") : (data?.platform?.nameEn ?? "");
+  const fallbackName = locale === "ar" ? "منصة تعليمية" : "Learning Platform";
   return (
     <html lang={locale} dir={dirOf(locale)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="color-scheme" content="light" />
-        <title>{appName}</title>
+        <title>{appName || fallbackName}</title>
         <Meta />
         <Links />
       </head>

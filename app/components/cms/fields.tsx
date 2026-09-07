@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Icon } from "~/cms/icons";
 import { cmsLabel, ICON_IDS, type FieldDef } from "~/cms/registry";
 import { ls } from "~/cms/l10n";
@@ -27,8 +27,8 @@ type Loc = "ar" | "en";
 const inputCls =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500";
 
-function Label({ k, locale }: { k: string; locale: Loc }) {
-  return <span className="mb-1 block text-sm font-medium text-slate-700">{cmsLabel(k, locale)}</span>;
+function Label({ k, locale, htmlFor }: { k: string; locale: Loc; htmlFor?: string }) {
+  return <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium text-slate-700">{cmsLabel(k, locale)}</label>;
 }
 
 function datetimeValue(ms: unknown): string {
@@ -36,10 +36,10 @@ function datetimeValue(ms: unknown): string {
   return new Date(ms).toISOString().slice(0, 16);
 }
 
-function PickerSelect({ name, options, value, locale }: { name: string; options: PickerOption[]; value: string; locale: Loc }) {
+function PickerSelect({ name, id, options, value, locale }: { name: string; id?: string; options: PickerOption[]; value: string; locale: Loc }) {
   const missing = value && !options.some((o) => o.id === value);
   return (
-    <select name={name} defaultValue={value ?? ""} className={inputCls}>
+    <select name={name} id={id} defaultValue={value ?? ""} className={inputCls}>
       <option value="">—</option>
       {missing && <option value={value}>{value.slice(0, 8)}… ({cmsLabel("cms.ui.emptyPicker", locale)})</option>}
       {options.map((o) => (
@@ -52,6 +52,8 @@ function PickerSelect({ name, options, value, locale }: { name: string; options:
 function SingleField({ field, path, value, pickers, locale }: { field: FieldDef; path: string; value: unknown; pickers: PickerData; locale: Loc }) {
   const name = `f.${path}`;
   const sv = typeof value === "string" ? value : "";
+  const uid = useId();
+  const cid = `fld-${name.replace(/[^a-zA-Z0-9]+/g, "-")}-${uid}`;
   switch (field.kind) {
     case "ltext":
     case "ltextarea":
@@ -64,7 +66,7 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
           {(["ar", "en"] as const).map((lng) => (
             <div key={lng} className="flex flex-col">
               <Label k={field.labelKey} locale={locale} />
-              <span className="mb-1 text-xs text-slate-400">{lng === "ar" ? "عربي" : "English"}</span>
+              <span className="mb-1 text-xs text-slate-500">{lng === "ar" ? "عربي" : "English"}</span>
               {Edit === "input" ? (
                 <input name={`${name}.${lng}`} defaultValue={lng === "ar" ? ar : en} maxLength={field.max} className={inputCls} dir={lng === "ar" ? "rtl" : "ltr"} />
               ) : field.kind === "lrichtext" ? (
@@ -74,22 +76,22 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
               )}
             </div>
           ))}
-          {field.kind === "lrichtext" && <p className="text-xs text-slate-400 sm:col-span-2">{cmsLabel("cms.ui.richtextHint", locale)}</p>}
+          {field.kind === "lrichtext" && <p className="text-xs text-slate-500 sm:col-span-2">{cmsLabel("cms.ui.richtextHint", locale)}</p>}
         </div>
       );
     }
     case "text":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
-          <input name={name} defaultValue={sv} maxLength={field.max} className={inputCls} />
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
+          <input id={cid} name={name} defaultValue={sv} maxLength={field.max} className={inputCls} />
         </div>
       );
     case "number":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
-          <input name={name} type="number" defaultValue={typeof value === "number" ? value : (field.min ?? 1)} min={field.min} max={field.max} className={inputCls} />
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
+          <input id={cid} name={name} type="number" defaultValue={typeof value === "number" ? value : (field.min ?? 1)} min={field.min} max={field.max} className={inputCls} />
         </div>
       );
     case "toggle":
@@ -102,8 +104,8 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
     case "select":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
-          <select name={name} defaultValue={sv} className={inputCls}>
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
+          <select id={cid} name={name} defaultValue={sv} className={inputCls}>
             {(field.options ?? []).map((o) => (
               <option key={o.value} value={o.value}>{cmsLabel(o.labelKey, locale)}</option>
             ))}
@@ -113,10 +115,10 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
     case "icon":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
           <div className="flex items-center gap-2">
             {sv && <Icon name={sv} size="md" colorRole="default" />}
-            <select name={name} defaultValue={sv} className={inputCls}>
+            <select id={cid} name={name} defaultValue={sv} className={inputCls}>
               <option value="">—</option>
               {ICON_IDS.map((id) => (
                 <option key={id} value={id}>{id}</option>
@@ -128,50 +130,50 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
     case "image":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
           {sv && pickers.images.some((o) => o.id === sv) && (
             <img src={`/files/${sv}`} alt="" className="mb-1.5 h-16 w-16 rounded-lg border border-slate-200 object-cover" />
           )}
-          <PickerSelect name={name} options={pickers.images} value={sv} locale={locale} />
+          <PickerSelect name={name} id={cid} options={pickers.images} value={sv} locale={locale} />
         </div>
       );
     case "link":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
-          <input name={name} defaultValue={sv} className={inputCls} dir="ltr" placeholder="/…" />
-          <span className="mt-1 text-xs text-slate-400">{cmsLabel("cms.ui.linkHint", locale)}</span>
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
+          <input id={cid} name={name} defaultValue={sv} className={inputCls} dir="ltr" placeholder="/…" />
+          <span className="mt-1 text-xs text-slate-500">{cmsLabel("cms.ui.linkHint", locale)}</span>
         </div>
       );
     case "datetime":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
-          <input name={name} type="datetime-local" defaultValue={datetimeValue(value)} className={inputCls} />
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
+          <input id={cid} name={name} type="datetime-local" defaultValue={datetimeValue(value)} className={inputCls} />
         </div>
       );
     case "formRef":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
-          <PickerSelect name={name} options={pickers.forms} value={sv} locale={locale} />
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
+          <PickerSelect name={name} id={cid} options={pickers.forms} value={sv} locale={locale} />
         </div>
       );
     case "videoRef":
       return (
         <div className="flex flex-col">
-          <Label k={field.labelKey} locale={locale} />
-          <PickerSelect name={name} options={pickers.videos} value={sv} locale={locale} />
+          <Label k={field.labelKey} locale={locale} htmlFor={cid} />
+          <PickerSelect name={name} id={cid} options={pickers.videos} value={sv} locale={locale} />
         </div>
       );
     case "refPicker": {
       const options = field.picker === "course" ? pickers.courses : field.picker === "subject" ? pickers.subjects : pickers.programs;
       const selected = new Set(Array.isArray(value) ? (value as string[]) : []);
       return (
-        <div className="flex flex-col">
+        <div className="flex flex-col" role="group" aria-label={cmsLabel(field.labelKey, locale)}>
           <Label k={field.labelKey} locale={locale} />
           {options.length === 0 ? (
-            <p className="text-sm text-slate-400">{cmsLabel("cms.ui.emptyPicker", locale)}</p>
+            <p className="text-sm text-slate-500">{cmsLabel("cms.ui.emptyPicker", locale)}</p>
           ) : (
             <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
               {options.map((o) => (

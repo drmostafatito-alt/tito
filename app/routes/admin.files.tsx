@@ -251,7 +251,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">{L("libraryTitle")}</h1>
-        <p className="mt-1 text-sm text-slate-500">{L("librarySubtitle")}</p>
+        <p className="mt-1 text-sm text-slate-600">{L("librarySubtitle")}</p>
       </div>
 
       {/* Upload */}
@@ -291,6 +291,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
             </label>
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <span>{L("filterVisibility")}</span>
                 <select name="visibility" defaultValue="public" className={`${inputCls} w-auto`}>
                   <option value="public">{L("visibilityPublic")}</option>
                   <option value="private">{L("visibilityPrivate")}</option>
@@ -322,7 +323,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-xs">
-          <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">
+          <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4-4" />
@@ -338,7 +339,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
           />
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <span className="text-slate-500">{L("filterKind")}:</span>
+          <span className="text-slate-600">{L("filterKind")}:</span>
           <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value)} className={`${inputCls} w-auto`}>
             <option value="all">{L("allKinds")}</option>
             {KINDS.map((k) => (
@@ -347,14 +348,14 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
           </select>
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <span className="text-slate-500">{L("filterVisibility")}:</span>
+          <span className="text-slate-600">{L("filterVisibility")}:</span>
           <select value={visFilter} onChange={(e) => setVisFilter(e.target.value)} className={`${inputCls} w-auto`}>
             <option value="all">{L("allVisibility")}</option>
             <option value="public">{L("visibilityPublicShort")}</option>
             <option value="private">{L("visibilityPrivateShort")}</option>
           </select>
         </label>
-        <p className="ms-auto text-xs text-slate-400">{L("count", { count: filtered.length })}</p>
+        <p className="ms-auto text-xs text-slate-600">{L("count", { count: filtered.length })}</p>
       </div>
 
       {/* Grid */}
@@ -362,7 +363,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
         <EmptyState
           icon="🗂️"
           title={L("empty")}
-          action={<span className="text-sm text-slate-400">{L("browseFiles")} ↑</span>}
+          action={<span className="text-sm text-slate-500">{L("browseFiles")} ↑</span>}
         />
       ) : filtered.length === 0 ? (
         <EmptyState icon="🔍" title={L("noResults")} />
@@ -388,8 +389,8 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
                   {isImage ? (
                     <img src={f.url} alt={f.altAr || f.name} loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                   ) : (
-                    <span className="flex flex-col items-center gap-2 text-slate-400">
-                      <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+                    <span className="flex flex-col items-center gap-2 text-slate-500">
+                      <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm">
                         <KindIcon kind={f.kind} />
                       </span>
                       <span className="text-xs font-medium">{L(KIND_LABEL[f.kind] ?? "kindDoc")}</span>
@@ -409,9 +410,9 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
                     <span className={`${chipCls} ${f.visibility === "public" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                       {f.visibility === "public" ? L("visibilityPublicShort") : L("visibilityPrivateShort")}
                     </span>
-                    <span className="text-[11px] text-slate-400">{humanSize(f.byteSize)}</span>
+                    <span className="text-[11px] text-slate-500">{humanSize(f.byteSize)}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500">
                     {formatDate(locale, f.createdAt)}
                   </p>
 

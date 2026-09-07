@@ -52,8 +52,8 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
               <h1 className="text-xl font-bold">{t(locale, "assessment.reviewAttempt")} — {examTitle}</h1>
               <p className="mt-1 text-sm text-slate-500">
                 {t(locale, "assessment.colStudent")}: <span className="font-medium text-slate-800">{review.studentName}</span>
-                <span className="text-slate-400" dir="ltr"> ({review.studentEmail})</span>
-                <span className="text-slate-400"> · #{review.attemptNumber}</span>
+                <span className="text-slate-500" dir="ltr"> ({review.studentEmail})</span>
+                <span className="text-slate-500"> · #{review.attemptNumber}</span>
               </p>
             </div>
             <Badge tone={review.status === "graded" ? "success" : review.status === "in_progress" ? "warning" : "neutral"}>
@@ -62,21 +62,21 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
           </div>
           <div className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-xs text-slate-400">{t(locale, "assessment.colScore")}</p>
-              <p className="font-semibold text-slate-800">{review.score ?? "—"} / {review.maxScore ?? "—"}{pct !== null && <span className="ml-1 text-xs text-slate-400 rtl:mr-1">({pct}%)</span>}</p>
+              <p className="text-xs text-slate-500">{t(locale, "assessment.colScore")}</p>
+              <p className="font-semibold text-slate-800">{review.score ?? "—"} / {review.maxScore ?? "—"}{pct !== null && <span className="ml-1 text-xs text-slate-500 rtl:mr-1">({pct}%)</span>}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">{t(locale, "assessment.colResult")}</p>
+              <p className="text-xs text-slate-500">{t(locale, "assessment.colResult")}</p>
               <p className="font-semibold text-slate-800">
                 {review.passed === null ? "—" : review.passed ? t(locale, "assessment.resultPass") : t(locale, "assessment.resultFail")}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">{t(locale, "assessment.startedOn")}</p>
+              <p className="text-xs text-slate-500">{t(locale, "assessment.startedOn")}</p>
               <p className="font-semibold text-slate-800">{startedAt.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">{t(locale, "assessment.timeUsed")}</p>
+              <p className="text-xs text-slate-500">{t(locale, "assessment.timeUsed")}</p>
               <p className="font-semibold text-slate-800">{fmtTime(review.timeUsedSeconds)}</p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
       {review.questions.length === 0 ? (
         <Card>
           <CardBody>
-            <p className="text-sm text-slate-400">{t(locale, "assessment.noQuestions")}</p>
+            <p className="text-sm text-slate-500">{t(locale, "assessment.noQuestions")}</p>
           </CardBody>
         </Card>
       ) : (
@@ -105,15 +105,15 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                         <p className="mt-1 font-medium text-slate-800">{locale === "ar" ? q.stemAr : q.stemEn}</p>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-slate-400">
+                    <span className="shrink-0 text-xs text-slate-500">
                       {q.earned !== null ? `${q.earned}` : "—"} / {q.points} {t(locale, "assessment.examPoints")}
                     </span>
                   </div>
 
                   {q.type === "essay" ? (
                     <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                      <p className="text-xs text-slate-400">{t(locale, "assessment.studentAnswer")}</p>
-                      {q.textAnswer ? <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{q.textAnswer}</p> : <p className="text-sm text-slate-400">{t(locale, "assessment.notAnswered")}</p>}
+                      <p className="text-xs text-slate-500">{t(locale, "assessment.studentAnswer")}</p>
+                      {q.textAnswer ? <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{q.textAnswer}</p> : <p className="text-sm text-slate-500">{t(locale, "assessment.notAnswered")}</p>}
                     </div>
                   ) : (
                     <ul className="grid gap-2 sm:grid-cols-2">

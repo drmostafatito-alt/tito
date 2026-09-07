@@ -183,7 +183,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
                 <span className="font-semibold">{locale === "ar" ? i.titleAr : i.titleEn}</span>
                 <span dir="ltr">{formatMoney(i.unitPriceMinor, order.currency)}</span>
               </div>
-              <p className="text-xs text-slate-400" data-testid="frozen-spec">
+              <p className="text-xs text-slate-500" data-testid="frozen-spec">
                 {t(locale, "commerceAdmin.frozenSpec")}: {i.spec.grants.map((g) => `${g.resourceType}:${g.resourceId.slice(0, 8)}`).join(", ")}
                 {i.spec.recurring ? ` · ${t(locale, "commerce.recurring")}` : ""}
                 {i.spec.durationDays ? ` · ${i.spec.durationDays}d` : ""}
@@ -200,7 +200,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
             <span>{t(locale, "commerce.totalDue")}</span>
             <span dir="ltr" data-testid="order-due">{formatMoney(order.totalMinor, order.currency)}</span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             {t(locale, "commerceAdmin.source")}: {order.source} · {formatDate(locale, order.createdAt)}
           </p>
         </CardBody>
@@ -264,7 +264,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
                     <input name="reason" required maxLength={500} className={inputCls} />
                   </label>
                   <SubmitButton variant="secondary" name="_action" value="refund">{t(locale, "commerceAdmin.refundFull")}</SubmitButton>
-                  <span className="w-full text-xs text-slate-400">{t(locale, "commerceAdmin.refundEffect")}</span>
+                  <span className="w-full text-xs text-slate-500">{t(locale, "commerceAdmin.refundEffect")}</span>
                 </Form>
               )}
             </div>

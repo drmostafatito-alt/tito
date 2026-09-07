@@ -66,7 +66,7 @@ export default function AdminAudit({ loaderData }: Route.ComponentProps) {
             <div key={a.id} className="border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid="audit-row">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-mono text-xs font-semibold text-slate-700" dir="ltr">{a.action}</span>
-                <span className="text-xs text-slate-400">{formatDate(locale, a.createdAt)}</span>
+                <span className="text-xs text-slate-500">{formatDate(locale, a.createdAt)}</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                 <span dir="ltr">{a.actorEmail ?? a.actorUserId?.slice(0, 8) ?? t(locale, "auditAdmin.system")}</span>

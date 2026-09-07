@@ -208,7 +208,7 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                       <Link to={`/admin/cms/forms?form=${String(f.id)}`} className="text-sm font-semibold text-slate-900 hover:underline">
                         {label(f.titleAr as string, f.titleEn as string)}
                       </Link>
-                      <span className="text-xs text-slate-400" dir="ltr">{String(f.slug)} · {String(f.actionType)}</span>
+                      <span className="text-xs text-slate-500" dir="ltr">{String(f.slug)} · {String(f.actionType)}</span>
                     </li>
                   ))}
                 </ul>
@@ -279,7 +279,7 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge tone="neutral">{String(fd.type)}</Badge>
                           <span className="text-sm font-medium text-slate-800">{label(fd.labelAr as string, fd.labelEn as string) || String(fd.name)}</span>
-                          <span className="text-xs text-slate-400" dir="ltr">{String(fd.name)}</span>
+                          <span className="text-xs text-slate-500" dir="ltr">{String(fd.name)}</span>
                           {fd.required === true && <Badge tone="warning">{L("cms.ui.required")}</Badge>}
                           <span className="ms-auto flex items-center gap-1.5">
                             <MiniForm>
@@ -371,7 +371,7 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                   <ul className="flex flex-col gap-2">
                     {submissions.map((sub) => (
                       <li key={String(sub.id)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
-                        <span className="text-slate-400">{new Date(Number(sub.createdAt)).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
+                        <span className="text-slate-500">{new Date(Number(sub.createdAt)).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
                         <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-slate-700" dir="auto">{JSON.stringify(sub.data, null, 1)}</pre>
                       </li>
                     ))}

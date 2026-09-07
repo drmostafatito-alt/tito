@@ -318,22 +318,22 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 </select>
               </div>
             ) : (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 {t(locale, "assessment.type")}: {t(locale, `assessment.type_${question!.type}`)}
               </p>
             )}
             <div>
-              <label className="text-sm font-medium text-slate-700">{t(locale, "assessment.stemAr")}</label>
-              <textarea name="stemAr" required defaultValue={question?.stemAr ?? ""} rows={2} className={areaCls} />
+              <label htmlFor="q-stem-ar" className="text-sm font-medium text-slate-700">{t(locale, "assessment.stemAr")}</label>
+              <textarea id="q-stem-ar" name="stemAr" required defaultValue={question?.stemAr ?? ""} rows={2} className={areaCls} />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">{t(locale, "assessment.stemEn")}</label>
-              <textarea name="stemEn" required defaultValue={question?.stemEn ?? ""} rows={2} className={areaCls} />
+              <label htmlFor="q-stem-en" className="text-sm font-medium text-slate-700">{t(locale, "assessment.stemEn")}</label>
+              <textarea id="q-stem-en" name="stemEn" required defaultValue={question?.stemEn ?? ""} rows={2} className={areaCls} />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <label className="text-sm font-medium text-slate-700">{t(locale, "assessment.difficulty")}</label>
-                <select name="difficulty" defaultValue={question?.difficulty ?? "medium"} className={selectCls}>
+                <label htmlFor="q-difficulty" className="text-sm font-medium text-slate-700">{t(locale, "assessment.difficulty")}</label>
+                <select id="q-difficulty" name="difficulty" defaultValue={question?.difficulty ?? "medium"} className={selectCls}>
                   <option value="easy">{t(locale, "assessment.diff_easy")}</option>
                   <option value="medium">{t(locale, "assessment.diff_medium")}</option>
                   <option value="hard">{t(locale, "assessment.diff_hard")}</option>
@@ -373,18 +373,21 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                         value={c.contentAr}
                         onChange={(e) => setChoices((prev) => prev.map((p, idx) => (idx === i ? { ...p, contentAr: e.target.value } : p)))}
                         placeholder={t(locale, "assessment.choiceAr")}
+                        aria-label={`${t(locale, "assessment.choiceAr")} ${i + 1}`}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                       />
                       <input
                         value={c.contentEn}
                         onChange={(e) => setChoices((prev) => prev.map((p, idx) => (idx === i ? { ...p, contentEn: e.target.value } : p)))}
                         placeholder={t(locale, "assessment.choiceEn")}
+                        aria-label={`${t(locale, "assessment.choiceEn")} ${i + 1}`}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                       />
                       <input
                         value={c.feedback}
                         onChange={(e) => setChoices((prev) => prev.map((p, idx) => (idx === i ? { ...p, feedback: e.target.value } : p)))}
                         placeholder={t(locale, "assessment.explanationAr")}
+                        aria-label={`${t(locale, "assessment.explanationAr")} ${i + 1}`}
                         className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs"
                       />
                     </div>
@@ -392,7 +395,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                       <button
                         type="button"
                         onClick={() => setChoices((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="mt-2 text-xs text-red-500 hover:underline"
+                        className="mt-2 text-xs text-red-600 hover:underline"
                       >
                         {t(locale, "assessment.remove")}
                       </button>
@@ -420,8 +423,8 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
             <h2 className="pt-2 text-sm font-semibold">{t(locale, "assessment.topicLinks")}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-medium text-slate-700">Subject</label>
-                <select name="subjectId" defaultValue={question?.subjectId ?? ""} className={selectCls}>
+                <label htmlFor="q-subject" className="text-sm font-medium text-slate-700">Subject</label>
+                <select id="q-subject" name="subjectId" defaultValue={question?.subjectId ?? ""} className={selectCls}>
                   <option value="">—</option>
                   {subjects.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -431,8 +434,8 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">Course</label>
-                <select name="courseId" defaultValue={question?.courseId ?? ""} className={selectCls}>
+                <label htmlFor="q-course" className="text-sm font-medium text-slate-700">Course</label>
+                <select id="q-course" name="courseId" defaultValue={question?.courseId ?? ""} className={selectCls}>
                   <option value="">—</option>
                   {courses.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -442,8 +445,8 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">Unit</label>
-                <select name="unitId" defaultValue={question?.unitId ?? ""} className={selectCls}>
+                <label htmlFor="q-unit" className="text-sm font-medium text-slate-700">Unit</label>
+                <select id="q-unit" name="unitId" defaultValue={question?.unitId ?? ""} className={selectCls}>
                   <option value="">—</option>
                   {units.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -453,8 +456,8 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">Lesson</label>
-                <select name="lessonId" defaultValue={question?.lessonId ?? ""} className={selectCls}>
+                <label htmlFor="q-lesson" className="text-sm font-medium text-slate-700">Lesson</label>
+                <select id="q-lesson" name="lessonId" defaultValue={question?.lessonId ?? ""} className={selectCls}>
                   <option value="">—</option>
                   {lessons.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -473,7 +476,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                     {locale === "ar" ? tg.labelAr : tg.labelEn}
                   </label>
                 ))}
-                {tags.length === 0 && <span className="text-xs text-slate-400">—</span>}
+                {tags.length === 0 && <span className="text-xs text-slate-500">—</span>}
               </div>
             </div>
           </CardBody>

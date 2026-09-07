@@ -127,7 +127,7 @@ export default function AdminCmsMenus({ loaderData }: Route.ComponentProps) {
     <li key={item.id} className={`flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 ${item.visible ? "bg-white" : "bg-slate-50 opacity-60"} ${depth > 0 ? "ms-6" : ""}`}>
       {item.icon && <Icon name={item.icon} size="sm" colorRole="muted" />}
       <span className="text-sm font-medium text-slate-800">{label(item.labelAr, item.labelEn)}</span>
-      <span className="text-xs text-slate-400" dir="ltr">{item.href}</span>
+      <span className="text-xs text-slate-500" dir="ltr">{item.href}</span>
       {item.external && <Badge tone="neutral">↗</Badge>}
       <span className="ms-auto flex flex-wrap items-center gap-1.5">
         <MiniForm>

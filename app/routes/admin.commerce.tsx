@@ -512,8 +512,8 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
           <CardBody className="space-y-2">
             <Form method="get" className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="tab" value="orders" />
-              <input name="q" className={inputCls} placeholder={t(locale, "commerceAdmin.searchOrders")} dir="ltr" />
-              <select name="status" className={selectCls} defaultValue="">
+              <input name="q" aria-label={t(locale, "commerceAdmin.searchOrders")} className={inputCls} placeholder={t(locale, "commerceAdmin.searchOrders")} dir="ltr" />
+              <select name="status" aria-label={t(locale, "commerceAdmin.filter")} className={selectCls} defaultValue="">
                 <option value="">{t(locale, "commerceAdmin.allStatuses")}</option>
                 {["pending", "paid", "cancelled", "expired", "refunded"].map((s) => (
                   <option key={s} value={s}>{t(locale, `commerce.order_${s}` as never)}</option>
@@ -543,7 +543,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
           <CardBody className="space-y-2">
             <Form method="get" className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="tab" value="payments" />
-              <select name="status" className={selectCls} defaultValue="under_review">
+              <select name="status" aria-label={t(locale, "commerceAdmin.filter")} className={selectCls} defaultValue="under_review">
                 {["under_review", "pending", "paid", "failed", "expired", "refunded", "all"].map((s) => (
                   <option key={s} value={s}>{s === "all" ? t(locale, "commerceAdmin.allStatuses") : t(locale, `commerce.pay_${s}` as never)}</option>
                 ))}

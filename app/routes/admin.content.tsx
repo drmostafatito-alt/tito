@@ -138,7 +138,7 @@ function TreeNode({ node, locale, depth = 0 }: { node: AdminTreeNode; locale: Lo
           {label}
         </Link>
         {node.slug && (
-          <span dir="ltr" className="min-w-0 max-w-[45%] shrink truncate text-xs text-slate-400">
+          <span dir="ltr" className="min-w-0 max-w-[45%] shrink truncate text-xs text-slate-500">
             /{node.slug}
           </span>
         )}
@@ -236,7 +236,7 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
                 <li key={node.id} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 py-0.5">
                   <StatusBadge status={node.status} locale={locale} />
                   {trail.length > 0 && (
-                    <span className="hidden truncate text-xs text-slate-400 sm:inline">
+                    <span className="hidden truncate text-xs text-slate-500 sm:inline">
                       {trail.map((a) => (locale === "ar" ? a.titleAr : a.titleEn)).join(" › ")} ›
                     </span>
                   )}
@@ -244,14 +244,14 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
                     {locale === "ar" ? node.titleAr : node.titleEn}
                   </Link>
                   <Badge tone="neutral">{t(locale, TYPE_LABEL_KEY[node.type] ?? "content.type")}</Badge>
-                  {node.slug && <span dir="ltr" className="hidden max-w-[30%] shrink truncate text-xs text-slate-400 md:inline">/{node.slug}</span>}
+                  {node.slug && <span dir="ltr" className="hidden max-w-[30%] shrink truncate text-xs text-slate-500 md:inline">/{node.slug}</span>}
                 </li>
               ))}
             </ul>
           )}
         </>
       ) : tree.length === 0 ? (
-        <p className="text-sm text-slate-400">{t(locale, "content.catalogEmpty")}</p>
+        <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>
       ) : (
         <ul className="list-none p-0" data-testid="content-tree-full">{tree.map((n) => <TreeNode key={n.id} node={n} locale={locale} />)}</ul>
       )}
@@ -288,6 +288,7 @@ export default function AdminContent({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">{t(locale, "admin.navContent")}</h1>
       <Card>
         <CardHeader title={t(locale, "admin.navContent")} description="Program → Grade → Subject → Course → Unit → Lesson" />
         <CardBody>

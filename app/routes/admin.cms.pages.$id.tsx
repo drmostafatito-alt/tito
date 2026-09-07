@@ -278,7 +278,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
         <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-slate-900"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
         <h1 className="text-xl font-bold text-slate-900">{title}</h1>
         <Badge tone={statusTone}>{page.status}</Badge>
-        <span className="text-xs text-slate-400" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
+        <span className="text-xs text-slate-600" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
         <Link to={`/admin/cms/preview/${page.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-medium text-amber-800 hover:bg-amber-100">
           {L("cms.ui.preview")}
         </Link>
@@ -367,7 +367,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
                     <Form method="post" className="flex flex-wrap items-center gap-2">
                       <input type="hidden" name="_action" value="add-block" />
                       <input type="hidden" name="parentId" value={section.id} />
-                      <select name="blockType" required className="h-11 min-w-52 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                      <select name="blockType" required aria-label={L("cms.ui.pickBlock")} className="h-11 min-w-52 rounded-lg border border-slate-300 bg-white px-3 text-sm">
                         <option value="">{L("cms.ui.pickBlock")}…</option>
                         {groupedBlocks.map((g) => (
                           <optgroup key={g.group} label={L(`cms.group.${g.group}`)}>
@@ -414,7 +414,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
               <CardBody className="flex flex-col gap-4">
                 <Form method="post" className="flex flex-col gap-2">
                   <input type="hidden" name="_action" value="apply-template" />
-                  <select name="templateId" required className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                  <select name="templateId" required aria-label={L("cms.ui.applyTemplate")} className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
                     <option value="">{L("cms.ui.applyTemplate")}…</option>
                     {templates.map((tpl) => (
                       <option key={tpl.id} value={tpl.id}>
@@ -464,7 +464,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
                   {versions.map((v) => (
                     <li key={v.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
                       <span className="text-sm font-semibold text-slate-800">v{v.versionNo}</span>
-                      <span className="text-xs text-slate-400">{new Date(v.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
+                      <span className="text-xs text-slate-500">{new Date(v.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
                       {v.note && <span className="w-full text-xs text-slate-500">{v.note}</span>}
                       {perms.canPublish && (
                         <MiniForm className="ms-auto">

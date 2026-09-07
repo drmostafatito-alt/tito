@@ -80,12 +80,12 @@ export default function StudentNotifications({ loaderData }: Route.ComponentProp
                     ) : (
                       <span data-testid={`notif-unread-${a.id}`}><Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge></span>
                     )}
-                    <span className="text-xs text-slate-400">{formatDate(locale, a.publishedAt ?? a.createdAt)}</span>
+                    <span className="text-xs text-slate-500">{formatDate(locale, a.publishedAt ?? a.createdAt)}</span>
                   </span>
                 </div>
                 {body && <p className="whitespace-pre-line text-sm text-slate-600" data-testid={`notif-body-${a.id}`}>{body}</p>}
                 {a.expiresAt && (
-                  <p className="text-xs text-slate-400">{t(locale, "notifications.expiresAt")}: {formatDate(locale, a.expiresAt)}</p>
+                  <p className="text-xs text-slate-500">{t(locale, "notifications.expiresAt")}: {formatDate(locale, a.expiresAt)}</p>
                 )}
                 {!a.readAt && (
                   <Form method="post">

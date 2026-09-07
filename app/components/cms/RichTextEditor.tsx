@@ -26,11 +26,13 @@ export function RichTextEditor({
   defaultValue,
   dir,
   rows = 6,
+  label,
 }: {
   name: string;
   defaultValue: string;
   dir: "rtl" | "ltr";
   rows?: number;
+  label?: string;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const hiddenRef = useRef<HTMLTextAreaElement>(null);
@@ -109,6 +111,7 @@ export function RichTextEditor({
         contentEditable
         role="textbox"
         aria-multiline="true"
+        aria-label={label ?? (dir === "rtl" ? "محرر نص منسق" : "Rich text editor")}
         dir={dir}
         className={`cms-richtext rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 ${MIN_HEIGHT[rows] ?? "min-h-[8.4rem]"}`}
         dangerouslySetInnerHTML={{ __html: defaultValue }}

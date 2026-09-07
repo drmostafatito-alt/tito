@@ -765,6 +765,7 @@ export const en: Dictionary = {
     colStatus: "Status",
     colScore: "Score",
     colResult: "Result",
+    attemptView: "View attempt",
     reviewAttempt: "Review",
     resultPass: "Passed",
     resultFail: "Failed",

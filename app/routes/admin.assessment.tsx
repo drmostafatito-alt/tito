@@ -140,14 +140,14 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
               placeholder={t(locale, "assessment.searchPlaceholder")}
               className="h-[42px] min-w-[10rem] flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
             />
-            <select name="status" className={selectCls} defaultValue="">
+            <select name="status" aria-label={t(locale, "assessment.status")} className={selectCls} defaultValue="">
               <option value="">{t(locale, "assessment.status")}: *</option>
               <option value="draft">{t(locale, "assessment.status_draft")}</option>
               <option value="in_review">{t(locale, "assessment.status_in_review")}</option>
               <option value="published">{t(locale, "assessment.status_published")}</option>
               <option value="archived">{t(locale, "assessment.status_archived")}</option>
             </select>
-            <select name="type" className={selectCls} defaultValue="">
+            <select name="type" aria-label={t(locale, "assessment.type")} className={selectCls} defaultValue="">
               <option value="">{t(locale, "assessment.type")}: *</option>
               <option value="mcq">{t(locale, "assessment.type_mcq")}</option>
               <option value="true_false">{t(locale, "assessment.type_true_false")}</option>
@@ -188,7 +188,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                 <CardBody className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{q.stemAr || q.stemEn}</p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500">
                       {t(locale, `assessment.type_${q.type}`)} · {t(locale, `assessment.diff_${q.difficulty}`)} ·{" "}
                       {t(locale, "assessment.examPoints")}: {q.pointsDefault}
                     </p>
@@ -219,7 +219,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                     <Link to={`/admin/assessment/exams/${e.id}`} className="truncate text-sm font-medium hover:text-brand-700">
                       {locale === "ar" ? e.titleAr : e.titleEn}
                     </Link>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500">
                       {e.durationMinutes !== null ? t(locale, "exam.duration").replace("{n}", String(e.durationMinutes)) : t(locale, "exam.unlimitedDuration")}
                       {" · "}
                       {t(locale, "exam.passPercent").replace("{n}", String(e.passPercent))}

@@ -86,6 +86,7 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">{t(locale, "videosAdmin.title")}</h1>
       <Card>
         <CardHeader title={`${t(locale, "videosAdmin.title")} — ${t(locale, "videosAdmin.provider")}: ${loaderData.provider}`} />
         <CardBody className="space-y-4">
@@ -135,7 +136,7 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
                   {t(locale, statusKey(v.status))}
                 </Badge>
                 <span className="max-w-[40%] truncate">{v.title}</span>
-                {v.durationSeconds != null && <span className="text-xs text-slate-400">{v.durationSeconds}s</span>}
+                {v.durationSeconds != null && <span className="text-xs text-slate-500">{v.durationSeconds}s</span>}
                 {v.status !== "ready" && (
                   <Form method="post" className="inline">
                     <input type="hidden" name="_action" value="sync" />
@@ -147,7 +148,7 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
                 )}
               </li>
             ))}
-            {loaderData.videos.length === 0 && <li className="text-sm text-slate-400">{t(locale, "videosAdmin.empty")}</li>}
+            {loaderData.videos.length === 0 && <li className="text-sm text-slate-500">{t(locale, "videosAdmin.empty")}</li>}
           </ul>
         </CardBody>
       </Card>

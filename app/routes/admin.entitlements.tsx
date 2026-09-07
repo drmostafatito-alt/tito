@@ -130,6 +130,7 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">{t(locale, "entAdmin.title")}</h1>
       <Card>
         <CardHeader title={t(locale, "entAdmin.title")} />
         <CardBody>
@@ -189,18 +190,18 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
                 <li key={g.id} className="flex flex-wrap items-center gap-2 text-sm" data-testid="entitlement-row">
                   <Badge tone={g.status === "active" ? "success" : "neutral"}>{g.status === "active" ? t(locale, "entAdmin.active") : t(locale, "entAdmin.revokedStatus")}</Badge>
                   <span className="text-slate-700">{g.studentEmail ?? g.studentId}</span>
-                  <span className="text-xs text-slate-400">·</span>
-                  <span className="text-xs text-slate-400">{isKind(g.resourceType) ? t(locale, `entAdmin.type_${g.resourceType}`) : g.resourceType}</span>
+                  <span className="text-xs text-slate-500">·</span>
+                  <span className="text-xs text-slate-500">{isKind(g.resourceType) ? t(locale, `entAdmin.type_${g.resourceType}`) : g.resourceType}</span>
                   <span className="min-w-0 truncate font-medium text-slate-700">{title}</span>
                   {g.note && (
-                    <span className="min-w-0 max-w-full truncate text-xs text-slate-400" title={g.note}>
+                    <span className="min-w-0 max-w-full truncate text-xs text-slate-500" title={g.note}>
                       “{g.note}”
                     </span>
                   )}
                   {g.expiresAt ? (
-                    <span className="text-xs text-slate-400">→ {formatDate(locale, g.expiresAt)}</span>
+                    <span className="text-xs text-slate-500">→ {formatDate(locale, g.expiresAt)}</span>
                   ) : (
-                    <span className="text-xs text-slate-400">{t(locale, "entAdmin.permanent")}</span>
+                    <span className="text-xs text-slate-500">{t(locale, "entAdmin.permanent")}</span>
                   )}
                   {g.status === "active" && (
                     <Form method="post" className="inline">
@@ -214,7 +215,7 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
                 </li>
               );
             })}
-            {grants.length === 0 && <li className="text-sm text-slate-400">{t(locale, "entAdmin.empty")}</li>}
+            {grants.length === 0 && <li className="text-sm text-slate-500">{t(locale, "entAdmin.empty")}</li>}
           </ul>
         </CardBody>
       </Card>

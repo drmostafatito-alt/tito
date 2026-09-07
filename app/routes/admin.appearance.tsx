@@ -269,7 +269,7 @@ function ColorInput({ name, value, label }: { name: string; value: string; label
       <span className="mb-1 text-sm font-medium text-slate-700">{label}</span>
       <div className="flex items-center gap-2">
         <input type="color" name={name} defaultValue={value} className="h-10 w-14 cursor-pointer rounded border border-slate-300 bg-white p-1" />
-        <span className="text-xs text-slate-400" dir="ltr">{value}</span>
+        <span className="text-xs text-slate-500" dir="ltr">{value}</span>
       </div>
     </div>
   );

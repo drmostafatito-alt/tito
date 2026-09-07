@@ -212,7 +212,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-4" key={`prod-${product?.id}`}>
-      <nav className="text-xs text-slate-500">
+      <nav className="text-xs text-slate-600">
         <Link to="/admin/commerce?tab=products" className="hover:text-brand-600">{t(locale, "commerceAdmin.title")}</Link>
         <span aria-hidden="true"> › </span>
         <span dir="ltr">{product.slug}</span>
@@ -341,7 +341,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
               <SubmitButton variant="secondary" name="_action" value="add_item">{t(locale, "commerceAdmin.addItem")}</SubmitButton>
             </Form>
           )}
-          <p className="text-xs text-slate-400">{t(locale, "commerceAdmin.itemsFrozenNote")}</p>
+          <p className="text-xs text-slate-500">{t(locale, "commerceAdmin.itemsFrozenNote")}</p>
         </CardBody>
       </Card>
 
@@ -350,29 +350,18 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
         <CardBody className="space-y-4">
           {plans.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noPlans")}</p>}
           {plans.map((p) => (
-            <details key={p.id} className="rounded-xl border border-slate-200 p-3" data-testid="plan-editor">
-              <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="font-semibold">
-                  {(locale === "ar" ? p.labelAr : p.labelEn) || t(locale, "commerceAdmin.plan")} ·{" "}
-                  <span dir="ltr">{formatMoney(p.amountMinor, p.currency)}</span>
-                  {p.period ? ` · ${p.period}${p.periodDays ? ` (${p.periodDays}d)` : ""}` : ""}
-                </span>
-                <span className="flex items-center gap-2">
+            <div key={p.id} className="flex flex-wrap items-start justify-between gap-2">
+              <details className="min-w-0 flex-1 rounded-xl border border-slate-200 p-3" data-testid="plan-editor">
+                <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="font-semibold">
+                    {(locale === "ar" ? p.labelAr : p.labelEn) || t(locale, "commerceAdmin.plan")} ·{" "}
+                    <span dir="ltr">{formatMoney(p.amountMinor, p.currency)}</span>
+                    {p.period ? ` · ${p.period}${p.periodDays ? ` (${p.periodDays}d)` : ""}` : ""}
+                  </span>
                   <Badge tone={p.active ? "success" : "neutral"}>
                     {p.active ? t(locale, "commerceAdmin.active") : t(locale, "commerceAdmin.inactive")}
                   </Badge>
-                  {perms.edit && !product.archived && (
-                    <Form method="post" className="inline">
-                      <input type="hidden" name="_action" value="plan_active" />
-                      <input type="hidden" name="planId" value={p.id} />
-                      <input type="hidden" name="active" value={p.active ? "0" : "1"} />
-                      <SubmitButton variant="secondary" name="_action" value="plan_active">
-                        {p.active ? t(locale, "commerceAdmin.deactivate") : t(locale, "commerceAdmin.activate")}
-                      </SubmitButton>
-                    </Form>
-                  )}
-                </span>
-              </summary>
+                </summary>
               {perms.edit && !product.archived && (
                 <Form method="post" className="mt-3 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2 lg:grid-cols-4">
                   <input type="hidden" name="_action" value="update_plan" />
@@ -416,8 +405,19 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
                   </div>
                 </Form>
               )}
-              <p className="mt-2 text-xs text-slate-400">{t(locale, "commerceAdmin.planCreated").replace("{date}", formatDate(locale, p.createdAt))}</p>
-            </details>
+              <p className="mt-2 text-xs text-slate-500">{t(locale, "commerceAdmin.planCreated").replace("{date}", formatDate(locale, p.createdAt))}</p>
+              </details>
+              {perms.edit && !product.archived && (
+                <Form method="post" className="inline">
+                  <input type="hidden" name="_action" value="plan_active" />
+                  <input type="hidden" name="planId" value={p.id} />
+                  <input type="hidden" name="active" value={p.active ? "0" : "1"} />
+                  <SubmitButton variant="secondary" name="_action" value="plan_active">
+                    {p.active ? t(locale, "commerceAdmin.deactivate") : t(locale, "commerceAdmin.activate")}
+                  </SubmitButton>
+                </Form>
+              )}
+            </div>
           ))}
 
           {perms.edit && !product.archived && (
@@ -474,7 +474,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
               </div>
             </Form>
           )}
-          <p className="text-xs text-slate-400">{t(locale, "commerceAdmin.minorUnitsNote")}</p>
+          <p className="text-xs text-slate-500">{t(locale, "commerceAdmin.minorUnitsNote")}</p>
         </CardBody>
       </Card>
     </div>
