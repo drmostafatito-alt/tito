@@ -50,14 +50,14 @@ function SmartLink({ href, className, children, ariaLabel }: { href: string; cla
 }
 
 const BUTTON_VARIANT = {
-  primary: "bg-brand-600 text-white shadow-md shadow-brand-600/20 hover:bg-brand-700",
-  secondary: "bg-white text-slate-800 border border-slate-200 shadow-sm hover:bg-slate-50",
+  primary: "bg-gradient-to-r from-brand-600 to-indigo-600 bg-[#584cdb] text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:opacity-95",
+  secondary: "bg-white text-slate-800 border border-slate-200/90 shadow-sm hover:bg-slate-50 hover:shadow",
   outline: "border border-slate-300 text-slate-800 hover:bg-slate-50",
   ghost: "text-brand-700 hover:bg-brand-50",
 } as const;
 
-/** Temporary abstract philosophy/psychology visual — CMS image replaces this. */
-const FALLBACK_HERO_SRC = "/hero-philosophy.webp";
+/** Dr Mostafa Tito portrait visual — CMS image replaces this. */
+const FALLBACK_HERO_SRC = "/tito-hero.webp";
 
 function CtaButton({ label, href, target, variant, icon, className = "" }: { label: string; href: string; target?: string; variant?: string; icon?: string; className?: string }) {
   if (!label && !href) return null; // nothing configured → render nothing
@@ -373,7 +373,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !visualSrc) return null;
       const imageAlt = str(p, "imageAlt", L) || heading;
       const badgeChips = badges.map((b, idx) => (
-        <div key={idx} className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white p-3 shadow-lg shadow-slate-900/5">
+        <div key={idx} className="flex items-center gap-2.5 rounded-2xl border border-white/90 bg-white p-3 shadow-lg shadow-slate-900/5">
           {raw(b, "icon") && (
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
               <Icon name={raw(b, "icon")} size="md" colorRole="brand" />
@@ -386,33 +386,96 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
         </div>
       ));
       return (
-        <div className="relative isolate overflow-hidden bg-gradient-to-b from-brand-50/80 via-[#faf8ff] to-transparent">
-          <div aria-hidden="true" className="pointer-events-none absolute -end-16 top-8 -z-10 h-64 w-64 rounded-full bg-emerald-200/50 blur-3xl" />
-          <div aria-hidden="true" className="pointer-events-none absolute -start-20 bottom-0 -z-10 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
-          <div aria-hidden="true" className="pointer-events-none absolute end-1/4 top-0 -z-10 h-40 w-40 rounded-full bg-amber-100/60 blur-3xl" />
-          <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-[calc(3rem*var(--density,1))] lg:grid-cols-2 lg:gap-12 lg:py-[calc(4.5rem*var(--density,1))]">
-            <div className="flex flex-col items-start gap-5">
+        <div className="relative isolate overflow-hidden bg-gradient-to-b from-[#fbfcff] via-[#ffffff] to-[#ffffff] pt-4 pb-12 sm:pt-6 sm:pb-16 lg:py-16">
+          <div aria-hidden="true" className="pointer-events-none absolute -end-16 top-8 -z-10 h-72 w-72 rounded-full bg-indigo-100/40 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -start-20 bottom-0 -z-10 h-80 w-80 rounded-full bg-brand-100/30 blur-3xl" />
+
+          <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+            {/* Text / Content Column */}
+            <div className="flex flex-col items-start gap-4 sm:gap-5">
+              {heading && (
+                <h1 className="text-4xl font-black leading-[1.2] tracking-tight text-indigo-600 sm:text-5xl lg:text-[3.25rem] xl:text-[3.6rem]">
+                  {heading}
+                </h1>
+              )}
               {eyebrow && (
-                <span className="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-white/90 px-4 py-1.5 text-sm font-semibold text-brand-700 shadow-sm">
-                  <Icon name="sparkles" size="sm" colorRole="brand" />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200/80 bg-indigo-50/90 px-5 py-1 text-sm font-bold text-indigo-600 shadow-sm">
                   {eyebrow}
                 </span>
               )}
-              {heading && <h1 className="text-4xl font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-5xl xl:text-6xl">{heading}</h1>}
-              {subtitleHtml && <RichText html={subtitleHtml} className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg" />}
+              {subtitleHtml && (
+                <RichText
+                  html={subtitleHtml}
+                  className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg [&_strong]:font-bold [&_strong]:text-slate-900"
+                />
+              )}
               {(ctas.length > 0 || (videoLabel && videoId)) && (
-                <div className="mt-1 flex w-full flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="mt-2 flex w-full max-w-sm flex-col gap-3">
                   {ctas.map((cta, idx) => (
-                    <CtaButton key={idx} label={str(cta, "label", L)} href={raw(cta, "href")} target={raw(cta, "target")} variant={raw(cta, "variant") || "primary"} icon={raw(cta, "icon")} className="max-sm:w-full" />
+                    <CtaButton
+                      key={idx}
+                      label={str(cta, "label", L)}
+                      href={raw(cta, "href")}
+                      target={raw(cta, "target")}
+                      variant={raw(cta, "variant") || (idx === 0 && ctas.length > 1 ? "secondary" : "primary")}
+                      icon={raw(cta, "icon")}
+                      className="w-full !rounded-2xl !py-3.5 !text-base font-bold shadow-sm"
+                    />
                   ))}
                   {videoLabel && videoId && <VideoCta videoId={videoId} label={videoLabel} />}
                 </div>
               )}
             </div>
 
-            <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
-              <div aria-hidden="true" className="absolute -end-6 -top-8 h-36 w-36 rounded-full bg-emerald-300/70 blur-[2px] lg:h-44 lg:w-44" />
-              <div aria-hidden="true" className="absolute -bottom-4 -start-8 h-28 w-28 rounded-full bg-amber-200/80 blur-[1px]" />
+            {/* Visual Column / Teacher Portrait & Decorative Shapes */}
+            <div className="relative mx-auto flex w-full max-w-md items-center justify-center lg:max-w-xl">
+              {/* Scalloped Yellow Sun/Atom Badge (Top-Right behind shoulder) */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-4 -end-4 z-0 h-32 w-32 sm:-top-8 sm:-end-6 sm:h-44 sm:w-44 lg:-top-10 lg:-end-8 lg:h-48 lg:w-48"
+              >
+                <svg viewBox="0 0 100 100" className="h-full w-full drop-shadow-sm">
+                  <path
+                    d="M 50,2 C 57,2 62,8 68,11 C 74,14 82,14 86,20 C 90,26 88,34 91,40 C 94,46 100,50 99,57 C 98,64 92,68 89,74 C 86,80 88,88 82,93 C 76,98 69,94 63,96 C 57,98 53,104 46,104 C 39,104 35,98 29,96 C 23,94 15,98 10,93 C 5,88 8,80 5,74 C 2,68 -3,64 -2,57 C -1,50 5,46 8,40 C 11,34 9,26 13,20 C 17,14 25,14 31,11 C 37,8 42,2 50,2 Z"
+                    fill="#fde047"
+                  />
+                  <g transform="translate(48, 52)" stroke="#ffffff" strokeWidth="2.4" fill="none" opacity="0.95">
+                    <ellipse rx="22" ry="8" transform="rotate(0)" />
+                    <ellipse rx="22" ry="8" transform="rotate(60)" />
+                    <ellipse rx="22" ry="8" transform="rotate(120)" />
+                    <circle r="4.2" fill="#ffffff" stroke="none" />
+                  </g>
+                </svg>
+              </div>
+
+              {/* Emerald Green Organic Curve (Top-Left behind shoulder) */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-2 -start-6 z-0 h-28 w-28 sm:-top-6 sm:-start-10 sm:h-36 sm:w-36 lg:-top-8 lg:-start-12 lg:h-40 lg:w-40"
+              >
+                <svg viewBox="0 0 100 100" className="h-full w-full fill-[#34d399]/90">
+                  <path d="M 30,10 C 65,5 95,25 95,60 C 95,90 65,98 35,90 C 5,82 0,50 10,30 Z" />
+                </svg>
+              </div>
+
+              {/* Purple/Blue Small Badge (Bottom-Left behind arm) */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-12 -start-4 z-0 h-16 w-16 sm:bottom-16 sm:-start-8 sm:h-20 sm:w-20"
+              >
+                <svg viewBox="0 0 100 100" className="h-full w-full fill-indigo-600">
+                  <rect x="15" y="15" width="70" height="70" rx="24" transform="rotate(15 50 50)" />
+                  <path
+                    d="M 40,40 L 60,60 M 60,40 L 40,60"
+                    stroke="#ffffff"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    transform="rotate(15 50 50)"
+                  />
+                </svg>
+              </div>
+
+              {/* Teacher Cutout Portrait */}
               <img
                 data-hero-visual="true"
                 src={visualSrc}
@@ -421,12 +484,23 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 height={1205}
                 decoding="async"
                 fetchPriority="high"
-                className="relative z-10 mx-auto max-h-[28rem] w-full object-contain lg:max-h-[34rem]"
+                className="relative z-10 mx-auto max-h-[28rem] w-full object-contain object-bottom sm:max-h-[34rem] lg:max-h-[38rem]"
               />
+
+              {/* Smooth Bottom Fade Gradient */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-20 bg-gradient-to-t from-white via-white/80 to-transparent sm:h-24"
+              />
+
+              {/* Badges / Floating cards if configured */}
               {badges.length > 0 && (
-                <div className="relative z-20 mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:pointer-events-none lg:absolute lg:inset-0 lg:mt-0 lg:block">
+                <div className="relative z-30 mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:pointer-events-none lg:absolute lg:inset-0 lg:mt-0 lg:block">
                   {badges.map((b, idx) => (
-                    <div key={idx} className={`lg:pointer-events-auto lg:absolute ${BADGE_POS[raw(b, "position")] ?? "lg:bottom-6 lg:start-6"}`}>
+                    <div
+                      key={idx}
+                      className={`lg:pointer-events-auto lg:absolute ${BADGE_POS[raw(b, "position")] ?? "lg:bottom-6 lg:start-6"}`}
+                    >
                       {badgeChips[idx]}
                     </div>
                   ))}

@@ -525,19 +525,45 @@ async function seedSimplePage({ slug, titleAr, titleEn, headingAr, headingEn, te
   });
 }
 
-// --- hero visual (abstract philosophy + psychology; CMS-replaceable) --------
-const heroFilename = "hero-philosophy.webp";
-const heroPath = "public/hero-philosophy.webp";
+// --- hero visual & avatar (Dr Mostafa Tito real images; CMS/admin-replaceable) --------
+const heroFilename = "tito-hero.webp";
+const heroPath = "public/tito-hero.webp";
 let heroFileId = (await DB.prepare("SELECT id FROM files WHERE original_filename = ?").bind(heroFilename).first())?.id ?? null;
 if (!heroFileId && existsSync(heroPath)) {
-  heroFileId = detId("file:hero-philosophy");
+  heroFileId = detId("file:hero-tito");
   const buf = readFileSync(heroPath);
   const key = `public/images/${heroFileId}/${heroFilename}`;
   await env.PUBLIC_ASSETS.put(key, buf, { httpMetadata: { contentType: "image/webp" } });
   await exec(
     `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, alt_ar, alt_en, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [heroFileId, key, "PUBLIC_ASSETS", "image", heroFilename, "image/webp", buf.length, "seed-hero-philosophy", "public", 0, "تكوين بصري للفلسفة وعلم النفس", "Abstract philosophy and psychology visual", cmsNow, cmsNow]
+    [heroFileId, key, "PUBLIC_ASSETS", "image", heroFilename, "image/webp", buf.length, "seed-hero-tito", "public", 0, "صورة د/ مصطفى تيتو", "Portrait of Dr Mostafa Tito", cmsNow, cmsNow]
+  );
+}
+
+const avatarFilename = "tito-avatar.webp";
+const avatarPath = "public/tito-avatar.webp";
+let avatarFileId = (await DB.prepare("SELECT id FROM files WHERE original_filename = ?").bind(avatarFilename).first())?.id ?? null;
+if (!avatarFileId && existsSync(avatarPath)) {
+  avatarFileId = detId("file:avatar-tito");
+  const buf = readFileSync(avatarPath);
+  const key = `public/images/${avatarFileId}/${avatarFilename}`;
+  await env.PUBLIC_ASSETS.put(key, buf, { httpMetadata: { contentType: "image/webp" } });
+  await exec(
+    `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, alt_ar, alt_en, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [avatarFileId, key, "PUBLIC_ASSETS", "image", avatarFilename, "image/webp", buf.length, "seed-avatar-tito", "public", 0, "شعار وأيقونة د/ مصطفى تيتو", "Avatar of Dr Mostafa Tito", cmsNow, cmsNow]
+  );
+}
+
+if (avatarFileId) {
+  const currentIdentity = JSON.parse((await DB.prepare("SELECT value FROM settings WHERE key = 'identity'").first())?.value ?? "{}");
+  currentIdentity.logoFileId = avatarFileId;
+  currentIdentity.ownerPhotoFileId = avatarFileId;
+  currentIdentity.heroImageFileId = heroFileId;
+  await exec(
+    "INSERT INTO settings (key, value, updated_at) VALUES ('identity', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    [JSON.stringify(currentIdentity), cmsNow]
   );
 }
 
@@ -545,20 +571,20 @@ if (!heroFileId && existsSync(heroPath)) {
 const heroSection = section(
   sectionProps({ bg: "default", padding: "none", container: "full" }),
   component("hero_showcase", {
-    eyebrow: L("الفلسفة وعلم النفس", "Philosophy & Psychology"),
-    heading: L("أهلاً بيكم في منصتكم!", "Welcome to your platform!"),
+    eyebrow: L("دفعة 2027", "Class of 2027"),
+    heading: L("أهلًا بيكم منورين المنصة!", "Welcome to the platform!"),
     subtitle: L(
-      "<p>مع <strong>د/ مصطفى تيتو</strong> — منصة متكاملة لدراسة الفلسفة وعلم النفس: محاضرات، ملخصات، بنوك أسئلة واختبارات في مكان واحد.</p>",
-      "<p>With <strong>Dr mostafa tito</strong> — a complete platform for studying philosophy and psychology: lectures, notes, question banks and tests in one place.</p>"
+      "<p>مع الأستاذ <strong>د/ مصطفى تيتو</strong>، في تدريس <strong>الفلسفة وعلم النفس</strong> للثانوية العامة، وآلاف الطلاب حققوا التفوق والدرجات النهائية.</p><p class=\"mt-2\">هتتعلم الفلسفة وعلم النفس بأسلوب بسيط وعملي، مع شرح احترافي، وتدريب شامل على أحدث أنماط الأسئلة، علشان تدخل الامتحان وأنت جاهز تحقق أفضل نتيجة.</p>",
+      "<p>With <strong>Dr mostafa tito</strong>, teaching <strong>Philosophy & Psychology</strong> for secondary school students.</p><p class=\"mt-2\">Learn philosophy and psychology with a clear, practical approach, professional lectures, and comprehensive training on the latest exam patterns to achieve top results.</p>"
     ),
     ctas: [
-      { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "primary", icon: "" },
-      { label: L("تسجيل الدخول", "Log in"), href: "/login", target: "_self", variant: "secondary", icon: "" },
+      { label: L("تسجيل الدخول", "Log in"), href: "/login", target: "_self", variant: "secondary", icon: "user" },
+      { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "primary", icon: "user-plus" },
     ],
     videoLabel: L("", ""),
     videoId: "",
     image: heroFileId ?? "",
-    imageAlt: L("تكوين بصري تجريدي للفلسفة وعلم النفس", "Abstract philosophy and psychology visual"),
+    imageAlt: L("صورة د/ مصطفى تيتو", "Portrait of Dr Mostafa Tito"),
     badges: [
       { icon: "book-open", title: L("كورسات الفلسفة", "Philosophy courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "bottom-start" },
       { icon: "brain", title: L("كورسات علم النفس", "Psychology courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "top-end" },

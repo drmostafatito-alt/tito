@@ -26,6 +26,7 @@ const GLYPHS: Record<IconId, React.ReactNode> = {
   calendar: <S><rect x="3.5" y="4.5" width="17" height="16" rx="2" /><path d="M8 2.5v4M16 2.5v4M3.5 9.5h17" /></S>,
   users: <S><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M17.5 14.2A6.5 6.5 0 0 1 21.5 20" /></S>,
   user: <S><circle cx="12" cy="8" r="3.8" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></S>,
+  "user-plus": <S><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M19 8v6M16 11h6" /></S>,
   award: <S><circle cx="12" cy="9" r="5.5" /><path d="m8.5 13.5-1.5 7 5-2.5 5 2.5-1.5-7" /></S>,
   target: <S><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></S>,
   zap: <path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z" />,
@@ -109,12 +110,22 @@ export const ICON_COLOR_CLASS: Record<string, string> = {
   invert: "text-white",
 };
 
+const DIMENSIONS: Record<string, number> = {
+  sm: 16,
+  md: 24,
+  lg: 36,
+  xl: 56,
+};
+
 export function Icon({ name, size = "md", colorRole = "default", className = "" }: { name: string; size?: string; colorRole?: string; className?: string }) {
   if (!(ICON_IDS as readonly string[]).includes(name)) return null; // unknown id → render nothing (never crash)
   const glyph = GLYPHS[name as IconId];
   const filled = FILLED.has(name);
+  const dim = DIMENSIONS[size] ?? 24;
   return (
     <svg
+      width={dim}
+      height={dim}
       viewBox="0 0 24 24"
       aria-hidden="true"
       className={`${ICON_SIZE_CLASS[size] ?? ICON_SIZE_CLASS.md} ${ICON_COLOR_CLASS[colorRole] ?? ICON_COLOR_CLASS.default} shrink-0 ${className}`}
