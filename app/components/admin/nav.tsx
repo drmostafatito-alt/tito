@@ -15,6 +15,7 @@ export type AdminIconName =
   | "video"
   | "media"
   | "assessment"
+  | "assignment"
   | "users"
   | "entitlements"
   | "commerce"
@@ -79,6 +80,14 @@ const PATHS: Record<AdminIconName, ReactNode> = {
     <>
       <rect x="3" y="11" width="18" height="10" rx="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
+  assignment: (
+    <>
+      <path d="M4 4h12l4 4v12H4z" />
+      <path d="M4 4v16h16" />
+      <path d="M8 10h7" />
+      <path d="M8 14h5" />
     </>
   ),
   commerce: (
@@ -185,7 +194,10 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
   {
     id: "assessment",
     labelKey: "nav.section_assessment",
-    items: [{ to: "/admin/assessment", labelKey: "nav.assessment", icon: "assessment" }],
+    items: [
+      { to: "/admin/assessment", labelKey: "nav.assessment", icon: "assessment" },
+      { to: "/admin/assignments", labelKey: "nav.assignments", icon: "assignment" },
+    ],
   },
   {
     id: "students",
@@ -235,6 +247,7 @@ const DETAIL_PREFIX: Array<{ prefix: string; hub: string }> = [
   { prefix: "/admin/content/", hub: "/admin/content" },
   { prefix: "/admin/cms/", hub: "/admin/cms" },
   { prefix: "/admin/assessment/", hub: "/admin/assessment" },
+  { prefix: "/admin/assignments/", hub: "/admin/assignments" },
   { prefix: "/admin/users/", hub: "/admin/users" },
   { prefix: "/admin/commerce/", hub: "/admin/commerce" },
 ];

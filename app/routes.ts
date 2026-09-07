@@ -62,6 +62,8 @@ export default [
     route("audit", "routes/admin.audit.tsx"),
     route("security", "routes/admin.security.tsx"),
     route("announcements", "routes/admin.announcements.tsx"),
+    route("assignments", "routes/admin.assignments.tsx"),
+    route("assignments/:id", "routes/admin.assignments.$id.tsx"),
     route("assessment", "routes/admin.assessment.tsx"),
     route("assessment/questions/:id", "routes/admin.assessment.questions.$id.tsx"),
     route("assessment/exams/:id", "routes/admin.assessment.exams.$id.tsx"),

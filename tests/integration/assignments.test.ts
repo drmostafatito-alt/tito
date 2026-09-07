@@ -23,6 +23,8 @@ import {
   gradingQueue,
   listStudentAssignments,
   listAssignments,
+  listAssignmentsAdmin,
+  assignmentLocation,
   publishAssignment,
   setAssignmentStatus,
   submitTextAnswer,
@@ -400,5 +402,60 @@ describe("secure R2 streaming + admin summary", () => {
     expect(summary?.submissions).toHaveLength(1);
     expect(summary?.submissions[0].studentId).toBe(studentA.id);
     expect(summary?.submissions[0].fileId).toBeNull();
+  });
+});
+
+// ===========================================================================
+describe("bounded admin listing + location helpers", () => {
+  it("lists published assignments with grouped counts and location labels", async () => {
+    const id = await publishedAssignment({ titleAr: "قائمة", titleEn: "Listable HW", maxScore: 10 });
+    const s = await submitTextAnswer(db, { assignmentId: id, actor: studentActor(studentA), text: "جواب", nowMs: Date.now() });
+    if (!s.ok) throw new Error("submit failed");
+
+    const one = (await listAssignmentsAdmin(db, { status: "published", q: "Listable", limit: 10 })).items.find((a) => a.id === id);
+    expect(one).toBeTruthy();
+    expect(one?.submittedCount).toBe(1);
+    expect(one?.gradedCount).toBe(0);
+
+    const loc = await assignmentLocation(db, one!);
+    expect(loc.course?.titleEn).toBe("Asm Course");
+    expect(loc.unit?.titleEn).toBe("Asm Unit");
+    expect(loc.lesson?.titleEn).toBe("Asm Lesson");
+  });
+
+  it("status filter, search across both languages, and pagination are bounded", async () => {
+    await publishedAssignment({ titleAr: "منشور أ", titleEn: "Alpha Pub", maxScore: 10 });
+    await publishedAssignment({ titleAr: "منشور ب", titleEn: "Beta Pub", maxScore: 10 });
+    await createAssignment(db, { titleAr: "مسودة", titleEn: "Gamma Draft", courseId, maxScore: 10, allowedSubmissionTypes: ["text"] }, adminActor);
+
+    const published = await listAssignmentsAdmin(db, { status: "published", limit: 50 });
+    expect(published.total).toBe(2);
+    expect(published.items).toHaveLength(2);
+
+    // Arabic search matches only the Arabic-only title
+    const byAr = await listAssignmentsAdmin(db, { q: "منشور ب", limit: 10 });
+    expect(byAr.total).toBe(1);
+    expect(byAr.items[0].titleEn).toBe("Beta Pub");
+
+    // pagination slices within a page
+    const page = await listAssignmentsAdmin(db, { status: "published", limit: 1, offset: 1 });
+    expect(page.items).toHaveLength(1);
+    expect(page.total).toBe(2);
+    expect(page.offset).toBe(1);
+    expect(page.limit).toBe(1);
+  });
+
+  it("grading queue returns submissions with student + file metadata for graders", async () => {
+    const id = await publishedAssignment({ titleAr: "تصحيح", titleEn: "Queue HW", maxScore: 10 });
+    const fileId = await storePrivateFile(studentA.id, "pdf", new Uint8Array([37, 80, 68, 70]));
+    const att = await attachSubmissionFile(db, { assignmentId: id, actor: studentActor(studentA), fileId, nowMs: Date.now() });
+    if (!att.ok) throw new Error("attach failed");
+
+    const queue = await gradingQueue(db, { status: "submitted" });
+    const item = queue.find((x) => x.submissionId === att.submission.id);
+    expect(item).toBeTruthy();
+    expect(item?.studentId).toBe(studentA.id);
+    expect(item?.file?.byteSize).toBe(4);
+    expect(item?.assignmentTitleEn).toBe("Queue HW");
   });
 });

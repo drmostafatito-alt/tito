@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import type { DB } from "~server/db/client.server";
 import {
   assignmentSubmissions,
@@ -682,4 +682,90 @@ export async function submissionGradeHistory(db: DB, submissionId: string) {
     .where(and(eq(auditLogs.entityType, "assignment_submission"), eq(auditLogs.entityId, submissionId)))
     .orderBy(asc(auditLogs.createdAt));
   return rows.map((r) => ({ action: r.action, before: r.before, after: r.after, actorUserId: r.actorUserId, createdAt: r.createdAt }));
+}
+
+// ---------------------------------------------------------------------------
+// Bounded admin listing / queue (search + filters + pagination)
+// ---------------------------------------------------------------------------
+
+export interface AssignmentAdminListItem extends AssignmentRow {
+  submittedCount: number;
+  gradedCount: number;
+}
+
+/**
+ * Bounded admin listing with search + filters + pagination. Each page is a
+ * single indexed query + one grouped count query over just that page's ids —
+ * never a full table scan or whole-population load.
+ */
+export async function listAssignmentsAdmin(
+  db: DB,
+  filter: { status?: AssignmentRow["status"]; courseId?: string; q?: string; limit?: number; offset?: number } = {}
+): Promise<{ items: AssignmentAdminListItem[]; total: number; offset: number; limit: number }> {
+  const limit = Math.min(filter.limit ?? 50, 100);
+  const offset = Math.max(filter.offset ?? 0, 0);
+  const conds = [];
+  if (filter.status) conds.push(eq(assignments.status, filter.status));
+  if (filter.courseId) conds.push(eq(assignments.courseId, filter.courseId));
+  if (filter.q && filter.q.trim()) {
+    const likeQ = `%${filter.q.trim()}%`;
+    conds.push(or(like(assignments.titleAr, likeQ), like(assignments.titleEn, likeQ)));
+  }
+  const where = conds.length ? and(...conds) : undefined;
+
+  const totalRow = await db.select({ n: sql<number>`COUNT(*)` }).from(assignments).where(where);
+  const total = Number(totalRow[0]?.n ?? 0);
+
+  const rows = await db
+    .select()
+    .from(assignments)
+    .where(where)
+    .orderBy(desc(assignments.updatedAt))
+    .limit(limit)
+    .offset(offset);
+
+  // grouped counts for exactly this page of ids (bounded)
+  let countsByAssignment = new Map<string, { submitted: number; graded: number }>();
+  if (rows.length) {
+    const c = await db
+      .select({
+        assignmentId: assignmentSubmissions.assignmentId,
+        status: assignmentSubmissions.status,
+        n: sql<number>`COUNT(*)`,
+      })
+      .from(assignmentSubmissions)
+      .where(inArray(assignmentSubmissions.assignmentId, rows.map((r) => r.id)))
+      .groupBy(assignmentSubmissions.assignmentId, assignmentSubmissions.status);
+    countsByAssignment = new Map(c.map((x) => [x.assignmentId, { submitted: 0, graded: 0 }]));
+    for (const x of c) {
+      const cur = countsByAssignment.get(x.assignmentId)!;
+      if (x.status === "graded") cur.graded = Number(x.n);
+      else cur.submitted = Number(x.n);
+    }
+  }
+  const items = rows.map((r) => {
+    const ct = countsByAssignment.get(r.id) ?? { submitted: 0, graded: 0 };
+    return { ...r, submittedCount: ct.submitted, gradedCount: ct.graded };
+  });
+  return { items, total, offset, limit };
+}
+
+/** Content location labels for an assignment (bounded: 3 point lookups). */
+export async function assignmentLocation(db: DB, a: Pick<AssignmentRow, "courseId" | "unitId" | "lessonId">) {
+  let course: { id: string; titleAr: string; titleEn: string } | null = null;
+  let unit: { id: string; titleAr: string; titleEn: string } | null = null;
+  let lesson: { id: string; titleAr: string; titleEn: string } | null = null;
+  if (a.courseId) {
+    const c = await db.select({ id: courses.id, titleAr: courses.titleAr, titleEn: courses.titleEn }).from(courses).where(eq(courses.id, a.courseId)).limit(1);
+    if (c[0]) course = c[0];
+  }
+  if (a.unitId) {
+    const u = await db.select({ id: units.id, titleAr: units.titleAr, titleEn: units.titleEn }).from(units).where(eq(units.id, a.unitId)).limit(1);
+    if (u[0]) unit = u[0];
+  }
+  if (a.lessonId) {
+    const l = await db.select({ id: lessons.id, titleAr: lessons.titleAr, titleEn: lessons.titleEn }).from(lessons).where(eq(lessons.id, a.lessonId)).limit(1);
+    if (l[0]) lesson = l[0];
+  }
+  return { course, unit, lesson };
 }
