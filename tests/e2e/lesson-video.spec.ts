@@ -19,7 +19,7 @@ test.describe("lesson, video & progress (entitled student)", () => {
     // and mounts a <video> whose src carries the minted mock-stream token
     const video = page.locator("video");
     await expect(video).toBeVisible({ timeout: 20_000 });
-    const src = (await video.getAttribute("src")) ?? "";
+    const src = (await video.getAttribute("data-src")) || (await video.getAttribute("src")) || "";
     expect(src).toContain("/api/mock-stream/");
   });
 

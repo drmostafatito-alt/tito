@@ -192,7 +192,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
               <strong dir="ltr" data-testid="payment-reference">{latest.instructions.reference ?? order.orderNumber}</strong>
             </p>
             {(locale === "ar" ? latest.instructions.instructionsAr : latest.instructions.instructionsEn) ? (
-              <p className="whitespace-pre-line rounded-lg bg-slate-50 p-3 text-slate-700" data-testid="instructions-text">
+              <p className="whitespace-pre-line rounded-lg bg-slate-100 p-3 text-slate-900 border border-slate-200" data-testid="instructions-text">
                 {locale === "ar" ? latest.instructions.instructionsAr : latest.instructions.instructionsEn}
               </p>
             ) : (
