@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouteLoaderData } from "react-router";
+import Hls from "hls.js";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
  * Single player component (VIDEO-PROVIDERS.md §1/§7) — consumes PlaybackInfo
- * only; knows no vendor names. iOS-first: playsinline, native HLS on Safari.
+ * only; knows no vendor names. iOS-first: playsinline, native HLS on Safari,
+ * hls.js / MSE fallback for Chromium/Firefox/Edge.
  * Credentials are fetched per-view from /api/playback/:id (server mints after
  * entitlement check); they are never embedded in SSR HTML.
  *
@@ -86,11 +88,55 @@ export function VideoPlayer({
     };
   }, [videoId]);
 
+  // HLS / MSE initialization & cleanup
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || state !== "ready" || !src) return;
+
+    let hls: Hls | null = null;
+    const isHls = src.includes(".m3u8");
+
+    if (isHls && !el.canPlayType("application/vnd.apple.mpegurl") && Hls.isSupported()) {
+      hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+      hls.loadSource(src);
+      hls.attachMedia(el);
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls?.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls?.recoverMediaError();
+              break;
+            default:
+              hls?.destroy();
+              setState("error");
+              break;
+          }
+        }
+      });
+    } else {
+      el.src = src;
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [state, src]);
+
   // enforce the admin playback-speed policy (native UI offers speed; we pin it back)
   useEffect(() => {
     const el = ref.current;
     if (!el || allowSpeed) return;
-    const lock = () => { if (el.playbackRate !== 1) el.playbackRate = 1; };
+    const lock = () => {
+      if (el.playbackRate !== 1) el.playbackRate = 1;
+    };
     el.addEventListener("ratechange", lock);
     return () => el.removeEventListener("ratechange", lock);
   }, [allowSpeed, state, src]);
@@ -203,6 +249,7 @@ export function VideoPlayer({
           poster={showPoster ? (poster ?? undefined) : undefined}
           controlsList={allowFullscreen ? undefined : "nofullscreen"}
           src={src}
+          data-src={src}
         >
           {title && <track kind="captions" />}
         </video>

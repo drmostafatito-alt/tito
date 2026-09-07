@@ -123,11 +123,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 pt-safe backdrop-blur-md">
         <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 px-4">
           <Link to="/" aria-label={appName} className="inline-flex min-h-11 shrink-0 items-center">
-            {idn.logoUrl ? (
-              <img src={idn.logoUrl} alt={appName} className="h-10 w-auto object-contain" />
-            ) : (
-              <BrandMark name={appName} />
-            )}
+            <BrandMark name={appName} logoUrl={idn.logoUrl} tagline={tagline} />
           </Link>
 
           {/* Desktop navigation (admin menu builder) */}
@@ -182,25 +178,31 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 </Link>
                 <Link
                   to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
-                  className="inline-flex min-h-11 items-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+                  className="inline-flex min-h-11 items-center rounded-2xl bg-brand-600 px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-brand-700"
                 >
                   {loaderData.user.rank >= 3 ? t(locale, "common.admin") : t(locale, "common.dashboard")}
                 </Link>
               </>
             ) : (
               <>
+                <div aria-hidden="true" className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white px-2 py-1 shadow-sm">
+                  <Icon name="sun" size="sm" className="text-amber-500" />
+                  <span className="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full bg-indigo-100 p-0.5">
+                    <span className="inline-block h-3 w-3 rounded-full bg-indigo-600 shadow-sm transition-transform translate-x-3 rtl:-translate-x-3" />
+                  </span>
+                </div>
                 <Link
                   to="/login"
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm transition-all hover:bg-slate-50 hover:shadow"
                 >
-                  <Icon name="user" size="sm" colorRole="default" className="text-current" />
+                  <Icon name="user" size="sm" colorRole="default" className="text-slate-700" />
                   {t(locale, "common.login")}
                 </Link>
                 <Link
                   to="/register"
-                  className="hidden min-h-11 items-center gap-1.5 rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 sm:inline-flex"
+                  className="hidden min-h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 bg-[#584cdb] px-5 py-2 text-sm font-bold text-white shadow-md shadow-indigo-500/20 transition-all hover:opacity-95 hover:shadow-lg sm:inline-flex"
                 >
-                  <Icon name="user" size="sm" colorRole="invert" className="text-white" />
+                  <Icon name="user-plus" size="sm" colorRole="invert" className="text-white" />
                   {t(locale, "common.register")}
                 </Link>
               </>

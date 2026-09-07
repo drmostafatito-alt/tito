@@ -1,16 +1,57 @@
-export function BrandMark({ name, compact = false }: { name: string; compact?: boolean }) {
+export function BrandMark({
+  name,
+  compact = false,
+  logoUrl,
+  avatarUrl,
+  tagline,
+}: {
+  name: string;
+  compact?: boolean;
+  logoUrl?: string | null;
+  avatarUrl?: string | null;
+  tagline?: string | null;
+}) {
+  const imgSrc = logoUrl || avatarUrl || "/tito-avatar.webp";
+
+  // Format title: highlight teacher name in brand purple/indigo
+  let prefix = "";
+  let highlight = name;
+  if (name.includes("مصطفى تيتو")) {
+    const parts = name.split("مصطفى تيتو");
+    prefix = parts[0]?.trim() ? `${parts[0].trim()} ` : "د/ ";
+    highlight = "مصطفى تيتو";
+  } else if (name.toLowerCase().includes("mostafa tito")) {
+    const parts = name.split(/mostafa tito/i);
+    prefix = parts[0]?.trim() ? `${parts[0].trim()} ` : "Dr. ";
+    highlight = "Mostafa Tito";
+  }
+
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span className="inline-flex items-center gap-3">
       <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800 text-white shadow-md"
+        className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200/90 bg-indigo-50 shadow-sm"
         aria-hidden="true"
       >
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M2 4h6a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H2z" />
-          <path d="M22 4h-6a3 3 0 0 0-3 3v13a2.5 2.5 0 0 1 2.5-2.5H22z" />
-        </svg>
+        <img
+          src={imgSrc}
+          alt={name}
+          width={44}
+          height={44}
+          className="h-full w-full object-cover"
+          loading="eager"
+        />
       </span>
-      {!compact && <span className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">{name}</span>}
+      {!compact && (
+        <span className="flex flex-col text-start leading-tight">
+          <span className="text-sm font-bold tracking-tight text-slate-900 sm:text-base">
+            {prefix && <span>{prefix}</span>}
+            <span className="font-extrabold text-indigo-600">{highlight}</span>
+          </span>
+          <span className="mt-0.5 truncate text-[11px] font-medium text-slate-400 sm:text-xs">
+            {tagline || "منصة الفلسفة وعلم النفس للثانوية العامة"}
+          </span>
+        </span>
+      )}
     </span>
   );
 }

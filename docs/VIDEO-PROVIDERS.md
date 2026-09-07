@@ -61,7 +61,7 @@ Server-enforced policies at mint time: replay cap, completion threshold %, disab
 ## 5. Adapters
 
 ### mock (dev/local; Phase 2 — implemented)
-- Serves a synthetic HLS stream (placeholder segments — A/V decoding intentionally not simulated); token = HMAC-SHA256 over `videoId|scope|studentId|expiresAt` with `MOCK_VIDEO_SECRET`, ≤45s TTL, embedded in the URL query (`uid|exp|token`) — mirroring the signed-URL discipline so dev behaves like prod. No network needed — works offline in the sandbox.
+- Serves a synthetic HLS playlist backed by a REAL decodable placeholder segment (`server/video/mock-segment.server.ts` — 3s of black, H.264 baseline 160x90): hls.js genuinely plays it through MSE, so progress beacons, resume and the server-side completion threshold are exercisable offline. The segment (and poster) are token-gated; token = HMAC-SHA256 over `videoId|scope|studentId|expiresAt` with `MOCK_VIDEO_SECRET`, ≤45s TTL, embedded in the URL query (`uid|exp|token`) — mirroring the signed-URL discipline so dev behaves like prod. Scope separation: playlists + `segment.ts` are `playback`-scoped, `poster.svg` is `thumbnail`-scoped. No network needed — works offline in the sandbox.
 - **Token scopes are separated**: `/api/mock-stream/:videoId/:file` derives the scope from the file extension (`.m3u8` → `playback`, anything else → `thumbnail`) and rejects cross-scope tokens with a 404. `mintPlayback()` therefore returns a `posterUrl` carrying its OWN thumbnail-scoped token (a Phase 2 bug where it reused the playback token — poster always 404'd — is fixed and regression-tested in `video.test.ts` + smoke §6).
 - Verification (2026-09-05, live `wrangler dev`): valid token → 200 playlist/SVG; forged/missing/expired/cross-scope → 404; responses `no-store`.
 

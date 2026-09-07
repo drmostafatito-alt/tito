@@ -119,7 +119,7 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
-  const input = "rounded-lg border border-slate-300 px-3 py-2";
+  const input = "w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm";
   const busy = nav.state !== "idle";
   const { grants, catalog } = loaderData;
 
@@ -187,27 +187,37 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
             {grants.map((g) => {
               const title = localTitle(g.resourceTitleAr, g.resourceTitleEn) ?? `${g.resourceType}:${g.resourceId?.slice(0, 8)}…`;
               return (
-                <li key={g.id} className="flex flex-wrap items-center gap-2 text-sm" data-testid="entitlement-row">
-                  <Badge tone={g.status === "active" ? "success" : "neutral"}>{g.status === "active" ? t(locale, "entAdmin.active") : t(locale, "entAdmin.revokedStatus")}</Badge>
-                  <span className="text-slate-700">{g.studentEmail ?? g.studentId}</span>
-                  <span className="text-xs text-slate-500">·</span>
-                  <span className="text-xs text-slate-500">{isKind(g.resourceType) ? t(locale, `entAdmin.type_${g.resourceType}`) : g.resourceType}</span>
-                  <span className="min-w-0 truncate font-medium text-slate-700">{title}</span>
-                  {g.note && (
-                    <span className="min-w-0 max-w-full truncate text-xs text-slate-500" title={g.note}>
-                      “{g.note}”
+                <li
+                  key={g.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 p-2.5 bg-slate-50/50 hover:bg-slate-50 text-sm"
+                  data-testid="entitlement-row"
+                >
+                  <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+                    <Badge tone={g.status === "active" ? "success" : "neutral"}>
+                      {g.status === "active" ? t(locale, "entAdmin.active") : t(locale, "entAdmin.revokedStatus")}
+                    </Badge>
+                    <span className="text-slate-700 font-mono text-xs">{g.studentEmail ?? g.studentId}</span>
+                    <span className="text-xs text-slate-400">·</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      {isKind(g.resourceType) ? t(locale, `entAdmin.type_${g.resourceType}`) : g.resourceType}
                     </span>
-                  )}
-                  {g.expiresAt ? (
-                    <span className="text-xs text-slate-500">→ {formatDate(locale, g.expiresAt)}</span>
-                  ) : (
-                    <span className="text-xs text-slate-500">{t(locale, "entAdmin.permanent")}</span>
-                  )}
+                    <span className="min-w-0 truncate font-semibold text-slate-800">{title}</span>
+                    {g.note && (
+                      <span className="min-w-0 max-w-full truncate text-xs text-slate-500 italic" title={g.note}>
+                        “{g.note}”
+                      </span>
+                    )}
+                    {g.expiresAt ? (
+                      <span className="text-xs text-slate-500" dir="ltr">→ {formatDate(locale, g.expiresAt)}</span>
+                    ) : (
+                      <span className="text-xs text-slate-500">{t(locale, "entAdmin.permanent")}</span>
+                    )}
+                  </div>
                   {g.status === "active" && (
-                    <Form method="post" className="inline">
+                    <Form method="post" className="inline shrink-0">
                       <input type="hidden" name="_action" value="revoke" />
                       <input type="hidden" name="id" value={g.id} />
-                      <button className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
+                      <button className="rounded border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
                         {t(locale, "entAdmin.revoke")}
                       </button>
                     </Form>

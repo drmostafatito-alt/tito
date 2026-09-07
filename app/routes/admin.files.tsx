@@ -403,7 +403,16 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
 
                 <div className="flex flex-1 flex-col gap-2 p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-sm font-semibold text-slate-800" title={f.name} dir="auto">{f.name}</p>
+                    <a
+                      href={f.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-sm font-semibold text-slate-800 hover:text-brand-600 hover:underline"
+                      title={f.name}
+                      dir="auto"
+                    >
+                      {f.name}
+                    </a>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Badge tone="neutral">{L(KIND_LABEL[f.kind] ?? "kindDoc")}</Badge>

@@ -4,7 +4,7 @@
  */
 export const ICON_IDS = [
   "book-open", "play-circle", "graduation-cap", "file-text", "check", "check-circle",
-  "star", "phone", "mail", "map-pin", "clock", "calendar", "users", "user", "award",
+  "star", "phone", "mail", "map-pin", "clock", "calendar", "users", "user", "user-plus", "award",
   "target", "zap", "shield", "lock", "heart", "arrow-right", "arrow-left", "chevron-down",
   "chevron-up", "menu", "close", "search", "settings", "image", "video", "microphone",
   "download", "external-link", "quote", "help-circle", "info", "alert-triangle",

@@ -182,7 +182,8 @@ function slugPos(html, slug) {
 
 /** Why did a login POST fail? (localized error copy → stable codes) */
 function loginFailureKind(html) {
-  if (html.includes("محاولات كثيرة") || html.includes("Too many attempts")) return "rate_limited";
+  // needles match auth.errors.rate_limitedTitle/Body in app/locales (ar/en)
+  if (html.includes("محدود مؤقتًا") || html.includes("rate limited")) return "rate_limited";
   if (html.includes("Device limit") || html.includes("الحد الأقصى للأجهزة") || html.includes("device")) return "device_limit?";
   if (html.includes("غير صحيحة") || html.includes("Incorrect email")) return "invalid_credentials";
   return "unknown";
@@ -660,6 +661,15 @@ const run = async () => {
   check("system settings saved (platform + video groups)", sysSave.status === 200, `got ${sysSave.status}`);
   const homeAfterSys = await anon.get("/");
   check("platform name change visible to anonymous visitors (zero-deploy branding)", norm(homeAfterSys.text).includes(newPlatformName), "new platform name not found on /");
+
+  // Restore production platform identity so the database stays clean
+  await admin.post("/admin/appearance?tab=system", { form: {
+    _action: "save-system",
+    nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito",
+    taglineAr: "منصة الفلسفة وعلم النفس للثانوية العامة", taglineEn: "Philosophy & Psychology for Secondary Stage",
+    supportEmail: "", supportPhone: "", whatsapp: "",
+    provider: "mock", playbackTokenTtl: "45", fileTtl: "120",
+  } });
 
   // ------------------------------------------------------------------
   console.log("\n[14] Phase 4 student journey: catalog hierarchy, progress, resume, completion, profile");
