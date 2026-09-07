@@ -52,7 +52,14 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     const rows = await db.select().from(announcementsTable).where(eq(announcementsTable.id, editId)).limit(1);
     editing = rows[0] ?? null;
   }
-  return { list, editing, isNew, statusFilter: status ?? "" };
+  // Read-only recipient preview (admins only — this route is announcements.manage gated).
+  const previewId = url.searchParams.get("preview");
+  let preview: Awaited<ReturnType<typeof listAnnouncementsAdmin>>["rows"][number] | null = null;
+  if (previewId) {
+    const rows = await db.select().from(announcementsTable).where(eq(announcementsTable.id, previewId)).limit(1);
+    preview = rows[0] ?? null;
+  }
+  return { list, editing, isNew, statusFilter: status ?? "", preview };
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -104,8 +111,10 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
-  const { list, editing, isNew, statusFilter } = loaderData;
+  const { list, editing, isNew, statusFilter, preview } = loaderData;
   const showForm = isNew || editing !== null;
+  const pvTitle = locale === "ar" ? preview?.titleAr || preview?.titleEn : preview?.titleEn || preview?.titleAr;
+  const pvBody = locale === "ar" ? preview?.bodyAr || preview?.bodyEn : preview?.bodyEn || preview?.bodyAr;
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
   const withPage = (p: number) => {
     const sp = new URLSearchParams();
@@ -131,6 +140,31 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
       )}
       {actionData && "done" in actionData && (
         <Alert kind="success"><span data-testid="ann-done">{t(locale, `announcementsAdmin.done_${actionData.done}`)}</span></Alert>
+      )}
+
+      {preview && (
+        <Card data-testid="ann-preview-panel">
+          <CardHeader
+            title={t(locale, "announcementsAdmin.previewTitle")}
+            action={<Link to="/admin/announcements" className="text-sm text-blue-700 hover:underline" data-testid="ann-preview-close">{t(locale, "announcementsAdmin.closePreview")}</Link>}
+          />
+          <CardBody className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <Badge tone={STATUS_TONE[preview.status] ?? "neutral"}>{t(locale, `announcementsAdmin.status_${preview.status}`)}</Badge>
+              <Badge tone="neutral">{t(locale, `announcementsAdmin.aud_${preview.audience}`)}</Badge>
+              {preview.publishAt ? <span>{t(locale, "announcementsAdmin.fieldPublishAt")}: {formatDate(locale, preview.publishAt)}</span> : null}
+              {preview.expiresAt ? <span>{t(locale, "announcementsAdmin.fieldExpiresAt")}: {formatDate(locale, preview.expiresAt)}</span> : null}
+            </div>
+            <p className="text-xs text-slate-500">{t(locale, "announcementsAdmin.previewNote")}</p>
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-slate-900" data-testid="ann-preview-title">{pvTitle || "—"}</span>
+                <Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge>
+              </div>
+              {pvBody ? <p className="mt-2 whitespace-pre-line text-sm text-slate-600" data-testid="ann-preview-body">{pvBody}</p> : <p className="mt-2 text-sm text-slate-400">{t(locale, "announcementsAdmin.noBody")}</p>}
+            </div>
+          </CardBody>
+        </Card>
       )}
 
       {showForm && (
@@ -214,6 +248,7 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
                 <Badge tone="neutral">{t(locale, `announcementsAdmin.aud_${a.audience}`)}</Badge>
                 <span data-testid={`ann-status-${a.id}`}><Badge tone={STATUS_TONE[a.status] ?? "neutral"}>{t(locale, `announcementsAdmin.status_${a.status}`)}</Badge></span>
                 <Link to={`/admin/announcements?edit=${a.id}`} className="text-xs text-blue-700 hover:underline" data-testid={`ann-edit-${a.id}`}>{t(locale, "announcementsAdmin.edit")}</Link>
+                <Link to={`/admin/announcements?preview=${a.id}`} className="text-xs text-blue-700 hover:underline" data-testid={`ann-preview-${a.id}`}>{t(locale, "announcementsAdmin.preview")}</Link>
                 {a.status === "draft" && (
                   <Form method="post">
                     <input type="hidden" name="_action" value="publish" />
