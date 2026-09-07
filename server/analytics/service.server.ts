@@ -3,6 +3,7 @@ import type { DB } from "../db/client.server";
 import {
   activationCodeRedemptions,
   activationCodes,
+  assignmentSubmissions,
   courses,
   entitlements,
   events,
@@ -236,6 +237,28 @@ export async function adminOverview(db: DB, range: RangeKey, nowMs: number = Dat
     },
     recentActivity: recentEvents,
   };
+}
+
+export interface AdminOps {
+  publishedCourses: number;
+  pendingAssignmentGrading: number;
+  pendingEssayGrading: number;
+}
+
+/**
+ * Phase B operational "needs attention" counters — each a real, current snapshot
+ * count over existing tables with an indexed equality predicate, NOT a windowed
+ * revenue/activity claim. Pending essay grading = exam attempts parked in the
+ * `grading` state awaiting manual essay scoring. Pending assignment grading =
+ * submissions in the `submitted` (awaiting grading) state.
+ */
+export async function adminOps(db: DB): Promise<AdminOps> {
+  const [publishedCourses, pendingAssignmentGrading, pendingEssayGrading] = await Promise.all([
+    db.$count(courses, eq(courses.status, "published")),
+    db.$count(assignmentSubmissions, eq(assignmentSubmissions.status, "submitted")),
+    db.$count(examAttempts, eq(examAttempts.status, "grading")),
+  ]);
+  return { publishedCourses, pendingAssignmentGrading, pendingEssayGrading };
 }
 
 export interface TopWatchedRow {

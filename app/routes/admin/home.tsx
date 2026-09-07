@@ -7,7 +7,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings, updateSettingsGroup } from "~server/settings/service.server";
 import { canPlatform } from "~server/auth/permissions.server";
-import { adminOverview, coursePerformance } from "~server/analytics/service.server";
+import { adminOps, adminOverview, coursePerformance } from "~server/analytics/service.server";
 import { parseRange, RANGE_KEYS } from "~server/analytics/ranges";
 import { auditLogs } from "~server/db/schema";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
@@ -43,12 +43,14 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     coursePerformance(db, 6),
   ]);
   const overview = canAnalytics ? await adminOverview(db, range) : null;
+  const ops = canAnalytics ? await adminOps(db) : null;
 
   return {
     maintenance: settings.platform.maintenance,
     canAnalytics,
     range,
     overview,
+    ops,
     recentAudit,
     courses,
     adminName: auth.user.fullName,
@@ -191,6 +193,21 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
             <StatCard testid="home-metric-net" label={t(locale, "admin.mNet")} value={formatMoney(o.commerce.netRevenueMinor, "EGP")} mono />
             <StatCard testid="home-metric-pending-payments" label={t(locale, "admin.mPendingPayments")} value={o.commerce.pendingPaymentReview} />
             <StatCard testid="home-metric-redemptions" label={t(locale, "admin.mRedemptions")} value={o.commerce.redemptions} />
+          </Section>
+
+          <Section title={t(locale, "admin.secOps")}>
+            <Link to="/admin/content" className="flex flex-col items-start justify-between gap-1 rounded-xl border border-slate-200 p-3 text-right hover:border-brand-300 hover:bg-slate-50">
+              <span className="text-sm text-slate-600">{t(locale, "admin.mPublishedCourses")}</span>
+              <span className="text-2xl font-bold text-slate-900" dir="ltr" data-testid="home-metric-published-courses">{loaderData.ops!.publishedCourses}</span>
+            </Link>
+            <Link to="/admin/assignments" className="flex flex-col items-start justify-between gap-1 rounded-xl border border-slate-200 p-3 text-right hover:border-brand-300 hover:bg-slate-50">
+              <span className="text-sm text-slate-600">{t(locale, "admin.mPendingAssignGrading")}</span>
+              <span className="text-2xl font-bold text-slate-900" dir="ltr" data-testid="home-metric-pending-assignments">{loaderData.ops!.pendingAssignmentGrading}</span>
+            </Link>
+            <Link to="/admin/assessment" className="flex flex-col items-start justify-between gap-1 rounded-xl border border-slate-200 p-3 text-right hover:border-brand-300 hover:bg-slate-50">
+              <span className="text-sm text-slate-600">{t(locale, "admin.mPendingEssayGrading")}</span>
+              <span className="text-2xl font-bold text-slate-900" dir="ltr" data-testid="home-metric-pending-essays">{loaderData.ops!.pendingEssayGrading}</span>
+            </Link>
           </Section>
         </>
       ) : (
