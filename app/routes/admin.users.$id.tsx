@@ -150,6 +150,12 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
             {!perms.manage && <Alert kind="warning">{t(locale, "adminUsers.noManagePerm")}</Alert>}
             {isSelf && <Alert kind="warning">{t(locale, "adminUsers.selfNote")}</Alert>}
 
+            {u.roleId === "student" && (
+              <Link to={`/admin/students/${u.id}`} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+                {t(locale, "adminUsers.open360")}
+              </Link>
+            )}
+
             <div className="flex flex-wrap gap-2">
               <Form method="post" onSubmit={(e) => { if (!confirm(t(locale, "adminUsers.confirmSuspend"))) e.preventDefault(); }}>
                 <input type="hidden" name="_action" value="set-status" />

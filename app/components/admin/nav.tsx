@@ -16,6 +16,7 @@ export type AdminIconName =
   | "media"
   | "assessment"
   | "assignment"
+  | "search"
   | "users"
   | "entitlements"
   | "commerce"
@@ -139,6 +140,12 @@ const PATHS: Record<AdminIconName, ReactNode> = {
       <circle cx="16.5" cy="10" r="1.2" />
     </>
   ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </>
+  ),
 };
 
 export function AdminIcon({ name, className = "h-5 w-5" }: { name: AdminIconName; className?: string }) {
@@ -180,7 +187,10 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
   {
     id: "main",
     labelKey: "nav.section_main",
-    items: [{ to: "/admin", labelKey: "nav.dashboard", icon: "dashboard", end: true }],
+    items: [
+      { to: "/admin", labelKey: "nav.dashboard", icon: "dashboard", end: true },
+      { to: "/admin/search", labelKey: "nav.search", icon: "search" },
+    ],
   },
   {
     id: "learning",
@@ -248,6 +258,7 @@ const DETAIL_PREFIX: Array<{ prefix: string; hub: string }> = [
   { prefix: "/admin/cms/", hub: "/admin/cms" },
   { prefix: "/admin/assessment/", hub: "/admin/assessment" },
   { prefix: "/admin/assignments/", hub: "/admin/assignments" },
+  { prefix: "/admin/students/", hub: "/admin/users" },
   { prefix: "/admin/users/", hub: "/admin/users" },
   { prefix: "/admin/commerce/", hub: "/admin/commerce" },
 ];
