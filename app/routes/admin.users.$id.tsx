@@ -217,7 +217,11 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
               <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="user-entitlement-row">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={active ? "success" : e.status === "revoked" ? "danger" : "neutral"}>{t(locale, `adminUsers.ent_${active ? "active" : e.status}`)}</Badge>
-                  <span className="font-medium">{t(locale, `adminUsers.res_${e.resourceType}`)}{e.resourceId ? <span className="font-mono text-xs text-slate-400" dir="ltr"> #{e.resourceId.slice(0, 8)}</span> : null}</span>
+                  <span className="font-medium">
+                    {t(locale, `adminUsers.res_${e.resourceType}`)}{" "}
+                    {(locale === "ar" ? e.resourceTitleAr || e.resourceTitleEn : e.resourceTitleEn || e.resourceTitleAr) ??
+                      (e.resourceId ? <span className="font-mono text-xs text-slate-400" dir="ltr"> #{e.resourceId.slice(0, 8)}</span> : null)}
+                  </span>
                   <span className="text-xs text-slate-500">{t(locale, `adminUsers.src_${e.sourceType}`)}</span>
                 </div>
                 <div className="flex items-center gap-2">

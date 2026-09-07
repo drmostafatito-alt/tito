@@ -106,7 +106,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
               <dd className="font-medium text-slate-800">{formatDate(locale, user.createdAt)}</dd>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-slate-400">{t(locale, "profile.emailLocked")}</p>
+          <p className="mt-3 text-xs text-slate-500">{t(locale, "profile.emailLocked")}</p>
         </CardBody>
       </Card>
 

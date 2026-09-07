@@ -301,7 +301,9 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
       <Form method="post" className="space-y-4">
         <input type="hidden" name="_action" value="save" />
         <input type="hidden" name="type" value={question ? question.type : type} />
-        <input type="hidden" name="choices" value={JSON.stringify(choices.filter((c) => c.contentAr.trim() || c.contentEn.trim()))} />
+        <input type="hidden" name="choices" value={JSON.stringify(choices
+          .filter((c) => c.contentAr.trim() || c.contentEn.trim())
+          .map(({ id, ...rest }) => (id ? { id, ...rest } : rest)))} />
 
         <Card>
           <CardBody className="space-y-3">

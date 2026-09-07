@@ -123,7 +123,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
             key={tb}
             to={`/admin/assessment?tab=${tb}`}
             className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
-              tab === tb ? "border border-b-0 bg-white text-brand-700" : "text-slate-500 hover:text-slate-800"
+              tab === tb ? "border border-b-0 bg-white text-brand-700" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             {t(locale, tb === "questions" ? "assessment.questionsTab" : "assessment.examsTab")}

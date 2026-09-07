@@ -407,7 +407,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
             key={tb}
             to={`/admin/commerce?tab=${tb}`}
             className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
-              tab === tb ? "border border-b-0 bg-white text-brand-700" : "text-slate-500 hover:text-slate-800"
+              tab === tb ? "border border-b-0 bg-white text-brand-700" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             {t(locale, `commerceAdmin.tab_${tb}` as never)}
@@ -473,7 +473,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                     <SubmitButton name="_action" value="create_product">{t(locale, "commerceAdmin.createProduct")}</SubmitButton>
                   </div>
                 </Form>
-                <p className="mt-2 text-xs text-slate-400">{t(locale, "commerceAdmin.productCreateHint")}</p>
+                <p className="mt-2 text-xs text-slate-500">{t(locale, "commerceAdmin.productCreateHint")}</p>
               </CardBody>
             </Card>
           )}
@@ -487,7 +487,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                     <Link to={`/admin/commerce/products/${p.id}`} className="font-semibold text-blue-700 hover:underline">
                       {locale === "ar" ? p.nameAr : p.nameEn}
                     </Link>
-                    <span className="ms-2 text-xs text-slate-400" dir="ltr">{p.slug}</span>
+                    <span className="ms-2 text-xs text-slate-500" dir="ltr">{p.slug}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge tone="neutral">{t(locale, `commerce.kind_${p.kind}` as never)}</Badge>
@@ -530,7 +530,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                 <span className="text-xs text-slate-500" dir="ltr">{o.studentEmail ?? o.studentId.slice(0, 8)}</span>
                 <span dir="ltr" className="text-xs font-semibold">{formatMoney(o.totalMinor, o.currency)}</span>
                 <Badge tone={ORDER_TONE[o.status] ?? "neutral"}>{t(locale, `commerce.order_${o.status}` as never)}</Badge>
-                <span className="text-xs text-slate-400">{formatDate(locale, o.createdAt)}</span>
+                <span className="text-xs text-slate-500">{formatDate(locale, o.createdAt)}</span>
               </div>
             ))}
           </CardBody>
@@ -567,7 +567,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">{p.provider}</span>
+                    <span className="text-xs text-slate-500">{p.provider}</span>
                     <span dir="ltr" className="text-sm font-bold" data-testid="payment-due">{formatMoney(p.amountMinor, p.currency)}</span>
                     <Badge tone={PAY_TONE[p.status] ?? "neutral"}>{t(locale, `commerce.pay_${p.status}` as never)}</Badge>
                   </div>
@@ -601,7 +601,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                       </label>
                       <SubmitButton variant="secondary" name="_action" value="reject_payment">{t(locale, "commerceAdmin.reject")}</SubmitButton>
                     </Form>
-                    <p className="w-full text-xs text-slate-400">{t(locale, "commerceAdmin.amountsAreMinorUnits")}</p>
+                    <p className="w-full text-xs text-slate-500">{t(locale, "commerceAdmin.amountsAreMinorUnits")}</p>
                   </div>
                 )}
               </div>
@@ -749,7 +749,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                     <Link to={`/admin/commerce/batches/${b.id}`} className="font-semibold text-blue-700 hover:underline">
                       {b.name}
                     </Link>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500">
                       {formatDate(locale, b.createdAt)} · {t(locale, "commerceAdmin.codesUsed")
                         .replace("{used}", String(b.stats.used))
                         .replace("{total}", String(b.stats.total))}

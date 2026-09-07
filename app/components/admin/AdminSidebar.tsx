@@ -45,7 +45,7 @@ export function SidebarContent({
         }
         return (
           <nav key={section.id} aria-label={t(locale, section.labelKey)} className="flex flex-col gap-0.5">
-            <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               {t(locale, section.labelKey)}
             </p>
             {section.items.map((item) => (

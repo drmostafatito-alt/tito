@@ -146,10 +146,10 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
                 {e.userEmail ? (
                   <Link to={`/admin/users/${e.userId}`} className="text-xs text-blue-700 hover:underline" dir="ltr">{e.userEmail}</Link>
                 ) : (
-                  <span className="text-xs text-slate-400">{t(locale, "securityAdmin.anonymous")}</span>
+                  <span className="text-xs text-slate-500">{t(locale, "securityAdmin.anonymous")}</span>
                 )}
                 {e.userRole && <Badge tone={e.userRole === "student" ? "neutral" : "warning"}>{t(locale, `adminUsers.role_${e.userRole}`)}</Badge>}
-                <span className="text-xs text-slate-400">{formatDate(locale, e.createdAt)}</span>
+                <span className="text-xs text-slate-500">{formatDate(locale, e.createdAt)}</span>
               </div>
             ))}
             <Pager page={loaderData.eventsQ.page} total={loaderData.eventsQ.total} tab="events" extra={{ q: loaderData.q, type: loaderData.type }} />
@@ -168,7 +168,7 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
                   <Link to={`/admin/users/${s.userId}`} className="truncate text-xs text-blue-700 hover:underline" dir="ltr">{s.userEmail}</Link>
                   <span className="truncate text-xs text-slate-500">{s.deviceLabel} · {s.devicePlatform}</span>
                 </div>
-                <span className="text-xs text-slate-400">{t(locale, "securityAdmin.lastSeen")}: {formatDate(locale, s.lastSeenAt)}</span>
+                <span className="text-xs text-slate-500">{t(locale, "securityAdmin.lastSeen")}: {formatDate(locale, s.lastSeenAt)}</span>
                 {canManage && s.userId !== selfId && (
                   <div className="flex gap-2">
                     <Form method="post">

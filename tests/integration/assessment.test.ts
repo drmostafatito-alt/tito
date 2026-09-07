@@ -228,6 +228,21 @@ describe("question bank CRUD + workflow", () => {
     ).rejects.toThrow(AssessmentValidationError);
   });
 
+  it("accepts admin-editor choice rows with id:null (new choices)", async () => {
+    // Regression: the question editor serializes fresh choice rows with
+    // id:null — the schema must treat that as "create new" (not a 422).
+    const q = await createQuestion(db, {
+      type: "mcq",
+      stemAr: "سؤال بمعرّف فارغ",
+      stemEn: "Null-id choices question",
+      choices: [
+        { id: null, contentAr: "١", contentEn: "one", isCorrect: true, feedback: null },
+        { id: null, contentAr: "٢", contentEn: "two", isCorrect: false, feedback: null },
+      ],
+    }, actor);
+    expect(q.id).toBeTruthy();
+  });
+
   it("enforces type immutability and replaces choices on update", async () => {
     const q = await makeQuestion("mcq");
     await expect(updateQuestion(db, q.id, { type: "essay" }, actor)).rejects.toThrow(AssessmentValidationError);

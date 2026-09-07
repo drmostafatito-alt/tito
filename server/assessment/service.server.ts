@@ -158,7 +158,9 @@ export type QuestionType = (typeof QUESTION_TYPES)[number];
 export const OBJECTIVE_TYPES: ReadonlyArray<QuestionType> = ["mcq", "true_false", "multi_select"];
 
 const choiceInput = z.object({
-  id: uuid.optional(),
+  // null OR absent both mean "new choice" (the admin editor serializes fresh
+  // rows with id:null) — accept both, UUID string = keep existing row.
+  id: uuid.nullish(),
   contentAr: z.string().trim().max(2000),
   contentEn: z.string().trim().max(2000),
   isCorrect: z.boolean().default(false),

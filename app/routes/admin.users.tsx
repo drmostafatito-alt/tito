@@ -98,7 +98,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
                 <span data-testid={`user-status-${u.id}`}>
                   <Badge tone={u.status === "active" ? "success" : "danger"}>{t(locale, `adminUsers.status_${u.status}`)}</Badge>
                 </span>
-                <span className="text-xs text-slate-400">{formatDate(locale, u.createdAt)}</span>
+                <span className="text-xs text-slate-500">{formatDate(locale, u.createdAt)}</span>
               </div>
             </div>
           ))}

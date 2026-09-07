@@ -84,7 +84,7 @@ function StatCard({ label, value, testid, mono }: { label: string; value: string
         <p className={`text-2xl font-bold text-slate-900 ${mono ? "font-mono text-lg" : ""}`} dir="ltr" data-testid={testid}>
           {typeof value === "number" ? value.toLocaleString("en-US") : value}
         </p>
-        <p className="mt-1 text-xs text-slate-500">{label}</p>
+        <p className="mt-1 text-xs text-slate-600">{label}</p>
       </CardBody>
     </Card>
   );
@@ -93,7 +93,7 @@ function StatCard({ label, value, testid, mono }: { label: string; value: string
 function Section({ title, cols, children }: { title: string; cols?: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">{title}</h2>
       <div className={`grid gap-4 grid-cols-2 ${cols ?? "sm:grid-cols-3 lg:grid-cols-4"}`}>{children}</div>
     </section>
   );
@@ -125,14 +125,14 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
           <h1 className="text-2xl font-bold text-slate-900">
             {t(locale, "dash.welcome", { name: loaderData.adminName || "Admin" })}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">{t(locale, "dash.subtitle")}</p>
+          <p className="mt-1 text-sm text-slate-600">{t(locale, "dash.subtitle")}</p>
         </div>
         <RangeSwitcher range={loaderData.range} locale={locale} base="/admin" ranges={RANGE_KEYS} />
       </div>
 
       {/* Quick actions */}
       <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t(locale, "dash.quickTitle")}</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">{t(locale, "dash.quickTitle")}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" data-testid="quick-actions">
           {QUICK.map((qa) => (
             <Link
@@ -219,17 +219,17 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
                     {c.thumbnailFileId ? (
                       <img src={`/files/${c.thumbnailFileId}`} alt="" className="h-12 w-16 rounded-md border border-slate-100 bg-slate-50 object-cover" />
                     ) : (
-                      <span className="flex h-12 w-16 items-center justify-center rounded-md bg-slate-100 text-xl text-slate-400" aria-hidden="true">🎓</span>
+                      <span className="flex h-12 w-16 items-center justify-center rounded-md bg-slate-100 text-xl text-slate-500" aria-hidden="true">🎓</span>
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-800">{courseLabel(c, locale)}</p>
-                      <p className="truncate text-xs text-slate-400">{c.subjectAr || c.subjectEn ? courseLabel({ titleAr: c.subjectAr ?? "", titleEn: c.subjectEn ?? "" }, locale) : ""}</p>
+                      <p className="truncate text-xs text-slate-500">{c.subjectAr || c.subjectEn ? courseLabel({ titleAr: c.subjectAr ?? "", titleEn: c.subjectEn ?? "" }, locale) : ""}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
                       <Badge tone="success">{t(locale, "dash.published")}</Badge>
                       <span className="tabular-nums">{t(locale, "dash.labelLessons")}: {c.lessons}</span>
                       <span className="tabular-nums">{t(locale, "dash.labelStudents")}: {c.engagedStudents}</span>
-                      <span className="hidden text-slate-400 md:inline">{formatDate(locale, c.updatedAt)}</span>
+                      <span className="hidden text-slate-500 md:inline">{formatDate(locale, c.updatedAt)}</span>
                     </div>
                   </Link>
                 </li>
@@ -244,7 +244,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "admin.recentActivity")} action={<Link to="/admin/analytics" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navAnalytics")}</Link>} />
           <CardBody>
             {o?.recentActivity.length === 0 ? (
-              <p className="text-sm text-slate-500" data-testid="activity-empty">{t(locale, "admin.activityEmpty")}</p>
+              <p className="text-sm text-slate-600" data-testid="activity-empty">{t(locale, "admin.activityEmpty")}</p>
             ) : o?.recentActivity ? (
               <ul className="flex flex-col gap-2.5">
                 {o.recentActivity.map((e) => (
@@ -252,7 +252,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
                     <span className="font-mono text-xs text-slate-600" dir="ltr">
                       {e.type}{e.resourceType ? ` · ${e.resourceType}` : ""}
                     </span>
-                    <span className="text-xs text-slate-400">{formatDate(locale, e.createdAt)}</span>
+                    <span className="text-xs text-slate-500">{formatDate(locale, e.createdAt)}</span>
                   </li>
                 ))}
               </ul>
@@ -274,7 +274,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
                     <Link to={`/admin/users/${u.id}`} className="truncate text-blue-700 hover:underline">{u.fullName}</Link>
                     <span className="flex items-center gap-2">
                       <Badge tone="neutral">{t(locale, `adminUsers.role_${u.roleId}`)}</Badge>
-                      <span className="text-xs text-slate-400">{formatDate(locale, u.createdAt)}</span>
+                      <span className="text-xs text-slate-500">{formatDate(locale, u.createdAt)}</span>
                     </span>
                   </li>
                 ))}
@@ -318,7 +318,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "admin.recentAudit")} action={<Link to="/admin/audit" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navAudit")}</Link>} />
           <CardBody>
             {loaderData.recentAudit.length === 0 ? (
-              <p className="text-sm text-slate-500">{t(locale, "admin.auditEmpty")}</p>
+              <p className="text-sm text-slate-600">{t(locale, "admin.auditEmpty")}</p>
             ) : (
               <ul className="flex flex-col gap-2.5">
                 {loaderData.recentAudit.map((a) => (
@@ -326,7 +326,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
                     <span className="font-mono text-xs text-slate-600" dir="ltr">
                       {a.action}
                     </span>
-                    <span className="text-xs text-slate-400">{formatDate(locale, a.createdAt)}</span>
+                    <span className="text-xs text-slate-500">{formatDate(locale, a.createdAt)}</span>
                   </li>
                 ))}
               </ul>

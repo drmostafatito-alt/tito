@@ -4,10 +4,11 @@ import { STUDENT_STATE, ADMIN_STATE, FIXTURES } from "./helpers";
 /**
  * W7 — RTL + mobile audit regression.
  *
- * These assertions are DOM/structural and hold even in the sandbox's CSS-less
- * Chromium 92 (which cannot parse Tailwind v4 output). Visual layout metrics
- * (overflow, overlap, clipping) are NOT asserted here — see the W7 report for
- * the proven browser limitation. What we can verify deterministically:
+ * These assertions are DOM/structural. Historically they ran in the sandbox's
+ * CSS-less Chromium 92 (which could not parse Tailwind v4 output); with the
+ * Playwright-registry Chromium (153, see playwright.config.ts) CSS now fully
+ * applies, so the mobile-nav tests exercise real mobile viewports. What we
+ * verify deterministically:
  *   - document direction (`dir`) and language (`lang`) follow the locale
  *   - directional arrow glyphs are wrapped in `rtl:rotate-180` (RTL-flip)
  *   - LTR-only tokens (email/phone/order numbers) carry `dir="ltr"`
@@ -91,6 +92,9 @@ test.describe("admin surfaces (RTL + mobile)", () => {
   });
 
   test("admin mobile nav toggle is reachable with ARIA", async ({ page }) => {
+    // Real Chromium applies Tailwind: the toggle is `lg:hidden`, so exercise
+    // it at a mobile viewport (the old CSS-less Chromium showed it at any size)
+    await page.setViewportSize({ width: 390, height: 844 });
     await setLocale(page, "ar");
     await page.goto("/admin");
     const toggle = page.locator('button[aria-controls="admin-mobile-nav"]');

@@ -94,30 +94,30 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
           {s.visible && (
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
               <div>
-                <dt className="text-xs text-slate-400">{t(locale, "exam.score")}</dt>
+                <dt className="text-xs text-slate-500">{t(locale, "exam.score")}</dt>
                 <dd className="text-lg font-bold">
                   {s.score}/{s.maxScore}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-400">{t(locale, "exam.percentage")}</dt>
+                <dt className="text-xs text-slate-500">{t(locale, "exam.percentage")}</dt>
                 <dd className="text-lg font-bold">{s.percentage !== null ? `${s.percentage}%` : "—"}</dd>
               </div>
               {s.correctCount !== null && (
                 <div>
-                  <dt className="text-xs text-slate-400">{t(locale, "exam.correctAnswers")}</dt>
+                  <dt className="text-xs text-slate-500">{t(locale, "exam.correctAnswers")}</dt>
                   <dd className="text-lg font-bold">{s.correctCount}</dd>
                 </div>
               )}
               {s.submittedAt !== null && (
                 <div className="col-span-2">
-                  <dt className="text-xs text-slate-400">{t(locale, "exam.submittedAt")}</dt>
+                  <dt className="text-xs text-slate-500">{t(locale, "exam.submittedAt")}</dt>
                   <dd>{formatDate(locale, s.submittedAt)}</dd>
                 </div>
               )}
               {s.timeUsedSeconds !== null && (
                 <div>
-                  <dt className="text-xs text-slate-400">{t(locale, "exam.timeUsed")}</dt>
+                  <dt className="text-xs text-slate-500">{t(locale, "exam.timeUsed")}</dt>
                   <dd>
                     {Math.floor(s.timeUsedSeconds / 60)}:{String(s.timeUsedSeconds % 60).padStart(2, "0")}
                   </dd>
@@ -162,13 +162,13 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
                           {c.selected && <span aria-hidden>{c.correct === true ? "✓" : c.correct === false ? "✕" : "•"}</span>}
                           {!c.selected && c.correct === true && <span aria-hidden>✓</span>}
                           <span className="flex-1">{content}</span>
-                          {c.selected && <span className="text-xs text-slate-400">{t(locale, "exam.yourAnswer")}</span>}
+                          {c.selected && <span className="text-xs text-slate-500">{t(locale, "exam.yourAnswer")}</span>}
                           {c.feedback && <span className="text-xs text-slate-500">{c.feedback}</span>}
                         </li>
                       );
                     })}
                   </ul>
-                  {!q.answered && <p className="text-xs text-slate-400">{t(locale, "exam.notAnswered")}</p>}
+                  {!q.answered && <p className="text-xs text-slate-500">{t(locale, "exam.notAnswered")}</p>}
                   {explanation && (
                     <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
                       <span className="font-semibold">{t(locale, "exam.explanation")}: </span>

@@ -44,7 +44,7 @@ export default function ResultsPage({ loaderData }: Route.ComponentProps) {
               <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div>
                   <p className="font-semibold">{title}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {t(locale, "exam.attemptNumber").replace("{n}", String(s.attemptNumber))}
                     {s.submittedAt !== null ? ` · ${formatDate(locale, s.submittedAt)}` : ""}
                   </p>

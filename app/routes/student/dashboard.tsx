@@ -350,7 +350,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 {formatDate(locale, loaderData.session.expiresAt)}
               </span>
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-500">
               {t(locale, "security.devicesTitle")}: {loaderData.activeDevices} · {locale === "ar" ? "جلسات" : "sessions"}: {loaderData.activeSessions}
             </p>
           </CardBody>
@@ -360,7 +360,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.deviceCard")} />
           <CardBody>
             <p className="text-sm font-medium text-slate-900">{loaderData.device.label}</p>
-            <p className="mt-1 text-xs text-slate-400">{loaderData.device.platform}</p>
+            <p className="mt-1 text-xs text-slate-500">{loaderData.device.platform}</p>
             <Link to="/profile/security" className="mt-3 inline-flex min-h-6 items-center text-sm font-medium text-brand-700 hover:underline">
               {t(locale, "dashboard.securityLink")}
               <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
@@ -379,7 +379,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               {loaderData.recentEvents.map((ev, i) => (
                 <li key={i} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-slate-600">{ev.type}</span>
-                  <span className="text-xs text-slate-400">{formatDate(locale, ev.createdAt)}</span>
+                  <span className="text-xs text-slate-500">{formatDate(locale, ev.createdAt)}</span>
                 </li>
               ))}
             </ul>

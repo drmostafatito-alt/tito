@@ -362,7 +362,7 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-500 hover:text-slate-800"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
+        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-slate-900"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
         <h1 className="text-2xl font-bold text-slate-900">{L("cms.ui.appearance")}</h1>
       </div>
 

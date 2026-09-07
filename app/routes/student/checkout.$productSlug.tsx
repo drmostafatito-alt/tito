@@ -130,7 +130,7 @@ export default function CheckoutPage({ loaderData }: Route.ComponentProps) {
                       />
                       {label}
                       {plan.kind === "recurring" && (
-                        <span className="text-xs text-slate-400">{t(locale, "commerce.recurring")}</span>
+                        <span className="text-xs text-slate-500">{t(locale, "commerce.recurring")}</span>
                       )}
                     </span>
                     <span className="text-sm font-bold" dir="ltr" data-testid="checkout-price">

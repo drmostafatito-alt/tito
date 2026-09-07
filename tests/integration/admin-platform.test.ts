@@ -572,6 +572,17 @@ describe("user management (P7 §6/§7/§14)", () => {
     expect(d!.activeSessions.length).toBe(1);
     expect(d!.devicesList.length).toBe(1);
     expect(d!.entitlements[0].resourceType).toBe("course");
+    // regression (P2): entitlements must resolve resource titles — Student 360
+    // shows human titles, never raw uuid prefixes
+    expect(d!.entitlements[0].resourceTitleEn).toBe("Course");
+    expect(d!.entitlements[0].resourceTitleAr).toBe("دورة");
+    // unknown/deleted resource id → null titles (UI falls back to id prefix)
+    await db.insert(entitlements).values({
+      id: crypto.randomUUID(), studentId: s1.id, resourceType: "course", resourceId: crypto.randomUUID(),
+      sourceType: "admin_grant", status: "active", startsAt: now, grantedAt: now, metadata: null,
+    });
+    const d2 = await userAdminDetail(db, s1.id);
+    expect(d2!.entitlements.some((e) => e.resourceTitleEn === null && e.resourceTitleAr === null)).toBe(true);
     noSecrets(d);
     // through the route
     const rd = (await call(userDetailLoader, get(`/admin/users/${s1.id}`, adminB.cookie), { id: s1.id })) as Record<string, unknown>;

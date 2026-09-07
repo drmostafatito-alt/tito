@@ -234,7 +234,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
             ✕
           </Link>
           <h1 className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</h1>
-          {saveState === "saving" && <span className="shrink-0 text-xs text-slate-400">{t(locale, "exam.saving")}</span>}
+          {saveState === "saving" && <span className="shrink-0 text-xs text-slate-500">{t(locale, "exam.saving")}</span>}
           {saveState === "saved" && <span className="shrink-0 text-xs text-emerald-600">{t(locale, "exam.saved")}</span>}
           {saveState === "error" && <span className="shrink-0 text-xs text-red-600">{t(locale, "exam.saveError")}</span>}
           {remaining !== null && (
@@ -259,7 +259,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
 
         {current && (
           <section className="rounded-xl border bg-white p-4 shadow-sm" data-question-id={current.id}>
-            <div className="mb-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="mb-3 flex items-center justify-between text-xs text-slate-500">
               <span>{t(locale, "exam.questionPos").replace("{i}", String(idx + 1)).replace("{n}", String(questions.length))}</span>
               <span>{t(locale, "exam.points").replace("{n}", String(current.points))}</span>
             </div>

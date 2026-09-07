@@ -258,7 +258,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                   <CardBody className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-medium">📄 {item.filename}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-500">
                         {Math.max(1, Math.round(item.byteSize / 1024))} KB · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
                       </p>
                     </div>
@@ -284,7 +284,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                   <CardBody className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-medium">📝 {locale === "ar" ? item.titleAr : item.titleEn}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-500">
                         {t(locale, "content.examItem")} · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
                       </p>
                     </div>
@@ -306,7 +306,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
               </Card>
             );
           })}
-          {items.length === 0 && <p className="text-sm text-slate-400">—</p>}
+          {items.length === 0 && <p className="text-sm text-slate-500">—</p>}
           <Form method="post" className="pt-2" data-lesson-id={lessonId}>
             <input type="hidden" name="_action" value="toggle-complete" />
             <input type="hidden" name="completed" value={lessonCompleted ? "0" : "1"} />

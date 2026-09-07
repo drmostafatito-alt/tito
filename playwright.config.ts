@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { existsSync, readdirSync } from "node:fs";
+import { homedir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -12,15 +14,28 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  *   globalSetup, so the seed must precede `wrangler dev`, otherwise the dev
  *   server boots against an empty D1 and 500s on `no such table: menus`).
  * - globalSetup: assembles the self-contained headless Chromium (scripts/
- *   e2e-browser-setup.mjs — the sandbox blocks every browser CDN, so the browser
- *   + its NSS/NSPR shared libs are built from npm + source).
- * - launchOptions: executablePath + LD_LIBRARY_PATH point at the assembled
- *   Chromium (real browser, no mocks). Chromium ~100 needs --no-sandbox here.
+ *   e2e-browser-setup.mjs) ONLY when no registry browser is installed.
+ * - Browser strategy: prefer the Playwright-registry Chromium (modern build,
+ *   currently 153) when present; fall back to the self-contained assembled
+ *   Chromium (scripts/e2e-browser-setup.mjs — for sandboxes where every
+ *   browser CDN is blocked). Both are real browsers, no mocks.
  *
  * Run:  npm run test:e2e   (see package.json)
  */
 const LIBDIR = resolve(__dirname, ".e2e/browser/lib");
-const CHROMIUM = resolve(__dirname, ".e2e/browser/chromium");
+const ASSEMBLED = resolve(__dirname, ".e2e/browser/chromium");
+
+/** Registry Chromium present? (a chromium-N or chromium_headless_shell-N dir under the Playwright browsers path) */
+function registryChromiumPresent(): boolean {
+  const root = process.env.PLAYWRIGHT_BROWSERS_PATH ?? resolve(homedir(), ".cache", "ms-playwright");
+  try {
+    return existsSync(root) && readdirSync(root).some((d) => /^chromium(_headless_shell)?-\d+/.test(d));
+  } catch {
+    return false;
+  }
+}
+
+const useAssembled = !registryChromiumPresent() && existsSync(ASSEMBLED);
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -35,12 +50,14 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:5173",
     trace: "retain-on-failure",
-    // self-contained Chromium (see scripts/e2e-browser-setup.mjs)
-    launchOptions: {
-      executablePath: CHROMIUM,
-      args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-zygote"],
-      env: { ...process.env, LD_LIBRARY_PATH: LIBDIR },
-    },
+    // registry Chromium (preferred) or self-contained assembled Chromium
+    launchOptions: useAssembled
+      ? {
+          executablePath: ASSEMBLED,
+          args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-zygote"],
+          env: { ...process.env, LD_LIBRARY_PATH: LIBDIR },
+        }
+      : { args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] },
   },
 
   projects: [

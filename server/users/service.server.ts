@@ -1,6 +1,7 @@
-import { and, desc, eq, gte, isNull, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, like, or, sql } from "drizzle-orm";
 import type { DB } from "../db/client.server";
 import {
+  courses,
   devices,
   examAttempts,
   exams,
@@ -9,6 +10,7 @@ import {
   orders,
   securityEvents,
   sessions,
+  subjects,
   users,
   videoProgress,
 } from "../db/schema";
@@ -93,7 +95,7 @@ export interface UserAdminDetail {
     lastLoginAt: number | null;
   };
   counts: { activeEntitlements: number; devicesActive: number; sessionsActive: number; lessonsCompleted: number; videosWatched: number; attempts: number; orders: number };
-  entitlements: Array<{ id: string; resourceType: string; resourceId: string | null; sourceType: string; status: string; startsAt: number; expiresAt: number | null; grantedAt: number; grantedBy: string | null; revokedAt: number | null; revokeReason: string | null }>;
+  entitlements: Array<{ id: string; resourceType: string; resourceId: string | null; resourceTitleAr: string | null; resourceTitleEn: string | null; sourceType: string; status: string; startsAt: number; expiresAt: number | null; grantedAt: number; grantedBy: string | null; revokedAt: number | null; revokeReason: string | null }>;
   recentProgress: Array<{ lessonId: string; titleAr: string | null; titleEn: string | null; status: string; completedAt: number | null; lastActivityAt: number }>;
   recentAttempts: Array<{ id: string; examId: string; examTitleAr: string | null; examTitleEn: string | null; status: string; score: number | null; maxScore: number | null; passed: boolean | null; startedAt: number; submittedAt: number | null }>;
   recentOrders: Array<{ id: string; orderNumber: string; status: string; totalMinor: number; currency: string; createdAt: number }>;
@@ -174,6 +176,29 @@ export async function userAdminDetail(db: DB, userId: string, nowMs: number = Da
   const now = nowMs;
   const activeEnts = ents.filter((e) => e.status === "active" && e.startsAt <= now && (e.expiresAt === null || e.expiresAt > now));
 
+  // Resolve entitlement resource titles (batched) — Student 360 must show
+  // human titles, never raw uuid prefixes. Falls back to the id prefix when
+  // the resource has been deleted.
+  const idsByKind: Record<"subject" | "course" | "lesson", Set<string>> = { subject: new Set(), course: new Set(), lesson: new Set() };
+  for (const e of ents) {
+    if (e.resourceId && (e.resourceType === "subject" || e.resourceType === "course" || e.resourceType === "lesson")) {
+      idsByKind[e.resourceType].add(e.resourceId);
+    }
+  }
+  const [subjectTitles, courseTitles, lessonTitles] = await Promise.all([
+    idsByKind.subject.size
+      ? db.select({ id: subjects.id, titleAr: subjects.titleAr, titleEn: subjects.titleEn }).from(subjects).where(inArray(subjects.id, [...idsByKind.subject]))
+      : Promise.resolve([] as Array<{ id: string; titleAr: string; titleEn: string }>),
+    idsByKind.course.size
+      ? db.select({ id: courses.id, titleAr: courses.titleAr, titleEn: courses.titleEn }).from(courses).where(inArray(courses.id, [...idsByKind.course]))
+      : Promise.resolve([] as Array<{ id: string; titleAr: string; titleEn: string }>),
+    idsByKind.lesson.size
+      ? db.select({ id: lessons.id, titleAr: lessons.titleAr, titleEn: lessons.titleEn }).from(lessons).where(inArray(lessons.id, [...idsByKind.lesson]))
+      : Promise.resolve([] as Array<{ id: string; titleAr: string; titleEn: string }>),
+  ]);
+  const resourceTitles = new Map<string, { titleAr: string; titleEn: string }>();
+  for (const r of [...subjectTitles, ...courseTitles, ...lessonTitles]) resourceTitles.set(r.id, r);
+
   return {
     user: { id: u.id, email: u.email, fullName: u.fullName, roleId: u.roleId, status: u.status, localePref: u.localePref, createdAt: u.createdAt, lastLoginAt: u.lastLoginAt },
     counts: {
@@ -189,6 +214,8 @@ export async function userAdminDetail(db: DB, userId: string, nowMs: number = Da
       id: e.id,
       resourceType: e.resourceType,
       resourceId: e.resourceId,
+      resourceTitleAr: e.resourceId ? resourceTitles.get(e.resourceId)?.titleAr ?? null : null,
+      resourceTitleEn: e.resourceId ? resourceTitles.get(e.resourceId)?.titleEn ?? null : null,
       sourceType: e.sourceType,
       status: e.status,
       startsAt: e.startsAt,

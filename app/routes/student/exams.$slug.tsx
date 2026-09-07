@@ -176,7 +176,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-slate-500">{t(locale, "exam.historyTitle")}</h2>
-        {attempts.length === 0 && <p className="text-sm text-slate-400">{t(locale, "exam.noAttempts")}</p>}
+        {attempts.length === 0 && <p className="text-sm text-slate-500">{t(locale, "exam.noAttempts")}</p>}
         {attempts.map((a) => (
           <Card key={a.attemptId}>
             <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -194,7 +194,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
                   )}
                 </div>
                 {a.submittedAt !== null && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {t(locale, "exam.submittedAt")}: {formatDate(locale, a.submittedAt)}
                   </p>
                 )}
@@ -205,7 +205,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
                   </p>
                 )}
                 {!a.visible && a.status === "graded" && (
-                  <p className="text-xs text-slate-400">{t(locale, "exam.resultHidden")}</p>
+                  <p className="text-xs text-slate-500">{t(locale, "exam.resultHidden")}</p>
                 )}
               </div>
               <Link

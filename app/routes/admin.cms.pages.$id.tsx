@@ -275,7 +275,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
     <div className="flex flex-col gap-6" key={`page-${page?.id}`}>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-500 hover:text-slate-800"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
+        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-slate-900"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
         <h1 className="text-xl font-bold text-slate-900">{title}</h1>
         <Badge tone={statusTone}>{page.status}</Badge>
         <span className="text-xs text-slate-400" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
