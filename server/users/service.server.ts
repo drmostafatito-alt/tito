@@ -280,6 +280,56 @@ export async function setUserStatus(db: DB, targetId: string, status: UserStatus
   return { ok: true, changed: 1, sessionsRevoked };
 }
 
+/** Server-side cap so a bulk request can never loop unboundedly. */
+export const BULK_STUDENT_MAX = 200;
+const BULK_CHUNK = 50;
+
+export interface BulkUserResult {
+  id: string;
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Activate/suspend many STUDENTS at once (Phase A bulk ops). Bounded batches —
+ * never one giant request. Only student targets are acted on; every change goes
+ * through the audited per-user `setUserStatus` so sessions/audit behave exactly
+ * as a single admin action would. Non-student/unknown ids are reported per-item
+ * and never silently dropped.
+ */
+export async function bulkSetUserStatus(
+  db: DB,
+  ids: string[],
+  status: UserStatus,
+  actor: Actor
+): Promise<{ requested: number; succeeded: number; failed: number; results: BulkUserResult[] }> {
+  const unique = [...new Set(ids.map((s) => s.trim()).filter(Boolean))].slice(0, BULK_STUDENT_MAX);
+  const results: BulkUserResult[] = [];
+  for (let start = 0; start < unique.length; start += BULK_CHUNK) {
+    const chunk = unique.slice(start, start + BULK_CHUNK);
+    const targets = await db
+      .select({ id: users.id, roleId: users.roleId, deletedAt: users.deletedAt })
+      .from(users)
+      .where(inArray(users.id, chunk));
+    const targetMap = new Map(targets.map((t) => [t.id, t]));
+    for (const id of chunk) {
+      const t = targetMap.get(id);
+      if (!t || t.deletedAt) {
+        results.push({ id, ok: false, error: "not_found" });
+        continue;
+      }
+      if (t.roleId !== "student") {
+        results.push({ id, ok: false, error: "not_student" });
+        continue;
+      }
+      const res = await setUserStatus(db, id, status, actor);
+      results.push(res.ok ? { id, ok: true } : { id, ok: false, error: res.error });
+    }
+  }
+  const succeeded = results.filter((r) => r.ok).length;
+  return { requested: unique.length, succeeded, failed: results.length - succeeded, results };
+}
+
 /** Role management — super_admin only, enforced in the service (P7 §7/§15). */
 export async function setUserRole(db: DB, targetId: string, roleId: UserRole, actor: Actor): Promise<AdminActionResult> {
   if (actor.rank < 4) return { ok: false, error: "forbidden" }; // hard rule, not route-dependent
