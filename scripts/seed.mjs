@@ -574,8 +574,8 @@ const heroSection = section(
     eyebrow: L("دفعة 2027", "Class of 2027"),
     heading: L("أهلًا بيكم منورين المنصة!", "Welcome to the platform!"),
     subtitle: L(
-      "<p>مع الأستاذ <strong>د/ مصطفى تيتو</strong>، في تدريس <strong>الفلسفة وعلم النفس</strong> للثانوية العامة، وآلاف الطلاب حققوا التفوق والدرجات النهائية.</p><p class=\"mt-2\">هتتعلم الفلسفة وعلم النفس بأسلوب بسيط وعملي، مع شرح احترافي، وتدريب شامل على أحدث أنماط الأسئلة، علشان تدخل الامتحان وأنت جاهز تحقق أفضل نتيجة.</p>",
-      "<p>With <strong>Dr mostafa tito</strong>, teaching <strong>Philosophy & Psychology</strong> for secondary school students.</p><p class=\"mt-2\">Learn philosophy and psychology with a clear, practical approach, professional lectures, and comprehensive training on the latest exam patterns to achieve top results.</p>"
+      "<p>مع الأستاذ <strong>د/ مصطفى تيتو</strong> في تدريس <strong>الفلسفة وعلم النفس</strong> للثانوية العامة، وآلاف الطلاب حققوا التفوق والدرجات النهائية.</p><p class=\"mt-2\">هتعلم الفلسفة وعلم النفس بأسلوب بسيط وعملي، مع شرح احترافي، وتجارب تعليمية حديثة، وتدريب شامل علي أحدث أنماط الأسئلة، علشان تدخل الامتحان وأنت جاهز تحقق أفضل نتيجة.</p>",
+      "<p>With <strong>Dr mostafa tito</strong>, teaching <strong>Philosophy & Psychology</strong> for secondary school students.</p><p class=\"mt-2\">Learn philosophy and psychology with a clear, practical approach, modern educational experiences, professional lectures, and comprehensive training on the latest exam patterns to achieve top results.</p>"
     ),
     ctas: [
       { label: L("تسجيل الدخول", "Log in"), href: "/login", target: "_self", variant: "secondary", icon: "user" },
@@ -585,11 +585,7 @@ const heroSection = section(
     videoId: "",
     image: heroFileId ?? "",
     imageAlt: L("صورة د/ مصطفى تيتو", "Portrait of Dr Mostafa Tito"),
-    badges: [
-      { icon: "book-open", title: L("كورسات الفلسفة", "Philosophy courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "bottom-start" },
-      { icon: "brain", title: L("كورسات علم النفس", "Psychology courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "top-end" },
-      { icon: "lightbulb", title: L("بنوك أسئلة", "Question banks"), text: L("تدريب وتقييم", "Practice & assessment"), position: "top-start" },
-    ],
+    badges: [],
   })
 );
 

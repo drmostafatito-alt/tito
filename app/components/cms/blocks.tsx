@@ -429,6 +429,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
 
             {/* Visual Column / Teacher Portrait & Decorative Shapes */}
             <div className="relative mx-auto flex w-full max-w-md items-center justify-center lg:max-w-xl">
+              {/* Central Lavender Arch Container backdrop */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-4 bottom-0 top-10 -z-10 rounded-t-[3.5rem] rounded-b-[2.5rem] bg-[#e6e8fd] sm:top-14 sm:rounded-t-[4.5rem] lg:inset-x-6"
+              />
+
               {/* Scalloped Yellow Sun/Atom Badge (Top-Right behind shoulder) */}
               <div
                 aria-hidden="true"
@@ -480,17 +486,17 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 data-hero-visual="true"
                 src={visualSrc}
                 alt={imageAlt}
-                width={900}
-                height={1205}
+                width={800}
+                height={1200}
                 decoding="async"
                 fetchPriority="high"
-                className="relative z-10 mx-auto max-h-[28rem] w-full object-contain object-bottom sm:max-h-[34rem] lg:max-h-[38rem]"
+                className="relative z-10 mx-auto max-h-[30rem] w-full object-contain object-bottom sm:max-h-[36rem] lg:max-h-[42rem]"
               />
 
               {/* Smooth Bottom Fade Gradient */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-20 bg-gradient-to-t from-white via-white/80 to-transparent sm:h-24"
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-24 bg-gradient-to-t from-white via-white/80 to-transparent sm:h-28"
               />
 
               {/* Badges / Floating cards if configured */}

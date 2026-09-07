@@ -662,6 +662,15 @@ const run = async () => {
   const homeAfterSys = await anon.get("/");
   check("platform name change visible to anonymous visitors (zero-deploy branding)", norm(homeAfterSys.text).includes(newPlatformName), "new platform name not found on /");
 
+  // Restore production platform identity so the database stays clean
+  await admin.post("/admin/appearance?tab=system", { form: {
+    _action: "save-system",
+    nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito",
+    taglineAr: "منصة الفلسفة وعلم النفس للثانوية العامة", taglineEn: "Philosophy & Psychology for Secondary Stage",
+    supportEmail: "", supportPhone: "", whatsapp: "",
+    provider: "mock", playbackTokenTtl: "45", fileTtl: "120",
+  } });
+
   // ------------------------------------------------------------------
   console.log("\n[14] Phase 4 student journey: catalog hierarchy, progress, resume, completion, profile");
   // NOTE: the student jar is still authenticated (§11 only logged out student2).
