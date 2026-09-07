@@ -187,6 +187,8 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
                   </span>
                   {a.status === "in_progress" ? (
                     <Badge tone="warning">{t(locale, "exam.inProgress")}</Badge>
+                  ) : a.status === "submitted" ? (
+                    <Badge tone="warning">{t(locale, "exam.awaitingGrading")}</Badge>
                   ) : (
                     <Badge tone={a.status === "graded" ? (a.passed ? "success" : "danger") : "neutral"}>
                       {a.status === "graded" ? t(locale, "exam.graded") : a.status}
@@ -207,13 +209,27 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
                 {!a.visible && a.status === "graded" && (
                   <p className="text-xs text-slate-500">{t(locale, "exam.resultHidden")}</p>
                 )}
+                {!a.visible && a.status === "submitted" && (
+                  <p className="text-xs text-slate-500">{t(locale, "exam.awaitingGradingNote")}</p>
+                )}
               </div>
-              <Link
-                to={a.status === "in_progress" ? `/exams/${exam.slug}/attempt` : `/results/${a.attemptId}`}
-                className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 sm:min-h-0"
-              >
-                {a.status === "in_progress" ? t(locale, "exam.resume") : t(locale, "exam.resultsTitle")}
-              </Link>
+              {a.status === "in_progress" ? (
+                <Link
+                  to={`/exams/${exam.slug}/attempt`}
+                  className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 sm:min-h-0"
+                >
+                  {t(locale, "exam.resume")}
+                </Link>
+              ) : a.status === "submitted" ? (
+                <span className="text-xs text-slate-400">{t(locale, "exam.awaitingGrading")}</span>
+              ) : (
+                <Link
+                  to={`/results/${a.attemptId}`}
+                  className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 sm:min-h-0"
+                >
+                  {t(locale, "exam.resultsTitle")}
+                </Link>
+              )}
             </CardBody>
           </Card>
         ))}

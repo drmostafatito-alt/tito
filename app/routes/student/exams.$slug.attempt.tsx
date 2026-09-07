@@ -73,6 +73,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     attemptNumber: live.attemptNumber,
     questions: ctx.questions,
     answers: ctx.answers,
+    textAnswers: ctx.textAnswers,
     remainingSeconds: ctx.remainingSeconds,
   };
 }
@@ -92,11 +93,12 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 export default function AttemptPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { examSlug, examTitleAr, examTitleEn, attemptId, questions, answers, remainingSeconds } = loaderData;
+  const { examSlug, examTitleAr, examTitleEn, attemptId, questions, answers, textAnswers, remainingSeconds } = loaderData;
   const title = locale === "ar" ? examTitleAr : examTitleEn;
 
   const [idx, setIdx] = useState(0);
   const [selections, setSelections] = useState<Record<string, string[]>>(answers);
+  const [texts, setTexts] = useState<Record<string, string>>(textAnswers);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [remaining, setRemaining] = useState<number | null>(remainingSeconds);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -104,9 +106,13 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
   const [submitError, setSubmitError] = useState(false);
   const [closed, setClosed] = useState(false);
 
-  const dirty = useRef<Map<string, string[]>>(new Map());
+  /** dirty per question carries its own payload kind (choiceIds OR essay text). */
+  const dirty = useRef<Map<string, { choiceIds?: string[]; text?: string }>>(new Map());
   const saveSeq = useRef<Map<string, number>>(new Map());
   const submittingRef = useRef(false);
+
+  const isAnswered = (q: (typeof questions)[number]) =>
+    q.type === "essay" ? ((texts[q.id] ?? "").trim().length > 0) : ((selections[q.id] ?? []).length > 0);
 
   const current = questions[idx] ?? null;
 
@@ -125,8 +131,10 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
   // ---- last-resort flush when the page goes away ---------------------------
   useEffect(() => {
     const flush = () => {
-      for (const [qid, choiceIds] of dirty.current.entries()) {
-        const body = new URLSearchParams({ _action: "save", attemptId, questionId: qid, choiceIds: choiceIds.join(",") });
+      for (const [qid, payload] of dirty.current.entries()) {
+        const body = new URLSearchParams({ _action: "save", attemptId, questionId: qid });
+        if (payload.text !== undefined) body.set("text", payload.text);
+        else body.set("choiceIds", (payload.choiceIds ?? []).join(","));
         navigator.sendBeacon("/api/exam-attempt", new Blob([body.toString()], { type: "application/x-www-form-urlencoded" }));
       }
       dirty.current.clear();
@@ -144,12 +152,15 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
     }
   }
 
-  async function persist(questionId: string, choiceIds: string[]) {
+  async function persist(questionId: string, payload: { choiceIds?: string[]; text?: string }) {
     const seq = (saveSeq.current.get(questionId) ?? 0) + 1;
     saveSeq.current.set(questionId, seq);
-    dirty.current.set(questionId, choiceIds);
+    dirty.current.set(questionId, payload);
     setSaveState("saving");
-    const json = await post(new URLSearchParams({ _action: "save", attemptId, questionId, choiceIds: choiceIds.join(",") }));
+    const params = new URLSearchParams({ _action: "save", attemptId, questionId });
+    if (payload.text !== undefined) params.set("text", payload.text);
+    else params.set("choiceIds", (payload.choiceIds ?? []).join(","));
+    const json = await post(params);
     if (saveSeq.current.get(questionId) !== seq) return; // a newer save superseded this one
     if (json && json.ok) {
       dirty.current.delete(questionId);
@@ -162,7 +173,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
   }
 
   function choose(choiceId: string) {
-    if (!current || closed || submittingRef.current) return;
+    if (!current || closed || submittingRef.current || current.type === "essay") return;
     const prev = selections[current.id] ?? [];
     let next: string[];
     if (current.type === "multi_select") {
@@ -171,7 +182,13 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
       next = prev.length === 1 && prev[0] === choiceId ? [] : [choiceId]; // click again to unselect
     }
     setSelections((s) => ({ ...s, [current.id]: next }));
-    void persist(current.id, next);
+    void persist(current.id, { choiceIds: next });
+  }
+
+  function updateText(value: string) {
+    if (!current || closed || submittingRef.current || current.type !== "essay") return;
+    setTexts((s) => ({ ...s, [current.id]: value }));
+    void persist(current.id, { text: value });
   }
 
   async function doSubmit() {
@@ -180,8 +197,8 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
     setSubmitting(true);
     setSubmitError(false);
     // flush anything unsaved BEFORE submitting so the graded set is complete
-    for (const [qid, choiceIds] of [...dirty.current.entries()]) {
-      await persist(qid, choiceIds);
+    for (const [qid, payload] of [...dirty.current.entries()]) {
+      await persist(qid, payload);
     }
     const json = await post(new URLSearchParams({ _action: "submit", attemptId }));
     if (json && json.ok && typeof json.redirect === "string") {
@@ -197,7 +214,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
     setSubmitError(true);
   }
 
-  const answeredCount = questions.filter((q) => (selections[q.id] ?? []).length > 0).length;
+  const answeredCount = questions.filter(isAnswered).length;
   const unanswered = questions.length - answeredCount;
   const lowTime = remaining !== null && remaining <= 60;
 
@@ -267,34 +284,50 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
               {locale === "ar" ? current.stemAr || current.stemEn : current.stemEn || current.stemAr}
             </h2>
             {current.type === "multi_select" && <p className="mb-2 text-xs text-amber-600">{t(locale, "exam.multiHint")}</p>}
-            <div className="space-y-2" role={current.type === "multi_select" ? "group" : "radiogroup"}>
-              {current.choices.map((c) => {
-                const selected = (selections[current.id] ?? []).includes(c.id);
-                const content = locale === "ar" ? c.contentAr || c.contentEn : c.contentEn || c.contentAr;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    data-choice-id={c.id}
-                    onClick={() => choose(c.id)}
-                    disabled={submitting}
-                    aria-pressed={selected}
-                    className={`flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-start text-sm transition ${
-                      selected ? "border-brand-500 bg-brand-50 text-brand-900" : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    <span
-                      className={`flex h-4 w-4 shrink-0 items-center justify-center border ${
-                        current.type === "multi_select" ? "rounded" : "rounded-full"
-                      } ${selected ? "border-brand-600 bg-brand-600" : "border-slate-300 bg-white"}`}
+            {current.type === "essay" && (
+              <p className="mb-2 text-xs text-slate-500">{t(locale, "exam.essayHint")}</p>
+            )}
+            {current.type === "essay" ? (
+              <textarea
+                data-essay-input
+                dir="auto"
+                value={texts[current.id] ?? ""}
+                onChange={(e) => updateText(e.target.value)}
+                disabled={submitting}
+                rows={8}
+                aria-label={t(locale, "exam.essayLabel")}
+                className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              />
+            ) : (
+              <div className="space-y-2" role={current.type === "multi_select" ? "group" : "radiogroup"}>
+                {current.choices.map((c) => {
+                  const selected = (selections[current.id] ?? []).includes(c.id);
+                  const content = locale === "ar" ? c.contentAr || c.contentEn : c.contentEn || c.contentAr;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      data-choice-id={c.id}
+                      onClick={() => choose(c.id)}
+                      disabled={submitting}
+                      aria-pressed={selected}
+                      className={`flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-start text-sm transition ${
+                        selected ? "border-brand-500 bg-brand-50 text-brand-900" : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
                     >
-                      {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
-                    </span>
-                    <span className="flex-1">{content}</span>
-                  </button>
-                );
-              })}
-            </div>
+                      <span
+                        className={`flex h-4 w-4 shrink-0 items-center justify-center border ${
+                          current.type === "multi_select" ? "rounded" : "rounded-full"
+                        } ${selected ? "border-brand-600 bg-brand-600" : "border-slate-300 bg-white"}`}
+                      >
+                        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </span>
+                      <span className="flex-1">{content}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
         )}
 
@@ -305,7 +338,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
           </summary>
           <div className="mt-3 grid grid-cols-8 gap-1.5 sm:grid-cols-10">
             {questions.map((q, i) => {
-              const answered = (selections[q.id] ?? []).length > 0;
+              const answered = isAnswered(q);
               return (
                 <button
                   key={q.id}

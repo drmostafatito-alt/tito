@@ -1,11 +1,19 @@
 import type { Route } from "./+types/admin.assessment.attempts.$attemptId";
-import { Link, useRouteLoaderData } from "react-router";
+import { Link, redirect, useRouteLoaderData } from "react-router";
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
-import { adminAttemptReview } from "~server/assessment/service.server";
+import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
+import { logAudit } from "~server/audit/log.server";
+import {
+  AssessmentValidationError,
+  canAssessment,
+  adminAttemptReview,
+  gradeEssayAnswer,
+} from "~server/assessment/service.server";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
+import { SubmitButton } from "~/components/ui/Button";
 import { t, type Locale } from "~/lib/i18n";
 
 function typeBadge(type: string, locale: Locale) {
@@ -20,18 +28,60 @@ function fmtTime(seconds: number | null): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+const areaCls = "w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm";
+
 export async function loader({ context, params, request }: Route.LoaderArgs) {
-  await requireRole(context, request, 3);
+  const { auth } = await requireRole(context, request, 3);
   const db = getDb(getEnv(context));
   const review = await adminAttemptReview(db, params.attemptId);
   if (!review) throw new Response("Not Found", { status: 404 });
-  return { review };
+  const canGrade = await canAssessment(db, auth, "assessment.grade");
+  return { review, canGrade };
+}
+
+export async function action({ context, params, request }: Route.ActionArgs) {
+  const { auth } = await requireRole(context, request, 3);
+  const db = getDb(getEnv(context));
+  if (!(await canAssessment(db, auth, "assessment.grade"))) {
+    return Response.json({ error: "denied" }, { status: 403 });
+  }
+  const env = getEnv(context);
+  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
+  const form = await request.formData();
+  const questionId = String(form.get("questionId") ?? "");
+  const pointsRaw = Number(form.get("points"));
+  const feedback = String(form.get("feedback") ?? "");
+  try {
+    const res = await gradeEssayAnswer(db, {
+      attemptId: params.attemptId,
+      questionId,
+      points: Number.isFinite(pointsRaw) ? pointsRaw : 0,
+      feedback,
+      grader: { userId: auth.user.id, role: auth.user.roleId },
+    });
+    await logAudit(db, {
+      actorUserId: auth.user.id,
+      actorRole: auth.user.roleId,
+      action: "assessment.essay.graded",
+      entityType: "exam_answer",
+      entityId: `${params.attemptId}:${questionId}`,
+      before: {},
+      after: { points: res.points, finalized: res.finalized },
+      ipHash,
+    });
+    return redirect(`/admin/assessment/attempts/${params.attemptId}?graded=1`);
+  } catch (err) {
+    if (err instanceof AssessmentValidationError) {
+      return Response.json({ issues: err.issues }, { status: 400 });
+    }
+    throw err;
+  }
 }
 
 export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale } | null;
   const locale = root?.locale ?? "ar";
-  const { review } = loaderData;
+  const { review, canGrade } = loaderData;
   const examTitle = locale === "ar" ? review.examTitleAr : review.examTitleEn;
   const startedAt = new Date(review.startedAt);
   const pct = review.score !== null && review.maxScore ? Math.round((review.score / review.maxScore) * 1000) / 10 : null;
@@ -56,8 +106,20 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                 <span className="text-slate-500"> · #{review.attemptNumber}</span>
               </p>
             </div>
-            <Badge tone={review.status === "graded" ? "success" : review.status === "in_progress" ? "warning" : "neutral"}>
-              {t(locale, review.status === "graded" ? "assessment.statusGraded" : review.status === "in_progress" ? "assessment.statusInProgress" : review.status === "grading" ? "assessment.statusGrading" : review.status === "expired" ? "assessment.statusExpired" : review.status === "cancelled" ? "assessment.statusCancelled" : "assessment.statusSubmitted")}
+            <Badge tone={review.status === "graded" ? "success" : review.status === "submitted" ? "warning" : review.status === "in_progress" ? "warning" : "neutral"}>
+              {review.status === "graded"
+                ? t(locale, "assessment.statusGraded")
+                : review.status === "submitted"
+                  ? t(locale, "assessment.statusNeedsManual")
+                  : review.status === "in_progress"
+                    ? t(locale, "assessment.statusInProgress")
+                    : review.status === "grading"
+                      ? t(locale, "assessment.statusGrading")
+                      : review.status === "expired"
+                        ? t(locale, "assessment.statusExpired")
+                        : review.status === "cancelled"
+                          ? t(locale, "assessment.statusCancelled")
+                          : t(locale, "assessment.statusSubmitted")}
             </Badge>
           </div>
           <div className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -68,7 +130,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
             <div>
               <p className="text-xs text-slate-500">{t(locale, "assessment.colResult")}</p>
               <p className="font-semibold text-slate-800">
-                {review.passed === null ? "—" : review.passed ? t(locale, "assessment.resultPass") : t(locale, "assessment.resultFail")}
+                {review.score === null ? "—" : review.passed === null ? "—" : review.passed ? t(locale, "assessment.resultPass") : t(locale, "assessment.resultFail")}
               </p>
             </div>
             <div>
@@ -106,14 +168,44 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                       </div>
                     </div>
                     <span className="shrink-0 text-xs text-slate-500">
-                      {q.earned !== null ? `${q.earned}` : "—"} / {q.points} {t(locale, "assessment.examPoints")}
+                      {q.type === "essay" ? (q.earned != null ? q.earned : t(locale, "assessment.pendingGrading")) : q.earned != null ? q.earned : "—"} / {q.points} {t(locale, "assessment.examPoints")}
                     </span>
                   </div>
 
                   {q.type === "essay" ? (
-                    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                      <p className="text-xs text-slate-500">{t(locale, "assessment.studentAnswer")}</p>
-                      {q.textAnswer ? <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{q.textAnswer}</p> : <p className="text-sm text-slate-500">{t(locale, "assessment.notAnswered")}</p>}
+                    <div className="space-y-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                        <p className="text-xs text-slate-500">{t(locale, "assessment.studentAnswer")}</p>
+                        {q.textAnswer ? <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700" dir="auto">{q.textAnswer}</p> : <p className="text-sm text-slate-500">{t(locale, "assessment.notAnswered")}</p>}
+                      </div>
+                      {(q.modelAnswerAr || q.modelAnswerEn) && (
+                        <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+                          <p className="text-xs font-medium text-emerald-700">{t(locale, "assessment.modelAnswer")}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700" dir="auto">{locale === "ar" ? q.modelAnswerAr || q.modelAnswerEn : q.modelAnswerEn || q.modelAnswerAr}</p>
+                        </div>
+                      )}
+                      {q.feedback && (
+                        <p className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs text-blue-800">
+                          <span className="font-medium">{t(locale, "assessment.feedback")}: </span>
+                          <span dir="auto">{q.feedback}</span>
+                        </p>
+                      )}
+                      {canGrade && (
+                        <form method="post" className="grid gap-2 rounded-lg border border-slate-200 p-3">
+                          <input type="hidden" name="questionId" value={q.id} />
+                          <div className="flex flex-wrap items-end gap-3">
+                            <label className="flex flex-col gap-1 text-xs text-slate-500">
+                              {t(locale, "assessment.colScore")} (0–{q.points})
+                              <input name="points" type="number" min="0" max={q.points} step="0.5" defaultValue={q.earned != null ? q.earned : 0} required className="h-10 w-32 rounded-lg border border-slate-300 px-3 text-sm" />
+                            </label>
+                            <label className="flex-1 flex-col gap-1 text-xs text-slate-500">
+                              {t(locale, "assessment.feedback")}
+                              <input name="feedback" defaultValue={q.feedback ?? ""} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                            </label>
+                            <SubmitButton variant="primary" className="min-h-10">{t(locale, "assessment.saveGrade")}</SubmitButton>
+                          </div>
+                        </form>
+                      )}
                     </div>
                   ) : (
                     <ul className="grid gap-2 sm:grid-cols-2">
@@ -132,7 +224,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                     </ul>
                   )}
 
-                  {(q.explanationAr || q.explanationEn) && (
+                  {(q.explanationAr || q.explanationEn) && q.type !== "essay" && (
                     <p className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs text-blue-800">
                       <span className="font-medium">{t(locale, "assessment.explanation")}: </span>
                       {locale === "ar" ? q.explanationAr : q.explanationEn}

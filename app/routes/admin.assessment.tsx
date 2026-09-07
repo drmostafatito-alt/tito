@@ -5,6 +5,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import {
   canAssessment,
+  essayGradingQueue,
   examAttemptCounts,
   listExams,
   listQuestions,
@@ -28,17 +29,25 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
   const db = getDb(getEnv(context));
   const url = new URL(request.url);
-  const tab = url.searchParams.get("tab") === "exams" ? "exams" : "questions";
+  const tabRaw = url.searchParams.get("tab");
+  const tab = tabRaw === "exams" || tabRaw === "grading" ? tabRaw : "questions";
 
   const perms = {
     read: await canAssessment(db, auth, "assessment.read"),
     create: await canAssessment(db, auth, "assessment.create"),
+    grade: await canAssessment(db, auth, "assessment.grade"),
   };
   const emptyBank = {
     subjects: [] as Array<{ id: string; labelAr: string; labelEn: string }>,
     tags: [] as Array<{ id: string; labelAr: string; labelEn: string }>,
   };
-  if (!perms.read) return { tab, perms, questions: [], exams: [], counts: {} as Record<string, { total: number; live: number }>, ...emptyBank };
+  if (!perms.read)
+    return { tab, perms, questions: [], exams: [], counts: {} as Record<string, { total: number; live: number }>, ...emptyBank, grading: [] as Awaited<ReturnType<typeof essayGradingQueue>> };
+
+  if (tab === "grading") {
+    const grading = await essayGradingQueue(db, { status: "pending" });
+    return { tab, perms, questions: [], exams: [], counts: {} as Record<string, { total: number; live: number }>, ...emptyBank, grading };
+  }
 
   if (tab === "questions") {
     // Filter metadata: subjects from the content tree + existing tags.
@@ -59,7 +68,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       q: url.searchParams.get("q") || undefined,
       limit: 200,
     });
-    return { tab, perms, questions, exams: [], counts: {} as Record<string, { total: number; live: number }>, subjects, tags };
+    return { tab, perms, questions, exams: [], counts: {} as Record<string, { total: number; live: number }>, subjects, tags, grading: [] as Awaited<ReturnType<typeof essayGradingQueue>> };
   }
 
   const examRows = await listExams(db);
@@ -78,7 +87,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       updatedAt: e.updatedAt,
     };
   });
-  return { tab, perms, questions: [], exams, counts, subjects: emptyBank.subjects, tags: emptyBank.tags };
+  return { tab, perms, questions: [], exams, counts, subjects: emptyBank.subjects, tags: emptyBank.tags, grading: [] as Awaited<ReturnType<typeof essayGradingQueue>> };
 }
 
 const qStatusTone: Record<string, "neutral" | "warning" | "success" | "brand"> = {
@@ -91,7 +100,7 @@ const qStatusTone: Record<string, "neutral" | "warning" | "success" | "brand"> =
 export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { tab, perms, questions, exams, counts, subjects, tags } = loaderData;
+  const { tab, perms, questions, exams, counts, subjects, tags, grading } = loaderData;
 
   return (
     <div className="space-y-4">
@@ -118,7 +127,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
       {!perms.read && <Alert kind="error">{t(locale, "assessment.denied")}</Alert>}
 
       <div className="flex gap-2 border-b">
-        {(["questions", "exams"] as const).map((tb) => (
+        {(["questions", "exams", "grading"] as const).map((tb) => (
           <Link
             key={tb}
             to={`/admin/assessment?tab=${tb}`}
@@ -126,10 +135,39 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
               tab === tb ? "border border-b-0 bg-white text-brand-700" : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            {t(locale, tb === "questions" ? "assessment.questionsTab" : "assessment.examsTab")}
+            {t(locale, tb === "questions" ? "assessment.questionsTab" : tb === "exams" ? "assessment.examsTab" : "assessment.gradingTab")}
           </Link>
         ))}
       </div>
+
+      {tab === "grading" && perms.read && (
+        <>
+          {grading.length === 0 && (
+            <Card>
+              <CardBody className="text-sm text-slate-500">{t(locale, "assessment.noPendingGrading")}</CardBody>
+            </Card>
+          )}
+          <ol className="flex flex-col gap-2">
+            {grading.map((item) => (
+              <li key={`${item.attemptId}:${item.questionId}`}>
+                <Link to={`/admin/assessment/attempts/${item.attemptId}`} className="block">
+                  <Card className="transition hover:border-brand-300">
+                    <CardBody className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{item.studentName} — {locale === "ar" ? item.stemAr : item.stemEn}</p>
+                        <p className="text-xs text-slate-500">
+                          {locale === "ar" ? item.examTitleAr : item.examTitleEn} · #{item.attemptNumber} · {item.points} {t(locale, "assessment.examPoints")}
+                        </p>
+                      </div>
+                      <Badge tone="warning">{t(locale, "assessment.pendingGrading")}</Badge>
+                    </CardBody>
+                  </Card>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
 
       {tab === "questions" && perms.read && (
         <>

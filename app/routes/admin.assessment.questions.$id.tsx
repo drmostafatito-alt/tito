@@ -91,6 +91,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
           stemEn: question.stemEn,
           explanationAr: question.explanationAr,
           explanationEn: question.explanationEn,
+          modelAnswerAr: question.modelAnswerAr,
+          modelAnswerEn: question.modelAnswerEn,
           difficulty: question.difficulty,
           pointsDefault: question.pointsDefault,
           subjectId: question.subjectId,
@@ -158,6 +160,8 @@ export async function action({ context, params, request }: Route.ActionArgs) {
         stemEn: str("stemEn"),
         explanationAr: nul("explanationAr"),
         explanationEn: nul("explanationEn"),
+        modelAnswerAr: nul("modelAnswerAr"),
+        modelAnswerEn: nul("modelAnswerEn"),
         difficulty: str("difficulty") || "medium",
         pointsDefault: Number.isFinite(pointsDefault) && pointsDefault > 0 ? pointsDefault : 1,
         subjectId: nul("subjectId"),
@@ -412,6 +416,23 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                   + {t(locale, "assessment.addChoice")}
                 </button>
               )}
+            </CardBody>
+          </Card>
+        )}
+
+        {!objective && (
+          <Card>
+            <CardBody className="space-y-3">
+              <h2 className="text-sm font-semibold">{t(locale, "assessment.modelAnswer")}</h2>
+              <p className="text-xs text-slate-500">{t(locale, "assessment.modelAnswerHint")}</p>
+              <div>
+                <label htmlFor="q-model-ar" className="text-sm font-medium text-slate-700">{t(locale, "assessment.modelAnswerAr")}</label>
+                <textarea id="q-model-ar" name="modelAnswerAr" defaultValue={question?.modelAnswerAr ?? ""} rows={4} className={areaCls} dir="auto" />
+              </div>
+              <div>
+                <label htmlFor="q-model-en" className="text-sm font-medium text-slate-700">{t(locale, "assessment.modelAnswerEn")}</label>
+                <textarea id="q-model-en" name="modelAnswerEn" defaultValue={question?.modelAnswerEn ?? ""} rows={4} className={areaCls} dir="auto" />
+              </div>
             </CardBody>
           </Card>
         )}

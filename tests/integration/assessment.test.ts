@@ -25,10 +25,14 @@ import {
   ensureTag,
   examAccess,
   examQuestionsFull,
+  adminAttemptReview,
+  essayGradingQueue,
   expireAttemptIfNeeded,
+  getAttempt,
   getExamBySlug,
   getOwnedAttempt,
   getQuestionFull,
+  gradeEssayAnswer,
   listQuestions,
   listPublishedExamsForActor,
   moveExamQuestion,
@@ -303,12 +307,6 @@ describe("exam build + publish gate", () => {
     // draft questions cannot even be attached
     const draftQ = await makeQuestion("mcq");
     await expect(addExamQuestion(db, exam.id, draftQ.id)).rejects.toThrow(AssessmentValidationError);
-
-    // essay questions can never be attached in Phase 5 (manual grading deferred)
-    const essay = await createQuestion(db, { type: "essay", stemAr: "مقال", stemEn: "Essay", choices: [] }, actor);
-    await setQuestionStatus(db, essay.id, "in_review", actor);
-    await setQuestionStatus(db, essay.id, "published", actor);
-    await expect(addExamQuestion(db, exam.id, essay.id)).rejects.toThrow(AssessmentValidationError);
 
     await setQuestionStatus(db, draftQ.id, "in_review", actor);
     await setQuestionStatus(db, draftQ.id, "published", actor);
@@ -962,5 +960,144 @@ describe("progress + events integration (ADR-021/022)", () => {
     // video/progress event pipeline untouched
     const others = await db.select().from(events).where(eq(events.type, "lesson_complete"));
     expect(others.length).toBeLessThanOrEqual(1);
+  });
+});
+
+// ===========================================================================
+describe("essay (written-response) grading", () => {
+  async function makePublishedEssay(over: Record<string, unknown> = {}) {
+    const q = await createQuestion(
+      db,
+      {
+        type: "essay",
+        stemAr: "سؤال مقالي",
+        stemEn: "Essay prompt",
+        modelAnswerAr: "إجابة نموذجية عربية",
+        modelAnswerEn: "Model answer EN",
+        pointsDefault: 5,
+        choices: [],
+        ...over,
+      },
+      actor
+    );
+    await setQuestionStatus(db, q.id, "in_review", actor);
+    await setQuestionStatus(db, q.id, "published", actor);
+    return q;
+  }
+
+  it("stores model answers (grader-only) on the question record", async () => {
+    const q = await makePublishedEssay();
+    const full = await getQuestionFull(db, q.id);
+    expect(full?.type).toBe("essay");
+    expect(full?.modelAnswerAr).toBe("إجابة نموذجية عربية");
+    expect(full?.modelAnswerEn).toBe("Model answer EN");
+  });
+
+  it("an essay submission stays needs_manual until graded; grade finalizes the attempt", async () => {
+    const essay = await makePublishedEssay();
+    const exam = await createExam(db, { titleAr: "مقالي", titleEn: "Essay Exam" }, actor);
+    await addExamQuestion(db, exam.id, essay.id); // essay attach now allowed
+    await publishExam(db, exam.id);
+
+    const res = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    // student types a written answer (textAnswer path — no fabricated correctness)
+    const save = await saveAnswer(db, { attempt: res.attempt, questionId: essay.id, choiceIds: [], text: "إجابة الطالب الكتابية", nowMs: Date.now() });
+    expect(save.ok).toBe(true);
+
+    const submitted = await submitAttempt(db, { attempt: res.attempt, graceSeconds: 30, nowMs: Date.now(), videoThresholdPct: 90 });
+    expect(submitted.pendingGrading).toBe(true);
+    expect(submitted.status).toBe("submitted");
+
+    const after = (await getAttempt(db, res.attempt.id))!;
+    expect(after.status).toBe("submitted");
+    expect(after.gradingStatus).toBe("needs_manual");
+    expect(after.score).toBeNull();
+    expect(after.maxScore).toBe(5);
+
+    // queue surfaces the pending written answer with the student's text
+    const pending = await essayGradingQueue(db, { status: "pending" });
+    const item = pending.find((i) => i.attemptId === res.attempt.id);
+    expect(item).toBeTruthy();
+    expect(item?.textAnswer).toBe("إجابة الطالب الكتابية");
+    expect(item?.modelAnswerAr).toBe("إجابة نموذجية عربية");
+
+    // grade 4/5 → attempt is finalized and graded
+    const g = await gradeEssayAnswer(db, { attemptId: res.attempt.id, questionId: essay.id, points: 4, feedback: "أحسنت", grader: { userId: actor.userId, role: actor.role } });
+    expect(g.finalized).toBe(true);
+    const graded = (await getAttempt(db, res.attempt.id))!;
+    expect(graded.status).toBe("graded");
+    expect(graded.gradingStatus).toBe("complete");
+    expect(graded.score).toBe(4);
+    expect(graded.passed).toBe(true); // 4/5 = 80% ≥ 50%
+
+    // queue is now empty (fully graded)
+    const afterGrade = await essayGradingQueue(db, { status: "pending" });
+    expect(afterGrade.some((i) => i.attemptId === res.attempt.id)).toBe(false);
+
+    // grading is clamped to [0, max] and re-grading recomputes the aggregate
+    const over = await gradeEssayAnswer(db, { attemptId: res.attempt.id, questionId: essay.id, points: 99, grader: { userId: actor.userId, role: actor.role } });
+    expect(over.points).toBe(5);
+    const regraded = (await getAttempt(db, res.attempt.id))!;
+    expect(regraded.score).toBe(5);
+  });
+
+  it("aggregates objective auto-score + essay manual score into one attempt", async () => {
+    const essay = await makePublishedEssay(); // 5 pts
+    const mcq = await makePublished("mcq"); // 2 pts
+    const exam = await createExam(db, { titleAr: "مختلط", titleEn: "Mixed Exam" }, actor);
+    await addExamQuestion(db, exam.id, mcq.id);
+    await addExamQuestion(db, exam.id, essay.id);
+    await publishExam(db, exam.id);
+
+    const res = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    // objective answered correctly (choice index 0 correct by default)
+    const mcqFull = (await getQuestionFull(db, mcq.id))!;
+    const correct = mcqFull.choices.find((c) => c.isCorrect)!;
+    await saveAnswer(db, { attempt: res.attempt, questionId: mcq.id, choiceIds: [correct.id], nowMs: Date.now() });
+    await saveAnswer(db, { attempt: res.attempt, questionId: essay.id, choiceIds: [], text: "نص الإجابة", nowMs: Date.now() });
+
+    await submitAttempt(db, { attempt: res.attempt, graceSeconds: 30, nowMs: Date.now(), videoThresholdPct: 90 });
+    let attempt = (await getAttempt(db, res.attempt.id))!;
+    expect(attempt.gradingStatus).toBe("needs_manual");
+    expect(attempt.score).toBeNull();
+
+    await gradeEssayAnswer(db, { attemptId: res.attempt.id, questionId: essay.id, points: 3, grader: { userId: actor.userId, role: actor.role } });
+    attempt = (await getAttempt(db, res.attempt.id))!;
+    expect(attempt.status).toBe("graded");
+    expect(attempt.score).toBe(5); // 2 objective + 3 essay
+    expect(attempt.maxScore).toBe(7);
+    expect(attempt.passed).toBe(true); // 5/7 ≈ 71% ≥ 50%
+  });
+
+  it("attempt review exposes the model answer to graders but never to students", async () => {
+    const essay = await makePublishedEssay();
+    const exam = await createExam(db, { titleAr: "مراجعة", titleEn: "Review Exam" }, actor);
+    await addExamQuestion(db, exam.id, essay.id);
+    await publishExam(db, exam.id);
+
+    const res = await startAttempt(db, { examId: exam.id, actor: studentActor(studentA), nowMs: Date.now() });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    await saveAnswer(db, { attempt: res.attempt, questionId: essay.id, choiceIds: [], text: "جواب", nowMs: Date.now() });
+    await submitAttempt(db, { attempt: res.attempt, graceSeconds: 30, nowMs: Date.now(), videoThresholdPct: 90 });
+    await gradeEssayAnswer(db, { attemptId: res.attempt.id, questionId: essay.id, points: 5, grader: { userId: actor.userId, role: actor.role } });
+
+    // admin review sees the model answer + the student's written answer
+    const adminView = await adminAttemptReview(db, res.attempt.id);
+    expect(adminView?.questions[0].modelAnswerAr).toBe("إجابة نموذجية عربية");
+    expect(adminView?.questions[0].textAnswer).toBe("جواب");
+    // the student-facing review payload has no model-answer field and no choice key
+    const cfg = parseExamConfig((await getExamBySlug(db, exam.slug))!.config);
+    const studentView = await attemptReview(db, { attempt: (await getAttempt(db, res.attempt.id))!, config: cfg });
+    const q = studentView?.questions[0];
+    expect(q).toBeTruthy();
+    expect(q && "modelAnswerAr" in q).toBe(false);
+    expect(q && "modelAnswerEn" in q).toBe(false);
   });
 });

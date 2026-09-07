@@ -23,6 +23,9 @@ export const questions = sqliteTable(
     stemEn: text("stem_en").notNull(),
     explanationAr: text("explanation_ar"),
     explanationEn: text("explanation_en"),
+    /** graders-only reference for written (essay) questions — NEVER sent to students (ADR-022). */
+    modelAnswerAr: text("model_answer_ar"),
+    modelAnswerEn: text("model_answer_en"),
     difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).notNull().default("medium"),
     pointsDefault: real("points_default").notNull().default(1),
     // optional topic links (app-layer refs — ADR-017)

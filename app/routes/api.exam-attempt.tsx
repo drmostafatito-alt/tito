@@ -71,7 +71,11 @@ export async function action({ context, request }: Route.ActionArgs) {
     const questionId = String(form.get("questionId") ?? "");
     const raw = String(form.get("choiceIds") ?? "");
     const choiceIds = raw ? raw.split(",").filter(Boolean) : [];
-    const res = await saveAnswer(db, { attempt, questionId, choiceIds, nowMs: Date.now() });
+    // Written (essay) answers are transported as a `text` field (form-encoded so
+    // sendBeacon works); objective answers send choiceIds only.
+    const textRaw = form.get("text");
+    const text = typeof textRaw === "string" ? textRaw : null;
+    const res = await saveAnswer(db, { attempt, questionId, choiceIds, text, nowMs: Date.now() });
     if (!res.ok) return Response.json({ error: res.error });
     return Response.json({ ok: true, version: res.version });
   }

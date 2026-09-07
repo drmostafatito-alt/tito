@@ -173,6 +173,9 @@ export const questionInputSchema = z.object({
   stemEn: z.string().trim().min(1).max(4000),
   explanationAr: z.string().trim().max(4000).nullable().optional(),
   explanationEn: z.string().trim().max(4000).nullable().optional(),
+  /** graders-only reference for written answers (essay); never sent to students. */
+  modelAnswerAr: z.string().trim().max(8000).nullable().optional(),
+  modelAnswerEn: z.string().trim().max(8000).nullable().optional(),
   difficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
   pointsDefault: z.number().min(0.5).max(1000).default(1),
   subjectId: uuid.nullable().optional(),
@@ -263,6 +266,8 @@ export async function createQuestion(db: DB, raw: unknown, actor: ActorCtx) {
     stemEn: input.stemEn,
     explanationAr: input.explanationAr ?? null,
     explanationEn: input.explanationEn ?? null,
+    modelAnswerAr: input.modelAnswerAr ?? null,
+    modelAnswerEn: input.modelAnswerEn ?? null,
     difficulty: input.difficulty,
     pointsDefault: input.pointsDefault,
     subjectId: input.subjectId ?? null,
@@ -322,6 +327,8 @@ export async function updateQuestion(db: DB, id: string, raw: unknown, actor: Ac
     stemEn: existing.stemEn,
     explanationAr: existing.explanationAr,
     explanationEn: existing.explanationEn,
+    modelAnswerAr: existing.modelAnswerAr,
+    modelAnswerEn: existing.modelAnswerEn,
     difficulty: existing.difficulty,
     pointsDefault: existing.pointsDefault,
     subjectId: existing.subjectId,
@@ -346,6 +353,8 @@ export async function updateQuestion(db: DB, id: string, raw: unknown, actor: Ac
       stemEn: input.stemEn,
       explanationAr: input.explanationAr ?? null,
       explanationEn: input.explanationEn ?? null,
+      modelAnswerAr: input.modelAnswerAr ?? null,
+      modelAnswerEn: input.modelAnswerEn ?? null,
       difficulty: input.difficulty,
       pointsDefault: input.pointsDefault,
       subjectId: input.subjectId ?? null,
@@ -611,7 +620,9 @@ export async function addExamQuestion(db: DB, examId: string, questionId: string
   const q = qRows[0];
   if (!q) throw new AssessmentReferenceError("questionId", "question not found");
   if (q.status !== "published") throw new AssessmentValidationError([{ path: "questionId", message: "only published questions can be attached" }]);
-  if (!OBJECTIVE_TYPES.includes(q.type)) throw new AssessmentValidationError([{ path: "questionId", message: "essay questions cannot be attached in Phase 5 (manual grading deferred)" }]);
+  // Manual attach supports objective + essay (written) questions. Pool mode
+  // selects objective questions only (essay stays a fixed, deterministic part
+  // of an exam so a human always reviews the same prompt it was built for).
 
   const existing = await db.select().from(examQuestions).where(and(eq(examQuestions.examId, examId), eq(examQuestions.questionId, questionId))).limit(1);
   if (existing.length) throw new AssessmentValidationError([{ path: "questionId", message: "question already attached" }]);
@@ -965,12 +976,13 @@ export async function attemptContext(
 ): Promise<{
   questions: LiveQuestion[];
   answers: Record<string, string[]>;
+  textAnswers: Record<string, string>;
   remainingSeconds: number | null;
   expired: boolean;
 }> {
   const { attempt, config, nowMs } = opts;
   const { questionOrder, points } = attemptMetadata(attempt);
-  if (!questionOrder.length) return { questions: [], answers: {}, remainingSeconds: null, expired: false };
+  if (!questionOrder.length) return { questions: [], answers: {}, textAnswers: {}, remainingSeconds: null, expired: false };
 
   const qRows = await db.select().from(questions).where(inArray(questions.id, questionOrder));
   const qMap = new Map(qRows.map((q) => [q.id, q]));
@@ -995,16 +1007,20 @@ export async function attemptContext(
   }
 
   const aRows = await db
-    .select({ questionId: examAnswers.questionId, choiceIds: examAnswers.choiceIds })
+    .select({ questionId: examAnswers.questionId, choiceIds: examAnswers.choiceIds, textAnswer: examAnswers.textAnswer })
     .from(examAnswers)
     .where(eq(examAnswers.attemptId, attempt.id));
   const answers: Record<string, string[]> = {};
-  for (const a of aRows) answers[a.questionId] = (a.choiceIds as string[] | null) ?? [];
+  const textAnswers: Record<string, string> = {};
+  for (const a of aRows) {
+    answers[a.questionId] = (a.choiceIds as string[] | null) ?? [];
+    if (a.textAnswer != null) textAnswers[a.questionId] = a.textAnswer;
+  }
 
   const remainingSeconds =
     attempt.deadlineAt !== null ? Math.max(0, Math.ceil((attempt.deadlineAt - nowMs) / 1000)) : null;
   const expired = attempt.deadlineAt !== null && nowMs > attempt.deadlineAt;
-  return { questions: liveQuestions, answers, remainingSeconds, expired };
+  return { questions: liveQuestions, answers, textAnswers, remainingSeconds, expired };
 }
 
 // ---------------------------------------------------------------------------
@@ -1013,9 +1029,9 @@ export async function attemptContext(
 
 export async function saveAnswer(
   db: DB,
-  opts: { attempt: AttemptRow; questionId: string; choiceIds: string[]; nowMs: number }
+  opts: { attempt: AttemptRow; questionId: string; choiceIds: string[]; text?: string | null; nowMs: number }
 ): Promise<{ ok: true; version: number } | { ok: false; error: "closed" | "unknown_question" | "invalid_choice" | "too_many" }> {
-  const { attempt, questionId, choiceIds, nowMs } = opts;
+  const { attempt, questionId, choiceIds, text, nowMs } = opts;
   if (attempt.status !== "in_progress") return { ok: false, error: "closed" };
   const { questionOrder } = attemptMetadata(attempt);
   if (!questionOrder.includes(questionId)) return { ok: false, error: "unknown_question" };
@@ -1023,6 +1039,39 @@ export async function saveAnswer(
   const qRows = await db.select({ type: questions.type }).from(questions).where(eq(questions.id, questionId)).limit(1);
   const q = qRows[0];
   if (!q) return { ok: false, error: "unknown_question" };
+
+  // Written (essay) answers: persist typed text (never a fabricated "correct"
+  // flag — isCorrect stays null, pointsEarned is set only by a human grader).
+  if (q.type === "essay") {
+    const normalized = text == null ? "" : text.slice(0, 100_000);
+    const existing = await db
+      .select({ version: examAnswers.version })
+      .from(examAnswers)
+      .where(and(eq(examAnswers.attemptId, attempt.id), eq(examAnswers.questionId, questionId)))
+      .limit(1);
+    const version = (existing[0]?.version ?? 0) + 1;
+    await db
+      .insert(examAnswers)
+      .values({
+        id: crypto.randomUUID(),
+        attemptId: attempt.id,
+        questionId,
+        choiceIds: null,
+        textAnswer: normalized === "" ? null : normalized,
+        pointsEarned: null,
+        isCorrect: null,
+        gradedBy: null,
+        gradedAt: null,
+        feedback: null,
+        version,
+        updatedAt: nowMs,
+      })
+      .onConflictDoUpdate({
+        target: [examAnswers.attemptId, examAnswers.questionId],
+        set: { textAnswer: normalized === "" ? null : normalized, version, updatedAt: nowMs },
+      });
+    return { ok: true, version };
+  }
 
   const selected = [...new Set(choiceIds)];
   if ((q.type === "mcq" || q.type === "true_false") && selected.length > 1) return { ok: false, error: "too_many" };
@@ -1069,14 +1118,17 @@ export async function saveAnswer(
 // ---------------------------------------------------------------------------
 
 export interface SubmitResult {
-  status: "graded";
-  score: number;
-  maxScore: number;
-  percentage: number;
-  passed: boolean;
+  /** "graded" = fully auto-graded; "submitted" = awaiting manual (essay) grading. */
+  status: "graded" | "submitted";
+  score: number | null;
+  maxScore: number | null;
+  percentage: number | null;
+  passed: boolean | null;
   submittedAt: number;
   expired: boolean;
   alreadySubmitted: boolean;
+  /** true when essay answers are pending a human grader (attempt not yet final). */
+  pendingGrading?: boolean;
 }
 
 export async function submitAttempt(
@@ -1119,8 +1171,52 @@ export async function submitAttempt(
     throw new AssessmentReferenceError("attemptId", "attempt vanished");
   }
 
-  const graded = await gradeAttempt(db, { attemptId: attempt.id, examId: attempt.examId, config, expired });
+  // Objective questions are auto-graded at submit; essay answers move to the
+  // manual grading queue and the attempt stays open until every essay is graded.
   const md = ((attempt.metadata ?? {}) as Record<string, unknown>);
+  const { questionOrder: qOrder } = attemptMetadata(attempt);
+  const essayRows = qOrder.length
+    ? await db.select({ id: questions.id }).from(questions).where(and(inArray(questions.id, qOrder), eq(questions.type, "essay")))
+    : [];
+  const hasEssays = essayRows.length > 0;
+
+  const graded = await gradeAttempt(db, { attemptId: attempt.id, examId: attempt.examId, config, expired });
+
+  if (hasEssays) {
+    // Attempt is NOT final yet: objective parts are auto-graded & frozen below,
+    // essays stay in the queue. maxScore holds the TRUE total (objective + essay
+    // points) so finalization only needs to sum earned points.
+    await db
+      .update(examAttempts)
+      .set({
+        status: "submitted",
+        gradingStatus: "needs_manual",
+        maxScore: graded.maxScore,
+        score: null,
+        passed: null,
+        metadata: { ...md, hasEssays: true, objectiveScore: graded.score, ...(expired ? { expired: true } : {}) },
+      })
+      .where(eq(examAttempts.id, attempt.id));
+    await appendEvent(db, {
+      type: "exam_submit",
+      userId: attempt.studentId,
+      resourceType: "exam",
+      resourceId: attempt.examId,
+      props: { attemptId: attempt.id, attemptNumber: attempt.attemptNumber, pendingManual: true, objectiveScore: graded.score, expired },
+    });
+    return {
+      status: "submitted",
+      score: null,
+      maxScore: graded.maxScore,
+      percentage: null,
+      passed: null,
+      submittedAt,
+      expired,
+      alreadySubmitted: false,
+      pendingGrading: true,
+    };
+  }
+
   await db
     .update(examAttempts)
     .set({
@@ -1166,10 +1262,24 @@ export async function submitAttempt(
 }
 
 function storedResult(attempt: AttemptRow): SubmitResult {
+  const md = (attempt.metadata ?? {}) as Record<string, unknown>;
+  if (attempt.gradingStatus === "needs_manual" || (attempt.status !== "graded" && attempt.score === null && md.hasEssays)) {
+    // awaiting manual grading — no score is revealed to the student yet
+    return {
+      status: "submitted",
+      score: null,
+      maxScore: attempt.maxScore ?? null,
+      percentage: null,
+      passed: null,
+      submittedAt: attempt.submittedAt ?? attempt.startedAt,
+      expired: Boolean(md.expired),
+      alreadySubmitted: true,
+      pendingGrading: true,
+    };
+  }
   const maxScore = attempt.maxScore ?? 0;
   const score = attempt.score ?? 0;
   const percentage = maxScore > 0 ? Math.round((score / maxScore) * 1000) / 10 : 0;
-  const md = (attempt.metadata ?? {}) as Record<string, unknown>;
   return {
     status: "graded",
     score,
@@ -1215,14 +1325,17 @@ async function gradeAttempt(
   let correctCount = 0;
   const partial = config.scoring.partial_credit_multiselect;
   for (const qid of questionOrder) {
+    const type = qMap.get(qid)?.type;
     const pts = points[qid] ?? qMap.get(qid)?.pointsDefault ?? 0;
     maxScore += pts;
+    // essay points count toward maxScore (true total) but are NEVER auto-scored —
+    // they land in the manual grading queue (isCorrect/pointsEarned stay null).
+    if (type === "essay") continue;
     const answer = aMap.get(qid);
     const selected = new Set(((answer?.choiceIds as string[] | null) ?? []).filter((cid) => choicesByQ.get(qid)?.has(cid)));
     const correct = correctByQ.get(qid) ?? new Set<string>();
     let earned = 0;
     let isCorrect = false;
-    const type = qMap.get(qid)?.type;
     if (type === "mcq" || type === "true_false") {
       isCorrect = selected.size === 1 && correct.has([...selected][0]);
       earned = isCorrect ? pts : 0;
@@ -1272,6 +1385,216 @@ export async function expireAttemptIfNeeded(
   if (!attempt || attempt.deadlineAt === null) return null;
   if (opts.nowMs <= attempt.deadlineAt + opts.graceSeconds * 1000) return null;
   return submitAttempt(db, { attempt, graceSeconds: opts.graceSeconds, nowMs: opts.nowMs, videoThresholdPct: opts.videoThresholdPct });
+}
+
+// ---------------------------------------------------------------------------
+// Manual (essay) grading — written answers are scored by an authorized reviewer
+// (assessment.grade). Objective parts are auto-graded & frozen at submit; the
+// attempt is finalized (status graded / gradingStatus complete) only when EVERY
+// essay in the attempt has a human score. Re-grading is an upsert + recompute,
+// so corrections stay possible. Model answers NEVER leave the server for the
+// student attempt (ADR-022).
+// ---------------------------------------------------------------------------
+
+export interface EssayGradeItem {
+  attemptId: string;
+  examId: string;
+  examTitleAr: string;
+  examTitleEn: string;
+  examSlug: string;
+  attemptNumber: number;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  questionId: string;
+  stemAr: string;
+  stemEn: string;
+  modelAnswerAr: string | null;
+  modelAnswerEn: string | null;
+  points: number;
+  textAnswer: string | null;
+  earned: number | null;
+  feedback: string | null;
+  gradedBy: string | null;
+  gradedAt: number | null;
+  submittedAt: number | null;
+  status: "pending" | "graded";
+}
+
+export async function essayGradingQueue(
+  db: DB,
+  filter: { status?: "pending" | "graded"; examId?: string; limit?: number } = {}
+): Promise<EssayGradeItem[]> {
+  const conds = [
+    eq(examAttempts.status, "submitted"),
+    eq(examAttempts.gradingStatus, "needs_manual"),
+  ];
+  if (filter.examId) conds.push(eq(examAttempts.examId, filter.examId));
+  const attempts = await db
+    .select()
+    .from(examAttempts)
+    .where(and(...conds))
+    .orderBy(asc(examAttempts.submittedAt))
+    .limit(Math.min(filter.limit ?? 100, 200));
+
+  const out: EssayGradeItem[] = [];
+  const wantGraded = filter.status === "graded";
+  for (const attempt of attempts) {
+    const exam = await getExam(db, attempt.examId);
+    if (!exam) continue;
+    const { questionOrder, points } = attemptMetadata(attempt);
+    const qRows = questionOrder.length
+      ? await db
+          .select({ id: questions.id, stemAr: questions.stemAr, stemEn: questions.stemEn, modelAnswerAr: questions.modelAnswerAr, modelAnswerEn: questions.modelAnswerEn, pointsDefault: questions.pointsDefault })
+          .from(questions)
+          .where(and(inArray(questions.id, questionOrder), eq(questions.type, "essay")))
+      : [];
+    const answerRows = await db
+      .select()
+      .from(examAnswers)
+      .where(eq(examAnswers.attemptId, attempt.id));
+    const byQ = new Map(answerRows.map((a) => [a.questionId, a]));
+    for (const q of qRows) {
+      const a = byQ.get(q.id);
+      const graded = a != null && a.pointsEarned != null;
+      if (wantGraded !== graded) continue;
+      const student = await db.select({ fullName: users.fullName, email: users.email }).from(users).where(eq(users.id, attempt.studentId)).limit(1);
+      const s = student[0];
+      out.push({
+        attemptId: attempt.id,
+        examId: exam.id,
+        examTitleAr: exam.titleAr,
+        examTitleEn: exam.titleEn,
+        examSlug: exam.slug,
+        attemptNumber: attempt.attemptNumber,
+        studentId: attempt.studentId,
+        studentName: s?.fullName ?? attempt.studentId,
+        studentEmail: s?.email ?? "",
+        questionId: q.id,
+        stemAr: q.stemAr,
+        stemEn: q.stemEn,
+        modelAnswerAr: q.modelAnswerAr,
+        modelAnswerEn: q.modelAnswerEn,
+        points: points[q.id] ?? q.pointsDefault ?? 0,
+        textAnswer: a?.textAnswer ?? null,
+        earned: a?.pointsEarned ?? null,
+        feedback: a?.feedback ?? null,
+        gradedBy: a?.gradedBy ?? null,
+        gradedAt: a?.gradedAt ?? null,
+        submittedAt: attempt.submittedAt,
+        status: graded ? "graded" : "pending",
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Scores one essay answer (upsert) and recomputes the attempt aggregate. Throws
+ * on tampering; the caller enforces the `assessment.grade` capability.
+ * @returns finalized = the attempt transitioned to fully graded.
+ */
+export async function gradeEssayAnswer(
+  db: DB,
+  input: { attemptId: string; questionId: string; points: number; feedback?: string | null; grader: { userId: string; role: string }; nowMs?: number }
+): Promise<{ attemptId: string; questionId: string; points: number; finalized: boolean }> {
+  const nowMs = input.nowMs ?? Date.now();
+  const attempt = await getAttempt(db, input.attemptId);
+  if (!attempt) throw new AssessmentReferenceError("attemptId", "attempt not found");
+  if (!["submitted", "grading", "graded"].includes(attempt.status)) {
+    throw new AssessmentValidationError([{ path: "attemptId", message: "attempt is not open for manual grading" }]);
+  }
+  const { questionOrder, points } = attemptMetadata(attempt);
+  const qRows = questionOrder.length
+    ? await db.select({ id: questions.id, type: questions.type, pointsDefault: questions.pointsDefault }).from(questions).where(and(inArray(questions.id, questionOrder), eq(questions.type, "essay")))
+    : [];
+  const essay = qRows.find((q) => q.id === input.questionId);
+  if (!essay) throw new AssessmentValidationError([{ path: "questionId", message: "not an essay question in this attempt" }]);
+
+  const maxPts = points[essay.id] ?? essay.pointsDefault ?? 0;
+  const clamped = Math.round(Math.min(maxPts, Math.max(0, input.points)) * 100) / 100;
+  const feedback = input.feedback?.trim() ? input.feedback.trim().slice(0, 4000) : null;
+
+  const existing = await db
+    .select()
+    .from(examAnswers)
+    .where(and(eq(examAnswers.attemptId, attempt.id), eq(examAnswers.questionId, essay.id)))
+    .limit(1);
+  if (existing[0]) {
+    await db
+      .update(examAnswers)
+      .set({ pointsEarned: clamped, feedback, gradedBy: input.grader.userId, gradedAt: nowMs, updatedAt: nowMs })
+      .where(eq(examAnswers.id, existing[0].id));
+  } else {
+    await db.insert(examAnswers).values({
+      id: crypto.randomUUID(),
+      attemptId: attempt.id,
+      questionId: essay.id,
+      choiceIds: null,
+      textAnswer: null,
+      pointsEarned: clamped,
+      isCorrect: null,
+      gradedBy: input.grader.userId,
+      gradedAt: nowMs,
+      feedback,
+      version: 1,
+      updatedAt: nowMs,
+    });
+  }
+
+  const finalized = await recomputeEssayAttempt(db, attempt.id);
+  return { attemptId: attempt.id, questionId: essay.id, points: clamped, finalized };
+}
+
+/** Recomputes an essay attempt's aggregate once every essay has a score. */
+async function recomputeEssayAttempt(db: DB, attemptId: string): Promise<boolean> {
+  const attempt = await getAttempt(db, attemptId);
+  if (!attempt) return false;
+  const { questionOrder } = attemptMetadata(attempt);
+  if (!questionOrder.length) return false;
+  const qRows = await db.select({ id: questions.id, type: questions.type }).from(questions).where(inArray(questions.id, questionOrder));
+  const essayIds = qRows.filter((q) => q.type === "essay").map((q) => q.id);
+  if (!essayIds.length) return false;
+
+  const ans = essayIds.length
+    ? await db.select({ questionId: examAnswers.questionId, pointsEarned: examAnswers.pointsEarned }).from(examAnswers).where(and(eq(examAnswers.attemptId, attemptId), inArray(examAnswers.questionId, essayIds)))
+    : [];
+  const gradedSet = new Set(ans.filter((r) => r.pointsEarned != null).map((r) => r.questionId));
+  const allGraded = essayIds.every((id) => gradedSet.has(id));
+
+  const exam = await getExam(db, attempt.examId);
+  if (!exam) return false;
+  const config = parseExamConfig(exam.config);
+  const sumRow = await db
+    .select({ s: sql<number>`COALESCE(SUM(${examAnswers.pointsEarned}), 0)` })
+    .from(examAnswers)
+    .where(eq(examAnswers.attemptId, attemptId));
+  const total = Math.round(Number(sumRow[0]?.s ?? 0) * 100) / 100;
+  const maxScoreNum = attempt.maxScore != null ? attempt.maxScore : 0;
+  const percentage = maxScoreNum > 0 ? Math.round((total / maxScoreNum) * 1000) / 10 : 0;
+  const passed = percentage >= config.scoring.pass_percent;
+  const md = (attempt.metadata ?? {}) as Record<string, unknown>;
+
+  if (allGraded) {
+    await db
+      .update(examAttempts)
+      .set({ status: "graded", gradingStatus: "complete", score: total, maxScore: maxScoreNum, passed, metadata: { ...md, hasEssays: true } })
+      .where(eq(examAttempts.id, attemptId));
+    if (exam.lessonId) {
+      try {
+        const { maybeAutoCompleteLesson } = await import("~server/progress/service.server");
+        await maybeAutoCompleteLesson(db, attempt.studentId, exam.lessonId, 90);
+      } catch {
+        // convenience only
+      }
+    }
+    return true;
+  }
+  await db
+    .update(examAttempts)
+    .set({ gradingStatus: "needs_manual", score: null, passed: null })
+    .where(eq(examAttempts.id, attemptId));
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -1468,6 +1791,12 @@ export interface AdminReviewQuestion {
   earned: number | null;
   answered: boolean;
   textAnswer: string | null;
+  /** graders-only written-answer reference (never sent to students). */
+  modelAnswerAr: string | null;
+  modelAnswerEn: string | null;
+  feedback: string | null;
+  gradedBy: string | null;
+  gradedAt: number | null;
   isCorrect: boolean | null;
   choices: Array<{ id: string; contentAr: string; contentEn: string; selected: boolean; correct: boolean; feedback: string | null }>;
   explanationAr: string | null;
@@ -1531,8 +1860,16 @@ export async function adminAttemptReview(db: DB, attemptId: string): Promise<Adm
         stemEn: q.stemEn,
         points: points[qid] ?? q.pointsDefault,
         earned: answer?.pointsEarned ?? null,
-        answered: Boolean(answer && ((answer.choiceIds as string[] | null)?.length ?? 0) > 0),
+        answered: Boolean(
+          answer &&
+            (((answer.choiceIds as string[] | null)?.length ?? 0) > 0 || (answer.textAnswer && answer.textAnswer.trim().length > 0))
+        ),
         textAnswer: answer?.textAnswer ?? null,
+        modelAnswerAr: q.modelAnswerAr,
+        modelAnswerEn: q.modelAnswerEn,
+        feedback: answer?.feedback ?? null,
+        gradedBy: answer?.gradedBy ?? null,
+        gradedAt: answer?.gradedAt ?? null,
         isCorrect: answer?.isCorrect ?? null,
         choices: (byQ.get(qid) ?? []).map((c) => ({
           id: c.id,
