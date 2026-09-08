@@ -2,6 +2,27 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.10.0] — 2026-09-08
+
+### Added — Phase 8 hardening (W0–W10) + assessment/homework extensions + post-8 operational batches
+
+This release captures the work delivered after the 0.9.0 (Phase 7) changelog entry. It is engineering-complete and pending the **owner-only production steps** in `docs/PROJECT-PLAN.md` §9 (deploy runbook, `bootstrap-admin --remote`, real provider credentials, real-device matrix).
+
+- **Phase 8 hardening & release** — full audit/QA pass across security, accessibility, RTL/mobile, performance and dependencies; production-readiness gate (`check:production-readiness`) and final readiness report. See `docs/reports/phase-8-final-readiness-report.md` and the `docs/reports/phase-8-*` weekly reports.
+- **Assessment extensions** — question **pools + randomized exams** (stable per attempt), **essay / written-response questions** with a **manual grading queue** and handwritten file/image upload.
+- **Homework / Assignments** — assignments workflow engine + schema, admin create/edit/publish/archive UI + bounded grading queue, student list/detail with **text/file submission**.
+- **Admin operations** — **Student 360** profile (aggregated real data) + **global admin search**.
+- **Hardening batches on the working branch `arena/01a07d8c-tito`:**
+  - **A — bulk admin ops:** bulk activate/suspend on the admin users list (service-enforced escalation safety, per-item results, audited).
+  - **B — operational counters:** "needs attention" counters surfaced on the admin dashboard.
+  - **C — admin announcement preview:** preview of a draft/announcement exactly as an audience member would see it (closed the preview gap on the existing notification center, ADR-025).
+  - **D — manual-payment proof workflow:** student submits bank-transfer proof (image ≤10 MiB into `PRIVATE_FILES`, owner-scoped) with sender/amount/date/note; admin review panel mints 900s signed view URLs; **rejection now requires a reason** that the student sees; amount-must-match + server-computed total validation; richer `metadata.evidence`. See Phase D report.
+  - **E — course prerequisites:** `course_prerequisites` DAG (migration `0012_course_prerequisites.sql`), server-authoritative **learner gating** on completed live transitive prerequisites (course page locked-state + `/learn` redirect), admin editor picker, plus **clone** (deep, independent, draft-default, shared media, no progress/entitlements/audit) / archive / scheduling review with new integration coverage. See `docs/DECISIONS.md` ADR-026.
+
+### Verification
+- `npm run verify` green (lint:imports, typegen + tsc, unit **146/146**, integration **273/273**, production build).
+- Regression: content-crud, content-prereq, content-clone, access/entitlements, progress, commerce, admin-platform, assessment, assignments, auth, rate-limit all pass.
+
 ## [0.9.0] — 2026-09-05
 
 ### Added — Phase 7 (admin platform)
