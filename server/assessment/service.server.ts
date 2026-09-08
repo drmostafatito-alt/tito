@@ -42,7 +42,13 @@ export const ASSESSMENT_PERMISSIONS = [
 ] as const;
 export type AssessmentPermission = (typeof ASSESSMENT_PERMISSIONS)[number];
 
-/** rank 4 (super_admin) bypasses; rank 3 needs an explicit role_permissions row. */
+/**
+ * rank 4 (super_admin) bypasses; rank 2+ (teacher, admin) need an explicit
+ * role_permissions row. Teachers have NO rows by default — the owner grants
+ * authoring permissions on the teacher role via the admin Teachers section
+ * (never billing/payment/user-admin/security/system, enforced there). Students
+ * (rank 1) can never author.
+ */
 export async function canAssessment(
   db: DB,
   auth: { user: { rank: number; roleId: string } } | null,
@@ -50,7 +56,7 @@ export async function canAssessment(
 ): Promise<boolean> {
   if (!auth) return false;
   if (auth.user.rank >= 4) return true;
-  if (auth.user.rank < 3) return false;
+  if (auth.user.rank < 2) return false;
   const { rolePermissions } = await import("~server/db/schema");
   const rows = await db
     .select({ permission: rolePermissions.permission })

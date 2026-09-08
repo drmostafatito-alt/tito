@@ -26,17 +26,20 @@ const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 tex
  * rows; rank 4 bypasses. Mutations live on the detail pages and are audited.
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
-  const { auth } = await requireRole(context, request, 3);
+  const { auth } = await requireRole(context, request, 2); // teacher authors (with perms); admin+
   const db = getDb(getEnv(context));
   const url = new URL(request.url);
   const tabRaw = url.searchParams.get("tab");
-  const tab = tabRaw === "exams" || tabRaw === "grading" ? tabRaw : "questions";
-
+  // Grading is an admin-level privilege: a teacher without assessment.grade
+  // is never shown the grading tab even if they request it.
   const perms = {
     read: await canAssessment(db, auth, "assessment.read"),
     create: await canAssessment(db, auth, "assessment.create"),
     grade: await canAssessment(db, auth, "assessment.grade"),
   };
+  const tab =
+    tabRaw === "exams" || (tabRaw === "grading" && perms.grade) ? tabRaw : "questions";
+
   const emptyBank = {
     subjects: [] as Array<{ id: string; labelAr: string; labelEn: string }>,
     tags: [] as Array<{ id: string; labelAr: string; labelEn: string }>,
@@ -90,6 +93,10 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   return { tab, perms, questions: [], exams, counts, subjects: emptyBank.subjects, tags: emptyBank.tags, grading: [] as Awaited<ReturnType<typeof essayGradingQueue>> };
 }
 
+type AssessmentTab = "questions" | "exams" | "grading";
+const ASSESSMENT_TABS_ALL: AssessmentTab[] = ["questions", "exams", "grading"];
+const ASSESSMENT_TABS_AUTH: AssessmentTab[] = ["questions", "exams"];
+
 const qStatusTone: Record<string, "neutral" | "warning" | "success" | "brand"> = {
   draft: "neutral",
   in_review: "warning",
@@ -127,7 +134,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
       {!perms.read && <Alert kind="error">{t(locale, "assessment.denied")}</Alert>}
 
       <div className="flex gap-2 border-b">
-        {(["questions", "exams", "grading"] as const).map((tb) => (
+        {(perms.grade ? ASSESSMENT_TABS_ALL : ASSESSMENT_TABS_AUTH).map((tb) => (
           <Link
             key={tb}
             to={`/admin/assessment?tab=${tb}`}

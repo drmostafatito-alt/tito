@@ -55,7 +55,7 @@ const fromLocalInput = (v: string) => (v ? new Date(`${v}:00Z`).getTime() : null
  * a fail-closed gate; archive/unpublish are non-destructive.
  */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
-  const { auth } = await requireRole(context, request, 3);
+  const { auth } = await requireRole(context, request, 2);
   const db = getDb(getEnv(context));
   const isNew = params.id === "new";
   const perms = {
@@ -172,7 +172,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ context, params, request }: Route.ActionArgs) {
-  const { auth } = await requireRole(context, request, 3);
+  const { auth } = await requireRole(context, request, 2);
   const db = getDb(getEnv(context));
   const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
   const form = await request.formData();

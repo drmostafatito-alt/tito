@@ -61,6 +61,7 @@ export default [
     route("entitlements", "routes/admin.entitlements.tsx"),
     route("search", "routes/admin.search.tsx"),
     route("users", "routes/admin.users.tsx"),
+    route("teachers", "routes/admin.teachers.tsx"),
     route("users/:id", "routes/admin.users.$id.tsx"),
     route("students/:id", "routes/admin/students.$id.tsx"),
     route("analytics", "routes/admin.analytics.tsx"),

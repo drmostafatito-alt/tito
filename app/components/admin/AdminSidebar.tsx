@@ -11,14 +11,17 @@ export function SidebarContent({
   locale,
   collapsed = false,
   onNavigate,
+  sections = ADMIN_NAV_SECTIONS,
 }: {
   locale: Locale;
   collapsed?: boolean;
   onNavigate?: () => void;
+  /** Override the full admin nav (e.g. a restricted teacher authoring shell). */
+  sections?: import("./nav").NavSection[];
 }) {
   return (
     <div className="flex flex-col gap-5">
-      {ADMIN_NAV_SECTIONS.map((section) => {
+      {sections.map((section) => {
         if (collapsed) {
           return (
             <div key={section.id} className="flex flex-col items-center gap-1">

@@ -214,6 +214,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     labelKey: "nav.section_students",
     items: [
       { to: "/admin/users", labelKey: "nav.users", icon: "users" },
+      { to: "/admin/teachers", labelKey: "nav.teachers", icon: "users" },
       { to: "/admin/entitlements", labelKey: "nav.entitlements", icon: "entitlements" },
     ],
   },
@@ -249,6 +250,19 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     id: "settings",
     labelKey: "nav.section_settings",
     items: [{ to: "/admin/appearance", labelKey: "nav.appearance", icon: "appearance" }],
+  },
+];
+
+/**
+ * Minimal authoring-only navigation shown to a teacher (rank 2) admitted into
+ * the question-bank area. A teacher holding assessment.* authoring permissions
+ * only ever sees the question bank & exams hub — never users/sales/CMS/etc.
+ */
+export const TEACHER_NAV_SECTIONS: NavSection[] = [
+  {
+    id: "assessment",
+    labelKey: "nav.section_assessment",
+    items: [{ to: "/admin/assessment", labelKey: "nav.assessment", icon: "assessment" }],
   },
 ];
 
