@@ -15,4 +15,12 @@ interface Env {
    * production-readiness gate refuses a deploy config that carries it.
    */
   EXPOSE_DEV_RESET_TOKEN?: string;
+
+  /**
+   * Transactional email channel (server/email): none/unset = fail-closed (no
+   * delivery, never claimed); `log` = DEV-ONLY log channel (refused in a
+   * `production` ENVIRONMENT); `capture` = TEST-ONLY in-memory capture. A real
+   * provider requires a recorded verification ADR + owner credentials (DEPLOYMENT.md).
+   */
+  EMAIL_PROVIDER?: string;
 }

@@ -20,6 +20,9 @@ export default defineConfig({
           FILE_URL_SECRET: "integration-test-file-url-secret",
           MOCK_VIDEO_SECRET: "integration-test-mock-video-secret",
           MOCK_PAYMENTS_SECRET: "integration-test-mock-payments-secret",
+          // Transactional email uses the test-only in-memory capture channel so the
+          // request→send flows can be asserted hermetically (never a real provider).
+          EMAIL_PROVIDER: "capture",
           AUTH_PBKDF2_ITERATIONS: "100000",
           // Development context so the reset-token dev flow is exercised here;
           // fail-closed variants (production/staging/undefined) are asserted by

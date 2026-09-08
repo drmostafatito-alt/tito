@@ -11,6 +11,8 @@ import { getSettings } from "../settings/service.server";
 import { hashPassword, isCommonPassword, verifyPassword } from "./password.server";
 import { createSession, hashToken, newOpaqueToken, revokeAllUserSessions, revokeSession } from "./session.server";
 import { resolveDevice } from "./devices.server";
+import { brandFromNames, sendPasswordResetEmail } from "../email/service.server";
+import type { EmailLocale } from "../email/templates";
 import { z } from "zod";
 
 export type AuthErrorCode =
@@ -176,7 +178,7 @@ export async function requestPasswordReset(
   env: Env,
   emailInput: string,
   request: Request
-): Promise<{ ok: true; devToken?: string }> {
+): Promise<{ ok: true; devToken?: string; email?: "sent" | "unavailable" }> {
   const db = getDb(env);
   const settings = await getSettings(db);
   const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
@@ -187,7 +189,7 @@ export async function requestPasswordReset(
   if (!email.success) return { ok: true };
 
   const found = await db
-    .select({ id: users.id })
+    .select({ id: users.id, email: users.email, fullName: users.fullName, localePref: users.localePref })
     .from(users)
     .where(and(eq(users.email, email.data), isNull(users.deletedAt)))
     .limit(1);
@@ -195,20 +197,49 @@ export async function requestPasswordReset(
   if (!user) return { ok: true }; // enumeration resistance: identical shape
 
   const token = newOpaqueToken();
+  const now = Date.now();
+  const expiresAt = now + settings.security.resetTokenMinutes * 60_000;
   await db.insert(passwordResetTokens).values({
     id: crypto.randomUUID(),
     userId: user.id,
     tokenHash: await hashToken(token, env),
-    expiresAt: Date.now() + settings.security.resetTokenMinutes * 60_000,
-    createdAt: Date.now(),
+    expiresAt,
+    createdAt: now,
   });
   await logSecurityEvent(db, { userId: user.id, type: "password_reset_requested", ipHash });
 
-  // Email delivery arrives in Phase 3+ (verification-gated). Until a channel exists,
-  // the raw token is ONLY exposed in an EXPLICIT development context, for testing.
-  // Fail-closed: any unknown/missing configuration is treated as production-safe
-  // and the token is never returned (C1 — Phase 8 hardening).
-  return { ok: true, devToken: shouldExposeDevResetToken(env) ? token : undefined };
+  // Transactional email dispatch. The raw token is NEVER exposed in a response as a
+  // substitute for email; it travels ONLY inside the email reset link. When no
+  // delivery channel is configured the request still returns the uniform `ok`
+  // response (no enumeration signal) and `email` reports `unavailable`. In an
+  // EXPLICIT development context the token may additionally surface via the C1
+  // dev-only flag for offline/manual testing — production never does.
+  const emailSent = await (async () => {
+    try {
+      const origin = new URL(request.url).origin;
+      const locale: EmailLocale = user.localePref === "en" ? "en" : "ar";
+      const brand = brandFromNames(settings.platform.nameAr, settings.platform.nameEn, settings.platform.supportEmail);
+      return await sendPasswordResetEmail(env, {
+        to: user.email,
+        locale,
+        brand,
+        name: user.fullName,
+        resetUrl: `${origin}/reset-password?token=${encodeURIComponent(token)}`,
+        expiresMinutes: settings.security.resetTokenMinutes,
+      });
+    } catch {
+      // Delivery must never break the generic request flow. The error is swallowed;
+      // the token row still exists so a devToken (dev) path remains usable and the
+      // security event above still records the request.
+      return false;
+    }
+  })();
+
+  return {
+    ok: true,
+    devToken: shouldExposeDevResetToken(env) ? token : undefined,
+    email: emailSent ? ("sent" as const) : ("unavailable" as const),
+  };
 }
 
 /**

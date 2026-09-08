@@ -7,6 +7,7 @@ import { env } from "cloudflare:test";
 import { getDb } from "~server/db/client.server";
 import { login, registerUser, requestPasswordReset, resetPassword, shouldExposeDevResetToken } from "~server/auth/service.server";
 import { securityEvents, users } from "~server/db/schema";
+import { clearEmailCaptures, capturedEmails } from "~server/email/provider";
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1";
 
@@ -160,6 +161,42 @@ describe("password reset", () => {
     ]);
     const successes = [a, b].filter((r) => r.ok).length;
     expect(successes).toBe(1);
+  });
+
+  it("dispatches the reset email via the configured channel and embeds the token link", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "10.10.10.10" }));
+
+    // The integration test config binds EMAIL_PROVIDER=capture, so in a dev
+    // context requestPasswordReset must both create the token AND send email.
+    clearEmailCaptures();
+    const forgot = await requestPasswordReset(env, email, makeRequest({ ip: "10.10.10.10" }));
+    expect(forgot.ok).toBe(true);
+    expect(forgot.devToken).toBeTruthy(); // dev-only context
+    expect(forgot.email).toBe("sent");
+
+    const sent = capturedEmails(email);
+    expect(sent.length).toBe(1);
+    // The reset link carries the exact opaque token; it is the ONLY channel that
+    // carries it in a real (non-devToken) flow.
+    expect(sent[0].html).toContain(`/reset-password?token=${encodeURIComponent(forgot.devToken!)}`);
+    expect(sent[0].html.toLowerCase()).not.toContain("educore");
+  });
+
+  it("production (no channel) returns unavailable and sends no email, never exposing the token", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "10.10.10.11" }));
+
+    clearEmailCaptures();
+    // Pin to a production context with NO email channel configured.
+    const prodEnv = { ...env, ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: undefined, EMAIL_PROVIDER: undefined };
+    const forgot = await requestPasswordReset(prodEnv, email, makeRequest({ ip: "10.10.10.11" }));
+    expect(forgot.ok).toBe(true);
+    expect(forgot.devToken).toBeUndefined();
+    expect(forgot.email).toBe("unavailable");
+    expect(capturedEmails(email).length).toBe(0);
+    // The response must never leak a long opaque token-shaped string.
+    expect(JSON.stringify(forgot)).not.toMatch(/([A-Za-z0-9_-]{20,})/);
   });
 });
 
