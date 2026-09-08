@@ -52,6 +52,7 @@ export const en: Dictionary = {
       email_taken: "This email is already registered.",
       weak_password: "Password must be at least 8 characters.",
       common_password: "Please choose a stronger, less common password.",
+      rate_limited: "Too many attempts — please wait and try again later.",
       rate_limitedTitle: "You\u2019re temporarily rate limited",
       rate_limitedBody: "Too many login attempts were made from this device or network. To protect your account, please wait before trying again.",
       rate_limitedRetry: "You can try again in about {s} seconds.",

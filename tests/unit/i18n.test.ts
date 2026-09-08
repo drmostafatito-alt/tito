@@ -19,6 +19,21 @@ describe("dictionary parity (ar/en must not drift)", () => {
     expect(t("ar", "common.appName")).toBe("د/ مصطفى تيتو");
   });
 
+  it("auth.error codes surfaced by routes all resolve (never leak raw keys)", () => {
+    // register/login/reset/change-password render t(locale, `auth.errors.${code}`).
+    // If a code is missing from the dictionaries t() returns the raw key -> UI leak.
+    const codes = ["invalid_credentials", "email_taken", "weak_password", "common_password",
+      "rate_limited", "device_limit", "device_change_limit", "device_revoked", "invalid_token",
+      "wrong_current_password", "user_suspended", "mismatch"];
+    for (const locale of ["ar", "en"] as const) {
+      for (const code of codes) {
+        const out = t(locale, `auth.errors.${code}`);
+        expect(out).not.toBe(`auth.errors.${code}`);
+        expect(out).toBeTruthy();
+      }
+    }
+  });
+
   it("unknown key falls back to the key itself", () => {
     expect(t("en", "does.not.exist")).toBe("does.not.exist");
   });
