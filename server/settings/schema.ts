@@ -12,6 +12,14 @@ export const platformSettingsSchema = z.object({
   supportEmail: z.string().email().nullish().default(null),
   supportPhone: z.string().max(32).nullish().default(null),
   whatsapp: z.string().max(32).nullish().default(null),
+  /**
+   * Show a floating WhatsApp button on the PUBLIC HOMEPAGE ONLY. Deliberately
+   * scoped to the homepage: a fixed overlay would cover video controls, exam
+   * questions and forms on course/lesson/exam pages.
+   */
+  whatsappFloating: z.boolean().default(false),
+  /** Optional pre-filled first message for the floating button's wa.me link. */
+  whatsappMessage: z.string().max(300).default(""),
 });
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
 

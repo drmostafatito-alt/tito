@@ -78,6 +78,7 @@ export async function action({ context, request }: Route.ActionArgs) {
         taglineAr: str("taglineAr"), taglineEn: str("taglineEn"),
         supportEmail: nullable("supportEmail"), supportPhone: nullable("supportPhone"),
         whatsapp: nullable("whatsapp"), maintenance: on("maintenance"),
+        whatsappFloating: on("whatsappFloating"), whatsappMessage: str("whatsappMessage"),
       }, actor);
       // Language presentation: which languages visitors are offered, and which
       // one a fresh visitor (no cookie) gets. localeSettingsSchema rejects a
@@ -547,6 +548,11 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                 <Input label={L("cms.f.supportEmail")} name="supportEmail" defaultValue={plat.supportEmail ?? ""} dir="ltr" />
                 <Input label={L("cms.f.supportPhone")} name="supportPhone" defaultValue={plat.supportPhone ?? ""} dir="ltr" />
                 <Input label={L("cms.f.whatsapp")} name="whatsapp" defaultValue={plat.whatsapp ?? ""} dir="ltr" />
+                <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3" data-testid="whatsapp-floating-settings">
+                  <Check name="whatsappFloating" checked={plat.whatsappFloating} label={L("cms.f.whatsappFloating")} />
+                  <p className="text-xs text-slate-500">{L("cms.f.whatsappFloatingHint")}</p>
+                  <Input label={L("cms.f.whatsappMessage")} name="whatsappMessage" defaultValue={plat.whatsappMessage} dir="rtl" />
+                </div>
                 <Check name="maintenance" checked={plat.maintenance} label={L("cms.f.maintenance")} />
               </fieldset>
               <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4" data-testid="language-settings">

@@ -1065,6 +1065,13 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.f.supportEmail": { ar: "بريد الدعم", en: "Support email" },
   "cms.f.supportPhone": { ar: "هاتف الدعم", en: "Support phone" },
   "cms.f.whatsapp": { ar: "رقم واتساب", en: "WhatsApp number" },
+  "cms.f.whatsappFloating": { ar: "إظهار زر واتساب العائم", en: "Show floating WhatsApp button" },
+  "cms.f.whatsappFloatingHint": {
+    ar: "يظهر في الصفحة الرئيسية فقط، ويختفي تلقائيًا عند اقترابه من فيديو أو محتوى مهم. يلزم إدخال رقم واتساب.",
+    en: "Homepage only, and it automatically gets out of the way of videos and important content. A WhatsApp number is required.",
+  },
+  "cms.f.whatsappMessage": { ar: "رسالة واتساب الافتراضية", en: "Default WhatsApp message" },
+  "cms.whatsappFab.label": { ar: "تواصل معنا عبر واتساب", en: "Chat with us on WhatsApp" },
   "cms.f.maintenance": { ar: "وضع الصيانة (يظهر للزوار صفحة صيانة)", en: "Maintenance mode (visitors see a maintenance page)" },
   "cms.f.videoProvider": { ar: "المزود النشط", en: "Active provider" },
   "cms.f.playbackTtl": { ar: "مدة رمز التشغيل (ثانية، 10–60)", en: "Playback token TTL (seconds, 10–60)" },

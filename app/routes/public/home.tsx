@@ -9,8 +9,22 @@ import { handleCmsFormAction, requestLocale } from "~server/cms/page-render.serv
 import { resolveAuth } from "~server/auth/session.server";
 import { asSnapshot, parseSeo, seoMeta } from "~/cms/seo";
 import { PageView } from "~/components/cms/blocks";
+import { WhatsAppFab } from "~/components/WhatsAppFab";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { t } from "~/lib/i18n";
+
+/** The floating WhatsApp button is a homepage-only affordance (see WhatsAppFab). */
+function fabFrom(platform: {
+  whatsapp?: string | null;
+  whatsappFloating?: boolean;
+  whatsappMessage?: string;
+}) {
+  return {
+    enabled: platform.whatsappFloating === true,
+    phone: platform.whatsapp ?? "",
+    message: platform.whatsappMessage ?? "",
+  };
+}
 
 /**
  * Homepage = CMS page with slug `home` (Phase 3: the owner composes it in the
@@ -29,7 +43,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const snapshot = page && page.status === "published" ? asSnapshot(page.publishedSnapshot) : null;
   const platformTitle = { ar: settings.platform.nameAr, en: settings.platform.nameEn };
   if (!snapshot) {
-    return { sections: [], ctx: null, seo: null, ogImage: null, title: platformTitle, locale, empty: true as const, url: request.url };
+    return { sections: [], ctx: null, seo: null, ogImage: null, title: platformTitle, locale, empty: true as const, url: request.url, whatsappFab: fabFrom(settings.platform) };
   }
 
   const rendered = await renderSnapshot(db, snapshot, { settings, locale });
@@ -47,6 +61,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     locale,
     empty: false as const,
     url: request.url,
+    whatsappFab: fabFrom(settings.platform),
   };
 }
 
@@ -71,6 +86,13 @@ export async function action({ context, request }: Route.ActionArgs) {
 export default function Home({ loaderData }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const pageTitle = loaderData.locale === "ar" ? loaderData.title.ar : loaderData.title.en;
+  const fab = loaderData.whatsappFab.enabled ? (
+    <WhatsAppFab
+      phone={loaderData.whatsappFab.phone}
+      message={loaderData.whatsappFab.message}
+      locale={loaderData.locale}
+    />
+  ) : null;
 
   if (loaderData.empty || !loaderData.ctx) {
     return (
@@ -80,6 +102,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           title={t(loaderData.locale, "content.pageEmptyTitle")}
           body={t(loaderData.locale, "content.pageEmptyBody")}
         />
+        {fab}
       </div>
     );
   }
@@ -96,6 +119,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           title={t(ctx.locale, "content.pageEmptyTitle")}
           body={t(ctx.locale, "content.pageEmptyBody")}
         />
+        {fab}
       </div>
     );
   }
@@ -103,6 +127,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <>
       {/* CMS hero supplies the visible h1; public layout already provides <main> */}
       <PageView sections={loaderData.sections} ctx={ctx} main={false} />
+      {fab}
     </>
   );
 }
