@@ -2,10 +2,12 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { DB } from "../db/client.server";
 import {
+  coursePrerequisites,
   courses,
   files,
   grades,
   lessonItems,
+  lessonProgress,
   lessons,
   programs,
   subjects,
@@ -894,4 +896,198 @@ export async function filesByIds(db: DB, ids: string[]) {
   if (ids.length === 0) return new Map<string, typeof files.$inferSelect>();
   const rows = await db.select().from(files).where(inArray(files.id, ids));
   return new Map(rows.map((r) => [r.id, r]));
+}
+
+// --- course prerequisites (Phase E) ---------------------------------------
+// A course may declare prerequisite courses as a DAG (enforced acyclic at write).
+// A learner may open a course only once every LIVE (published, non-deleted)
+// transitive prerequisite course has been COMPLETED by that student. Completion =
+// the course has >=1 published lesson and every published lesson has a completed
+// lesson_progress row for the student. This gate is server-authoritative and is
+// layered on top of resolveContentAccess (which stays pure). Teachers/admins and
+// anonymous viewers bypass it (anon is redirected to login by the access layer).
+
+export class PrerequisiteCycleError extends Error {
+  constructor(public readonly courseId: string) {
+    super(`prerequisite cycle would be created involving course ${courseId}`);
+    this.name = "PrerequisiteCycleError";
+  }
+}
+
+export interface CoursePrereq {
+  courseId: string;
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+}
+
+async function prereqIdsFor(db: DB, courseId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: coursePrerequisites.prerequisiteCourseId })
+    .from(coursePrerequisites)
+    .where(eq(coursePrerequisites.courseId, courseId))
+    .orderBy(asc(coursePrerequisites.createdAt));
+  return rows.map((r) => r.id);
+}
+
+/** Direct prerequisites of a course, in declaration order. */
+export async function prerequisitesForCourse(db: DB, courseId: string): Promise<CoursePrereq[]> {
+  const ids = await prereqIdsFor(db, courseId);
+  if (ids.length === 0) return [];
+  const crs = await db.select().from(courses).where(inArray(courses.id, ids));
+  const byId = new Map(crs.map((c) => [c.id, c]));
+  return ids.flatMap((id) => {
+    const c = byId.get(id);
+    return c ? [{ courseId: c.id, slug: c.slug, titleAr: c.titleAr, titleEn: c.titleEn }] : [];
+  });
+}
+
+/**
+ * Replace the direct prerequisite set of a course. Validates that both ends exist
+ * (ContentReferenceError), drops self-reference/duplicates and rejects any
+ * prerequisite whose introduction would create a cycle (PrerequisiteCycleError).
+ * Mutations are audited per course.
+ */
+export async function setCoursePrerequisites(
+  db: DB,
+  courseId: string,
+  prerequisiteIds: string[],
+  actor: ActorCtx
+): Promise<void> {
+  const exists = await db.select({ id: courses.id }).from(courses).where(and(eq(courses.id, courseId), isNull(courses.deletedAt))).limit(1);
+  if (exists.length === 0) throw new ContentReferenceError("courseId", courseId);
+
+  const want = [...new Set(prerequisiteIds)].filter((x) => Boolean(x) && x !== courseId);
+  if (want.length) {
+    const found = await db.select({ id: courses.id }).from(courses).where(and(inArray(courses.id, want), isNull(courses.deletedAt)));
+    const foundSet = new Set(found.map((r) => r.id));
+    for (const id of want) if (!foundSet.has(id)) throw new ContentReferenceError("prerequisiteCourseId", id);
+  }
+
+  const all = await db
+    .select({ fromId: coursePrerequisites.courseId, toId: coursePrerequisites.prerequisiteCourseId })
+    .from(coursePrerequisites);
+  const current = new Set<string>();
+  const adj = new Map<string, string[]>();
+  for (const e of all) {
+    if (e.fromId === courseId) {
+      current.add(e.toId);
+      continue;
+    }
+    const list = adj.get(e.fromId) ?? [];
+    list.push(e.toId);
+    adj.set(e.fromId, list);
+  }
+  adj.set(courseId, want);
+  const reachesCourse = (start: string): boolean => {
+    const seen = new Set<string>([start]);
+    const q = [start];
+    while (q.length) {
+      const cur = q.shift()!;
+      for (const nxt of adj.get(cur) ?? []) {
+        if (nxt === courseId) return true;
+        if (!seen.has(nxt)) {
+          seen.add(nxt);
+          q.push(nxt);
+        }
+      }
+    }
+    return false;
+  };
+  for (const p of want) if (reachesCourse(p)) throw new PrerequisiteCycleError(courseId);
+
+  const wantSet = new Set(want);
+  const adds = want.filter((x) => !current.has(x));
+  const removes = [...current].filter((x) => !wantSet.has(x));
+  const now = Date.now();
+
+  if (removes.length) {
+    await db
+      .delete(coursePrerequisites)
+      .where(and(eq(coursePrerequisites.courseId, courseId), inArray(coursePrerequisites.prerequisiteCourseId, removes)));
+  }
+  if (adds.length) {
+    await db.insert(coursePrerequisites).values(adds.map((pid) => ({ id: crypto.randomUUID(), courseId, prerequisiteCourseId: pid, createdAt: now })));
+  }
+  await logAudit(db, {
+    actorUserId: actor.userId,
+    actorRole: actor.role,
+    action: "content.course.prerequisites",
+    entityType: "course",
+    entityId: courseId,
+    before: { prerequisiteCourseIds: [...current].sort() },
+    after: { prerequisiteCourseIds: want.slice().sort() },
+  });
+}
+
+/** Transitive closure of a course's prerequisites (direct + indirect), BFS order. */
+export async function prerequisiteClosureFor(db: DB, courseId: string): Promise<CoursePrereq[]> {
+  const seen = new Set<string>();
+  const out: CoursePrereq[] = [];
+  const q = [courseId];
+  while (q.length) {
+    const cur = q.shift()!;
+    const dir = await prerequisitesForCourse(db, cur);
+    for (const p of dir) {
+      if (seen.has(p.courseId)) continue;
+      seen.add(p.courseId);
+      out.push(p);
+      q.push(p.courseId);
+    }
+  }
+  return out;
+}
+
+async function courseCompletedByStudent(db: DB, courseId: string, studentId: string): Promise<boolean> {
+  const unitRows = await db
+    .select({ id: units.id })
+    .from(units)
+    .where(and(eq(units.courseId, courseId), eq(units.status, "published"), isNull(units.deletedAt)));
+  if (unitRows.length === 0) return false;
+  const lessonRows = await db
+    .select({ id: lessons.id })
+    .from(lessons)
+    .where(and(inArray(lessons.unitId, unitRows.map((u) => u.id)), eq(lessons.status, "published"), isNull(lessons.deletedAt)));
+  if (lessonRows.length === 0) return false;
+  const ids = lessonRows.map((l) => l.id);
+  const prog = await db
+    .select({ lessonId: lessonProgress.lessonId })
+    .from(lessonProgress)
+    .where(and(eq(lessonProgress.studentId, studentId), eq(lessonProgress.status, "completed"), inArray(lessonProgress.lessonId, ids)));
+  return prog.length === ids.length;
+}
+
+export interface PrereqSubject {
+  userId: string | null;
+  roleRank: number; // 0 anon, 1 student, 2 teacher, 3 admin, 4 super_admin
+}
+
+export interface CoursePrereqLock {
+  locked: boolean;
+  missing: CoursePrereq[];
+}
+
+/**
+ * Server-authoritative prerequisite gate for opening a course. A signed-in student
+ * is locked out of a course until every LIVE (published, non-deleted) transitive
+ * prerequisite course is completed. Teachers/admins and anonymous viewers bypass.
+ */
+export async function coursePrereqGate(db: DB, subject: PrereqSubject, courseId: string): Promise<CoursePrereqLock> {
+  if (!subject.userId || subject.roleRank >= 2) return { locked: false, missing: [] };
+  const closure = await prerequisiteClosureFor(db, courseId);
+  if (closure.length === 0) return { locked: false, missing: [] };
+
+  const liveRows = await db
+    .select({ id: courses.id })
+    .from(courses)
+    .where(and(inArray(courses.id, closure.map((c) => c.courseId)), eq(courses.status, "published"), isNull(courses.deletedAt)));
+  const live = new Set(liveRows.map((r) => r.id));
+  const needed = closure.filter((c) => live.has(c.courseId));
+  if (needed.length === 0) return { locked: false, missing: [] };
+
+  const missing: CoursePrereq[] = [];
+  for (const p of needed) {
+    if (!(await courseCompletedByStudent(db, p.courseId, subject.userId))) missing.push(p);
+  }
+  return { locked: missing.length > 0, missing };
 }

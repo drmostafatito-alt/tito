@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /**
  * Content domain (DATABASE-SCHEMA.md "Content (P2)").
@@ -149,6 +149,29 @@ export const lessons = sqliteTable(
     deletedAt: integer("deleted_at", { mode: "number" }),
   },
   (t) => [index("lessons_unit_idx").on(t.unitId, t.sortOrder)]
+);
+
+/**
+ * Course prerequisites (self-referential DAG): a row (courseId → prerequisiteCourseId)
+ * means a learner must COMPLETE `prerequisite_course_id` before `course_id` is
+ * openable. Plain TEXT refs + app-layer guards (content service validates both ends
+ * exist and rejects self-reference / cycles before write), consistent with the
+ * no-DB-FK convention on content tables. Completion is defined over lesson_progress
+ * (all published lessons completed) — see content service.
+ */
+export const coursePrerequisites = sqliteTable(
+  "course_prerequisites",
+  {
+    id: text("id").primaryKey(),
+    courseId: text("course_id").notNull(),
+    prerequisiteCourseId: text("prerequisite_course_id").notNull(),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("course_prerequisites_uidx").on(t.courseId, t.prerequisiteCourseId),
+    index("course_prerequisites_course_idx").on(t.courseId),
+    index("course_prerequisites_prereq_idx").on(t.prerequisiteCourseId),
+  ]
 );
 
 export const lessonItems = sqliteTable(
