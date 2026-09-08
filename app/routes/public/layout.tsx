@@ -67,6 +67,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
 interface RootLoaderData {
   locale: Locale;
+  localeOptions?: Locale[];
   platform: { nameAr: string; nameEn: string; maintenance: boolean };
 }
 
@@ -98,6 +99,7 @@ function NavLink({ item, locale, className, onNavigate }: { item: MenuLink; loca
 export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as RootLoaderData;
   const locale = root?.locale ?? "ar";
+  const localeOptions = root?.localeOptions;
   const appName = locale === "ar" ? loaderData.identity.platformName.ar : loaderData.identity.platformName.en;
   const tagline = locale === "ar" ? loaderData.identity.tagline.ar : loaderData.identity.tagline.en;
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -174,7 +176,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 ))}
               </div>
             )}
-            <LanguageSwitcher locale={locale} />
+            <LanguageSwitcher locale={locale} options={localeOptions} />
             {loaderData.user ? (
               <>
                 <Link to="/courses" className="hidden min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 md:inline-flex">

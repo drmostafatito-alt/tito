@@ -15,10 +15,15 @@ export const platformSettingsSchema = z.object({
 });
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
 
-export const localeSettingsSchema = z.object({
-  default: localeCodeSchema.default("ar"),
-  enabled: z.array(localeCodeSchema).default(["ar", "en"]),
-});
+export const localeSettingsSchema = z
+  .object({
+    default: localeCodeSchema.default("ar"),
+    enabled: z.array(localeCodeSchema).min(1).default(["ar", "en"]),
+  })
+  .refine((v) => v.enabled.includes(v.default), {
+    message: "the default language must also be offered to visitors",
+    path: ["default"],
+  });
 export type LocaleSettings = z.infer<typeof localeSettingsSchema>;
 
 export const deviceSettingsSchema = z.object({

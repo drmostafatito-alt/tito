@@ -60,6 +60,19 @@ describe("settings schemas (ADR-012)", () => {
     expect(platformSettingsSchema.safeParse({ nameEn: "" }).success).toBe(false);
   });
 
+  it("locale settings: owner may choose the default language, but not an unservable site", () => {
+    // the control that Appearance → System now exposes
+    expect(localeSettingsSchema.safeParse({ default: "en", enabled: ["ar", "en"] }).success).toBe(true);
+    expect(localeSettingsSchema.safeParse({ default: "ar", enabled: ["ar"] }).success).toBe(true);
+    expect(localeSettingsSchema.safeParse({ default: "en", enabled: ["en"] }).success).toBe(true);
+
+    // fail closed: a default the visitor can never be served, or no language at all
+    expect(localeSettingsSchema.safeParse({ default: "en", enabled: ["ar"] }).success).toBe(false);
+    expect(localeSettingsSchema.safeParse({ default: "ar", enabled: [] }).success).toBe(false);
+    expect(localeSettingsSchema.safeParse({ default: "fr", enabled: ["ar", "en"] }).success).toBe(false);
+    expect(localeSettingsSchema.safeParse({ enabled: ["fr"] }).success).toBe(false);
+  });
+
   it("merging a partial patch over defaults keeps the rest", () => {
     const current = deviceSettingsSchema.parse({});
     const next = deviceSettingsSchema.parse({ ...current, maxPerStudent: 3 });

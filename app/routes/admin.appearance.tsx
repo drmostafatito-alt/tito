@@ -1,5 +1,6 @@
 import type { Route } from "./+types/admin.appearance";
 import { Form, Link, useActionData, useRouteLoaderData } from "react-router";
+import { ZodError } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
@@ -77,6 +78,14 @@ export async function action({ context, request }: Route.ActionArgs) {
         taglineAr: str("taglineAr"), taglineEn: str("taglineEn"),
         supportEmail: nullable("supportEmail"), supportPhone: nullable("supportPhone"),
         whatsapp: nullable("whatsapp"), maintenance: on("maintenance"),
+      }, actor);
+      // Language presentation: which languages visitors are offered, and which
+      // one a fresh visitor (no cookie) gets. localeSettingsSchema rejects a
+      // default that is not offered and an empty list, so a bad combination
+      // surfaces as a validation message instead of an unusable site.
+      await updateSettingsGroup(db, "locale", {
+        default: str("defaultLocale") === "en" ? "en" : "ar",
+        enabled: (["ar", "en"] as const).filter((c) => on(`localeEnabled.${c}`)),
       }, actor);
       if (guarded.auth.user.rank >= 4) {
         const num = (k: string) => Number(str(k) || 0);
@@ -174,8 +183,13 @@ export async function action({ context, request }: Route.ActionArgs) {
     await updateSettingsGroup(db, group as "identity", patch, actor);
     return { ok: true as const };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { error: "validation" as const, issues: [message.slice(0, 300)] };
+    // Surface the actual validation reasons ("default: the default language must
+    // also be offered to visitors") instead of a raw Zod JSON dump the owner
+    // cannot act on. Non-Zod failures keep their message.
+    const issues = err instanceof ZodError
+      ? err.issues.map((i) => `${i.path.join(".") || "value"}: ${i.message}`)
+      : [err instanceof Error ? err.message : String(err)];
+    return { error: "validation" as const, issues: issues.map((m) => m.slice(0, 300)) };
   }
 }
 
@@ -356,6 +370,7 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
   const pres = settings.presentation;
   const dash = settings.dashboard;
   const plat = settings.platform;
+  const loc = settings.locale;
   const vid = settings.video;
   const pay = settings.payments;
 
@@ -533,6 +548,19 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                 <Input label={L("cms.f.supportPhone")} name="supportPhone" defaultValue={plat.supportPhone ?? ""} dir="ltr" />
                 <Input label={L("cms.f.whatsapp")} name="whatsapp" defaultValue={plat.whatsapp ?? ""} dir="ltr" />
                 <Check name="maintenance" checked={plat.maintenance} label={L("cms.f.maintenance")} />
+              </fieldset>
+              <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4" data-testid="language-settings">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.systemLanguage")}</legend>
+                <p className="text-xs text-slate-500">{L("cms.f.localeHint")}</p>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.f.defaultLocale")}</span>
+                  <select name="defaultLocale" defaultValue={loc.default} className={selectCls} data-testid="default-locale">
+                    <option value="ar">العربية</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+                <Check name="localeEnabled.ar" checked={loc.enabled.includes("ar")} label={L("cms.f.localeOfferAr")} />
+                <Check name="localeEnabled.en" checked={loc.enabled.includes("en")} label={L("cms.f.localeOfferEn")} />
               </fieldset>
               {loaderData.isSuper && (
                 <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4">

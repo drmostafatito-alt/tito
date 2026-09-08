@@ -159,9 +159,11 @@ function ProfileMenu({ locale, email, fullName }: { locale: Locale; email: strin
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as {
     locale?: Locale;
+    localeOptions?: Locale[];
     platform?: { nameAr: string; nameEn: string };
   };
   const locale = (root?.locale ?? "ar") as Locale;
+  const localeOptions = root?.localeOptions;
   const appName = locale === "ar" ? (root?.platform?.nameAr ?? "Admin") : (root?.platform?.nameEn ?? "Admin");
   const location = useLocation();
 
@@ -256,7 +258,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
 
             <div className="ms-auto flex shrink-0 items-center gap-1.5">
               <span className="hidden sm:inline-flex">
-                <LanguageSwitcher locale={locale} />
+                <LanguageSwitcher locale={locale} options={localeOptions} />
               </span>
               <a
                 href="/"
@@ -311,7 +313,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             </div>
             <SidebarContent locale={locale} onNavigate={() => setMobileOpen(false)} sections={navSections} />
             <div className="mt-4 flex items-center gap-2 border-t border-slate-800 pt-3 sm:hidden">
-              <LanguageSwitcher locale={locale} />
+              <LanguageSwitcher locale={locale} options={localeOptions} />
             </div>
           </nav>
         </div>

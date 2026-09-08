@@ -1,6 +1,8 @@
 import { Form, useLocation } from "react-router";
 import { t, type Locale } from "~/lib/i18n";
 
+const ALL: Locale[] = ["ar", "en"];
+
 /**
  * POST /set-locale then a FULL document reload (`reloadDocument`).
  *
@@ -10,9 +12,14 @@ import { t, type Locale } from "~/lib/i18n";
  * and already-rendered Arabic/English copy on screen. A real browser
  * navigation re-runs every loader against the new cookie.
  */
-export function LanguageSwitcher({ locale }: { locale: Locale }) {
+export function LanguageSwitcher({ locale, options }: { locale: Locale; options?: Locale[] }) {
   const location = useLocation();
-  const next = locale === "ar" ? "en" : "ar";
+  // Owner-controlled (Appearance → System). With a single offered language there
+  // is nothing to switch to, so the control is omitted rather than rendered as a
+  // button that silently does nothing.
+  const offered = (options && options.length > 0 ? options : ALL).filter((l) => l === "ar" || l === "en");
+  const next = offered.find((l) => l !== locale);
+  if (!next) return null;
   return (
     <Form method="post" action="/set-locale" reloadDocument replace data-locale-switch="">
       <input type="hidden" name="lang" value={next} />

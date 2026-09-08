@@ -32,6 +32,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
 interface RootLoaderData {
   locale: Locale;
+  localeOptions?: Locale[];
   platform: { nameAr: string; nameEn: string };
 }
 
@@ -69,6 +70,7 @@ function MenuLinkNode({ item, locale, className, onNavigate }: { item: MenuLink;
 export default function StudentLayout({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as RootLoaderData | undefined;
   const locale = root?.locale ?? "ar";
+  const localeOptions = root?.localeOptions;
   const appName = locale === "ar" ? root!.platform.nameAr : root!.platform.nameEn;
   const isAdmin = loaderData.user.rank >= 3;
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -135,7 +137,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                 {t(locale, "common.admin")}
               </Link>
             )}
-            <LanguageSwitcher locale={locale} />
+            <LanguageSwitcher locale={locale} options={localeOptions} />
             <Form method="post" action="/logout">
               <button type="submit" className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
                 {t(locale, "common.logout")}
@@ -145,7 +147,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
 
           {/* Mobile: language + hamburger */}
           <div className="flex items-center gap-1.5 md:hidden">
-            <LanguageSwitcher locale={locale} />
+            <LanguageSwitcher locale={locale} options={localeOptions} />
             <button
               type="button"
               className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100"

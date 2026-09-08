@@ -46,6 +46,10 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
   return {
     locale,
+    // Languages the owner offers (Appearance → System). Drives the switcher and
+    // the /set-locale guard so `locale.enabled` is an enforced setting, not
+    // stored-but-ignored configuration.
+    localeOptions: settings.locale.enabled,
     platform: settings.platform,
     user: auth ? { fullName: auth.user.fullName, roleId: auth.user.roleId, rank: auth.user.rank } : null,
   };
