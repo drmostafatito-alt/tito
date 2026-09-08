@@ -4,8 +4,8 @@ export const localeCodeSchema = z.enum(["ar", "en"]);
 export type LocaleCode = z.infer<typeof localeCodeSchema>;
 
 export const platformSettingsSchema = z.object({
-  nameAr: z.string().min(1).max(120).default("د. مصطفى تيتو"),
-  nameEn: z.string().min(1).max(120).default("Dr. Mostafa Tito"),
+  nameAr: z.string().min(1).max(120).default("د/ مصطفى تيتو"),
+  nameEn: z.string().min(1).max(120).default("Dr mostafa tito"),
   taglineAr: z.string().max(200).default("الفلسفة وعلم النفس"),
   taglineEn: z.string().max(200).default("Philosophy & Psychology"),
   maintenance: z.boolean().default(false),
@@ -142,25 +142,25 @@ export type IdentitySettings = z.infer<typeof identitySettingsSchema>;
 const hex = (fallback: string) => z.string().regex(/^#[0-9a-fA-F]{6}$/, "must be #rrggbb").default(fallback);
 
 export const themeSettingsSchema = z.object({
-  primary: hex("#0e6b5e"),
-  secondary: hex("#143c38"),
-  accent: hex("#b78a1c"),
-  background: hex("#f6f1e7"),
-  surface: hex("#fffdf8"),
-  text: hex("#211b14"),
-  mutedText: hex("#6f6455"),
-  border: hex("#e3daca"),
-  success: hex("#047857"),
-  warning: hex("#b45309"),
-  error: hex("#b91c1c"),
-  radiusBase: z.number().int().min(0).max(32).default(10),
-  radiusButton: z.number().int().min(0).max(32).default(10),
-  radiusCard: z.number().int().min(0).max(32).default(16),
-  shadow: z.enum(["none", "sm", "md", "lg"]).default("sm"),
+  primary: hex("#7c3aed"),
+  secondary: hex("#4f46e5"),
+  accent: hex("#6366f1"),
+  background: hex("#faf8ff"),
+  surface: hex("#ffffff"),
+  text: hex("#0f172a"),
+  mutedText: hex("#64748b"),
+  border: hex("#e2e8f0"),
+  success: hex("#059669"),
+  warning: hex("#d97706"),
+  error: hex("#e11d48"),
+  radiusBase: z.number().int().min(0).max(32).default(12),
+  radiusButton: z.number().int().min(0).max(32).default(16),
+  radiusCard: z.number().int().min(0).max(32).default(20),
+  shadow: z.enum(["none", "sm", "md", "lg"]).default("md"),
   density: z.enum(["compact", "normal", "relaxed"]).default("normal"),
   fontScale: z.enum(["compact", "normal", "large"]).default("normal"),
   headingFont: z.enum(["cairo", "ibm"]).default("cairo"),
-  bodyFont: z.enum(["cairo", "ibm"]).default("ibm"),
+  bodyFont: z.enum(["cairo", "ibm"]).default("cairo"),
 });
 export type ThemeSettings = z.infer<typeof themeSettingsSchema>;
 

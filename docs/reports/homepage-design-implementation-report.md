@@ -53,7 +53,7 @@ Header navigation (via the existing **menu builder**, location `header`): الر
 
 ## 5. Content integrity (no invented claims)
 
-- **Platform/owner identity** — only the verified facts from the seed are used: owner `د. مصطفى تيتو` / `Dr. Mostafa Tito`, phone `01153719506`, Facebook `https://www.facebook.com/mr.mostafa.tito.philosophy/`. The hero does **not** assert a title, bio, specialty, years of experience, student counts, testimonials, ratings, or photos.
+- **Platform/owner identity** — only the verified facts from the seed are used: owner `د/ مصطفى تيتو` / `Dr mostafa tito`, phone `01153719506`, Facebook `https://www.facebook.com/mr.mostafa.tito.philosophy/`. The hero does **not** assert a title, bio, specialty, years of experience, student counts, testimonials, ratings, or photos.
 - **No physics content** — the correction to philosophy & psychology is respected end-to-end: no physics terms, subject names, icons, categories, or `"منصة الفيزياء"` branding. Icons are generic/academic (book, brain, list, check-circle, sparkles, file-text) and remain CMS-configurable.
 - **Statistics** — the trust bar carries offerings (structural, allowed examples: كورسات الفلسفة، كورسات علم النفس، بنوك أسئلة، اختبارات إلكترونية), never fabricated counts.
 - **Images/videos** — hero image and intro video are **empty** (empty-first: missing optional data renders nothing). No owner photo, no fake demo video, no generated asset is inserted. R2/media authorization rules are unchanged.

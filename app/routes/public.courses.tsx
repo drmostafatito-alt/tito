@@ -6,7 +6,6 @@ import { getSettings } from "~server/settings/service.server";
 import { catalogCourses } from "~server/content/service.server";
 import { lessonCounts, resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
 import { Card, CardBody } from "~/components/ui/Card";
-import { EmptyState } from "~/components/ui/EmptyState";
 import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
@@ -84,15 +83,11 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
   const { pres } = loaderData;
   const cta = locale === "ar" ? pres.ctaLabelAr : pres.ctaLabelEn;
 
-  const wide = pres.layout === "wide";
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:py-14">
-      <div className="mb-8 flex flex-col items-start gap-3">
-        <span aria-hidden="true" className="h-1 w-10 rounded-full bg-accent-500" />
-        <h1 className="font-display text-3xl font-semibold text-ink sm:text-4xl">{t(locale, "content.catalogTitle")}</h1>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      <h1 className="mb-6 text-2xl font-bold">{t(locale, "content.catalogTitle")}</h1>
       {loaderData.courses.length === 0 ? (
-        <EmptyState title={t(locale, "content.catalogEmpty")} />
+        <p className="text-slate-500">{t(locale, "content.catalogEmpty")}</p>
       ) : (
         <div className={`grid gap-4 ${LAYOUT_GRID[pres.layout as keyof typeof LAYOUT_GRID] ?? LAYOUT_GRID.standard}`}>
           {loaderData.courses.map((course) => {
@@ -105,11 +100,11 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
               );
             }
             return (
-              <Card key={course.slug} className={`group overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-accent-400 hover:shadow-md ${wide ? "sm:flex" : ""}`}>
+              <Card key={course.slug} className="overflow-hidden">
                 {pres.showImage && course.imageUrl && (
-                  <img src={course.imageUrl} alt={c(course)} loading="lazy" decoding="async" className={`aspect-video w-full object-cover ${wide ? "sm:aspect-auto sm:w-72 sm:shrink-0" : ""}`} />
+                  <img src={course.imageUrl} alt={c(course)} loading="lazy" decoding="async" className="aspect-video w-full object-cover" />
                 )}
-                <CardBody className="flex flex-1 flex-col">
+                <CardBody>
                   {pres.showBadge && (
                     <div className="mb-1 flex items-center gap-2">
                       <Badge tone={course.accessLevel === "public" ? "success" : course.accessLevel === "authenticated" ? "brand" : "neutral"}>
@@ -118,14 +113,14 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
                       {course.visibility === "featured" && <Badge tone="warning">★</Badge>}
                     </div>
                   )}
-                  <h2 className="font-display text-xl font-semibold text-ink">
-                    <Link to={`/courses/${course.slug}`} className="transition-colors group-hover:text-brand-800">{c(course)}</Link>
+                  <h2 className="text-lg font-semibold">
+                    <Link to={`/courses/${course.slug}`} className="hover:underline">{c(course)}</Link>
                   </h2>
-                  {meta.length > 0 && <p className="mt-1 text-sm leading-relaxed text-ink-muted">{meta.join(" · ")}</p>}
+                  {meta.length > 0 && <p className="mt-1 text-sm text-slate-500">{meta.join(" · ")}</p>}
                   {cta && (
-                    <Link to={`/courses/${course.slug}`} className="tito-link mt-3 inline-flex min-h-9 w-fit items-center text-[15px]">
+                    <Link to={`/courses/${course.slug}`} className="mt-3 inline-flex min-h-9 items-center text-sm font-semibold text-brand-700 hover:text-brand-800">
                       {cta}
-                      <span aria-hidden="true" className="tito-arrow ms-1.5 rtl:rotate-180">→</span>
+                      <span aria-hidden="true" className="ms-1 rtl:rotate-180">→</span>
                     </Link>
                   )}
                 </CardBody>

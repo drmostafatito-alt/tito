@@ -6,7 +6,7 @@ import { resetPassword } from "~server/auth/service.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
-import { AuthShell } from "~/components/AuthShell";
+import { Card } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
 import { useRouteLoaderData } from "react-router";
 
@@ -33,7 +33,9 @@ export default function ResetPassword() {
   const invalidLink = !token;
 
   return (
-    <AuthShell title={t(locale, "auth.resetTitle")}>
+    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
+      <Card className="p-6 sm:p-8">
+        <h1 className="mb-6 text-2xl font-bold text-slate-900">{t(locale, "auth.resetTitle")}</h1>
 
         {invalidLink && (
           <Alert kind="error">{t(locale, "auth.resetInvalid")}</Alert>
@@ -71,6 +73,7 @@ export default function ResetPassword() {
             </SubmitButton>
           </Form>
         )}
-    </AuthShell>
+      </Card>
+    </div>
   );
 }

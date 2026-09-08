@@ -34,8 +34,8 @@ import { et, t, formatDate, type Locale } from "~/lib/i18n";
  * Money inputs are INTEGER MINOR UNITS — the admin sees the convention label.
  */
 
-const inputCls = "rounded-lg border border-line px-3 py-2 text-sm";
-const selectCls = "h-[42px] rounded-lg border border-line bg-surface px-3 text-sm";
+const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -212,8 +212,8 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-4" key={`prod-${product?.id}`}>
-      <nav className="text-xs text-ink-muted">
-        <Link to="/admin/commerce?tab=products" className="hover:text-brand-700">{t(locale, "commerceAdmin.title")}</Link>
+      <nav className="text-xs text-slate-600">
+        <Link to="/admin/commerce?tab=products" className="hover:text-brand-600">{t(locale, "commerceAdmin.title")}</Link>
         <span aria-hidden="true"> › </span>
         <span dir="ltr">{product.slug}</span>
       </nav>
@@ -286,7 +286,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
               )}
               <a
                 href={`${loaderData.publicUrl}/products/${product.slug}`}
-                className="text-sm text-brand-700 hover:underline"
+                className="text-sm text-blue-600 hover:underline"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -300,9 +300,9 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={t(locale, "commerceAdmin.conveyedItems")} />
         <CardBody className="space-y-3">
-          {items.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noItems")}</p>}
+          {items.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noItems")}</p>}
           {items.map((it) => (
-            <div key={it.id} className="flex items-center justify-between gap-2 border-b border-line pb-2 text-sm last:border-0">
+            <div key={it.id} className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 text-sm last:border-0">
               <span>
                 <Badge tone={it.resourceType === "course" ? "brand" : "neutral"}>{it.resourceType}</Badge>{" "}
                 {locale === "ar" ? it.titleAr : it.titleEn}
@@ -341,17 +341,17 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
               <SubmitButton variant="secondary" name="_action" value="add_item">{t(locale, "commerceAdmin.addItem")}</SubmitButton>
             </Form>
           )}
-          <p className="text-xs text-ink-muted">{t(locale, "commerceAdmin.itemsFrozenNote")}</p>
+          <p className="text-xs text-slate-500">{t(locale, "commerceAdmin.itemsFrozenNote")}</p>
         </CardBody>
       </Card>
 
       <Card>
         <CardHeader title={t(locale, "commerceAdmin.pricePlans")} />
         <CardBody className="space-y-4">
-          {plans.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noPlans")}</p>}
+          {plans.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noPlans")}</p>}
           {plans.map((p) => (
             <div key={p.id} className="flex flex-wrap items-start justify-between gap-2">
-              <details className="min-w-0 flex-1 rounded-xl border border-line p-3" data-testid="plan-editor">
+              <details className="min-w-0 flex-1 rounded-xl border border-slate-200 p-3" data-testid="plan-editor">
                 <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 text-sm">
                   <span className="font-semibold">
                     {(locale === "ar" ? p.labelAr : p.labelEn) || t(locale, "commerceAdmin.plan")} ·{" "}
@@ -363,7 +363,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
                   </Badge>
                 </summary>
               {perms.edit && !product.archived && (
-                <Form method="post" className="mt-3 grid gap-3 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Form method="post" className="mt-3 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2 lg:grid-cols-4">
                   <input type="hidden" name="_action" value="update_plan" />
                   <input type="hidden" name="planId" value={p.id} />
                   <label className="grid gap-1 text-xs">
@@ -405,7 +405,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
                   </div>
                 </Form>
               )}
-              <p className="mt-2 text-xs text-ink-muted">{t(locale, "commerceAdmin.planCreated").replace("{date}", formatDate(locale, p.createdAt))}</p>
+              <p className="mt-2 text-xs text-slate-500">{t(locale, "commerceAdmin.planCreated").replace("{date}", formatDate(locale, p.createdAt))}</p>
               </details>
               {perms.edit && !product.archived && (
                 <Form method="post" className="inline">
@@ -421,7 +421,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
           ))}
 
           {perms.edit && !product.archived && (
-            <Form method="post" className="grid gap-3 rounded-xl bg-sand-100 p-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Form method="post" className="grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-4">
               <input type="hidden" name="_action" value="create_plan" />
               <label className="grid gap-1 text-xs">
                 <span>{t(locale, "commerceAdmin.amountMinor")}</span>
@@ -474,7 +474,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
               </div>
             </Form>
           )}
-          <p className="text-xs text-ink-muted">{t(locale, "commerceAdmin.minorUnitsNote")}</p>
+          <p className="text-xs text-slate-500">{t(locale, "commerceAdmin.minorUnitsNote")}</p>
         </CardBody>
       </Card>
     </div>

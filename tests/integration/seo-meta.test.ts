@@ -134,9 +134,9 @@ describe("course page SEO/social metadata comes from the admin-edited content ro
     const { course } = await seedCatalog(null);
     const meta = await metaOf(courseMeta, await courseData(course.slug), "ar");
 
-    expect(titleOf(meta)).toBe("مراجعة شاملة — د. مصطفى تيتو");
+    expect(titleOf(meta)).toBe("مراجعة شاملة — د/ مصطفى تيتو");
     expect(descOf(meta)).toBe("دورة شاملة تغطي المنهج بالكامل");
-    expect(ogOf(meta, "og:title")).toBe("مراجعة شاملة — د. مصطفى تيتو");
+    expect(ogOf(meta, "og:title")).toBe("مراجعة شاملة — د/ مصطفى تيتو");
     expect(ogOf(meta, "og:description")).toBe("دورة شاملة تغطي المنهج بالكامل");
     expect(canonicalOf(meta)).toBe(`https://app.test/courses/${course.slug}`);
     // must be a real <link rel="canonical">, not an inert <meta rel="canonical">
@@ -147,7 +147,7 @@ describe("course page SEO/social metadata comes from the admin-edited content ro
     const { course } = await seedCatalog(null);
     const meta = await metaOf(courseMeta, await courseData(course.slug), "en");
 
-    expect(titleOf(meta)).toBe("Full Revision — Dr. Mostafa Tito");
+    expect(titleOf(meta)).toBe("Full Revision — Dr mostafa tito");
     expect(descOf(meta)).toBe("A complete course covering the syllabus");
     expect(titleOf(meta)).not.toContain("مراجعة");
   });
@@ -196,7 +196,7 @@ describe("catalog index SEO uses owner-editable settings, not hardcoded copy", (
 
     const meta = await metaOf(catalogMeta, await call(catalogLoader, get("/courses")), "ar");
     expect(descOf(meta)).toBe("الفلسفة وعلم النفس");
-    expect(titleOf(meta)).toContain("د. مصطفى تيتو");
+    expect(titleOf(meta)).toContain("د/ مصطفى تيتو");
 
     await updateSettingsGroup(db, "platform", { taglineAr: "منصة الفلسفة", taglineEn: "Philosophy hub" }, actor);
 
@@ -212,14 +212,14 @@ describe("subject & program pages expose the same admin-driven metadata", () => 
   it("subject page meta comes from the subject row", async () => {
     const { subject } = await seedCatalog(null);
     const meta = await metaOf(subjectMeta, await call(subjectLoader, get(`/subjects/${subject.slug}`), { slug: subject.slug }), "ar");
-    expect(titleOf(meta)).toBe("الفيزياء — د. مصطفى تيتو");
+    expect(titleOf(meta)).toBe("الفيزياء — د/ مصطفى تيتو");
     expect(descOf(meta)).toBe("وصف المادة");
   });
 
   it("program page meta comes from the program row", async () => {
     const { program } = await seedCatalog(null);
     const meta = await metaOf(programMeta, await call(programLoader, get(`/programs/${program.slug}`), { slug: program.slug }), "en");
-    expect(titleOf(meta)).toBe("General Secondary — Dr. Mostafa Tito");
+    expect(titleOf(meta)).toBe("General Secondary — Dr mostafa tito");
     expect(descOf(meta)).toBe("Program description");
   });
 });

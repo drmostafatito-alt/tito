@@ -182,26 +182,24 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
+    <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Breadcrumbs */}
-      <nav aria-label="breadcrumb" className="mb-5 flex flex-wrap items-center gap-x-1.5 text-sm text-ink-muted">
-        <Link to="/courses" className="font-semibold transition-colors hover:text-brand-800">{t(locale, "content.catalogTitle")}</Link>
+      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
+        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
         {subject && (
           <>
-            <span className="inline-block rtl:rotate-180" aria-hidden>›</span>
-            <Link to={`/subjects/${subject.slug}`} className="font-semibold transition-colors hover:text-brand-800">
+            <span className="mx-1.5" aria-hidden>›</span>
+            <Link to={`/subjects/${subject.slug}`} className="hover:text-brand-600">
               {locale === "ar" ? subject.titleAr : subject.titleEn}
             </Link>
           </>
         )}
-        <span className="inline-block rtl:rotate-180" aria-hidden>›</span>
-        <span className="font-bold text-ink">{title}</span>
+        <span className="mx-1.5" aria-hidden>›</span>
+        <span className="font-medium text-slate-700">{title}</span>
       </nav>
 
       {course.thumbnail && (
-        <figure className="tito-plate mb-6">
-        <img src={course.thumbnail} alt="" loading="lazy" decoding="async" className="h-44 w-full object-cover sm:h-60" />
-      </figure>
+        <img src={course.thumbnail} alt="" className="mb-4 h-40 w-full rounded-lg object-cover sm:h-52" />
       )}
 
       <div className="mb-2 flex items-center gap-2">
@@ -209,14 +207,14 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           {t(locale, course.accessLevel === "public" ? "content.accessPublic" : course.accessLevel === "authenticated" ? "content.accessAuthenticated" : "content.accessEntitled")}
         </Badge>
         {!verdict.allowed && course.status !== "published" && (
-          <span className="text-sm text-ink-muted">{t(locale, "content.notAvailable")}</span>
+          <span className="text-sm text-slate-500">{t(locale, "content.notAvailable")}</span>
         )}
       </div>
-      <h1 className="font-display max-w-3xl text-3xl font-semibold leading-snug text-ink sm:text-4xl sm:leading-snug">{title}</h1>
-      {desc && <p className="mt-3 max-w-3xl text-lg leading-loose text-ink-soft">{desc}</p>}
+      <h1 className="text-2xl font-bold">{title}</h1>
+      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
 
       {/* Meta row: teacher · lessons · duration */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
         {course.teacherName && (
           <span className="inline-flex items-center gap-1.5">
             <Icon name="user" className="h-4 w-4" aria-hidden />
@@ -243,8 +241,8 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
         <Card className="mt-4">
           <CardBody>
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-medium text-ink-soft">{t(locale, "progress.courseProgress")}</span>
-              <span className="tabular-nums text-ink-muted">
+              <span className="font-medium text-slate-700">{t(locale, "progress.courseProgress")}</span>
+              <span className="tabular-nums text-slate-500">
                 {progress.course.completed}/{progress.course.total} · {progress.course.pct}%
               </span>
             </div>
@@ -256,11 +254,11 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
       {gated && prereqLock.missing.length > 0 && (
         <Card className="mt-4">
           <CardBody>
-            <p className="text-sm font-medium text-ink-soft">{t(locale, "content.prereqRequired")}</p>
+            <p className="text-sm font-medium text-slate-700">{t(locale, "content.prereqRequired")}</p>
             <ul className="mt-2 space-y-1">
               {prereqLock.missing.map((m) => (
                 <li key={m.courseId}>
-                  <Link to={`/courses/${m.slug}`} className="text-sm text-brand-700 hover:underline">
+                  <Link to={`/courses/${m.slug}`} className="text-sm text-blue-600 hover:underline">
                     {locale === "ar" ? m.titleAr : m.titleEn}
                   </Link>
                 </li>
@@ -273,9 +271,9 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
       {!gated && !verdict.allowed && (
         <Card className="mt-4">
           <CardBody>
-            <p className="text-sm text-ink-muted">
+            <p className="text-sm text-slate-600">
               {verdict.reason === "anon" ? (
-                <Link to="/login" className="font-medium text-brand-700 hover:underline">
+                <Link to="/login" className="font-medium text-blue-600 hover:underline">
                   {t(locale, "content.loginToContinue")}
                 </Link>
               ) : (
@@ -285,7 +283,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
             {buyOption && (
               <Link
                 to={`/products/${buyOption.productSlug}`}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] bg-brand-700 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800"
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
                 data-testid="course-buy-cta"
               >
                 {t(locale, "commerce.buyCta")}
@@ -298,41 +296,40 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
         </Card>
       )}
 
-      <div className="mt-8 space-y-5">
+      <div className="mt-6 space-y-5">
         {units.map((unit, ui) => (
           <Card key={unit.id}>
             <CardBody>
-              <div className="mb-2 flex items-start justify-between gap-3">
-                <h2 className="font-display flex items-baseline gap-2.5 text-xl font-semibold text-ink">
-                  <span aria-hidden="true" className="text-base font-semibold text-accent-600">{(ui + 1).toLocaleString(locale === "ar" ? "ar-EG" : "en-US", { minimumIntegerDigits: 2 })}</span>
-                  {locale === "ar" ? unit.titleAr : unit.titleEn}
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-semibold">
+                  {ui + 1}. {locale === "ar" ? unit.titleAr : unit.titleEn}
                 </h2>
                 {!gated && verdict.allowed && (
-                  <Link to={`/courses/${course.slug}/units/${unit.id}`} className="tito-link shrink-0 text-sm">
+                  <Link to={`/courses/${course.slug}/units/${unit.id}`} className="text-sm text-blue-600 hover:underline">
                     {t(locale, "content.openUnit")}
                   </Link>
                 )}
               </div>
-              <ol className="divide-y divide-line">
+              <ol className="space-y-1.5">
                 {unit.lessons.map((lesson) => {
                   const lessonLocked = lessonLockedFor(lesson.id);
                   const lp = progress?.lesson[lesson.id];
                   return (
-                    <li key={lesson.slug} className="flex min-h-11 items-center gap-2.5 py-1.5 text-[15px]">
+                    <li key={lesson.slug} className="flex items-center gap-2 text-sm">
                       {lp?.status === "completed" && (
-                        <Icon name="check-circle" className="h-4 w-4 shrink-0 text-success" aria-label={t(locale, "progress.completed")} />
+                        <Icon name="check-circle" className="h-4 w-4 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
                       )}
                       {lp && lp.status !== "completed" && (
                         <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400" aria-hidden />
                       )}
-                      {!lp && !lessonLocked && <span className="h-2 w-2 shrink-0 rounded-full bg-sand-300" aria-hidden />}
+                      {!lp && !lessonLocked && <span className="h-2 w-2 shrink-0 rounded-full bg-slate-300" aria-hidden />}
                       {lessonLocked ? (
-                        <span className="inline-flex items-center gap-1.5 text-ink-muted">
+                        <span className="inline-flex items-center gap-1.5 text-slate-500">
                           <Icon name="lock" className="h-4 w-4 shrink-0" aria-hidden />
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </span>
                       ) : (
-                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="inline-flex min-h-6 items-center font-medium text-ink underline-offset-4 transition-colors hover:text-brand-800 hover:underline">
+                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="inline-flex min-h-6 items-center text-blue-700 hover:underline">
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </Link>
                       )}
@@ -340,12 +337,12 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                     </li>
                   );
                 })}
-                {unit.lessons.length === 0 && <li className="text-sm text-ink-muted">—</li>}
+                {unit.lessons.length === 0 && <li className="text-sm text-slate-500">—</li>}
               </ol>
             </CardBody>
           </Card>
         ))}
-        {units.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "content.catalogEmpty")}</p>}
+        {units.length === 0 && <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>}
       </div>
     </div>
   );

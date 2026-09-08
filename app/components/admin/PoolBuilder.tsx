@@ -86,9 +86,9 @@ function serializePools(pools: PoolDraft[]): string {
 }
 
 const selectCls =
-  "h-[42px] w-full rounded-lg border border-line bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:bg-sand-100 disabled:text-ink-muted";
+  "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
 const inputCls =
-  "h-[42px] w-full rounded-lg border border-line bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:bg-sand-100 disabled:text-ink-muted";
+  "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
 
 const DIFF_OPTIONS = ["easy", "medium", "hard"] as const;
 
@@ -124,7 +124,7 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, courses, unit
 
   const filterRow = (labelKey: string, children: ReactNode) => (
     <div className="grid gap-1">
-      <span className="text-xs font-medium text-ink-muted">{labelKey}</span>
+      <span className="text-xs font-medium text-slate-500">{labelKey}</span>
       {children}
     </div>
   );
@@ -133,12 +133,12 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, courses, unit
   return (
     <div className="mt-2 space-y-3">
       <input type="hidden" name={name} value={serializePools(pools)} />
-      <p className="text-xs text-ink-muted">{t(locale, "assessment.poolsHint")}</p>
-      <p className="text-xs text-warning">{t(locale, "assessment.objectiveNote")}</p>
+      <p className="text-xs text-slate-500">{t(locale, "assessment.poolsHint")}</p>
+      <p className="text-xs text-amber-700">{t(locale, "assessment.objectiveNote")}</p>
 
       {pools.map((p, i) => (
-        <fieldset key={i} className="rounded-lg border border-line bg-sand-100/50 p-3">
-          <legend className="px-1 text-xs font-semibold text-ink-muted">{t(locale, "assessment.poolN", { n: i + 1 })}</legend>
+        <fieldset key={i} className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+          <legend className="px-1 text-xs font-semibold text-slate-600">{t(locale, "assessment.poolN", { n: i + 1 })}</legend>
           <div className="grid gap-3 md:grid-cols-2">
             {filterRow(
               t(locale, "assessment.filterSubject"),
@@ -196,8 +196,8 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, courses, unit
               </select>
             )}
             <div className="grid gap-1">
-              <span className="text-xs font-medium text-ink-muted">{t(locale, "assessment.type")}</span>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+              <span className="text-xs font-medium text-slate-500">{t(locale, "assessment.type")}</span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
                 {ALL_TYPES.map((ty) => {
                   const on = p.types.includes(ty);
                   return (
@@ -214,13 +214,13 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, courses, unit
                   );
                 })}
               </div>
-              <span className="text-xs text-sand-400">{t(locale, "assessment.poolTypeHint")}</span>
+              <span className="text-xs text-slate-400">{t(locale, "assessment.poolTypeHint")}</span>
             </div>
             <div className="grid gap-1 md:col-span-2">
-              <span className="text-xs font-medium text-ink-muted">{t(locale, "assessment.filterTags")}</span>
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+              <span className="text-xs font-medium text-slate-500">{t(locale, "assessment.filterTags")}</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
                 {tags.length === 0 ? (
-                  <span className="text-xs text-ink-muted">{t(locale, "assessment.anyFilter")}</span>
+                  <span className="text-xs text-slate-500">{t(locale, "assessment.anyFilter")}</span>
                 ) : (
                   tags.map((tg) => {
                     const on = p.tags.includes(tg.id);
@@ -235,19 +235,19 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, courses, unit
               </div>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-2 border-t border-line pt-3">
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-2 border-t border-slate-200 pt-3">
             <label className="grid gap-1">
-              <span className="text-xs font-medium text-ink-muted">{t(locale, "assessment.poolQty")}</span>
+              <span className="text-xs font-medium text-slate-500">{t(locale, "assessment.poolQty")}</span>
               <input type="number" min={1} max={100} className={`${inputCls} w-[110px]`} disabled={disabled} value={p.count} onChange={(e) => patch(i, { count: e.target.value })} />
             </label>
-            <button type="button" onClick={() => setPools((prev) => prev.filter((_, idx) => idx !== i))} disabled={disabled || pools.length <= 1} className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-error hover:bg-error-soft disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" onClick={() => setPools((prev) => prev.filter((_, idx) => idx !== i))} disabled={disabled || pools.length <= 1} className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">
               {t(locale, "assessment.removePool")}
             </button>
           </div>
         </fieldset>
       ))}
 
-      {pools.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "assessment.poolNoPools")}</p>}
+      {pools.length === 0 && <p className="text-sm text-slate-500">{t(locale, "assessment.poolNoPools")}</p>}
 
       {!disabled && pools.length < 10 && (
         <button type="button" onClick={() => setPools((prev) => [...prev, { count: "5", subject: "", course: "", unit: "", lesson: "", difficulty: "", types: [], tags: [] }])} className="min-h-11 rounded-lg border border-dashed border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50">
@@ -255,7 +255,7 @@ export function PoolBuilder({ name, poolsJson, disabled, subjects, courses, unit
         </button>
       )}
 
-      <p className="text-xs text-ink-muted">{t(locale, "assessment.filtersHint")}</p>
+      <p className="text-xs text-slate-500">{t(locale, "assessment.filtersHint")}</p>
     </div>
   );
 }

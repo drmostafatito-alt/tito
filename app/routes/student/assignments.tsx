@@ -68,7 +68,7 @@ export default function StudentAssignmentsPage({ loaderData }: Route.ComponentPr
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "assignment.myAssignments")}</h1>
+        <h1 className="text-xl font-bold">{t(locale, "assignment.myAssignments")}</h1>
       </div>
 
       {items.length === 0 ? (
@@ -80,7 +80,7 @@ export default function StudentAssignmentsPage({ loaderData }: Route.ComponentPr
             if (!group.length) return null;
             return (
               <div key={s} className="space-y-2">
-                <h2 className="text-sm font-semibold text-ink-muted">
+                <h2 className="text-sm font-semibold text-slate-500">
                   {t(locale, `assignment.st_${s}`)} · {group.length}
                 </h2>
                 <Card>
@@ -88,12 +88,12 @@ export default function StudentAssignmentsPage({ loaderData }: Route.ComponentPr
                     {group.map((a) => {
                       const st = stateOf(a);
                       return (
-                        <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line p-3">
+                        <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 p-3">
                           <div className="min-w-0 flex-1">
                             <Link to={`/assignments/${a.id}`} className="font-semibold text-brand-700 hover:underline">
                               {titleOf(a)}
                             </Link>
-                            <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-ink-muted">
+                            <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-slate-500">
                               <span>{t(locale, "assignment.maxScore")}: {a.maxScore}</span>
                               {a.dueAt && <span dir="ltr">{t(locale, "assignment.dueAt")}: {formatDate(locale, a.dueAt)}</span>}
                             </div>
@@ -101,7 +101,7 @@ export default function StudentAssignmentsPage({ loaderData }: Route.ComponentPr
                           <div className="flex items-center gap-2">
                             {st === "graded" && <Badge tone="brand">{a.myScore}</Badge>}
                             <Badge tone={stateTone[st]}>{t(locale, `assignment.st_${st}`)}</Badge>
-                            <Link to={`/assignments/${a.id}`} className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-brand-700 hover:border-brand-400">
+                            <Link to={`/assignments/${a.id}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:border-brand-400">
                               {st === "available" ? t(locale, "assignment.submitNow") : t(locale, "assignment.view")}
                             </Link>
                           </div>

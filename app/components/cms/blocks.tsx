@@ -51,10 +51,10 @@ function SmartLink({ href, className, children, ariaLabel }: { href: string; cla
 }
 
 const BUTTON_VARIANT = {
-  primary: "bg-brand-700 text-white shadow-sm hover:bg-brand-800",
-  secondary: "bg-surface text-ink border border-line shadow-sm hover:border-sand-300",
-  outline: "border border-sand-300 text-ink hover:border-brand-700 hover:text-brand-800",
-  ghost: "text-brand-800 hover:bg-brand-50",
+  primary: "bg-brand-600 text-white shadow-md shadow-brand-600/20 hover:bg-brand-700",
+  secondary: "bg-white text-slate-800 border border-slate-200 shadow-sm hover:bg-slate-50",
+  outline: "border border-slate-300 text-slate-800 hover:bg-slate-50",
+  ghost: "text-brand-700 hover:bg-brand-50",
 } as const;
 
 /** Temporary abstract philosophy/psychology visual — CMS image replaces this. */
@@ -62,7 +62,7 @@ const FALLBACK_HERO_SRC = "/hero-philosophy.webp";
 
 function CtaButton({ label, href, target, variant, icon, className = "" }: { label: string; href: string; target?: string; variant?: string; icon?: string; className?: string }) {
   if (!label && !href) return null; // nothing configured → render nothing
-  const base = `inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-btn)] px-7 py-3 text-base font-semibold transition-colors ${BUTTON_VARIANT[(variant ?? "primary") as keyof typeof BUTTON_VARIANT] ?? BUTTON_VARIANT.primary} ${className}`;
+  const base = `inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-7 py-3 text-base font-semibold transition-colors ${BUTTON_VARIANT[(variant ?? "primary") as keyof typeof BUTTON_VARIANT] ?? BUTTON_VARIANT.primary} ${className}`;
   if (href && href.startsWith("/") && target !== "_blank") {
     return <Link to={href} className={base}>{icon ? <Icon name={icon} size="sm" colorRole="default" className="text-current" /> : null}{label}</Link>;
   }
@@ -104,23 +104,23 @@ function CardGrid({ rows, ctx, ctaFallback }: { rows: CardView[]; ctx: CmsRender
   return (
     <div className="grid w-full gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {rows.map((row) => (
-        <div key={row.id} className="group flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-accent-400 hover:shadow-md">
+        <div key={row.id} className="flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-slate-200 bg-white shadow-sm">
           {row.image && ctx.images[row.image] && (
             <CmsImage fileId={row.image} alt={ls(row.title, L)} ctx={ctx} aspect="16:9" />
           )}
           <div className="flex flex-1 flex-col gap-2 p-5">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-display text-lg font-semibold text-ink">{ls(row.title, L)}</h3>
+              <h3 className="text-base font-semibold text-slate-900">{ls(row.title, L)}</h3>
               {row.badge && ls(row.badge, L) && (
-                <span className="shrink-0 rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-bold text-accent-800">{ls(row.badge, L)}</span>
+                <span className="rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-medium text-accent-700">{ls(row.badge, L)}</span>
               )}
             </div>
-            {ls(row.desc, L) && <p className="line-clamp-2 text-sm leading-relaxed text-ink-muted">{ls(row.desc, L)}</p>}
-            {row.meta && ls(row.meta, L) && <p className="text-xs font-medium text-ink-muted">{ls(row.meta, L)}</p>}
+            {ls(row.desc, L) && <p className="line-clamp-2 text-sm text-slate-600">{ls(row.desc, L)}</p>}
+            {row.meta && ls(row.meta, L) && <p className="text-xs text-slate-500">{ls(row.meta, L)}</p>}
             <div className="mt-auto pt-2">
-              <SmartLink href={row.href} className="tito-link inline-flex min-h-11 w-fit items-center text-[15px]">
+              <SmartLink href={row.href} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:text-brand-800">
                 {(row.cta && ls(row.cta, L)) || (ctaFallback ? ls(ctaFallback, L) : "") || ls(row.title, L)}
-                <span aria-hidden="true" className="tito-arrow ms-1.5 rtl:rotate-180">→</span>
+                <span aria-hidden="true" className="ms-1 rtl:rotate-180">→</span>
               </SmartLink>
             </div>
           </div>
@@ -152,12 +152,12 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
   ];
   return (
     <div className="flex flex-col items-center gap-3">
-      {str(props, "heading", L) && <p className="font-display text-xl font-semibold">{str(props, "heading", L)}</p>}
+      {str(props, "heading", L) && <p className="text-lg font-semibold">{str(props, "heading", L)}</p>}
       <div className="flex gap-3" dir="ltr" suppressHydrationWarning>
         {cells.map(([value, label], i) => (
-          <div key={i} className="flex min-w-16 flex-col items-center rounded-[var(--radius-card)] bg-brand-950 px-3 py-2 text-parchment ring-1 ring-accent-500/40">
-            <span className="font-display text-2xl font-semibold tabular-nums">{value ?? "--"}</span>
-            <span className="text-[11px] font-medium text-accent-300">{label}</span>
+          <div key={i} className="flex min-w-16 flex-col items-center rounded-[var(--radius-card)] bg-slate-900 px-3 py-2 text-white">
+            <span className="text-2xl font-bold tabular-nums">{value ?? "--"}</span>
+            <span className="text-[11px] text-slate-300">{label}</span>
           </div>
         ))}
       </div>
@@ -168,20 +168,20 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
 function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; compact?: boolean }) {
   const L = ctx.locale;
   const result = ctx.formResults[form.slug];
-  const input = "w-full rounded-[var(--radius-btn)] border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted/70 focus:border-brand-700 focus:outline-none focus:ring-1 focus:ring-brand-600";
+  const input = "w-full rounded-[var(--radius-btn)] border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none";
   return (
     <form method="post" className={`flex flex-col gap-4 ${compact ? "" : "mx-auto w-full max-w-xl"}`} noValidate>
       <input type="hidden" name="_cmsForm" value={form.slug} />
       {result && (
-        <p role="status" className={`rounded-[var(--radius-btn)] px-4 py-3 text-sm font-medium ${result.ok ? "bg-success-soft text-success" : "bg-error-soft text-error"}`}>
+        <p role="status" className={`rounded-[var(--radius-btn)] px-4 py-3 text-sm ${result.ok ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
           {result.ok ? ls(form.success, L) : ls(form.failure, L) || t(L, "common.cmsFormFailed")}
         </p>
       )}
       {form.fields.map((f) => {
         const err = result && !result.ok ? result.errors[f.name] : undefined;
         const label = (
-          <label htmlFor={`cmsf-${form.slug}-${f.name}`} className="mb-1 block text-sm font-bold text-ink">
-            {ls(f.label, L)}{f.required && <span className="text-error"> *</span>}
+          <label htmlFor={`cmsf-${form.slug}-${f.name}`} className="mb-1 block text-sm font-medium text-slate-700">
+            {ls(f.label, L)}{f.required && <span className="text-rose-600"> *</span>}
           </label>
         );
         const ph = ls(f.placeholder, L) || undefined;
@@ -209,7 +209,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             control = (
               <div className="flex flex-wrap gap-3" role="radiogroup" aria-labelledby={`cmsf-${form.slug}-${f.name}-legend`}>
                 {f.options.map((o) => (
-                  <label key={o.value} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink-soft">
+                  <label key={o.value} className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700">
                     <input type="radio" name={f.name} value={o.value} className="h-4 w-4" />
                     {ls(o.label, L)}
                   </label>
@@ -219,7 +219,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             break;
           case "checkbox":
             control = (
-              <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink-soft">
+              <label className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700">
                 <input type="checkbox" id={`cmsf-${form.slug}-${f.name}`} name={f.name} value="on" className="h-4 w-4" />
                 {ls(f.label, L)}
               </label>
@@ -242,20 +242,20 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
         return (
           <div key={f.name}>
             {f.type !== "checkbox" && f.type !== "radio" && label}
-            {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-sm font-bold text-ink">{ls(f.label, L)}{f.required && <span className="text-error"> *</span>}</span>}
+            {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-sm font-medium text-slate-700">{ls(f.label, L)}{f.required && <span className="text-rose-600"> *</span>}</span>}
             {control}
-            {ls(f.help, L) && <p className="mt-1 text-xs text-ink-muted">{ls(f.help, L)}</p>}
-            {err && <p className="mt-1 text-xs font-medium text-error">{err}</p>}
+            {ls(f.help, L) && <p className="mt-1 text-xs text-slate-500">{ls(f.help, L)}</p>}
+            {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
           </div>
         );
       })}
       {form.consentRequired && (
-        <label className="inline-flex min-h-11 items-start gap-2 text-sm text-ink-soft">
+        <label className="inline-flex min-h-11 items-start gap-2 text-sm text-slate-600">
           <input type="checkbox" name="__consent" value="on" className="mt-1 h-4 w-4" />
-          <span>{ls(form.consent, L)}{result && !result.ok && result.errors.__consent && <span className="text-error"> *</span>}</span>
+          <span>{ls(form.consent, L)}{result && !result.ok && result.errors.__consent && <span className="text-rose-600"> *</span>}</span>
         </label>
       )}
-      <button type="submit" className={`inline-flex min-h-12 items-center justify-center rounded-[var(--radius-btn)] bg-brand-700 px-7 py-3 text-base font-semibold text-white transition-colors hover:bg-brand-800 ${compact ? "shrink-0" : "self-start"}`}>
+      <button type="submit" className={`inline-flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] bg-brand-600 px-6 py-3 text-base font-semibold text-white hover:bg-brand-700 ${compact ? "shrink-0" : "self-start"}`}>
         {t(L, "common.cmsFormSubmit")}
       </button>
     </form>
@@ -274,16 +274,26 @@ const BADGE_POS: Record<string, string> = {
   "bottom-end": "lg:bottom-6 lg:end-6",
 };
 
-/** Icon roundel tone per tint (feature_cards index). The CMS `tint` prop keeps
- *  working — it now tints the seal-like roundel instead of a pastel card. */
+/** Soft tinted icon-chip surface per color role (feature_cards). */
 const TINT_CHIP: Record<string, string> = {
-  default: "bg-brand-800 text-parchment",
-  brand: "bg-brand-800 text-parchment",
-  accent: "bg-accent-500 text-white",
-  success: "bg-success text-white",
-  warning: "bg-warning text-white",
-  error: "bg-error text-white",
-  muted: "bg-sand-200 text-ink",
+  default: "bg-white",
+  brand: "bg-white",
+  accent: "bg-white",
+  success: "bg-white",
+  warning: "bg-white",
+  error: "bg-white",
+  muted: "bg-white",
+};
+
+/** Pastel card surfaces matching the premium educational visual language. */
+const CARD_SURFACE: Record<string, string> = {
+  default: "bg-violet-50 ring-violet-100",
+  brand: "bg-violet-50 ring-violet-100",
+  accent: "bg-indigo-50 ring-indigo-100",
+  success: "bg-emerald-50 ring-emerald-100",
+  warning: "bg-amber-50 ring-amber-100",
+  error: "bg-rose-50 ring-rose-100",
+  muted: "bg-sky-50 ring-sky-100",
 };
 
 /** Hero intro-video CTA: a real button that reveals the server-minted player. */
@@ -297,16 +307,16 @@ function VideoCta({ videoId, label }: { videoId: string; label: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={open ? `hero-video-${videoId}` : undefined}
-        className="group inline-flex min-h-12 items-center gap-3 rounded-[var(--radius-btn)] px-1 py-1 text-start text-sm font-bold text-ink"
+        className="inline-flex min-h-12 items-center gap-3 rounded-full px-1 py-1 text-start text-sm font-semibold text-slate-800 hover:bg-white/70"
       >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-950 text-parchment ring-1 ring-inset ring-accent-400/70 transition-transform duration-200 group-hover:scale-105">
-          <Icon name="play-circle" size="md" colorRole="invert" className="text-current" />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow-md shadow-brand-600/30">
+          <Icon name="play-circle" size="md" colorRole="invert" className="text-white" />
         </span>
         <span className="max-w-[10rem] leading-snug">{label}</span>
       </button>
       {open && (
-        <div id={`hero-video-${videoId}`} className="tito-plate w-full max-w-xl">
-          <Suspense fallback={<div className="h-40 rounded-xl bg-sand-100" />}>
+        <div id={`hero-video-${videoId}`} className="w-full max-w-xl">
+          <Suspense fallback={<div className="h-40 rounded-xl bg-slate-100" />}>
             <VideoPlayer videoId={videoId} />
           </Suspense>
         </div>
@@ -331,15 +341,15 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const alignCls = align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start";
       const justify = align === "center" ? "justify-center" : align === "end" ? "justify-end" : "justify-start";
       return (
-        <div className={`tito-band relative isolate -mx-4 overflow-hidden ${height} flex ${alignCls} flex-col gap-4 px-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:px-10`}>
+        <div className={`relative isolate -mx-4 overflow-hidden ${hasBg ? "" : "bg-slate-900"} ${height} flex ${alignCls} flex-col gap-4 px-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:px-10`}>
           {hasBg && (
             <>
               <img src={ctx.images[bgId]} alt="" aria-hidden="true" decoding="async" className="absolute inset-0 -z-10 h-full w-full object-cover" />
-              <div className="absolute inset-0 -z-10 bg-brand-950/75" aria-hidden="true" />
+              <div className="absolute inset-0 -z-10 bg-slate-900/60" aria-hidden="true" />
             </>
           )}
-          {heading && <h1 className="font-display max-w-3xl text-3xl font-semibold leading-snug sm:text-5xl sm:leading-[1.25]">{heading}</h1>}
-          {subheading && <p className="max-w-2xl whitespace-pre-line text-lg leading-relaxed text-parchment/80">{subheading}</p>}
+          {heading && <h1 className="max-w-3xl text-3xl font-extrabold leading-tight text-white sm:text-5xl">{heading}</h1>}
+          {subheading && <p className="max-w-2xl whitespace-pre-line text-lg text-slate-200">{subheading}</p>}
           {ctas.length > 0 && (
             <div className={`mt-2 flex w-full flex-wrap gap-3 ${justify} max-sm:flex-col max-sm:items-stretch`}>
               {ctas.map((cta, idx) => (
@@ -364,30 +374,35 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !visualSrc) return null;
       const imageAlt = str(p, "imageAlt", L) || heading;
       const badgeChips = badges.map((b, idx) => (
-        <div key={idx} className="flex items-center gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-3 shadow-sm">
+        <div key={idx} className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white p-3 shadow-lg shadow-slate-900/5">
           {raw(b, "icon") && (
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-950 text-parchment ring-1 ring-inset ring-accent-400/60">
-              <Icon name={raw(b, "icon")} size="sm" colorRole="invert" className="text-current" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+              <Icon name={raw(b, "icon")} size="md" colorRole="brand" />
             </span>
           )}
           <span className="flex min-w-0 flex-col">
-            {str(b, "title", L) && <span className="text-sm font-bold text-ink">{str(b, "title", L)}</span>}
-            {str(b, "text", L) && <span className="text-xs leading-snug text-ink-muted">{str(b, "text", L)}</span>}
+            {str(b, "title", L) && <span className="text-sm font-bold text-slate-900">{str(b, "title", L)}</span>}
+            {str(b, "text", L) && <span className="text-xs leading-snug text-slate-500">{str(b, "text", L)}</span>}
           </span>
         </div>
       ));
-      /* Editorial hero: a ruled manuscript page. Kicker + display headline set
-       * against a framed plate; no gradients, no blobs, no glass. */
       return (
-        <div className="relative overflow-hidden">
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-line" />
-          <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-[calc(3.5rem*var(--density,1))] lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:py-[calc(5rem*var(--density,1))]">
-            <div className="flex flex-col items-start gap-6">
-              {eyebrow && <span className="tito-kicker tito-rise">{eyebrow}</span>}
-              {heading && <h1 className="tito-rise tito-rise-1 font-display max-w-xl text-5xl font-semibold leading-[1.3] text-ink sm:text-6xl sm:leading-[1.25] xl:text-7xl xl:leading-[1.2]">{heading}</h1>}
-              {subtitleHtml && <RichText html={subtitleHtml} className="tito-rise tito-rise-2 max-w-xl text-lg leading-loose text-ink-soft" />}
+        <div className="relative isolate overflow-hidden bg-gradient-to-b from-brand-50/80 via-[#faf8ff] to-transparent">
+          <div aria-hidden="true" className="pointer-events-none absolute -end-16 top-8 -z-10 h-64 w-64 rounded-full bg-emerald-200/50 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -start-20 bottom-0 -z-10 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute end-1/4 top-0 -z-10 h-40 w-40 rounded-full bg-amber-100/60 blur-3xl" />
+          <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-[calc(3rem*var(--density,1))] lg:grid-cols-2 lg:gap-12 lg:py-[calc(4.5rem*var(--density,1))]">
+            <div className="flex flex-col items-start gap-5">
+              {eyebrow && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-white/90 px-4 py-1.5 text-sm font-semibold text-brand-700 shadow-sm">
+                  <Icon name="sparkles" size="sm" colorRole="brand" />
+                  {eyebrow}
+                </span>
+              )}
+              {heading && <h1 className="text-4xl font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-5xl xl:text-6xl">{heading}</h1>}
+              {subtitleHtml && <RichText html={subtitleHtml} className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg" />}
               {(ctas.length > 0 || (videoLabel && videoId)) && (
-                <div className="tito-rise tito-rise-3 mt-1 flex w-full flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="mt-1 flex w-full flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
                   {ctas.map((cta, idx) => (
                     <CtaButton key={idx} label={str(cta, "label", L)} href={raw(cta, "href")} target={raw(cta, "target")} variant={raw(cta, "variant") || "primary"} icon={raw(cta, "icon")} className="max-sm:w-full" />
                   ))}
@@ -396,27 +411,23 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               )}
             </div>
 
-            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-              <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[var(--radius-card)] border border-sand-300 bg-sand-200" />
-              <figure className="tito-plate relative">
-                <img
-                  data-hero-visual="true"
-                  src={visualSrc}
-                  alt={imageAlt}
-                  width={900}
-                  height={1205}
-                  decoding="async"
-                  fetchPriority="high"
-                  className="mx-auto max-h-[30rem] w-full object-cover lg:max-h-[36rem]"
-                />
-                {str(p, "imageAlt", L) && heading && (
-                  <figcaption className="tito-caption px-2 pb-1 pt-3 text-center">{str(p, "imageAlt", L)}</figcaption>
-                )}
-              </figure>
+            <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
+              <div aria-hidden="true" className="absolute -end-6 -top-8 h-36 w-36 rounded-full bg-emerald-300/70 blur-[2px] lg:h-44 lg:w-44" />
+              <div aria-hidden="true" className="absolute -bottom-4 -start-8 h-28 w-28 rounded-full bg-amber-200/80 blur-[1px]" />
+              <img
+                data-hero-visual="true"
+                src={visualSrc}
+                alt={imageAlt}
+                width={900}
+                height={1205}
+                decoding="async"
+                fetchPriority="high"
+                className="relative z-10 mx-auto max-h-[28rem] w-full object-contain lg:max-h-[34rem]"
+              />
               {badges.length > 0 && (
-                <div className="relative z-10 mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:pointer-events-none lg:absolute lg:inset-0 lg:mt-0 lg:block">
+                <div className="relative z-20 mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:pointer-events-none lg:absolute lg:inset-0 lg:mt-0 lg:block">
                   {badges.map((b, idx) => (
-                    <div key={idx} className={`lg:pointer-events-auto lg:absolute lg:w-60 ${BADGE_POS[raw(b, "position")] ?? "lg:bottom-6 lg:start-6"}`}>
+                    <div key={idx} className={`lg:pointer-events-auto lg:absolute ${BADGE_POS[raw(b, "position")] ?? "lg:bottom-6 lg:start-6"}`}>
                       {badgeChips[idx]}
                     </div>
                   ))}
@@ -428,7 +439,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       );
     }
     case "text": {
-      const size = { body: "text-base leading-loose text-ink-soft", lead: "text-lg leading-loose text-ink-soft", h3: "font-display text-2xl font-semibold text-ink", h2: "font-display text-3xl font-semibold text-ink sm:text-4xl", h1: "font-display text-4xl font-semibold text-ink sm:text-5xl" }[raw(p, "size")] ?? "text-base leading-loose text-ink-soft";
+      const size = { body: "text-base text-slate-600", lead: "text-lg text-slate-600", h3: "text-xl font-bold text-slate-900", h2: "text-2xl font-bold text-slate-900", h1: "text-3xl font-extrabold text-slate-900 sm:text-4xl" }[raw(p, "size")] ?? "text-base text-slate-600";
       const text = str(p, "content", L);
       if (!text) return null;
       const align = raw(p, "align") || "start";
@@ -454,20 +465,17 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const text = str(p, "text", L);
       if (!hasImage && !heading && !text) return null;
       const imageFirst = (raw(p, "imagePosition") || "start") === "start";
-      const imgEl = hasImage ? <figure className="tito-plate">
-            <CmsImage fileId={raw(p, "fileId")} alt={str(p, "alt", L)} ctx={ctx} aspect="4:3" />
-            {str(p, "alt", L) && <figcaption className="tito-caption px-2 pb-1 pt-3 text-center">{str(p, "alt", L)}</figcaption>}
-          </figure> : null;
+      const imgEl = hasImage ? <CmsImage fileId={raw(p, "fileId")} alt={str(p, "alt", L)} ctx={ctx} aspect="4:3" rounded /> : null;
       const textEl = (
-        <div className="flex flex-col items-start gap-4">
-          {heading && <h3 className="font-display text-3xl font-semibold leading-snug text-ink">{heading}</h3>}
-          {text && <p className="whitespace-pre-line text-lg leading-loose text-ink-soft">{text}</p>}
+        <div className="flex flex-col items-start gap-3">
+          {heading && <h3 className="text-2xl font-bold text-slate-900">{heading}</h3>}
+          {text && <p className="whitespace-pre-line text-slate-600">{text}</p>}
           {str(p, "ctaLabel", L) && raw(p, "href") && (
             <CtaButton label={str(p, "ctaLabel", L)} href={raw(p, "href")} variant="primary" />
           )}
         </div>
       );
-      return <div className={`grid items-center gap-8 md:grid-cols-2 lg:gap-12 ${imageFirst ? "" : "md:[direction:inherit]"}`}>{imageFirst ? <>{imgEl}{textEl}</> : <>{textEl}{imgEl}</>}</div>;
+      return <div className={`grid items-center gap-6 md:grid-cols-2 ${imageFirst ? "" : "md:[direction:inherit]"}`}>{imageFirst ? <>{imgEl}{textEl}</> : <>{textEl}{imgEl}</>}</div>;
     }
     case "gallery": {
       const items = arr(p, "items").filter((i) => raw(i, "fileId") && ctx.images[raw(i, "fileId")]);
@@ -475,7 +483,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((item, idx) => (
-            <SmartLink key={idx} href={raw(item, "href")} className="block overflow-hidden rounded-[var(--radius-card)] border border-line transition-colors hover:border-accent-500">
+            <SmartLink key={idx} href={raw(item, "href")} className="block overflow-hidden rounded-[var(--radius-card)]">
               <CmsImage fileId={raw(item, "fileId")} alt={str(item, "alt", L)} ctx={ctx} aspect="1:1" />
             </SmartLink>
           ))}
@@ -487,11 +495,11 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!items.length && !str(p, "heading", L)) return null;
       return (
         <div className="flex flex-col items-center gap-5">
-          {str(p, "heading", L) && <p className="tito-kicker tito-kicker-center">{str(p, "heading", L)}</p>}
+          {str(p, "heading", L) && <p className="text-sm font-medium text-slate-500">{str(p, "heading", L)}</p>}
           {items.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-6">
               {items.map((item, idx) => (
-                <img key={idx} src={ctx.images[raw(item, "fileId")]} alt={str(item, "label", L)} loading="lazy" decoding="async" className="h-10 w-auto object-contain opacity-70 transition-opacity hover:opacity-100" />
+                <img key={idx} src={ctx.images[raw(item, "fileId")]} alt={str(item, "label", L)} loading="lazy" decoding="async" className="h-10 w-auto object-contain opacity-80" />
               ))}
             </div>
           )}
@@ -502,14 +510,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const videoId = raw(p, "videoId");
       if (!videoId) return null;
       return (
-        <figure className="mx-auto w-full max-w-3xl">
-          <div className="tito-plate">
-            <Suspense fallback={<div className="h-40 rounded-xl bg-sand-100" />}>
-              <VideoPlayer videoId={videoId} title={str(p, "caption", L) || undefined} />
-            </Suspense>
-          </div>
-          {str(p, "caption", L) && <figcaption className="tito-caption mt-3 text-center">{str(p, "caption", L)}</figcaption>}
-        </figure>
+        <div className="mx-auto w-full max-w-3xl">
+          <Suspense fallback={<div className="h-40 rounded-xl bg-slate-100" />}>
+            <VideoPlayer videoId={videoId} title={str(p, "caption", L) || undefined} />
+          </Suspense>
+          {str(p, "caption", L) && <p className="mt-2 text-center text-sm text-slate-500">{str(p, "caption", L)}</p>}
+        </div>
       );
     }
     case "buttons": {
@@ -533,7 +539,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className={`flex flex-col gap-2 ${ALIGN[align as keyof typeof ALIGN] ?? ALIGN.center}`}>
           {icon && <Icon name={icon} size={raw(p, "size") || "lg"} colorRole={raw(p, "colorRole") || "brand"} />}
-          {label && <p className="font-bold text-ink">{label}</p>}
+          {label && <p className="font-medium text-slate-700">{label}</p>}
         </div>
       );
     }
@@ -543,11 +549,11 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, idx) => (
-            <SmartLink key={idx} href={raw(item, "href")} className="flex items-start gap-4 rounded-[var(--radius-card)] border border-line bg-surface p-5 transition-colors hover:border-accent-500">
+            <SmartLink key={idx} href={raw(item, "href")} className="flex items-start gap-3 rounded-[var(--radius-card)] border border-slate-200 bg-white p-5 hover:border-brand-200">
               {raw(item, "icon") && <Icon name={raw(item, "icon")} size="md" colorRole="brand" />}
               <span className="flex flex-col gap-1">
-                {str(item, "title", L) && <span className="font-bold text-ink">{str(item, "title", L)}</span>}
-                {str(item, "text", L) && <span className="text-sm leading-relaxed text-ink-muted">{str(item, "text", L)}</span>}
+                {str(item, "title", L) && <span className="font-semibold text-slate-900">{str(item, "title", L)}</span>}
+                {str(item, "text", L) && <span className="text-sm text-slate-600">{str(item, "text", L)}</span>}
               </span>
             </SmartLink>
           ))}
@@ -557,40 +563,35 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "feature_cards": {
       const items = arr(p, "items").filter((i) => str(i, "title", L) || str(i, "text", L));
       if (!items.length) return null;
-      /* Editorial chapter index: ruled rows with display numerals. The CMS
-       * `tint` prop survives as the icon-roundel tone (see TINT_CHIP). */
+      const cols = items.length >= 5 ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-3";
       return (
-        <ol className="mx-auto flex w-full max-w-4xl flex-col">
+        <div className={`grid gap-4 ${cols}`}>
           {items.map((item, idx) => {
             const tint = raw(item, "tint") || "brand";
             const href = raw(item, "href");
             const cta = str(item, "ctaLabel", L);
-            const numeral = (idx + 1).toLocaleString(L === "ar" ? "ar-EG" : "en-US", { minimumIntegerDigits: 2 });
             return (
-              <li key={idx} className="tito-index-row flex items-start gap-4 py-6 sm:items-center sm:gap-6">
-                <span aria-hidden="true" className="font-display w-12 shrink-0 text-3xl font-semibold text-accent-600 sm:text-4xl">{numeral}</span>
+              <div key={idx} className={`flex flex-col items-start gap-3 rounded-[1.5rem] p-6 ring-1 transition-shadow hover:shadow-md ${CARD_SURFACE[tint] ?? CARD_SURFACE.brand}`}>
                 {raw(item, "icon") && (
-                  <span className={`hidden h-12 w-12 shrink-0 items-center justify-center rounded-full sm:flex ${TINT_CHIP[tint] ?? TINT_CHIP.brand}`}>
-                    <Icon name={raw(item, "icon")} size="md" colorRole="default" className="text-current" />
+                  <span className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ${TINT_CHIP[tint] ?? TINT_CHIP.brand}`}>
+                    <Icon name={raw(item, "icon")} size="md" colorRole={tint === "muted" ? "brand" : tint} />
                   </span>
                 )}
-                <span className="flex min-w-0 flex-1 flex-col gap-1">
-                  {str(item, "title", L) && <span className="font-display text-xl font-semibold text-ink">{str(item, "title", L)}</span>}
-                  {str(item, "text", L) && <span className="text-[15px] leading-relaxed text-ink-muted">{str(item, "text", L)}</span>}
-                </span>
+                {str(item, "title", L) && <h3 className="text-lg font-bold text-slate-900">{str(item, "title", L)}</h3>}
+                {str(item, "text", L) && <p className="text-sm leading-relaxed text-slate-600">{str(item, "text", L)}</p>}
                 {href && (
                   <SmartLink
                     href={href}
                     ariaLabel={cta || str(item, "title", L) || str(item, "text", L)}
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line text-ink transition-colors hover:border-accent-500 hover:text-brand-800"
+                    className="mt-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-slate-700 shadow-sm ring-1 ring-black/5 transition hover:bg-white hover:shadow"
                   >
-                    <span aria-hidden="true" className="tito-arrow rtl:rotate-180">→</span>
+                    <span aria-hidden="true" className="rtl:rotate-180">→</span>
                   </SmartLink>
                 )}
-              </li>
+              </div>
             );
           })}
-        </ol>
+        </div>
       );
     }
     case "pricing_cards": {
@@ -602,16 +603,16 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const features = str(item, "features", L).split("\n").map((s) => s.trim()).filter(Boolean);
             const highlighted = bool(item, "highlighted");
             return (
-              <div key={idx} className={`flex flex-col gap-5 rounded-[var(--radius-card)] border p-7 ${highlighted ? "tito-band border-accent-500 ring-1 ring-accent-500" : "border-line bg-surface shadow-sm"}`}>
+              <div key={idx} className={`flex flex-col gap-4 rounded-[var(--radius-card)] border p-6 ${highlighted ? "border-brand-500 bg-brand-50/50 ring-1 ring-brand-500" : "border-slate-200 bg-white"}`}>
                 <div>
-                  <h3 className="font-display text-xl font-semibold">{str(item, "name", L)}</h3>
-                  <p className="font-display mt-2 text-4xl font-semibold" dir="auto">{raw(item, "price")}</p>
-                  {str(item, "period", L) && <p className={`text-sm font-medium ${highlighted ? "text-accent-300" : "text-ink-muted"}`}>{str(item, "period", L)}</p>}
+                  <h3 className="text-lg font-bold text-slate-900">{str(item, "name", L)}</h3>
+                  <p className="mt-2 text-3xl font-extrabold text-slate-900" dir="auto">{raw(item, "price")}</p>
+                  {str(item, "period", L) && <p className="text-sm text-slate-500">{str(item, "period", L)}</p>}
                 </div>
                 {features.length > 0 && (
                   <ul className="flex flex-col gap-2">
                     {features.map((f, i) => (
-                      <li key={i} className={`flex items-start gap-2 text-[15px] ${highlighted ? "text-parchment/85" : "text-ink-soft"}`}>
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
                         <Icon name="check" size="sm" colorRole="success" className="mt-0.5" />
                         <span>{f}</span>
                       </li>
@@ -619,7 +620,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                   </ul>
                 )}
                 {str(item, "ctaLabel", L) && (
-                  <CtaButton label={str(item, "ctaLabel", L)} href={raw(item, "ctaHref")} variant={highlighted ? "secondary" : "primary"} className="mt-auto w-full" />
+                  <CtaButton label={str(item, "ctaLabel", L)} href={raw(item, "ctaHref")} variant={highlighted ? "primary" : "outline"} className="mt-auto w-full" />
                 )}
               </div>
             );
@@ -633,7 +634,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const style = raw(p, "style") || "cards";
       if (style === "bar") {
         return (
-          <div className="tito-band rounded-[var(--radius-card)] px-3 py-4 shadow-md ring-1 ring-accent-500/40 sm:px-4">
+          <div className="rounded-[1.75rem] bg-white px-3 py-4 shadow-lg shadow-slate-900/5 ring-1 ring-slate-100 sm:px-4">
             <div className="grid grid-cols-2 lg:grid-cols-4">
               {items.map((item, idx) => {
                 const label = str(item, "label", L);
@@ -643,19 +644,19 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 const inner = (
                   <span className="flex items-center gap-3">
                     {icon && (
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full ring-1 ring-accent-400/60">
-                        <Icon name={icon} size="md" colorRole="accent" className="text-accent-300" />
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+                        <Icon name={icon} size="md" colorRole="brand" />
                       </span>
                     )}
                     <span className="flex min-w-0 flex-col">
-                      {value && <span className="font-display text-lg font-semibold text-parchment sm:text-xl" dir="auto">{value}</span>}
-                      {label && <span className="text-sm text-parchment/70">{label}</span>}
+                      {value && <span className="text-base font-extrabold text-slate-900 sm:text-lg" dir="auto">{value}</span>}
+                      {label && <span className="text-sm text-slate-500">{label}</span>}
                     </span>
                   </span>
                 );
-                const wrapCls = `flex min-h-16 items-center px-4 py-3 ${idx < items.length - 1 ? "lg:border-e lg:border-white/15" : ""}`;
+                const wrapCls = `flex min-h-16 items-center px-4 py-3 ${idx < items.length - 1 ? "lg:border-e lg:border-slate-100" : ""}`;
                 return href ? (
-                  <SmartLink key={idx} href={href} className={`${wrapCls} rounded-2xl transition-colors hover:bg-surface/5`}>
+                  <SmartLink key={idx} href={href} className={`${wrapCls} rounded-2xl transition-colors hover:bg-slate-50`}>
                     {inner}
                   </SmartLink>
                 ) : (
@@ -669,10 +670,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
           {items.map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center gap-1 rounded-[var(--radius-card)] border border-line bg-surface p-6 text-center shadow-sm">
+            <div key={idx} className="flex flex-col items-center gap-1 rounded-[var(--radius-card)] border border-slate-200 bg-white p-5 text-center">
               {raw(item, "icon") && <Icon name={raw(item, "icon")} size="md" colorRole="accent" />}
-              <span className="font-display text-3xl font-semibold text-brand-800" dir="auto">{str(item, "value", L)}</span>
-              {str(item, "label", L) && <span className="text-sm font-medium text-ink-muted">{str(item, "label", L)}</span>}
+              <span className="text-2xl font-extrabold text-slate-900" dir="auto">{str(item, "value", L)}</span>
+              {str(item, "label", L) && <span className="text-sm text-slate-500">{str(item, "label", L)}</span>}
             </div>
           ))}
         </div>
@@ -682,18 +683,18 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const items = arr(p, "items").filter((i) => str(i, "quote", L));
       if (!items.length) return null;
       return (
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, idx) => (
-            <figure key={idx} className="flex flex-col gap-4 border-t-2 border-accent-400 pt-6">
-              <span aria-hidden="true" className="font-display text-5xl leading-none text-accent-500">”</span>
-              <blockquote className="font-display -mt-3 text-xl font-medium leading-relaxed text-ink">{str(item, "quote", L)}</blockquote>
+            <figure key={idx} className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-slate-200 bg-white p-6">
+              <Icon name="quote" size="md" colorRole="brand" />
+              <blockquote className="text-sm leading-relaxed text-slate-700">{str(item, "quote", L)}</blockquote>
               <figcaption className="mt-auto flex items-center gap-3">
                 {raw(item, "image") && ctx.images[raw(item, "image")] && (
-                  <img src={ctx.images[raw(item, "image")]} alt={str(item, "name", L)} loading="lazy" decoding="async" className="h-11 w-11 rounded-full object-cover ring-1 ring-line" />
+                  <img src={ctx.images[raw(item, "image")]} alt={str(item, "name", L)} loading="lazy" decoding="async" className="h-10 w-10 rounded-full object-cover" />
                 )}
                 <span className="flex flex-col">
-                  {str(item, "name", L) && <span className="text-sm font-bold text-ink">{str(item, "name", L)}</span>}
-                  {str(item, "role", L) && <span className="text-xs font-medium text-ink-muted">{str(item, "role", L)}</span>}
+                  {str(item, "name", L) && <span className="text-sm font-semibold text-slate-900">{str(item, "name", L)}</span>}
+                  {str(item, "role", L) && <span className="text-xs text-slate-500">{str(item, "role", L)}</span>}
                 </span>
               </figcaption>
             </figure>
@@ -705,14 +706,14 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const items = arr(p, "items").filter((i) => str(i, "q", L));
       if (!items.length) return null;
       return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
           {items.map((item, idx) => (
-            <details key={idx} className="tito-index-row group py-1 open:pb-5">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-4 text-[17px] font-bold text-ink [&::-webkit-details-marker]:hidden">
+            <details key={idx} className="group rounded-[var(--radius-card)] border border-slate-200 bg-white px-5 py-1 open:pb-4">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
                 {str(item, "q", L)}
-                <Icon name="chevron-down" size="sm" colorRole="accent" className="shrink-0 transition-transform group-open:rotate-180" />
+                <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
               </summary>
-              <p className="whitespace-pre-line pb-2 leading-loose text-ink-soft">{str(item, "a", L)}</p>
+              <p className="whitespace-pre-line pb-2 text-sm leading-relaxed text-slate-600">{str(item, "a", L)}</p>
             </details>
           ))}
         </div>
@@ -722,14 +723,14 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const items = arr(p, "items").filter((i) => str(i, "title", L));
       if (!items.length) return null;
       return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
           {items.map((item, idx) => (
-            <details key={idx} className="tito-index-row group py-1 open:pb-5">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-4 text-[17px] font-bold text-ink [&::-webkit-details-marker]:hidden">
+            <details key={idx} className="group rounded-[var(--radius-card)] border border-slate-200 bg-white px-5 py-1 open:pb-4">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
                 {str(item, "title", L)}
-                <Icon name="chevron-down" size="sm" colorRole="accent" className="shrink-0 transition-transform group-open:rotate-180" />
+                <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
               </summary>
-              <RichText html={str(item, "content", L)} className="pb-2 leading-loose text-ink-soft" />
+              <RichText html={str(item, "content", L)} className="pb-2 text-sm leading-relaxed text-slate-600" />
             </details>
           ))}
         </div>
@@ -738,7 +739,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "announcement": {
       const text = str(p, "text", L);
       if (!text) return null;
-      const tone = { info: "bg-sand-100 text-ink", success: "bg-success-soft text-success", warning: "bg-warning-soft text-warning", brand: "bg-brand-50 text-brand-800" }[raw(p, "tone")] ?? "bg-sand-100 text-ink";
+      const tone = { info: "bg-slate-100 text-slate-800", success: "bg-emerald-50 text-emerald-800", warning: "bg-amber-50 text-amber-800", brand: "bg-brand-50 text-brand-800" }[raw(p, "tone")] ?? "bg-slate-100 text-slate-800";
       return (
         <div className={`flex flex-wrap items-center justify-center gap-3 rounded-[var(--radius-card)] px-5 py-3 text-sm font-medium ${tone}`}>
           {raw(p, "icon") && <Icon name={raw(p, "icon")} size="sm" colorRole="default" className="text-current" />}
@@ -759,12 +760,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const text = str(p, "text", L);
       if (!heading && !text) return null;
       return (
-        <div className="tito-band grid items-center gap-6 overflow-hidden rounded-[var(--radius-card)] ring-1 ring-accent-500/30 md:grid-cols-2">
-          <div className="flex flex-col items-start gap-4 p-7 sm:p-10">
-            {heading && <h3 className="font-display text-3xl font-semibold leading-snug">{heading}</h3>}
-            {text && <p className="whitespace-pre-line leading-loose text-parchment/80">{text}</p>}
+        <div className="grid items-center gap-6 overflow-hidden rounded-[var(--radius-card)] bg-slate-900 md:grid-cols-2">
+          <div className="flex flex-col items-start gap-3 p-7 text-white sm:p-10">
+            {heading && <h3 className="text-2xl font-bold">{heading}</h3>}
+            {text && <p className="whitespace-pre-line text-slate-300">{text}</p>}
             {str(p, "ctaLabel", L) && raw(p, "ctaHref") && (
-              <CtaButton label={str(p, "ctaLabel", L)} href={raw(p, "ctaHref")} variant="secondary" />
+              <CtaButton label={str(p, "ctaLabel", L)} href={raw(p, "ctaHref")} variant="primary" />
             )}
           </div>
           {raw(p, "image") && ctx.images[raw(p, "image")] && (
@@ -783,17 +784,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const bio = str(p, "bio", L);
       if (!name && !photoUrl && !bio) return null;
       return (
-        <div className="flex flex-col items-center gap-8 md:flex-row md:items-start">
-          {photoUrl && (
-            <figure className="tito-plate shrink-0">
-              <img src={photoUrl} alt={name} loading="lazy" decoding="async" className="h-44 w-44 object-cover md:h-56 md:w-56" />
-              {title && <figcaption className="tito-caption px-2 pb-1 pt-3 text-center">{title}</figcaption>}
-            </figure>
-          )}
-          <div className="flex max-w-2xl flex-col items-center gap-3 md:items-start">
-            {title && !photoUrl && <p className="tito-kicker">{title}</p>}
-            {name && <h3 className="font-display text-3xl font-semibold leading-snug text-ink">{name}</h3>}
-            {bio && <RichText html={bio} className="leading-loose text-ink-soft" />}
+        <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
+          {photoUrl && <img src={photoUrl} alt={name} loading="lazy" decoding="async" className="h-40 w-40 shrink-0 rounded-[var(--radius-card)] object-cover md:h-52 md:w-52" />}
+          <div className="flex flex-col items-center gap-2 md:items-start">
+            {name && <h3 className="text-2xl font-bold text-slate-900">{name}</h3>}
+            {title && <p className="font-medium text-brand-700">{title}</p>}
+            {bio && <RichText html={bio} className="text-sm leading-relaxed text-slate-600" />}
           </div>
         </div>
       );
@@ -803,10 +799,9 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = block.type === "login_cta" ? "/login" : "/register";
       const label = str(p, "label", L) || (block.type === "login_cta" ? (L === "ar" ? "تسجيل الدخول" : "Log in") : L === "ar" ? "إنشاء حساب" : "Create account");
       return (
-        <div className="tito-band flex flex-col items-center gap-5 rounded-[var(--radius-card)] p-10 text-center ring-1 ring-accent-500/30 sm:p-14">
-          <span aria-hidden="true" className="h-1 w-12 rounded-full bg-accent-500" />
-          {str(p, "sublabel", L) && <p className="font-display max-w-xl text-2xl font-medium leading-relaxed sm:text-3xl">{str(p, "sublabel", L)}</p>}
-          <CtaButton label={label} href={href} variant="secondary" />
+        <div className="flex flex-col items-center gap-4 rounded-[1.75rem] bg-gradient-to-b from-brand-50 to-white p-10 text-center ring-1 ring-brand-100">
+          {str(p, "sublabel", L) && <p className="max-w-md text-lg text-slate-600">{str(p, "sublabel", L)}</p>}
+          <CtaButton label={label} href={href} variant="primary" />
         </div>
       );
     }
@@ -820,12 +815,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const network = raw(item, "network");
             const label = str(item, "label", L);
             return asButtons ? (
-              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-accent-500">
+              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
                 <Icon name={network} size="sm" colorRole="default" className="text-current" />
                 {label || network}
               </a>
             ) : (
-              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" aria-label={label || network} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line text-ink-soft transition-colors hover:border-accent-500 hover:text-ink">
+              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" aria-label={label || network} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Icon name={network} size="md" colorRole="default" className="text-current" />
               </a>
             );
@@ -844,7 +839,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <ul className="flex flex-col gap-3">
           {rows.map(([icon, value], idx) => (
-            <li key={idx} className="flex items-center gap-3 text-[15px] font-medium text-ink">
+            <li key={idx} className="flex items-center gap-3 text-sm text-slate-700">
               <Icon name={icon} size="sm" colorRole="brand" />
               <span dir={icon === "phone" || icon === "mail" ? "ltr" : undefined}>{value}</span>
             </li>
@@ -859,13 +854,13 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = `https://wa.me/${phone}`;
       if (raw(p, "style") === "floating") {
         return (
-          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-success text-white shadow-lg hover:brightness-90 ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
+          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
             <Icon name="whatsapp" size="lg" colorRole="default" className="text-white" />
           </a>
         );
       }
       return (
-        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-success px-6 py-3 text-base font-semibold text-white hover:brightness-90">
+        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-emerald-500 px-6 py-3 text-base font-semibold text-white hover:bg-emerald-600">
           <Icon name="whatsapp" size="sm" colorRole="default" className="text-white" />
           {label}
         </a>
@@ -897,8 +892,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!form) return null; // form deleted/disabled → block disappears (no crash)
       return (
         <div className="flex flex-col gap-4">
-          {heading && <h3 className="font-display text-center text-3xl font-semibold text-ink">{heading}</h3>}
-          {text && <p className="mx-auto max-w-xl text-center leading-relaxed text-ink-muted">{text}</p>}
+          {heading && <h3 className="text-center text-2xl font-bold text-slate-900">{heading}</h3>}
+          {text && <p className="text-center text-slate-600">{text}</p>}
           <CmsForm form={form} ctx={ctx} compact={block.type === "newsletter_form"} />
         </div>
       );
@@ -914,9 +909,9 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     }
     case "divider": {
       const variant = raw(p, "variant") || "line";
-      if (variant === "dots") return <div className="flex justify-center gap-2 py-2" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="h-1.5 w-1.5 rounded-full bg-sand-300" />)}</div>;
-      if (variant === "gradient") return <hr className="tito-rule" aria-hidden="true" />;
-      return <hr className="h-px border-0 bg-line" aria-hidden="true" />;
+      if (variant === "dots") return <div className="flex justify-center gap-2 py-2" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="h-1.5 w-1.5 rounded-full bg-slate-300" />)}</div>;
+      if (variant === "gradient") return <hr className="border-0 bg-gradient-to-r from-transparent via-slate-300 to-transparent h-px" aria-hidden="true" />;
+      return <hr className="h-px border-0 bg-slate-200" aria-hidden="true" />;
     }
     case "spacer": {
       const size = { sm: "h-4", md: "h-8", lg: "h-14", xl: "h-24" }[raw(p, "size")] ?? "h-8";
@@ -933,10 +928,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
 
 const SECTION_BG: Record<string, string> = {
   default: "",
-  surface: "bg-surface",
-  muted: "bg-sand-100",
-  brand: "tito-band",
-  dark: "bg-ink text-parchment",
+  surface: "bg-[var(--color-surface)]",
+  muted: "bg-slate-100",
+  brand: "bg-brand-600 text-white",
+  dark: "bg-slate-900 text-slate-100",
   image: "",
 };
 const SECTION_PAD: Record<string, string> = {
@@ -974,12 +969,10 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
   const hasBgImage = Boolean(bgImageId && ctx.images[bgImageId]);
   const align = raw(p, "align") || "start";
   const columns = raw(p, "columns") || "1";
-  const onDark = bg === "brand" || bg === "dark";
   const headingEl = heading || subheading ? (
-    <div className={`mb-10 flex flex-col gap-3 ${align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start"}`}>
-      {heading && <span aria-hidden="true" className="h-1 w-10 rounded-full bg-accent-500" />}
-      {heading && <h2 className="font-display max-w-3xl text-3xl font-semibold leading-snug sm:text-4xl sm:leading-snug">{heading}</h2>}
-      {subheading && <p className={`max-w-2xl text-lg leading-relaxed ${onDark ? "text-parchment/75" : "text-ink-muted"}`}>{subheading}</p>}
+    <div className={`mb-8 flex flex-col gap-2 ${align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start"}`}>
+      {heading && <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{heading}</h2>}
+      {subheading && <p className={`max-w-2xl ${bg === "brand" || bg === "dark" ? "text-slate-300" : "text-slate-600"}`}>{subheading}</p>}
     </div>
   ) : null;
 
@@ -988,10 +981,10 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
       {hasBgImage && (
         <>
           <img src={ctx.images[bgImageId]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-brand-950/70" aria-hidden="true" />
+          <div className="absolute inset-0 bg-slate-900/60" aria-hidden="true" />
         </>
       )}
-      <div className={`relative mx-auto w-full scroll-mt-28 px-4 ${SECTION_CONTAINER[raw(p, "container") || "normal"] ?? SECTION_CONTAINER.normal}`}>
+      <div className={`relative mx-auto w-full px-4 ${SECTION_CONTAINER[raw(p, "container") || "normal"] ?? SECTION_CONTAINER.normal}`}>
         {hasBgImage && !SECTION_BG[bg] ? <div className="text-white">{headingEl}</div> : headingEl}
         {children.length > 0 && (
           <div className={`grid ${SECTION_GRID[columns] ?? SECTION_GRID["1"]} ${SECTION_GAP[raw(p, "gap") || "md"] ?? SECTION_GAP.md} ${align === "center" ? "justify-items-center" : ""} ${columns === "1" && align === "center" ? "[&>*]:mx-auto" : ""}`}>

@@ -85,8 +85,8 @@ export default function AdminBatchPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-4" key={`batch-${batch?.id}`}>
-      <nav className="text-xs text-ink-muted">
-        <Link to="/admin/commerce?tab=codes" className="hover:text-brand-700">{t(locale, "commerceAdmin.title")}</Link>
+      <nav className="text-xs text-slate-500">
+        <Link to="/admin/commerce?tab=codes" className="hover:text-brand-600">{t(locale, "commerceAdmin.title")}</Link>
         <span aria-hidden="true"> › </span>
         <span>{batch.name}</span>
       </nav>
@@ -100,11 +100,11 @@ export default function AdminBatchPage({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={t(locale, "commerceAdmin.batchInfo")} />
         <CardBody className="space-y-1 text-sm">
-          <p className="text-xs text-ink-muted">
+          <p className="text-xs text-slate-500">
             {formatDate(locale, batch.createdAt)} · {t(locale, "commerceAdmin.count")}: {batch.count}
             {batch.note ? ` · ${batch.note}` : ""}
           </p>
-          <p className="text-xs text-ink-muted" data-testid="batch-spec">
+          <p className="text-xs text-slate-500" data-testid="batch-spec">
             {t(locale, "commerceAdmin.frozenSpec")}:{" "}
             {(batch.spec.grants ?? []).map((g) => `${g.resourceType}:${g.resourceId.slice(0, 8)}`).join(", ")}
             {batch.spec.durationDays ? ` · ${batch.spec.durationDays}d` : ` · ${t(locale, "commerceAdmin.permanent")}`}
@@ -115,13 +115,13 @@ export default function AdminBatchPage({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={t(locale, "commerceAdmin.codesList")} />
         <CardBody>
-          <p className="mb-2 text-xs text-ink-muted">{t(locale, "commerceAdmin.codesHashedNote")}</p>
+          <p className="mb-2 text-xs text-slate-500">{t(locale, "commerceAdmin.codesHashedNote")}</p>
           <div className="space-y-2">
             {codes.map((c) => (
-              <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2 text-sm last:border-0" data-testid="code-row">
+              <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-sm last:border-0" data-testid="code-row">
                 <div>
                   <span className="font-mono font-semibold" dir="ltr">{c.prefix}••••</span>
-                  <span className="ms-2 text-xs text-ink-muted" dir="ltr">
+                  <span className="ms-2 text-xs text-slate-500" dir="ltr">
                     {c.useCount}/{c.maxUses}
                     {c.expiresAt ? ` · ${t(locale, "commerceAdmin.until")} ${formatDate(locale, c.expiresAt)}` : ""}
                   </span>
@@ -166,11 +166,11 @@ export default function AdminBatchPage({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={t(locale, "commerceAdmin.redemptions")} />
         <CardBody className="space-y-2">
-          {redemptions.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noRedemptions")}</p>}
+          {redemptions.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noRedemptions")}</p>}
           {redemptions.map((r) => (
-            <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2 text-sm last:border-0" data-testid="redemption-row">
-              <span dir="ltr" className="text-xs text-ink-muted">{r.studentEmail ?? r.id.slice(0, 8)}</span>
-              <span className="text-xs text-ink-muted">{formatDate(locale, r.createdAt)}</span>
+            <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-sm last:border-0" data-testid="redemption-row">
+              <span dir="ltr" className="text-xs text-slate-600">{r.studentEmail ?? r.id.slice(0, 8)}</span>
+              <span className="text-xs text-slate-500">{formatDate(locale, r.createdAt)}</span>
             </div>
           ))}
         </CardBody>

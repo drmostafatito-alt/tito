@@ -16,7 +16,7 @@ describe("dictionary parity (ar/en must not drift)", () => {
 
   it("lookup resolves nested keys and interpolates", () => {
     expect(t("en", "auth.errors.invalid_credentials")).toBe("Incorrect email or password.");
-    expect(t("ar", "common.appName")).toBe("د. مصطفى تيتو");
+    expect(t("ar", "common.appName")).toBe("د/ مصطفى تيتو");
   });
 
   it("auth.error codes surfaced by routes all resolve (never leak raw keys)", () => {

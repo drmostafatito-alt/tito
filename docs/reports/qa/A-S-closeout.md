@@ -35,7 +35,7 @@ Screenshots: `01-desktop-ar-rtl.png`, `smoke-1440-ar.png`, `lang-click-01-ar.png
 
 ## B. Desktop English LTR (1440×900)
 
-**PASS.** Clicking the real switcher POSTs `/set-locale`, sets `edu_locale=en` (HttpOnly, no `Secure` on localhost), full document `lang=en dir=ltr`. H1 “Welcome to your platform!”. Philosophy / Dr. Mostafa Tito. Overflow ≤2px.  
+**PASS.** Clicking the real switcher POSTs `/set-locale`, sets `edu_locale=en` (HttpOnly, no `Secure` on localhost), full document `lang=en dir=ltr`. H1 “Welcome to your platform!”. Philosophy / Dr mostafa tito. Overflow ≤2px.  
 Screenshots: `02-desktop-en-ltr.png`, `smoke-1440-en.png`, `smoke-desktop-en.png`, `lang-click-02-en.png`.
 
 ## C. Mobile Arabic RTL (390×844)
@@ -76,7 +76,7 @@ Chunked wrangler responses omit `Content-Length` for HTML/CSS/JS (bytes recorded
 
 **PASS** (one login; 1-device policy — sessions/devices cleared between admin tests).
 
-- Platform name: د. مصطفى تيتو / Dr. Mostafa Tito; tagline الفلسفة وعلم النفس
+- Platform name: د/ مصطفى تيتو / Dr mostafa tito; tagline الفلسفة وعلم النفس
 - Logo + hero image selected from uploaded files; header image visible on `/`
 - Data-driven YouTube social shown in footer when enabled (QA URL was then wiped by e2e-reset)
 - Theme primary `#0f766e`; heading font switched to IBM then **reverted to Cairo** so IBM is not left as a QA override
@@ -152,7 +152,7 @@ Applying a template copies an independent draft snapshot; later source edits do 
 
 | Kind | What | Action |
 |---|---|---|
-| **Production identity** | د. مصطفى تيتو / Dr. Mostafa Tito; philosophy + psychology; Arabic-first; seeded Cairo theme; CMS homepage | keep |
+| **Production identity** | د/ مصطفى تيتو / Dr mostafa tito; philosophy + psychology; Arabic-first; seeded Cairo theme; CMS homepage | keep |
 | **Demo / fixture** | physics catalog (`physics-3s-full`, `electrostatics-check`); `*.educore.local` users; mock video; demo PDF | classify, do **not** delete schema |
 
 ## R. Post-reset leftover check

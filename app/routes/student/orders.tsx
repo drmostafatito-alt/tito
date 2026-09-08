@@ -81,7 +81,7 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "commerce.myOrders")}</h1>
+        <h1 className="text-xl font-bold">{t(locale, "commerce.myOrders")}</h1>
         <Link
           to="/activate"
           className="inline-flex min-h-11 items-center rounded-lg border border-brand-300 px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50"
@@ -93,7 +93,7 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
 
       {subscriptions.length > 0 && (
         <section className="space-y-3" aria-labelledby="subs-heading" data-testid="subscriptions-section">
-          <h2 id="subs-heading" className="text-sm font-semibold text-ink-muted">
+          <h2 id="subs-heading" className="text-sm font-semibold text-slate-600">
             {t(locale, "commerce.mySubscriptions")}
           </h2>
           {subscriptions.map((s) => {
@@ -108,7 +108,7 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
                 <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <div>
                     <p className="font-semibold">{title}</p>
-                    <p className="text-xs text-ink-muted">
+                    <p className="text-xs text-slate-500">
                       {s.currentPeriodEnd !== null
                         ? t(locale, "commerce.accessUntil").replace("{date}", formatDate(locale, s.currentPeriodEnd))
                         : t(locale, "commerce.noEnd")}
@@ -126,25 +126,25 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
       )}
 
       <section className="space-y-3" aria-labelledby="orders-heading">
-        <h2 id="orders-heading" className="text-sm font-semibold text-ink-muted">
+        <h2 id="orders-heading" className="text-sm font-semibold text-slate-600">
           {t(locale, "commerce.ordersHistory")}
         </h2>
         {orders.length === 0 && (
           <Card>
-            <CardBody className="text-sm text-ink-muted" data-testid="orders-empty">
+            <CardBody className="text-sm text-slate-500" data-testid="orders-empty">
               {t(locale, "commerce.noOrders")}
             </CardBody>
           </Card>
         )}
         {orders.map((o) => (
           <Link key={o.id} to={`/orders/${o.orderNumber}`} className="block">
-            <Card className="transition hover:border-brand-300">
+            <Card className="transition hover:border-blue-300">
               <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div>
                   <p className="font-semibold">
                     {(locale === "ar" ? o.items[0]?.titleAr : o.items[0]?.titleEn) || o.orderNumber}
                   </p>
-                  <p className="text-xs text-ink-muted" dir="ltr">
+                  <p className="text-xs text-slate-500" dir="ltr">
                     {o.orderNumber} · {formatDate(locale, o.createdAt)}
                   </p>
                 </div>

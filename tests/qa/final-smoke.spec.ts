@@ -160,7 +160,7 @@ test("4 homepage visual 3 viewports + Cairo fonts + no overflow", async ({ page 
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.locator("body")).toContainText(/Welcome to your platform/i);
   await expect(page.locator("body")).toContainText(/Philosophy/i);
-  await expect(page.locator("body")).toContainText(/Dr. Mostafa Tito/i);
+  await expect(page.locator("body")).toContainText(/Dr mostafa tito/i);
   await noOverflow(page);
   await page.screenshot({ path: resolve(OUT, "smoke-1440-en.png"), fullPage: true });
   expect(errors, `app console/page errors: ${errors.join(" | ")}`).toEqual([]);
@@ -173,8 +173,8 @@ test("5 admin appearance + CMS + templates + files (one login)", async ({ page }
 
   // --- appearance ---
   await page.goto("/admin/appearance?tab=system");
-  await page.locator('input[name="nameAr"]').fill("د. مصطفى تيتو");
-  await page.locator('input[name="nameEn"]').fill("Dr. Mostafa Tito");
+  await page.locator('input[name="nameAr"]').fill("د/ مصطفى تيتو");
+  await page.locator('input[name="nameEn"]').fill("Dr mostafa tito");
   await page.locator('input[name="taglineAr"]').fill("الفلسفة وعلم النفس");
   await page.getByRole("button", { name: /حفظ المجموعة|Save group/i }).click();
   await expect(page.locator("body")).toContainText(/تم الحفظ|Saved/);

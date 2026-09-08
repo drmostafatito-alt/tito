@@ -148,10 +148,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col items-start gap-2">
-          <p className="tito-kicker">{welcomeLine}</p>
-          <h1 className="font-display text-3xl font-semibold leading-snug text-ink sm:text-4xl">{loaderData.user.fullName}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm text-slate-500">{welcomeLine}</p>
+          <h1 className="text-2xl font-bold text-slate-900">{loaderData.user.fullName}</h1>
         </div>
         <Badge tone="brand">
           {t(locale, "dashboard.role")}: {roleLabel[loaderData.user.roleId] ?? loaderData.user.roleId}
@@ -164,24 +164,24 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "progress.continueTitle")} />
           <CardBody>
             {loaderData.continueItems.length === 0 ? (
-              <p className="text-sm text-ink-muted">{t(locale, "progress.continueEmpty")}</p>
+              <p className="text-sm text-slate-500">{t(locale, "progress.continueEmpty")}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {loaderData.continueItems.map((item) => (
                   <li key={`${item.courseSlug}/${item.lessonSlug}`}>
                     <Link
                       to={`/learn/${item.courseSlug}/${item.lessonSlug}`}
-                      className="flex min-h-12 flex-col gap-1 rounded-[var(--radius-base,10px)] border border-line px-4 py-2.5 transition-colors hover:border-accent-500 hover:bg-accent-50/50"
+                      className="flex min-h-11 flex-col gap-1 rounded-lg border border-slate-200 px-4 py-2.5 hover:border-brand-300 hover:bg-brand-50/40"
                     >
-                      <span className="flex items-center justify-between gap-2 text-[15px] font-bold text-ink">
+                      <span className="flex items-center justify-between gap-2 text-sm font-medium text-slate-800">
                         {locale === "ar" ? item.lessonTitleAr || item.lessonTitleEn : item.lessonTitleEn || item.lessonTitleAr}
                         {item.status === "completed" ? (
                           <Badge tone="success">{t(locale, "progress.completed")}</Badge>
                         ) : (
-                          <span className="text-xs font-bold text-brand-700">{t(locale, "progress.resume")}</span>
+                          <span className="text-xs font-normal text-brand-700">{t(locale, "progress.resume")}</span>
                         )}
                       </span>
-                      <span className="flex items-center gap-2 text-xs text-ink-muted">
+                      <span className="flex items-center gap-2 text-xs text-slate-500">
                         {locale === "ar" ? item.courseTitleAr || item.courseTitleEn : item.courseTitleEn || item.courseTitleAr}
                         <span dir="ltr">· {item.pct}%</span>
                       </span>
@@ -199,17 +199,17 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "progress.statsTitle")} />
           <CardBody>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-line p-3 text-center">
-                <p className="font-display text-3xl font-semibold text-brand-800" dir="ltr">{loaderData.stats.completedLessons}</p>
-                <p className="text-xs text-ink-muted">{t(locale, "progress.completedLessons")}</p>
+              <div className="rounded-lg border border-slate-200 p-3 text-center">
+                <p className="text-2xl font-bold text-brand-700" dir="ltr">{loaderData.stats.completedLessons}</p>
+                <p className="text-xs text-slate-500">{t(locale, "progress.completedLessons")}</p>
               </div>
-              <div className="rounded-lg border border-line p-3 text-center">
-                <p className="font-display text-3xl font-semibold text-ink" dir="ltr">{loaderData.stats.inProgressLessons}</p>
-                <p className="text-xs text-ink-muted">{t(locale, "progress.lessonsInProgress")}</p>
+              <div className="rounded-lg border border-slate-200 p-3 text-center">
+                <p className="text-2xl font-bold text-slate-700" dir="ltr">{loaderData.stats.inProgressLessons}</p>
+                <p className="text-xs text-slate-500">{t(locale, "progress.lessonsInProgress")}</p>
               </div>
-              <div className="rounded-lg border border-line p-3 text-center">
-                <p className="font-display text-3xl font-semibold text-ink" dir="ltr">{loaderData.stats.completedVideos}</p>
-                <p className="text-xs text-ink-muted">{t(locale, "progress.completedVideos")}</p>
+              <div className="rounded-lg border border-slate-200 p-3 text-center">
+                <p className="text-2xl font-bold text-slate-700" dir="ltr">{loaderData.stats.completedVideos}</p>
+                <p className="text-xs text-slate-500">{t(locale, "progress.completedVideos")}</p>
               </div>
             </div>
           </CardBody>
@@ -221,18 +221,18 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.myCourses")} />
           <CardBody>
             {loaderData.myCourses.length === 0 ? (
-              <p className="text-sm text-ink-muted">{t(locale, "content.catalogEmpty")}</p>
+              <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {loaderData.myCourses.map((course) => (
                   <li key={course.slug}>
                     <Link
                       to={`/courses/${course.slug}`}
-                      className="flex min-h-12 flex-col gap-1.5 rounded-[var(--radius-base,10px)] border border-line px-4 py-2.5 text-sm font-bold text-ink transition-colors hover:border-accent-500 hover:bg-accent-50/50"
+                      className="flex min-h-11 flex-col gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 hover:border-brand-300 hover:bg-brand-50/40"
                     >
                       <span className="flex items-center justify-between gap-2">
                         {locale === "ar" ? course.titleAr || course.titleEn : course.titleEn || course.titleAr}
-                        <span className="text-xs font-normal text-ink-muted" dir="ltr">{course.pct}%</span>
+                        <span className="text-xs font-normal text-slate-500" dir="ltr">{course.pct}%</span>
                       </span>
                       <ProgressBar pct={course.pct} label={t(locale, "progress.courseProgress")} />
                     </Link>
@@ -249,7 +249,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader
             title={t(locale, "dashboard.announcements")}
             action={
-              <Link to="/notifications" className="tito-link text-sm">
+              <Link to="/notifications" className="text-sm text-blue-700 hover:underline">
                 {loaderData.announcementsModule.unread > 0
                   ? t(locale, "dashboard.unreadCount", { n: loaderData.announcementsModule.unread })
                   : t(locale, "dashboard.viewAll")}
@@ -258,12 +258,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           />
           <CardBody>
             {loaderData.announcementsModule.items.length === 0 ? (
-              <p className="text-sm text-ink-muted" data-testid="dash-announcements-empty">{t(locale, "notifications.empty")}</p>
+              <p className="text-sm text-slate-500" data-testid="dash-announcements-empty">{t(locale, "notifications.empty")}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {loaderData.announcementsModule.items.map((a) => (
                   <li key={a.id} className="flex items-center justify-between gap-2 text-sm" data-testid="dash-announcement-row">
-                    <Link to="/notifications" className="truncate font-medium text-ink hover:text-brand-700">
+                    <Link to="/notifications" className="truncate font-medium text-slate-800 hover:text-brand-700">
                       {locale === "ar" ? a.titleAr || a.titleEn : a.titleEn || a.titleAr}
                     </Link>
                     {!a.readAt && <Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge>}
@@ -282,12 +282,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <ul className="flex flex-col gap-2">
               {loaderData.expiringModule.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-2 text-sm" data-testid="dash-expiry-row">
-                  <span className="truncate font-medium text-ink">
+                  <span className="truncate font-medium text-slate-800">
                     {(locale === "ar" ? s.titleAr || s.titleEn : s.titleEn || s.titleAr) || t(locale, "dashboard.subscriptionGeneric")}
                   </span>
                   <span className="flex items-center gap-2">
                     <Badge tone="warning">{t(locale, "dashboard.expiresOn")}</Badge>
-                    <span className="text-xs text-ink-muted">{formatDate(locale, s.endAt)}</span>
+                    <span className="text-xs text-slate-500">{formatDate(locale, s.endAt)}</span>
                   </span>
                 </li>
               ))}
@@ -301,10 +301,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.quickActions")} />
           <CardBody>
             <div className="flex flex-wrap gap-2">
-              <Link to="/courses" className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800">
+              <Link to="/courses" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
                 {t(locale, "content.catalogTitle")}
               </Link>
-              <Link to="/profile/security" className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-line bg-surface px-5 text-sm font-semibold text-ink transition-colors hover:border-sand-300">
+              <Link to="/profile/security" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
                 {t(locale, "security.devicesTitle")}
               </Link>
             </div>
@@ -319,17 +319,17 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <CardBody>
               <div className="flex flex-wrap gap-4 text-sm">
                 {loaderData.support.email && (
-                  <a href={`mailto:${loaderData.support.email}`} className="tito-link text-sm">{loaderData.support.email}</a>
+                  <a href={`mailto:${loaderData.support.email}`} className="text-brand-700 hover:underline">{loaderData.support.email}</a>
                 )}
                 {loaderData.support.phone && (
-                  <a href={`tel:${loaderData.support.phone}`} className="tito-link text-sm" dir="ltr">{loaderData.support.phone}</a>
+                  <a href={`tel:${loaderData.support.phone}`} className="text-brand-700 hover:underline" dir="ltr">{loaderData.support.phone}</a>
                 )}
                 {loaderData.support.whatsapp && (
                   <a
                     href={`https://wa.me/${loaderData.support.whatsapp.replace(/[^\d]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="tito-link text-sm"
+                    className="text-brand-700 hover:underline"
                   >
                     WhatsApp
                   </a>
@@ -344,13 +344,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "dashboard.sessionCard")} />
           <CardBody>
-            <p className="text-sm text-ink-muted">
+            <p className="text-sm text-slate-600">
               {t(locale, "dashboard.sessionExpires")}{" "}
-              <span className="font-medium text-ink">
+              <span className="font-medium text-slate-900">
                 {formatDate(locale, loaderData.session.expiresAt)}
               </span>
             </p>
-            <p className="mt-1 text-xs text-ink-muted">
+            <p className="mt-1 text-xs text-slate-500">
               {t(locale, "security.devicesTitle")}: {loaderData.activeDevices} · {locale === "ar" ? "جلسات" : "sessions"}: {loaderData.activeSessions}
             </p>
           </CardBody>
@@ -359,11 +359,11 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "dashboard.deviceCard")} />
           <CardBody>
-            <p className="text-sm font-medium text-ink">{loaderData.device.label}</p>
-            <p className="mt-1 text-xs text-ink-muted">{loaderData.device.platform}</p>
-            <Link to="/profile/security" className="tito-link mt-3 inline-flex min-h-6 items-center gap-1 text-sm">
+            <p className="text-sm font-medium text-slate-900">{loaderData.device.label}</p>
+            <p className="mt-1 text-xs text-slate-500">{loaderData.device.platform}</p>
+            <Link to="/profile/security" className="mt-3 inline-flex min-h-6 items-center text-sm font-medium text-brand-700 hover:underline">
               {t(locale, "dashboard.securityLink")}
-              <span aria-hidden="true" className="tito-arrow inline-block rtl:rotate-180">→</span>
+              <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
             </Link>
           </CardBody>
         </Card>
@@ -373,13 +373,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <CardHeader title={locale === "ar" ? "آخر النشاطات الأمنية" : "Recent security activity"} />
         <CardBody>
           {loaderData.recentEvents.length === 0 ? (
-            <p className="text-sm text-ink-muted">—</p>
+            <p className="text-sm text-slate-500">—</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {loaderData.recentEvents.map((ev, i) => (
                 <li key={i} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-ink-muted">{ev.type}</span>
-                  <span className="text-xs text-ink-muted">{formatDate(locale, ev.createdAt)}</span>
+                  <span className="text-slate-600">{ev.type}</span>
+                  <span className="text-xs text-slate-500">{formatDate(locale, ev.createdAt)}</span>
                 </li>
               ))}
             </ul>

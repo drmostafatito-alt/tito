@@ -214,14 +214,14 @@ function BrandImageField({ name, value, images, label, locale }: { name: string;
 
 function Check({ name, checked, label }: { name: string; checked: boolean; label: string }) {
   return (
-    <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink-soft">
+    <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700">
       <input type="checkbox" name={name} defaultChecked={checked} className="h-4 w-4" />
       {label}
     </label>
   );
 }
 
-const selectCls = "h-[42px] rounded-lg border border-line bg-surface px-3 text-sm focus:border-brand-500 focus:outline-none";
+const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none";
 
 function SocialHub({ identity, locale, L }: { identity: { socialLinks?: SocialLink[]; facebook: string; youtube: string; instagram: string; tiktok: string; twitter: string; linkedin: string; telegram: string }; locale: Loc; L: (k: string) => string }) {
   void locale;
@@ -241,10 +241,10 @@ function SocialHub({ identity, locale, L }: { identity: { socialLinks?: SocialLi
     });
   };
   return (
-    <fieldset className="sm:col-span-2 flex flex-col gap-3 rounded-lg border border-line p-4">
-      <legend className="px-1 text-sm font-semibold text-ink-soft">{L("cms.ui.socialHub")}</legend>
+    <fieldset className="sm:col-span-2 flex flex-col gap-3 rounded-lg border border-slate-200 p-4">
+      <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.socialHub")}</legend>
       {rows.map((row, i) => (
-        <div key={row.id} className="grid gap-2 rounded-lg border border-line bg-sand-100 p-3 sm:grid-cols-2">
+        <div key={row.id} className="grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 sm:grid-cols-2">
           <input type="hidden" name={`sl.${i}.id`} value={row.id} />
           <label className="flex flex-col text-sm">
             <span className="mb-1 font-medium">{L("cms.f.network")}</span>
@@ -261,15 +261,15 @@ function SocialHub({ identity, locale, L }: { identity: { socialLinks?: SocialLi
           <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showHome`} defaultChecked={row.showHome} className="h-4 w-4" /> {L("cms.ui.showHome")}</label>
           <label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name={`sl.${i}.showContact`} defaultChecked={row.showContact} className="h-4 w-4" /> {L("cms.ui.showContact")}</label>
           <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-            <button type="button" className="inline-flex min-h-9 items-center rounded-lg border border-line bg-surface px-2.5 text-xs" onClick={() => move(i, -1)} disabled={i === 0} aria-label="↑">↑</button>
-            <button type="button" className="inline-flex min-h-9 items-center rounded-lg border border-line bg-surface px-2.5 text-xs" onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label="↓">↓</button>
-            <button type="button" className="w-fit text-xs text-error" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>{L("cms.ui.removeRow")}</button>
+            <button type="button" className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs" onClick={() => move(i, -1)} disabled={i === 0} aria-label="↑">↑</button>
+            <button type="button" className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs" onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label="↓">↓</button>
+            <button type="button" className="w-fit text-xs text-red-600" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>{L("cms.ui.removeRow")}</button>
           </div>
         </div>
       ))}
       <button
         type="button"
-        className="inline-flex min-h-11 w-fit items-center rounded-lg border border-dashed border-line px-4 text-sm"
+        className="inline-flex min-h-11 w-fit items-center rounded-lg border border-dashed border-slate-300 px-4 text-sm"
         onClick={() => setRows((rs) => [...rs, { id: crypto.randomUUID(), network: "globe", url: "", labelAr: "", labelEn: "", enabled: true, sortOrder: rs.length, showHeader: false, showFooter: true, showHome: true, showContact: true }])}
       >
         + {L("cms.ui.addRow")}
@@ -281,10 +281,10 @@ function SocialHub({ identity, locale, L }: { identity: { socialLinks?: SocialLi
 function ColorInput({ name, value, label }: { name: string; value: string; label: string }) {
   return (
     <div className="flex flex-col">
-      <span className="mb-1 text-sm font-medium text-ink-soft">{label}</span>
+      <span className="mb-1 text-sm font-medium text-slate-700">{label}</span>
       <div className="flex items-center gap-2">
-        <input type="color" name={name} defaultValue={value} className="h-10 w-14 cursor-pointer rounded border border-line bg-surface p-1" />
-        <span className="text-xs text-ink-muted" dir="ltr">{value}</span>
+        <input type="color" name={name} defaultValue={value} className="h-10 w-14 cursor-pointer rounded border border-slate-300 bg-white p-1" />
+        <span className="text-xs text-slate-500" dir="ltr">{value}</span>
       </div>
     </div>
   );
@@ -312,7 +312,7 @@ function IdentityEditor({
   L: (k: string) => string;
 }) {
   const Sec = ({ k }: { k: string }) => (
-    <h3 className="col-span-full mt-4 border-b border-line pb-1.5 text-sm font-semibold text-ink-soft first:mt-0">
+    <h3 className="col-span-full mt-4 border-b border-slate-100 pb-1.5 text-sm font-semibold text-slate-700 first:mt-0">
       {t(locale, `appearanceSec.${k}`)}
     </h3>
   );
@@ -378,8 +378,8 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-ink-muted hover:text-ink"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
-        <h1 className="text-2xl font-bold text-ink">{L("cms.ui.appearance")}</h1>
+        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-slate-900"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
+        <h1 className="text-2xl font-bold text-slate-900">{L("cms.ui.appearance")}</h1>
       </div>
 
       <nav className="flex flex-wrap gap-2" aria-label={L("cms.ui.appearance")}>
@@ -390,7 +390,7 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
             <Link
               key={tb}
               to={`/admin/appearance?tab=${tb}`}
-              className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium ${tab === tb ? "bg-brand-700 text-white" : "border border-line bg-surface text-ink-soft hover:bg-sand-100"} ${allowed ? "" : "opacity-50"}`}
+              className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium ${tab === tb ? "bg-brand-600 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"} ${allowed ? "" : "opacity-50"}`}
             >
               {L(key)}
             </Link>
@@ -416,44 +416,44 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                 <ColorInput key={c} name={c} value={theme[c]} label={L(`cms.set.${c}`)} />
               ))}
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.radiusBase")}</span>
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.radiusBase")}</span>
                 <input type="number" name="radiusBase" min={0} max={32} defaultValue={theme.radiusBase} className={selectCls} />
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.radiusButton")}</span>
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.radiusButton")}</span>
                 <input type="number" name="radiusButton" min={0} max={32} defaultValue={theme.radiusButton} className={selectCls} />
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.radiusCard")}</span>
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.radiusCard")}</span>
                 <input type="number" name="radiusCard" min={0} max={32} defaultValue={theme.radiusCard} className={selectCls} />
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.shadow")}</span>
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.shadow")}</span>
                 <select name="shadow" defaultValue={theme.shadow} className={selectCls}>
                   {["none", "sm", "md", "lg"].map((v) => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.density")}</span>
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.density")}</span>
                 <select name="density" defaultValue={theme.density} className={selectCls}>
                   {["compact", "normal", "relaxed"].map((v) => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.fontScale")}</span>
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.fontScale")}</span>
                 <select name="fontScale" defaultValue={theme.fontScale} className={selectCls}>
                   {["compact", "normal", "large"].map((v) => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.headingFont")}</span>
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.headingFont")}</span>
                 <select name="headingFont" defaultValue={theme.headingFont} className={selectCls}>
                   <option value="cairo">{L("cms.font.cairo")}</option>
                   <option value="ibm">{L("cms.font.ibm")}</option>
                 </select>
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.bodyFont")}</span>
+                <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.bodyFont")}</span>
                 <select name="bodyFont" defaultValue={theme.bodyFont} className={selectCls}>
                   <option value="cairo">{L("cms.font.cairo")}</option>
                   <option value="ibm">{L("cms.font.ibm")}</option>
@@ -469,8 +469,8 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
           <CardBody>
             <Form method="post" className="flex flex-col gap-6">
               <input type="hidden" name="_action" value="save-presentation" />
-              <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-4">
-                <legend className="px-1 text-sm font-semibold text-ink-soft">{L("cms.set.courseCard")}</legend>
+              <fieldset className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.set.courseCard")}</legend>
                 <Check name="cc.showImage" checked={pres.courseCard.showImage} label={L("cms.set.showImage")} />
                 <Check name="cc.showTeacher" checked={pres.courseCard.showTeacher} label={L("cms.set.showTeacher")} />
                 <Check name="cc.showLessonCount" checked={pres.courseCard.showLessonCount} label={L("cms.set.showLessonCount")} />
@@ -480,15 +480,15 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                   <Input label={`${L("cms.set.ctaLabel")} (عربي)`} name="cc.ctaLabelAr" defaultValue={pres.courseCard.ctaLabelAr} dir="rtl" />
                   <Input label={`${L("cms.set.ctaLabel")} (English)`} name="cc.ctaLabelEn" defaultValue={pres.courseCard.ctaLabelEn} dir="ltr" />
                   <div className="flex flex-col">
-                    <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.set.layout")}</span>
+                    <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.set.layout")}</span>
                     <select name="cc.layout" defaultValue={pres.courseCard.layout} className={selectCls}>
                       {["standard", "compact", "wide"].map((v) => <option key={v} value={v}>{v}</option>)}
                     </select>
                   </div>
                 </div>
               </fieldset>
-              <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-4">
-                <legend className="px-1 text-sm font-semibold text-ink-soft">{L("cms.set.subjectCard")}</legend>
+              <fieldset className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.set.subjectCard")}</legend>
                 <Check name="sc.showImage" checked={pres.subjectCard.showImage} label={L("cms.set.showImage")} />
                 <Check name="sc.showCourseCount" checked={pres.subjectCard.showCourseCount} label={L("cms.set.showCourseCount")} />
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -496,14 +496,14 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                   <Input label={`${L("cms.set.ctaLabel")} (English)`} name="sc.ctaLabelEn" defaultValue={pres.subjectCard.ctaLabelEn} dir="ltr" />
                 </div>
               </fieldset>
-              <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-4">
-                <legend className="px-1 text-sm font-semibold text-ink-soft">{L("cms.set.lessonPage")}</legend>
+              <fieldset className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.set.lessonPage")}</legend>
                 <Check name="ls.showDescription" checked={pres.lesson.showDescription} label={L("cms.set.showDescription")} />
                 <Check name="ls.showAttachments" checked={pres.lesson.showAttachments} label={L("cms.set.showAttachments")} />
                 <Check name="ls.showPrevNext" checked={pres.lesson.showPrevNext} label={L("cms.set.showPrevNext")} />
                 <Check name="ls.showRelated" checked={pres.lesson.showRelated} label={L("cms.set.showRelated")} />
-                <fieldset className="mt-2 flex flex-col gap-2 rounded-lg border border-line p-3">
-                  <legend className="px-1 text-xs font-semibold text-ink-muted">{L("cms.set.videoBlock")}</legend>
+                <fieldset className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-100 p-3">
+                  <legend className="px-1 text-xs font-semibold text-slate-500">{L("cms.set.videoBlock")}</legend>
                   <Check name="ls.video.showPoster" checked={pres.lesson.video.showPoster} label={L("cms.set.showPoster")} />
                   <Check name="ls.video.showTitle" checked={pres.lesson.video.showTitle} label={L("cms.set.showTitle")} />
                   <Check name="ls.video.showDescription" checked={pres.lesson.video.showDescription} label={L("cms.set.showDescription")} />
@@ -523,8 +523,8 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
               <input type="hidden" name="_action" value="save-dashboard" />
               <Input label={`${L("cms.set.welcome")} (عربي)`} name="welcomeAr" defaultValue={dash.welcomeAr} dir="rtl" />
               <Input label={`${L("cms.set.welcome")} (English)`} name="welcomeEn" defaultValue={dash.welcomeEn} dir="ltr" />
-              <fieldset className="flex flex-col gap-1 rounded-lg border border-line p-4">
-                <legend className="px-1 text-sm font-semibold text-ink-soft">{L("cms.set.modules")}</legend>
+              <fieldset className="flex flex-col gap-1 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.set.modules")}</legend>
                 {dash.modules.map((m) => (
                   <Check key={m.id} name={`mod.${m.id}`} checked={m.enabled} label={L(`cms.set.mod.${m.id}`)} />
                 ))}
@@ -539,8 +539,8 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
           <CardBody>
             <Form method="post" className="flex flex-col gap-4">
               <input type="hidden" name="_action" value="save-system" />
-              <fieldset className="flex flex-col gap-3 rounded-lg border border-line p-4">
-                <legend className="px-1 text-sm font-semibold text-ink-soft">{L("cms.ui.systemPlatform")}</legend>
+              <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.systemPlatform")}</legend>
                 <Input label={L("cms.f.platformNameAr")} name="nameAr" defaultValue={plat.nameAr} dir="rtl" />
                 <Input label={L("cms.f.platformNameEn")} name="nameEn" defaultValue={plat.nameEn} dir="ltr" />
                 <Input label={L("cms.f.taglineAr")} name="taglineAr" defaultValue={plat.taglineAr} dir="rtl" />
@@ -548,18 +548,18 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                 <Input label={L("cms.f.supportEmail")} name="supportEmail" defaultValue={plat.supportEmail ?? ""} dir="ltr" />
                 <Input label={L("cms.f.supportPhone")} name="supportPhone" defaultValue={plat.supportPhone ?? ""} dir="ltr" />
                 <Input label={L("cms.f.whatsapp")} name="whatsapp" defaultValue={plat.whatsapp ?? ""} dir="ltr" />
-                <div className="flex flex-col gap-2 rounded-md border border-line p-3" data-testid="whatsapp-floating-settings">
+                <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3" data-testid="whatsapp-floating-settings">
                   <Check name="whatsappFloating" checked={plat.whatsappFloating} label={L("cms.f.whatsappFloating")} />
-                  <p className="text-xs text-ink-muted">{L("cms.f.whatsappFloatingHint")}</p>
+                  <p className="text-xs text-slate-500">{L("cms.f.whatsappFloatingHint")}</p>
                   <Input label={L("cms.f.whatsappMessage")} name="whatsappMessage" defaultValue={plat.whatsappMessage} dir="rtl" />
                 </div>
                 <Check name="maintenance" checked={plat.maintenance} label={L("cms.f.maintenance")} />
               </fieldset>
-              <fieldset className="flex flex-col gap-3 rounded-lg border border-line p-4" data-testid="language-settings">
-                <legend className="px-1 text-sm font-semibold text-ink-soft">{L("cms.ui.systemLanguage")}</legend>
-                <p className="text-xs text-ink-muted">{L("cms.f.localeHint")}</p>
+              <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4" data-testid="language-settings">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.systemLanguage")}</legend>
+                <p className="text-xs text-slate-500">{L("cms.f.localeHint")}</p>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.f.defaultLocale")}</span>
+                  <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.f.defaultLocale")}</span>
                   <select name="defaultLocale" defaultValue={loc.default} className={selectCls} data-testid="default-locale">
                     <option value="ar">العربية</option>
                     <option value="en">English</option>
@@ -569,10 +569,10 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                 <Check name="localeEnabled.en" checked={loc.enabled.includes("en")} label={L("cms.f.localeOfferEn")} />
               </fieldset>
               {loaderData.isSuper && (
-                <fieldset className="flex flex-col gap-3 rounded-lg border border-line p-4">
-                  <legend className="px-1 text-sm font-semibold text-ink-soft">{L("cms.ui.systemVideo")}</legend>
+                <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4">
+                  <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.systemVideo")}</legend>
                   <div className="flex flex-col">
-                    <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.f.videoProvider")}</span>
+                    <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.f.videoProvider")}</span>
                     <select name="provider" defaultValue={vid.provider} className={selectCls}>
                       <option value="mock">mock (development only)</option>
                       <option value="mux">mux</option>
@@ -583,19 +583,19 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                 </fieldset>
               )}
               {loaderData.isSuper && (
-                <fieldset className="flex flex-col gap-3 rounded-lg border border-line p-4" data-testid="payments-settings">
-                  <legend className="px-1 text-sm font-semibold text-ink-soft">{t(locale, "commerceAdmin.settingsTitle")}</legend>
+                <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4" data-testid="payments-settings">
+                  <legend className="px-1 text-sm font-semibold text-slate-700">{t(locale, "commerceAdmin.settingsTitle")}</legend>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" name="manualEnabled" defaultChecked={pay.manualEnabled} />
                     {t(locale, "commerceAdmin.manualEnabled")}
                   </label>
                   <div className="flex flex-col">
-                    <span className="mb-1 text-sm font-medium text-ink-soft">{t(locale, "commerceAdmin.manualInstructionsAr")}</span>
-                    <textarea name="manualInstructionsAr" rows={3} defaultValue={pay.manualInstructionsAr} dir="rtl" className="rounded-lg border border-line px-3 py-2 text-sm" />
+                    <span className="mb-1 text-sm font-medium text-slate-700">{t(locale, "commerceAdmin.manualInstructionsAr")}</span>
+                    <textarea name="manualInstructionsAr" rows={3} defaultValue={pay.manualInstructionsAr} dir="rtl" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="mb-1 text-sm font-medium text-ink-soft">{t(locale, "commerceAdmin.manualInstructionsEn")}</span>
-                    <textarea name="manualInstructionsEn" rows={3} defaultValue={pay.manualInstructionsEn} dir="ltr" className="rounded-lg border border-line px-3 py-2 text-sm" />
+                    <span className="mb-1 text-sm font-medium text-slate-700">{t(locale, "commerceAdmin.manualInstructionsEn")}</span>
+                    <textarea name="manualInstructionsEn" rows={3} defaultValue={pay.manualInstructionsEn} dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                   </div>
                   <Input label={t(locale, "commerceAdmin.orderTtlMinutes")} name="orderTtlMinutes" defaultValue={String(pay.orderTtlMinutes)} dir="ltr" />
                   <Input label={t(locale, "commerceAdmin.refundWindowDays")} name="refundWindowDays" defaultValue={String(pay.refundWindowDays)} dir="ltr" />

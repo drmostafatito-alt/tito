@@ -243,15 +243,15 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
     window.setTimeout(() => setCopiedId((id) => (id === f.id ? null : id)), 1500);
   }
 
-  const inputCls = "h-[42px] w-full rounded-lg border border-line bg-surface px-3 text-sm focus:border-brand-500 focus:outline-none";
+  const inputCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none";
   const chipCls =
     "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide";
 
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-bold text-ink">{L("libraryTitle")}</h1>
-        <p className="mt-1 text-sm text-ink-muted">{L("librarySubtitle")}</p>
+        <h1 className="text-2xl font-bold text-slate-900">{L("libraryTitle")}</h1>
+        <p className="mt-1 text-sm text-slate-600">{L("librarySubtitle")}</p>
       </div>
 
       {/* Upload */}
@@ -268,7 +268,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
           >
             <input type="hidden" name="_action" value="upload" />
             <label
-              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-sand-100/60 px-6 py-8 text-center transition-colors hover:border-brand-400 hover:bg-brand-50/40"
+              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center transition-colors hover:border-brand-400 hover:bg-brand-50/40"
             >
               <input
                 id="media-file-input"
@@ -284,20 +284,20 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
                 }}
               />
               <span className="text-2xl text-brand-500" aria-hidden="true">＋</span>
-              <span className="text-sm font-medium text-ink-soft">{L("libraryHint")}</span>
-              <span className="inline-flex min-h-9 items-center rounded-lg bg-brand-700 px-4 text-sm font-medium text-white">
+              <span className="text-sm font-medium text-slate-700">{L("libraryHint")}</span>
+              <span className="inline-flex min-h-9 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white">
                 {uploading ? L("uploading") : L("browseFiles")}
               </span>
             </label>
             <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 text-sm font-medium text-ink-soft">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 <span>{L("filterVisibility")}</span>
                 <select name="visibility" defaultValue="public" className={`${inputCls} w-auto`}>
                   <option value="public">{L("visibilityPublic")}</option>
                   <option value="private">{L("visibilityPrivate")}</option>
                 </select>
               </label>
-              <label className="flex items-center gap-2 text-sm text-ink-soft">
+              <label className="flex items-center gap-2 text-sm text-slate-700">
                 <input type="checkbox" name="downloadAllowed" defaultChecked className="h-4 w-4" />
                 {L("downloadAllowed")}
               </label>
@@ -307,7 +307,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
             <p className="mt-3 text-sm font-medium text-green-600">{L("uploaded")}</p>
           )}
           {actionData && "error" in actionData && actionData.error && actionData.error !== "generic" && (
-            <p className="mt-3 text-sm font-medium text-error">
+            <p className="mt-3 text-sm font-medium text-red-600">
               {actionData.error === "too_large"
                 ? L("tooLarge")
                 : actionData.error === "bad_type"
@@ -323,7 +323,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-xs">
-          <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-ink-muted" aria-hidden="true">
+          <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4-4" />
@@ -335,11 +335,11 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={L("searchPlaceholder")}
             aria-label={L("searchLabel")}
-            className="h-[42px] w-full rounded-lg border border-line bg-surface ps-9 pe-3 text-sm focus:border-brand-500 focus:outline-none"
+            className="h-[42px] w-full rounded-lg border border-slate-300 bg-white ps-9 pe-3 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <span className="text-ink-muted">{L("filterKind")}:</span>
+          <span className="text-slate-600">{L("filterKind")}:</span>
           <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value)} className={`${inputCls} w-auto`}>
             <option value="all">{L("allKinds")}</option>
             {KINDS.map((k) => (
@@ -348,14 +348,14 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
           </select>
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <span className="text-ink-muted">{L("filterVisibility")}:</span>
+          <span className="text-slate-600">{L("filterVisibility")}:</span>
           <select value={visFilter} onChange={(e) => setVisFilter(e.target.value)} className={`${inputCls} w-auto`}>
             <option value="all">{L("allVisibility")}</option>
             <option value="public">{L("visibilityPublicShort")}</option>
             <option value="private">{L("visibilityPrivateShort")}</option>
           </select>
         </label>
-        <p className="ms-auto text-xs text-ink-muted">{L("count", { count: filtered.length })}</p>
+        <p className="ms-auto text-xs text-slate-600">{L("count", { count: filtered.length })}</p>
       </div>
 
       {/* Grid */}
@@ -363,7 +363,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
         <EmptyState
           icon="🗂️"
           title={L("empty")}
-          action={<span className="text-sm text-ink-muted">{L("browseFiles")} ↑</span>}
+          action={<span className="text-sm text-slate-500">{L("browseFiles")} ↑</span>}
         />
       ) : filtered.length === 0 ? (
         <EmptyState icon="🔍" title={L("noResults")} />
@@ -376,21 +376,21 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
             return (
               <li
                 key={f.id}
-                className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-sm"
+                className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
                 data-testid="media-card"
               >
                 {/* preview */}
                 <button
                   type="button"
                   onClick={() => setPreview(f)}
-                  className="group relative flex aspect-video w-full items-center justify-center overflow-hidden bg-sand-100"
+                  className="group relative flex aspect-video w-full items-center justify-center overflow-hidden bg-slate-100"
                   aria-label={`${L("preview")}: ${f.name}`}
                 >
                   {isImage ? (
                     <img src={f.url} alt={f.altAr || f.name} loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                   ) : (
-                    <span className="flex flex-col items-center gap-2 text-ink-muted">
-                      <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-surface text-ink-muted shadow-sm">
+                    <span className="flex flex-col items-center gap-2 text-slate-500">
+                      <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm">
                         <KindIcon kind={f.kind} />
                       </span>
                       <span className="text-xs font-medium">{L(KIND_LABEL[f.kind] ?? "kindDoc")}</span>
@@ -403,24 +403,24 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
 
                 <div className="flex flex-1 flex-col gap-2 p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-sm font-semibold text-ink" title={f.name} dir="auto">{f.name}</p>
+                    <p className="truncate text-sm font-semibold text-slate-800" title={f.name} dir="auto">{f.name}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Badge tone="neutral">{L(KIND_LABEL[f.kind] ?? "kindDoc")}</Badge>
-                    <span className={`${chipCls} ${f.visibility === "public" ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}>
+                    <span className={`${chipCls} ${f.visibility === "public" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                       {f.visibility === "public" ? L("visibilityPublicShort") : L("visibilityPrivateShort")}
                     </span>
-                    <span className="text-[11px] text-ink-muted">{humanSize(f.byteSize)}</span>
+                    <span className="text-[11px] text-slate-500">{humanSize(f.byteSize)}</span>
                   </div>
-                  <p className="text-[11px] text-ink-muted">
+                  <p className="text-[11px] text-slate-500">
                     {formatDate(locale, f.createdAt)}
                   </p>
 
-                  <div className="mt-auto flex flex-wrap gap-1.5 border-t border-line pt-2">
+                  <div className="mt-auto flex flex-wrap gap-1.5 border-t border-slate-100 pt-2">
                     <button
                       type="button"
                       onClick={() => copyUrl(f)}
-                      className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-line px-2.5 text-xs font-medium text-ink-muted hover:bg-sand-100"
+                      className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
                     >
                       {copiedId === f.id ? `✓ ${L("copied")}` : L("copy")}
                     </button>
@@ -431,28 +431,28 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
                     </Form>
                   </div>
                   {inUseMsg && (
-                    <p className="text-[11px] text-ink-muted">
+                    <p className="text-[11px] text-slate-500">
                       {L("usage")}: {inUseMsg.length ? inUseMsg.join(", ") : L("unused")}
                     </p>
                   )}
 
                   {/* Details (rename / alt) + replace + delete */}
-                  <details className="group mt-1 rounded-lg border border-line bg-sand-100 p-2.5 text-xs">
-                    <summary className="cursor-pointer select-none font-medium text-ink-muted hover:text-ink">
+                  <details className="group mt-1 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs">
+                    <summary className="cursor-pointer select-none font-medium text-slate-600 hover:text-slate-800">
                       {L("details")}
                     </summary>
                     <Form method="post" className="mt-2 flex flex-col gap-2">
                       <input type="hidden" name="_action" value="rename" />
                       <input type="hidden" name="id" value={f.id} />
-                      <input name="name" defaultValue={f.name} aria-label="File name" className="rounded-md border border-line px-2 py-1.5" />
-                      <input name="altAr" defaultValue={f.altAr} aria-label="Alt Arabic" placeholder="alt AR" dir="rtl" className="rounded-md border border-line px-2 py-1.5" />
-                      <input name="altEn" defaultValue={f.altEn} aria-label="Alt English" placeholder="alt EN" dir="ltr" className="rounded-md border border-line px-2 py-1.5" />
+                      <input name="name" defaultValue={f.name} aria-label="File name" className="rounded-md border border-slate-300 px-2 py-1.5" />
+                      <input name="altAr" defaultValue={f.altAr} aria-label="Alt Arabic" placeholder="alt AR" dir="rtl" className="rounded-md border border-slate-300 px-2 py-1.5" />
+                      <input name="altEn" defaultValue={f.altEn} aria-label="Alt English" placeholder="alt EN" dir="ltr" className="rounded-md border border-slate-300 px-2 py-1.5" />
                       <SubmitButton variant="secondary" size="sm">{L("saveMeta")}</SubmitButton>
                     </Form>
                     <Form method="post" encType="multipart/form-data" className="mt-2 flex items-center gap-2">
                       <input type="hidden" name="_action" value="replace" />
                       <input type="hidden" name="id" value={f.id} />
-                      <label className="grow cursor-pointer rounded-md border border-line bg-surface px-2 py-1.5 text-ink-muted hover:bg-sand-100">
+                      <label className="grow cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-600 hover:bg-slate-100">
                         <span className="pointer-events-none">{L("replace")}</span>
                         <input type="file" name="file" className="sr-only" onChange={(e) => e.currentTarget.form?.requestSubmit()} />
                       </label>
@@ -479,7 +479,7 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
       {/* Preview modal */}
       {preview && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-brand-950/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setPreview(null);
           }}
@@ -487,29 +487,29 @@ export default function AdminFiles({ loaderData }: Route.ComponentProps) {
           aria-modal="true"
           aria-label={`${L("preview")}: ${preview.name}`}
         >
-          <div className="flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-surface shadow-xl">
-            <div className="flex items-center justify-between border-b border-line px-4 py-3">
-              <p className="truncate text-sm font-semibold text-ink" dir="auto">{preview.name}</p>
+          <div className="flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <p className="truncate text-sm font-semibold text-slate-800" dir="auto">{preview.name}</p>
               <button
                 type="button"
                 onClick={() => setPreview(null)}
                 aria-label={L("showLess")}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-sand-100"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
               >
                 ✕
               </button>
             </div>
-            <div className="flex-1 overflow-auto bg-ink p-4">
+            <div className="flex-1 overflow-auto bg-slate-950 p-4">
               {preview.kind === "image" ? (
                 <img src={preview.url} alt={preview.altAr || preview.name} className="mx-auto max-h-[70vh] w-auto object-contain" />
               ) : (
                 <a href={preview.url} target="_blank" rel="noopener noreferrer" className="flex min-h-40 flex-col items-center justify-center gap-2 text-sm text-white">
                   <KindIcon kind={preview.kind} />
-                  <span className="text-sand-300">{preview.url}</span>
+                  <span className="text-slate-300">{preview.url}</span>
                 </a>
               )}
             </div>
-            <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3 text-xs text-ink-muted">
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
               <span>
                 {L(KIND_LABEL[preview.kind] ?? "kindDoc")} · {humanSize(preview.byteSize)} ·{" "}
                 {preview.visibility === "public" ? L("visibilityPublicShort") : L("visibilityPrivateShort")}

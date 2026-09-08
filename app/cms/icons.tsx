@@ -99,14 +99,14 @@ export const ICON_SIZE_CLASS: Record<string, string> = {
 };
 
 export const ICON_COLOR_CLASS: Record<string, string> = {
-  default: "text-current",
-  brand: "text-brand-700",
+  default: "text-slate-700",
+  brand: "text-brand-600",
   accent: "text-accent-600",
-  success: "text-success",
-  warning: "text-warning",
-  error: "text-error",
-  muted: "text-ink-muted",
-  invert: "text-parchment",
+  success: "text-emerald-600",
+  warning: "text-amber-600",
+  error: "text-rose-600",
+  muted: "text-slate-400",
+  invert: "text-white",
 };
 
 export function Icon({ name, size = "md", colorRole = "default", className = "" }: { name: string; size?: string; colorRole?: string; className?: string }) {

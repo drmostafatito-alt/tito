@@ -68,7 +68,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData || loaderData.empty || !loaderData.seo || !loaderData.ctx) {
     const fallback = loaderData ? (loaderData.locale === "ar" ? loaderData.title.ar : loaderData.title.en) : "";
-    return [{ title: fallback || (loaderData?.locale === "en" ? "Dr. Mostafa Tito" : "د. مصطفى تيتو") }];
+    return [{ title: fallback || (loaderData?.locale === "en" ? "Dr mostafa tito" : "د/ مصطفى تيتو") }];
   }
   const ogAbsolute = loaderData.ogImage ? new URL(loaderData.ogImage, loaderData.url).href : null;
   return seoMeta(loaderData.seo, loaderData.title, loaderData.ctx.locale, loaderData.url, ogAbsolute);
@@ -97,7 +97,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   if (loaderData.empty || !loaderData.ctx) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-16">
-        <h1 className="sr-only">{pageTitle || (loaderData.locale === "en" ? "Dr. Mostafa Tito" : "د. مصطفى تيتو")}</h1>
+        <h1 className="sr-only">{pageTitle || (loaderData.locale === "en" ? "Dr mostafa tito" : "د/ مصطفى تيتو")}</h1>
         <EmptyState
           title={t(loaderData.locale, "content.pageEmptyTitle")}
           body={t(loaderData.locale, "content.pageEmptyBody")}
@@ -114,7 +114,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   if (loaderData.sections.length === 0) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-16">
-        <h1 className="sr-only">{pageTitle || (loaderData.locale === "en" ? "Dr. Mostafa Tito" : "د. مصطفى تيتو")}</h1>
+        <h1 className="sr-only">{pageTitle || (loaderData.locale === "en" ? "Dr mostafa tito" : "د/ مصطفى تيتو")}</h1>
         <EmptyState
           title={t(ctx.locale, "content.pageEmptyTitle")}
           body={t(ctx.locale, "content.pageEmptyBody")}

@@ -39,7 +39,7 @@ export async function setup(): Promise<void> {
     )
     .run();
   const groups: [string, unknown][] = [
-    ["platform", { nameAr: "د. مصطفى تيتو", nameEn: "Dr. Mostafa Tito", taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null }],
+    ["platform", { nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito", taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null }],
     ["locale", { default: "ar", enabled: ["ar", "en"] }],
     ["devices", { maxPerStudent: 1, onLimit: "block", changeLimitPer30d: 2 }],
     ["security", { sessionDays: 30, resetTokenMinutes: 60, rateLimits: { loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5 } }],

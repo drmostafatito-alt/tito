@@ -51,7 +51,7 @@ function systemForm(extra: Record<string, string>) {
     headers: { "content-type": "application/x-www-form-urlencoded", cookie: admin.cookie, "user-agent": UA, "cf-connecting-ip": "10.1.2.3" },
     body: new URLSearchParams({
       _action: "save-system",
-      nameAr: "د. مصطفى تيتو", nameEn: "Dr. Mostafa Tito",
+      nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito",
       taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology",
       // The System tab also writes the video + payment groups for a super_admin,
       // so the real form's values for those are included verbatim.

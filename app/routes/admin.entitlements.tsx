@@ -119,7 +119,7 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
-  const input = "rounded-lg border border-line px-3 py-2";
+  const input = "rounded-lg border border-slate-300 px-3 py-2";
   const busy = nav.state !== "idle";
   const { grants, catalog } = loaderData;
 
@@ -170,10 +170,10 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
               <SubmitButton disabled={busy}>{t(locale, "entAdmin.grant")}</SubmitButton>
               {actionData?.ok && <span className="text-sm text-green-600">{t(locale, "entAdmin.granted")}</span>}
               {actionData && "error" in actionData && actionData.error === "student_not_found" && (
-                <span className="text-sm text-error">{t(locale, "entAdmin.studentNotFound")}</span>
+                <span className="text-sm text-red-600">{t(locale, "entAdmin.studentNotFound")}</span>
               )}
               {actionData && "error" in actionData && actionData.error === "validation" && (
-                <span className="text-sm text-error">{t(locale, "entAdmin.validationError")}</span>
+                <span className="text-sm text-red-600">{t(locale, "entAdmin.validationError")}</span>
               )}
             </div>
           </Form>
@@ -189,25 +189,25 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
               return (
                 <li key={g.id} className="flex flex-wrap items-center gap-2 text-sm" data-testid="entitlement-row">
                   <Badge tone={g.status === "active" ? "success" : "neutral"}>{g.status === "active" ? t(locale, "entAdmin.active") : t(locale, "entAdmin.revokedStatus")}</Badge>
-                  <span className="text-ink-soft">{g.studentEmail ?? g.studentId}</span>
-                  <span className="text-xs text-ink-muted">·</span>
-                  <span className="text-xs text-ink-muted">{isKind(g.resourceType) ? t(locale, `entAdmin.type_${g.resourceType}`) : g.resourceType}</span>
-                  <span className="min-w-0 truncate font-medium text-ink-soft">{title}</span>
+                  <span className="text-slate-700">{g.studentEmail ?? g.studentId}</span>
+                  <span className="text-xs text-slate-500">·</span>
+                  <span className="text-xs text-slate-500">{isKind(g.resourceType) ? t(locale, `entAdmin.type_${g.resourceType}`) : g.resourceType}</span>
+                  <span className="min-w-0 truncate font-medium text-slate-700">{title}</span>
                   {g.note && (
-                    <span className="min-w-0 max-w-full truncate text-xs text-ink-muted" title={g.note}>
+                    <span className="min-w-0 max-w-full truncate text-xs text-slate-500" title={g.note}>
                       “{g.note}”
                     </span>
                   )}
                   {g.expiresAt ? (
-                    <span className="text-xs text-ink-muted">→ {formatDate(locale, g.expiresAt)}</span>
+                    <span className="text-xs text-slate-500">→ {formatDate(locale, g.expiresAt)}</span>
                   ) : (
-                    <span className="text-xs text-ink-muted">{t(locale, "entAdmin.permanent")}</span>
+                    <span className="text-xs text-slate-500">{t(locale, "entAdmin.permanent")}</span>
                   )}
                   {g.status === "active" && (
                     <Form method="post" className="inline">
                       <input type="hidden" name="_action" value="revoke" />
                       <input type="hidden" name="id" value={g.id} />
-                      <button className="rounded border border-error/30 px-2 py-1 text-xs text-error hover:bg-error-soft">
+                      <button className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
                         {t(locale, "entAdmin.revoke")}
                       </button>
                     </Form>
@@ -215,7 +215,7 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
                 </li>
               );
             })}
-            {grants.length === 0 && <li className="text-sm text-ink-muted">{t(locale, "entAdmin.empty")}</li>}
+            {grants.length === 0 && <li className="text-sm text-slate-500">{t(locale, "entAdmin.empty")}</li>}
           </ul>
         </CardBody>
       </Card>

@@ -3,7 +3,7 @@
  * LOCAL-DEV seed only. Never run against production.
  *
  * Production configuration (identity of the live site):
- *   - platform name/tagline: د. مصطفى تيتو / Dr. Mostafa Tito — Philosophy & Psychology
+ *   - platform name/tagline: د/ مصطفى تيتو / Dr mostafa tito — Philosophy & Psychology
  *   - CMS homepage + menus: philosophy & psychology marketing copy
  *   - admin email: ADMIN_BOOTSTRAP_EMAIL (env / .dev.vars). The fallback
  *     admin@educore.local is a LOCAL placeholder, not a production identity.
@@ -70,14 +70,14 @@ await exec(
 
 // default settings groups (mirrors server/settings/schema.ts defaults)
 const defaults = {
-  platform: { nameAr: "د. مصطفى تيتو", nameEn: "Dr. Mostafa Tito", taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null },
+  platform: { nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito", taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null },
   // Owner identity (content/branding integration). ONLY owner-confirmed fields
   // are set here; the Facebook page is scrape-blocked (HTTP 403), so title /
   // bio / specialty / photo / other links stay empty until the owner provides
   // them (admin → Appearance → Identity) or extends this seed. Never fabricate.
   identity: {
-    ownerNameAr: "د. مصطفى تيتو",
-    ownerNameEn: "Dr. Mostafa Tito",
+    ownerNameAr: "د/ مصطفى تيتو",
+    ownerNameEn: "Dr mostafa tito",
     contactPhone: "01153719506",
     facebook: "https://www.facebook.com/mr.mostafa.tito.philosophy/",
     // ownerTitleAr/En, ownerPhotoFileId, logoFileId, heroImageFileId,
@@ -96,25 +96,25 @@ for (const [key, value] of Object.entries(defaults)) {
 }
 
 const themeSettings = {
-  primary: "#0e6b5e",
-  secondary: "#143c38",
-  accent: "#b78a1c",
-  background: "#f6f1e7",
-  surface: "#fffdf8",
-  text: "#211b14",
-  mutedText: "#6f6455",
-  border: "#e3daca",
-  success: "#047857",
-  warning: "#b45309",
-  error: "#b91c1c",
-  radiusBase: 10,
-  radiusButton: 10,
-  radiusCard: 16,
-  shadow: "sm",
+  primary: "#7c3aed",
+  secondary: "#4f46e5",
+  accent: "#6366f1",
+  background: "#faf8ff",
+  surface: "#ffffff",
+  text: "#0f172a",
+  mutedText: "#64748b",
+  border: "#e2e8f0",
+  success: "#059669",
+  warning: "#d97706",
+  error: "#e11d48",
+  radiusBase: 12,
+  radiusButton: 16,
+  radiusCard: 20,
+  shadow: "md",
   density: "normal",
   fontScale: "normal",
   headingFont: "cairo",
-  bodyFont: "ibm",
+  bodyFont: "cairo",
 };
 await exec(
   `INSERT INTO settings (key, value, updated_at) VALUES ('theme', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
@@ -548,8 +548,8 @@ const heroSection = section(
     eyebrow: L("الفلسفة وعلم النفس", "Philosophy & Psychology"),
     heading: L("أهلاً بيكم في منصتكم!", "Welcome to your platform!"),
     subtitle: L(
-      "<p>مع <strong>د. مصطفى تيتو</strong> — منصة متكاملة لدراسة الفلسفة وعلم النفس: محاضرات، ملخصات، بنوك أسئلة واختبارات في مكان واحد.</p>",
-      "<p>With <strong>Dr. Mostafa Tito</strong> — a complete platform for studying philosophy and psychology: lectures, notes, question banks and tests in one place.</p>"
+      "<p>مع <strong>د/ مصطفى تيتو</strong> — منصة متكاملة لدراسة الفلسفة وعلم النفس: محاضرات، ملخصات، بنوك أسئلة واختبارات في مكان واحد.</p>",
+      "<p>With <strong>Dr mostafa tito</strong> — a complete platform for studying philosophy and psychology: lectures, notes, question banks and tests in one place.</p>"
     ),
     ctas: [
       { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "primary", icon: "" },
@@ -669,6 +669,6 @@ console.log(`  super admin email : ${adminEmail} (source: ADMIN_BOOTSTRAP_EMAIL;
 console.log("  password          : not printed — change via Profile → Security or the reset flow");
 console.log("  demo student      : student@educore.local (LOCAL fixture, blocked in production readiness)");
 console.log("  demo catalog      : physics-3s-full / electrostatics-check (LMS fixtures, not site identity)");
-console.log("  production identity: د. مصطفى تيتو / Philosophy & Psychology (CMS homepage)");
+console.log("  production identity: د/ مصطفى تيتو / Philosophy & Psychology (CMS homepage)");
 
 await proxy.dispose();

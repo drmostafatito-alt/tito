@@ -100,7 +100,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "profile.title")}</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t(locale, "profile.title")}</h1>
 
       {actionData && "error" in actionData && <Alert kind="error">{t(locale, "auth.errors.generic")}</Alert>}
       {actionData && "ok" in actionData && actionData.ok && <Alert kind="success">{t(locale, "profile.saved")}</Alert>}
@@ -110,16 +110,16 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
         <CardBody>
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-ink-muted">{t(locale, "profile.email")}</dt>
-              <dd className="font-medium text-ink" dir="ltr">{user.email}</dd>
+              <dt className="text-slate-500">{t(locale, "profile.email")}</dt>
+              <dd className="font-medium text-slate-800" dir="ltr">{user.email}</dd>
             </div>
             <div>
-              <dt className="text-ink-muted">{t(locale, "dashboard.role")}</dt>
-              <dd className="font-medium text-ink">{user.roleLabel}</dd>
+              <dt className="text-slate-500">{t(locale, "dashboard.role")}</dt>
+              <dd className="font-medium text-slate-800">{user.roleLabel}</dd>
             </div>
             <div>
-              <dt className="text-ink-muted">{t(locale, "profile.memberSince")}</dt>
-              <dd className="font-medium text-ink">{formatDate(locale, user.createdAt)}</dd>
+              <dt className="text-slate-500">{t(locale, "profile.memberSince")}</dt>
+              <dd className="font-medium text-slate-800">{formatDate(locale, user.createdAt)}</dd>
             </div>
           </dl>
         </CardBody>
@@ -184,12 +184,12 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
               autoComplete="tel"
               dir="ltr"
             />
-            <label className="flex flex-col gap-1.5 text-sm font-medium text-ink-soft">
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
               {t(locale, "profile.localePref")}
               <select
                 name="localePref"
                 defaultValue={user.localePref}
-                className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
               >
                 <option value="ar">{t(locale, "common.arabic")}</option>
                 <option value="en">{t(locale, "common.english")}</option>
@@ -204,10 +204,10 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardBody className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <Link to="/profile/security" className="font-medium text-brand-800 hover:underline">
+          <Link to="/profile/security" className="font-medium text-blue-700 hover:underline">
             {t(locale, "dashboard.securityLink")}
           </Link>
-          <Link to="/dashboard" className="font-medium text-brand-800 hover:underline">
+          <Link to="/dashboard" className="font-medium text-blue-700 hover:underline">
             {t(locale, "common.dashboard")}
           </Link>
         </CardBody>

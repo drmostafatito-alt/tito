@@ -54,8 +54,8 @@ import { et, t, formatDate, type Locale } from "~/lib/i18n";
 const TABS = ["products", "orders", "payments", "subscriptions", "codes", "discounts"] as const;
 type Tab = (typeof TABS)[number];
 
-const inputCls = "w-full rounded-lg border border-line px-3 py-2 text-sm";
-const selectCls = "h-[42px] w-full rounded-lg border border-line bg-surface px-3 text-sm";
+const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
+const selectCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -392,7 +392,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
               <textarea
                 readOnly
                 rows={Math.min(10, generatedCodes.length)}
-                className="w-full rounded-lg border border-success/40 bg-surface p-2 font-mono text-xs"
+                className="w-full rounded-lg border border-emerald-300 bg-white p-2 font-mono text-xs"
                 dir="ltr"
                 defaultValue={generatedCodes.join("\n")}
               />
@@ -407,7 +407,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
             key={tb}
             to={`/admin/commerce?tab=${tb}`}
             className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
-              tab === tb ? "border border-b-0 bg-surface text-brand-700" : "text-ink-muted hover:text-ink"
+              tab === tb ? "border border-b-0 bg-white text-brand-700" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             {t(locale, `commerceAdmin.tab_${tb}` as never)}
@@ -473,21 +473,21 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                     <SubmitButton name="_action" value="create_product">{t(locale, "commerceAdmin.createProduct")}</SubmitButton>
                   </div>
                 </Form>
-                <p className="mt-2 text-xs text-ink-muted">{t(locale, "commerceAdmin.productCreateHint")}</p>
+                <p className="mt-2 text-xs text-slate-500">{t(locale, "commerceAdmin.productCreateHint")}</p>
               </CardBody>
             </Card>
           )}
 
           <Card>
             <CardBody className="space-y-2">
-              {loaderData.products.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noProducts")}</p>}
+              {loaderData.products.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noProducts")}</p>}
               {loaderData.products.map((p) => (
-                <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 last:border-0" data-testid="product-row">
+                <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 last:border-0" data-testid="product-row">
                   <div className="text-sm">
-                    <Link to={`/admin/commerce/products/${p.id}`} className="font-semibold text-brand-800 hover:underline">
+                    <Link to={`/admin/commerce/products/${p.id}`} className="font-semibold text-blue-700 hover:underline">
                       {locale === "ar" ? p.nameAr : p.nameEn}
                     </Link>
-                    <span className="ms-2 text-xs text-ink-muted" dir="ltr">{p.slug}</span>
+                    <span className="ms-2 text-xs text-slate-500" dir="ltr">{p.slug}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge tone="neutral">{t(locale, `commerce.kind_${p.kind}` as never)}</Badge>
@@ -521,16 +521,16 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
               </select>
               <SubmitButton variant="secondary">{t(locale, "commerceAdmin.filter")}</SubmitButton>
             </Form>
-            {loaderData.orders.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noOrders")}</p>}
+            {loaderData.orders.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noOrders")}</p>}
             {loaderData.orders.rows.map((o) => (
-              <div key={o.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="admin-order-row">
-                <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-brand-800 hover:underline" dir="ltr">
+              <div key={o.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="admin-order-row">
+                <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-blue-700 hover:underline" dir="ltr">
                   {o.orderNumber}
                 </Link>
-                <span className="text-xs text-ink-muted" dir="ltr">{o.studentEmail ?? o.studentId.slice(0, 8)}</span>
+                <span className="text-xs text-slate-500" dir="ltr">{o.studentEmail ?? o.studentId.slice(0, 8)}</span>
                 <span dir="ltr" className="text-xs font-semibold">{formatMoney(o.totalMinor, o.currency)}</span>
                 <Badge tone={ORDER_TONE[o.status] ?? "neutral"}>{t(locale, `commerce.order_${o.status}` as never)}</Badge>
-                <span className="text-xs text-ink-muted">{formatDate(locale, o.createdAt)}</span>
+                <span className="text-xs text-slate-500">{formatDate(locale, o.createdAt)}</span>
               </div>
             ))}
           </CardBody>
@@ -550,30 +550,30 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
               </select>
               <SubmitButton variant="secondary">{t(locale, "commerceAdmin.filter")}</SubmitButton>
             </Form>
-            {loaderData.paymentsQ.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noPayments")}</p>}
+            {loaderData.paymentsQ.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noPayments")}</p>}
             {loaderData.paymentsQ.rows.map((p) => (
-              <div key={p.id} className="space-y-2 border-b border-line py-3 last:border-0" data-testid="payment-review-row">
+              <div key={p.id} className="space-y-2 border-b border-slate-100 py-3 last:border-0" data-testid="payment-review-row">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <div>
-                    <Link to={`/admin/commerce/orders/${p.orderId}`} className="font-mono text-xs text-brand-800 hover:underline" dir="ltr">
+                    <Link to={`/admin/commerce/orders/${p.orderId}`} className="font-mono text-xs text-blue-700 hover:underline" dir="ltr">
                       {p.orderNumber}
                     </Link>
-                    <span className="ms-2 text-xs text-ink-muted" dir="ltr">{p.studentEmail ?? ""}</span>
+                    <span className="ms-2 text-xs text-slate-500" dir="ltr">{p.studentEmail ?? ""}</span>
                     {p.evidence?.transferReference && (
-                      <p className="text-xs text-ink-muted" data-testid="evidence-ref" dir="ltr">
+                      <p className="text-xs text-slate-600" data-testid="evidence-ref" dir="ltr">
                         {t(locale, "commerceAdmin.evidence")}: {p.evidence.transferReference}
                         {p.evidence.note ? ` — ${p.evidence.note}` : ""}
                       </p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-ink-muted">{p.provider}</span>
+                    <span className="text-xs text-slate-500">{p.provider}</span>
                     <span dir="ltr" className="text-sm font-bold" data-testid="payment-due">{formatMoney(p.amountMinor, p.currency)}</span>
                     <Badge tone={PAY_TONE[p.status] ?? "neutral"}>{t(locale, `commerce.pay_${p.status}` as never)}</Badge>
                   </div>
                 </div>
                 {p.status === "under_review" && perms.payments && (
-                  <div className="flex flex-wrap items-end gap-3 rounded-lg bg-sand-100 p-3">
+                  <div className="flex flex-wrap items-end gap-3 rounded-lg bg-slate-50 p-3">
                     <Form method="post" className="flex flex-wrap items-end gap-2">
                       <input type="hidden" name="_action" value="approve_payment" />
                       <input type="hidden" name="paymentId" value={p.id} />
@@ -586,7 +586,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                           step={1}
                           required
                           defaultValue={p.amountMinor}
-                          className="w-36 rounded-lg border border-line px-2 py-1.5 text-sm"
+                          className="w-36 rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
                           dir="ltr"
                         />
                       </label>
@@ -597,11 +597,11 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                       <input type="hidden" name="paymentId" value={p.id} />
                       <label className="grid min-w-0 gap-1 text-xs">
                         <span>{t(locale, "commerceAdmin.rejectReason")}</span>
-                        <input name="reason" required maxLength={500} className="w-48 rounded-lg border border-line px-2 py-1.5 text-sm" />
+                        <input name="reason" required maxLength={500} className="w-48 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
                       </label>
                       <SubmitButton variant="secondary" name="_action" value="reject_payment">{t(locale, "commerceAdmin.reject")}</SubmitButton>
                     </Form>
-                    <p className="w-full text-xs text-ink-muted">{t(locale, "commerceAdmin.amountsAreMinorUnits")}</p>
+                    <p className="w-full text-xs text-slate-500">{t(locale, "commerceAdmin.amountsAreMinorUnits")}</p>
                   </div>
                 )}
               </div>
@@ -614,12 +614,12 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
       {tab === "subscriptions" && perms.read && loaderData.subscriptionsQ && (
         <Card>
           <CardBody className="space-y-2">
-            {loaderData.subscriptionsQ.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noSubscriptions")}</p>}
+            {loaderData.subscriptionsQ.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noSubscriptions")}</p>}
             {loaderData.subscriptionsQ.rows.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="subscription-row">
+              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="subscription-row">
                 <div>
                   <p className="font-semibold">{locale === "ar" ? s.snapshot.titleAr : s.snapshot.titleEn}</p>
-                  <p className="text-xs text-ink-muted" dir="ltr">
+                  <p className="text-xs text-slate-500" dir="ltr">
                     {s.studentEmail ?? s.studentId.slice(0, 8)}
                     {s.currentPeriodEnd ? ` · ${t(locale, "commerce.accessUntil").replace("{date}", formatDate(locale, s.currentPeriodEnd))}` : ""}
                   </p>
@@ -742,14 +742,14 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
 
           <Card>
             <CardBody className="space-y-2">
-              {loaderData.batches.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noBatches")}</p>}
+              {loaderData.batches.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noBatches")}</p>}
               {loaderData.batches.map((b) => (
-                <div key={b.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="batch-row">
+                <div key={b.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="batch-row">
                   <div>
-                    <Link to={`/admin/commerce/batches/${b.id}`} className="font-semibold text-brand-800 hover:underline">
+                    <Link to={`/admin/commerce/batches/${b.id}`} className="font-semibold text-blue-700 hover:underline">
                       {b.name}
                     </Link>
-                    <p className="text-xs text-ink-muted">
+                    <p className="text-xs text-slate-500">
                       {formatDate(locale, b.createdAt)} · {t(locale, "commerceAdmin.codesUsed")
                         .replace("{used}", String(b.stats.used))
                         .replace("{total}", String(b.stats.total))}
@@ -819,12 +819,12 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
 
           <Card>
             <CardBody className="space-y-2">
-              {loaderData.discounts.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noDiscounts")}</p>}
+              {loaderData.discounts.length === 0 && <p className="text-sm text-slate-500">{t(locale, "commerceAdmin.noDiscounts")}</p>}
               {loaderData.discounts.map((d) => (
-                <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="discount-row">
+                <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="discount-row">
                   <div>
                     <span className="font-mono font-semibold" dir="ltr">{d.prefix}…</span>
-                    <span className="ms-2 text-xs text-ink-muted">
+                    <span className="ms-2 text-xs text-slate-500">
                       {d.type === "percent" ? `${d.value}%` : formatMoney(d.value, "EGP")}
                       {d.maxUses !== null ? ` · ${d.usedCount}/${d.maxUses}` : ` · ${t(locale, "commerceAdmin.unlimited")}`}
                       {d.endsAt ? ` · ${t(locale, "commerceAdmin.until")} ${formatDate(locale, d.endsAt)}` : ""}

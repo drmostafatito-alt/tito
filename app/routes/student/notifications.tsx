@@ -52,7 +52,7 @@ export default function StudentNotifications({ loaderData }: Route.ComponentProp
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "notifications.title")}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t(locale, "notifications.title")}</h1>
         {loaderData.unread > 0 && (
           <Form method="post">
             <input type="hidden" name="_action" value="mark-all-read" />
@@ -73,19 +73,19 @@ export default function StudentNotifications({ loaderData }: Route.ComponentProp
             <Card key={a.id}>
               <CardBody className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-base font-semibold text-ink" data-testid={`notif-title-${a.id}`}>{title}</h2>
+                  <h2 className="text-base font-semibold text-slate-900" data-testid={`notif-title-${a.id}`}>{title}</h2>
                   <span className="flex items-center gap-2">
                     {a.readAt ? (
                       <Badge tone="neutral">{t(locale, "notifications.readLabel")}</Badge>
                     ) : (
                       <span data-testid={`notif-unread-${a.id}`}><Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge></span>
                     )}
-                    <span className="text-xs text-ink-muted">{formatDate(locale, a.publishedAt ?? a.createdAt)}</span>
+                    <span className="text-xs text-slate-500">{formatDate(locale, a.publishedAt ?? a.createdAt)}</span>
                   </span>
                 </div>
-                {body && <p className="whitespace-pre-line text-sm text-ink-muted" data-testid={`notif-body-${a.id}`}>{body}</p>}
+                {body && <p className="whitespace-pre-line text-sm text-slate-600" data-testid={`notif-body-${a.id}`}>{body}</p>}
                 {a.expiresAt && (
-                  <p className="text-xs text-ink-muted">{t(locale, "notifications.expiresAt")}: {formatDate(locale, a.expiresAt)}</p>
+                  <p className="text-xs text-slate-500">{t(locale, "notifications.expiresAt")}: {formatDate(locale, a.expiresAt)}</p>
                 )}
                 {!a.readAt && (
                   <Form method="post">

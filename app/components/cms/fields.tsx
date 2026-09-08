@@ -25,10 +25,10 @@ export interface PickerData {
 type Loc = "ar" | "en";
 
 const inputCls =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-sand-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500";
 
 function Label({ k, locale, htmlFor }: { k: string; locale: Loc; htmlFor?: string }) {
-  return <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium text-ink-soft">{cmsLabel(k, locale)}</label>;
+  return <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium text-slate-700">{cmsLabel(k, locale)}</label>;
 }
 
 function datetimeValue(ms: unknown): string {
@@ -66,7 +66,7 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
           {(["ar", "en"] as const).map((lng) => (
             <div key={lng} className="flex flex-col">
               <Label k={field.labelKey} locale={locale} />
-              <span className="mb-1 text-xs text-ink-muted">{lng === "ar" ? "عربي" : "English"}</span>
+              <span className="mb-1 text-xs text-slate-500">{lng === "ar" ? "عربي" : "English"}</span>
               {Edit === "input" ? (
                 <input name={`${name}.${lng}`} defaultValue={lng === "ar" ? ar : en} maxLength={field.max} className={inputCls} dir={lng === "ar" ? "rtl" : "ltr"} />
               ) : field.kind === "lrichtext" ? (
@@ -76,7 +76,7 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
               )}
             </div>
           ))}
-          {field.kind === "lrichtext" && <p className="text-xs text-ink-muted sm:col-span-2">{cmsLabel("cms.ui.richtextHint", locale)}</p>}
+          {field.kind === "lrichtext" && <p className="text-xs text-slate-500 sm:col-span-2">{cmsLabel("cms.ui.richtextHint", locale)}</p>}
         </div>
       );
     }
@@ -96,7 +96,7 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
       );
     case "toggle":
       return (
-        <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink-soft">
+        <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700">
           <input name={name} type="checkbox" defaultChecked={value === true} className="h-4 w-4" />
           {cmsLabel(field.labelKey, locale)}
         </label>
@@ -132,7 +132,7 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
         <div className="flex flex-col">
           <Label k={field.labelKey} locale={locale} htmlFor={cid} />
           {sv && pickers.images.some((o) => o.id === sv) && (
-            <img src={`/files/${sv}`} alt="" className="mb-1.5 h-16 w-16 rounded-lg border border-line object-cover" />
+            <img src={`/files/${sv}`} alt="" className="mb-1.5 h-16 w-16 rounded-lg border border-slate-200 object-cover" />
           )}
           <PickerSelect name={name} id={cid} options={pickers.images} value={sv} locale={locale} />
         </div>
@@ -142,7 +142,7 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
         <div className="flex flex-col">
           <Label k={field.labelKey} locale={locale} htmlFor={cid} />
           <input id={cid} name={name} defaultValue={sv} className={inputCls} dir="ltr" placeholder="/…" />
-          <span className="mt-1 text-xs text-ink-muted">{cmsLabel("cms.ui.linkHint", locale)}</span>
+          <span className="mt-1 text-xs text-slate-500">{cmsLabel("cms.ui.linkHint", locale)}</span>
         </div>
       );
     case "datetime":
@@ -173,11 +173,11 @@ function SingleField({ field, path, value, pickers, locale }: { field: FieldDef;
         <div className="flex flex-col" role="group" aria-label={cmsLabel(field.labelKey, locale)}>
           <Label k={field.labelKey} locale={locale} />
           {options.length === 0 ? (
-            <p className="text-sm text-ink-muted">{cmsLabel("cms.ui.emptyPicker", locale)}</p>
+            <p className="text-sm text-slate-500">{cmsLabel("cms.ui.emptyPicker", locale)}</p>
           ) : (
-            <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-line bg-surface p-2">
+            <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
               {options.map((o) => (
-                <label key={o.id} className="inline-flex min-h-9 items-center gap-2 rounded px-2 py-1 text-sm text-ink-soft hover:bg-sand-100">
+                <label key={o.id} className="inline-flex min-h-9 items-center gap-2 rounded px-2 py-1 text-sm text-slate-700 hover:bg-slate-50">
                   <input type="checkbox" name={`${name}[]`} value={o.id} defaultChecked={selected.has(o.id)} className="h-4 w-4" />
                   {o.label}
                 </label>
@@ -203,8 +203,8 @@ function RepeaterField({ field, path, value, pickers, locale }: { field: FieldDe
     <div className="flex flex-col gap-2">
       <Label k={field.labelKey} locale={locale} />
       {rows.map((row, i) => (
-        <fieldset key={row.key} className="rounded-lg border border-line bg-sand-100 p-3">
-          <legend className="px-1 text-xs font-semibold text-ink-muted">
+        <fieldset key={row.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <legend className="px-1 text-xs font-semibold text-slate-500">
             {field.itemLabelKey ? cmsLabel(field.itemLabelKey, locale) : `#${i + 1}`} — {i + 1}
           </legend>
           <input type="hidden" name={`f.${path}.__idx`} value={i} />
@@ -216,7 +216,7 @@ function RepeaterField({ field, path, value, pickers, locale }: { field: FieldDe
           <div className="mt-2 flex gap-2">
             <button
               type="button"
-              className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-xs font-medium text-ink-muted hover:bg-surface disabled:opacity-40"
+              className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-600 hover:bg-white disabled:opacity-40"
               disabled={i === 0}
               onClick={() => setRows((rs) => { const n = [...rs]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; })}
             >
@@ -224,7 +224,7 @@ function RepeaterField({ field, path, value, pickers, locale }: { field: FieldDe
             </button>
             <button
               type="button"
-              className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-xs font-medium text-ink-muted hover:bg-surface disabled:opacity-40"
+              className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-600 hover:bg-white disabled:opacity-40"
               disabled={i === rows.length - 1}
               onClick={() => setRows((rs) => { const n = [...rs]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; })}
             >
@@ -232,7 +232,7 @@ function RepeaterField({ field, path, value, pickers, locale }: { field: FieldDe
             </button>
             <button
               type="button"
-              className="inline-flex min-h-9 items-center rounded-lg border border-error/30 px-3 text-xs font-medium text-error hover:bg-error-soft"
+              className="inline-flex min-h-9 items-center rounded-lg border border-red-200 px-3 text-xs font-medium text-red-600 hover:bg-red-50"
               onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
             >
               {cmsLabel("cms.ui.removeRow", locale)}
@@ -242,7 +242,7 @@ function RepeaterField({ field, path, value, pickers, locale }: { field: FieldDe
       ))}
       <button
         type="button"
-        className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-lg border border-dashed border-line px-4 text-sm font-medium text-ink-muted hover:bg-sand-100"
+        className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-4 text-sm font-medium text-slate-600 hover:bg-slate-50"
         disabled={rows.length >= maxItems}
         onClick={() => setRows((rs) => [...rs, { key: Date.now() + Math.random(), data: {} }])}
       >

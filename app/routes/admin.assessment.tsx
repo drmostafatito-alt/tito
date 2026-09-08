@@ -22,7 +22,7 @@ import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
 
-const selectCls = "h-[42px] rounded-lg border border-line bg-surface px-3 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
 
 /**
  * Assessment admin hub — question bank + exam listings, inside the existing
@@ -222,13 +222,13 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
           <div className="flex gap-2">
             <Link
               to="/admin/assessment/questions/new"
-              className="min-h-11 rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 sm:min-h-0"
+              className="min-h-11 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 sm:min-h-0"
             >
               + {t(locale, "assessment.newQuestion")}
             </Link>
             <Link
               to="/admin/assessment/exams/new"
-              className="min-h-11 rounded-lg border border-brand-700 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 sm:min-h-0"
+              className="min-h-11 rounded-lg border border-brand-600 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 sm:min-h-0"
             >
               + {t(locale, "assessment.newExam")}
             </Link>
@@ -259,7 +259,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
             key={tb}
             to={`/admin/assessment?tab=${tb}`}
             className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
-              tab === tb ? "border border-b-0 bg-surface text-brand-700" : "text-ink-muted hover:text-ink"
+              tab === tb ? "border border-b-0 bg-white text-brand-700" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             {t(locale, tb === "questions" ? "assessment.questionsTab" : tb === "exams" ? "assessment.examsTab" : "assessment.gradingTab")}
@@ -271,7 +271,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
         <>
           {grading.length === 0 && (
             <Card>
-              <CardBody className="text-sm text-ink-muted">{t(locale, "assessment.noPendingGrading")}</CardBody>
+              <CardBody className="text-sm text-slate-500">{t(locale, "assessment.noPendingGrading")}</CardBody>
             </Card>
           )}
           <ol className="flex flex-col gap-2">
@@ -282,7 +282,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                     <CardBody className="flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{item.studentName} — {locale === "ar" ? item.stemAr : item.stemEn}</p>
-                        <p className="text-xs text-ink-muted">
+                        <p className="text-xs text-slate-500">
                           {locale === "ar" ? item.examTitleAr : item.examTitleEn} · #{item.attemptNumber} · {item.points} {t(locale, "assessment.examPoints")}
                         </p>
                       </div>
@@ -303,7 +303,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
             <input
               name="q"
               placeholder={t(locale, "assessment.searchPlaceholder")}
-              className="h-[42px] min-w-[10rem] flex-1 rounded-lg border border-line bg-surface px-3 text-sm"
+              className="h-[42px] min-w-[10rem] flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
             />
             <select name="status" aria-label={t(locale, "assessment.status")} className={selectCls} defaultValue="">
               <option value="">{t(locale, "assessment.status")}: *</option>
@@ -337,24 +337,24 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                 <option key={tg.id} value={tg.id}>{locale === "ar" ? tg.labelAr : tg.labelEn}</option>
               ))}
             </select>
-            <button type="submit" className="min-h-[42px] rounded-lg border border-line bg-surface px-4 text-sm font-medium hover:bg-sand-100">
+            <button type="submit" className="min-h-[42px] rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium hover:bg-slate-50">
               {t(locale, "common.search")}
             </button>
           </Form>
 
           {questions.length === 0 && (
             <Card>
-              <CardBody className="text-sm text-ink-muted">{t(locale, "assessment.noQuestions")}</CardBody>
+              <CardBody className="text-sm text-slate-500">{t(locale, "assessment.noQuestions")}</CardBody>
             </Card>
           )}
 
           {canBulkEdit && questions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg bg-sand-100 px-3 py-2" data-testid="bulk-bar">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg bg-slate-50 px-3 py-2" data-testid="bulk-bar">
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4" data-testid="bulk-select-all" />
                 {t(locale, "assessment.selectAll")}
               </label>
-              <span className="text-xs text-ink-muted" data-testid="bulk-selected">
+              <span className="text-xs text-slate-600" data-testid="bulk-selected">
                 {t(locale, "assessment.selectedCount", { n: selected.size })}
               </span>
               {selected.size > 0 && (
@@ -368,7 +368,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                       {perms.publish && <option value="published">{t(locale, "assessment.status_published")}</option>}
                       <option value="archived">{t(locale, "assessment.status_archived")}</option>
                     </select>
-                    <button type="submit" className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium hover:bg-sand-100">
+                    <button type="submit" className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50">
                       {t(locale, "assessment.bulkSetStatus")}
                     </button>
                   </Form>
@@ -381,7 +381,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                         <option key={tg.id} value={tg.id}>{locale === "ar" ? tg.labelAr : tg.labelEn}</option>
                       ))}
                     </select>
-                    <button type="submit" className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium hover:bg-sand-100">
+                    <button type="submit" className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50">
                       {t(locale, "assessment.bulkAddTag")}
                     </button>
                   </Form>
@@ -407,7 +407,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                   <CardBody className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{q.stemAr || q.stemEn}</p>
-                      <p className="text-xs text-ink-muted">
+                      <p className="text-xs text-slate-500">
                         {t(locale, `assessment.type_${q.type}`)} · {t(locale, `assessment.diff_${q.difficulty}`)} ·{" "}
                         {t(locale, "assessment.examPoints")}: {q.pointsDefault}
                       </p>
@@ -427,7 +427,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
         <>
           {exams.length === 0 && (
             <Card>
-              <CardBody className="text-sm text-ink-muted">{t(locale, "assessment.noExams")}</CardBody>
+              <CardBody className="text-sm text-slate-500">{t(locale, "assessment.noExams")}</CardBody>
             </Card>
           )}
           {exams.map((e) => {
@@ -439,7 +439,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                     <Link to={`/admin/assessment/exams/${e.id}`} className="truncate text-sm font-medium hover:text-brand-700">
                       {locale === "ar" ? e.titleAr : e.titleEn}
                     </Link>
-                    <p className="text-xs text-ink-muted">
+                    <p className="text-xs text-slate-500">
                       {e.durationMinutes !== null ? t(locale, "exam.duration").replace("{n}", String(e.durationMinutes)) : t(locale, "exam.unlimitedDuration")}
                       {" · "}
                       {t(locale, "exam.passPercent").replace("{n}", String(e.passPercent))}
@@ -451,7 +451,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                   </div>
                   <div className="flex items-center gap-2">
                     {e.status === "published" && (
-                      <Link to={`/exams/${e.slug}`} className="text-xs text-brand-700 hover:underline">
+                      <Link to={`/exams/${e.slug}`} className="text-xs text-blue-600 hover:underline">
                         {t(locale, "assessment.previewStudent")}
                       </Link>
                     )}

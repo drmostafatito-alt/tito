@@ -57,16 +57,15 @@ function urlPathIsHome(raw: string): boolean {
   return pathname === "/admin" || pathname === "/admin/";
 }
 
-function Brand({ appName, locale, tone = "dark" }: { appName: string; locale: Locale; tone?: "dark" | "light" }) {
-  const dark = tone === "dark";
+function Brand({ appName, locale }: { appName: string; locale: Locale }) {
   return (
     <Link to="/admin" aria-label={appName} className="flex items-center gap-2.5">
-      <span className={`font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base leading-none ${dark ? "bg-[#f4eee1] text-brand-950 ring-1 ring-inset ring-accent-500" : "bg-brand-950 text-[#f4eee1] ring-1 ring-inset ring-accent-400/70"}`} aria-hidden="true">
-        <span className="-translate-y-px">{locale === "ar" ? "م" : "T"}</span>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white" aria-hidden="true">
+        <AdminIcon name="logo" className="h-5 w-5" />
       </span>
       <span className="min-w-0">
-        <span className={`font-display block truncate text-base font-semibold leading-tight ${dark ? "text-parchment" : "text-ink"}`}>{appName}</span>
-        <span className={`block text-[11px] font-bold ${dark ? "text-accent-300" : "text-accent-800"}`}>{t(locale, "nav.adminLabel")}</span>
+        <span className="block truncate text-sm font-bold leading-tight text-white">{appName}</span>
+        <span className="block text-[11px] font-medium text-brand-300">{t(locale, "nav.adminLabel")}</span>
       </span>
     </Link>
   );
@@ -75,19 +74,19 @@ function Brand({ appName, locale, tone = "dark" }: { appName: string; locale: Lo
 function PageCrumbs({ pathname, locale }: { pathname: string; locale: Locale }) {
   const root = t(locale, "nav.dashboard");
   if (pathname === "/admin" || pathname === "/admin/") {
-    return <span className="truncate text-sm font-semibold text-ink">{root}</span>;
+    return <span className="truncate text-sm font-semibold text-slate-900">{root}</span>;
   }
   const match = resolveNavItem(pathname);
   const label = match ? t(locale, match.item.labelKey) : root;
   return (
     <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
-      <Link to="/admin" className="truncate font-medium text-ink-muted hover:text-ink">
+      <Link to="/admin" className="truncate font-medium text-slate-500 hover:text-slate-800">
         {root}
       </Link>
-      <span aria-hidden="true" className="text-ink-muted">
+      <span aria-hidden="true" className="text-slate-500">
         /
       </span>
-      <span className="truncate font-semibold text-ink">{label}</span>
+      <span className="truncate font-semibold text-slate-900">{label}</span>
     </nav>
   );
 }
@@ -126,13 +125,13 @@ function ProfileMenu({ locale, email, fullName }: { locale: Locale; email: strin
       {open && (
         <div
           role="menu"
-          className="absolute end-0 top-12 z-50 w-60 overflow-hidden rounded-xl border border-line bg-surface shadow-lg"
+          className="absolute end-0 top-12 z-50 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
         >
-          <div className="border-b border-line px-4 py-3">
-            <p className="truncate text-sm font-semibold text-ink" dir="auto">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <p className="truncate text-sm font-semibold text-slate-900" dir="auto">
               {fullName || "Admin"}
             </p>
-            <p className="truncate text-xs text-ink-muted" dir="ltr">
+            <p className="truncate text-xs text-slate-500" dir="ltr">
               {email}
             </p>
           </div>
@@ -141,12 +140,12 @@ function ProfileMenu({ locale, email, fullName }: { locale: Locale; email: strin
               to="/"
               onClick={() => setOpen(false)}
               role="menuitem"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink-soft hover:bg-sand-100"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
             >
               {t(locale, "nav.viewSite")}
             </Link>
             <Form method="post" action="/logout">
-              <button type="submit" role="menuitem" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-error hover:bg-error-soft">
+              <button type="submit" role="menuitem" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50">
                 {t(locale, "common.logout")}
               </button>
             </Form>
@@ -195,19 +194,19 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   const navSections = loaderData.teacherMode ? TEACHER_NAV_SECTIONS : undefined;
 
   return (
-    <div className="flex min-h-dvh bg-sand-100">
+    <div className="flex min-h-dvh bg-slate-100">
       {/* Desktop sidebar */}
       <aside
-        className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-white/10 bg-brand-950 pt-safe transition-[width] duration-200 lg:flex ${
+        className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-slate-800 bg-slate-900 pt-safe transition-[width] duration-200 lg:flex ${
           collapsed ? "w-[72px]" : "w-64"
         }`}
         aria-label={t(locale, "nav.menu")}
       >
-        <div className={`flex h-16 items-center border-b border-white/10 ${collapsed ? "justify-center px-2" : "justify-between gap-2 px-4"}`}>
-          {!collapsed && <Brand appName={appName} locale={locale} tone="dark" />}
+        <div className={`flex h-16 items-center border-b border-slate-800 ${collapsed ? "justify-center px-2" : "justify-between gap-2 px-4"}`}>
+          {!collapsed && <Brand appName={appName} locale={locale} />}
           {collapsed && (
-            <Link to="/admin" aria-label={appName} className="font-display flex h-9 w-9 items-center justify-center rounded-full bg-[#f4eee1] text-base leading-none text-brand-950 ring-1 ring-inset ring-accent-500">
-              <span aria-hidden="true" className="-translate-y-px">{locale === "ar" ? "م" : "T"}</span>
+            <Link to="/admin" aria-label={appName} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white">
+              <AdminIcon name="logo" className="h-5 w-5" />
             </Link>
           )}
           <CollapseButton collapsed={collapsed} locale={locale} onToggle={() => setCollapsed((v) => !v)} />
@@ -219,12 +218,12 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-line bg-surface/95 pt-safe backdrop-blur">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 pt-safe backdrop-blur">
           <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
             {/* Mobile menu toggle (desktop layout hides it visually, kept for ARIA/structural tests) */}
             <button
               type="button"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-sand-100 lg:hidden"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 lg:hidden"
               aria-expanded={mobileOpen}
               aria-controls="admin-mobile-nav"
               aria-label={t(locale, "common.menu")}
@@ -254,7 +253,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             </div>
             {/* Mobile brand */}
             <div className="min-w-0 flex-1 lg:hidden">
-              <Brand appName={appName} locale={locale} tone="light" />
+              <Brand appName={appName} locale={locale} />
             </div>
 
             <div className="ms-auto flex shrink-0 items-center gap-1.5">
@@ -263,7 +262,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
               </span>
               <a
                 href="/"
-                className="hidden min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-ink-muted hover:bg-sand-100 md:inline-flex"
+                className="hidden min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-slate-600 hover:bg-slate-100 md:inline-flex"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
@@ -280,7 +279,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <Outlet />
         </main>
 
-        <footer className="border-t border-line bg-surface px-6 py-4 text-center text-xs text-ink-muted">
+        <footer className="border-t border-slate-200 bg-white px-6 py-4 text-center text-xs text-slate-500">
           © {new Date().getFullYear()} {appName} · {t(locale, "nav.adminLabel")}
         </footer>
       </div>
@@ -289,22 +288,22 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
       {mobileOpen && (
         <div className="lg:hidden">
           <div
-            className="fixed inset-0 z-40 bg-brand-950/60"
+            className="fixed inset-0 z-40 bg-slate-900/60"
             aria-hidden="true"
             onClick={() => setMobileOpen(false)}
           />
           <nav
             id="admin-mobile-nav"
             aria-label={t(locale, "nav.menu")}
-            className="fixed inset-y-0 start-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-e border-white/10 bg-brand-950 p-4 pt-safe"
+            className="fixed inset-y-0 start-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-e border-slate-800 bg-slate-900 p-4 pt-safe"
           >
-            <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
               <Brand appName={appName} locale={locale} />
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 aria-label={t(locale, "nav.closeMenu")}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-sand-400 hover:bg-surface/5 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white"
               >
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                   <path d="M18 6 6 18" />
@@ -313,7 +312,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
               </button>
             </div>
             <SidebarContent locale={locale} onNavigate={() => setMobileOpen(false)} sections={navSections} />
-            <div className="mt-4 flex items-center gap-2 border-t border-white/10 pt-3 sm:hidden">
+            <div className="mt-4 flex items-center gap-2 border-t border-slate-800 pt-3 sm:hidden">
               <LanguageSwitcher locale={locale} options={localeOptions} />
             </div>
           </nav>

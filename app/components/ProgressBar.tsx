@@ -7,7 +7,7 @@ export function ProgressBar({ pct, label }: { pct: number; label?: string }) {
   const filled = Math.round(clamped / 10);
   return (
     <div
-      className="flex h-2 w-full items-stretch gap-px overflow-hidden rounded-full bg-sand-200"
+      className="flex h-2 w-full items-stretch gap-px overflow-hidden rounded-full bg-slate-200"
       role="progressbar"
       aria-valuenow={clamped}
       aria-valuemin={0}

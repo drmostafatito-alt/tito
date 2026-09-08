@@ -27,17 +27,17 @@ export default function ExamsPage({ loaderData }: Route.ComponentProps) {
   const { exams } = loaderData;
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "exam.listTitle")}</h1>
+      <h1 className="text-xl font-bold">{t(locale, "exam.listTitle")}</h1>
       {exams.length === 0 && (
         <Card>
-          <CardBody className="text-sm text-ink-muted">{t(locale, "exam.empty")}</CardBody>
+          <CardBody className="text-sm text-slate-500">{t(locale, "exam.empty")}</CardBody>
         </Card>
       )}
       {exams.map((exam) => {
         const title = locale === "ar" ? exam.titleAr : exam.titleEn;
         return (
           <Link key={exam.slug} to={`/exams/${exam.slug}`} className="block">
-            <Card className="transition hover:border-brand-300">
+            <Card className="transition hover:border-blue-300">
               <CardBody className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="font-semibold">{title}</h2>
@@ -53,7 +53,7 @@ export default function ExamsPage({ loaderData }: Route.ComponentProps) {
                     <Badge tone="success">{t(locale, "exam.start")}</Badge>
                   )}
                 </div>
-                <p className="text-xs text-ink-muted">
+                <p className="text-xs text-slate-500">
                   {exam.durationMinutes !== null && exam.durationMinutes > 0
                     ? t(locale, "exam.duration").replace("{n}", String(exam.durationMinutes))
                     : t(locale, "exam.unlimitedDuration")}

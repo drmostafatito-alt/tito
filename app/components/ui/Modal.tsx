@@ -75,7 +75,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-brand-950/60 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -85,9 +85,9 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-[var(--radius-card)] border border-line bg-parchment p-6 shadow-xl"
+        className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
       >
-        <h2 className="font-display mb-4 text-xl font-semibold text-ink">{title}</h2>
+        <h2 className="mb-3 text-lg font-semibold">{title}</h2>
         {children}
       </div>
     </div>
