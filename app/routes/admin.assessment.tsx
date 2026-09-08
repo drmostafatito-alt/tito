@@ -1,9 +1,13 @@
+import { useState } from "react";
 import type { Route } from "./+types/admin.assessment";
-import { Form, Link, useRouteLoaderData } from "react-router";
+import { Form, Link, useActionData, useRouteLoaderData } from "react-router";
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
+import { logAudit } from "~server/audit/log.server";
 import {
+  bulkSetQuestionStatus,
+  bulkTagQuestions,
   canAssessment,
   essayGradingQueue,
   examAttemptCounts,
@@ -35,6 +39,9 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const perms = {
     read: await canAssessment(db, auth, "assessment.read"),
     create: await canAssessment(db, auth, "assessment.create"),
+    edit: await canAssessment(db, auth, "assessment.edit"),
+    publish: await canAssessment(db, auth, "assessment.publish"),
+    delete: await canAssessment(db, auth, "assessment.delete"),
     grade: await canAssessment(db, auth, "assessment.grade"),
   };
   const tab =
@@ -93,6 +100,72 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   return { tab, perms, questions: [], exams, counts, subjects: emptyBank.subjects, tags: emptyBank.tags, grading: [] as Awaited<ReturnType<typeof essayGradingQueue>> };
 }
 
+export async function action({ context, request }: Route.ActionArgs) {
+  const { auth } = await requireRole(context, request, 2);
+  const db = getDb(getEnv(context));
+  const actor = { userId: auth.user.id, role: auth.user.roleId };
+  const form = await request.formData();
+  const intent = String(form.get("_action") ?? "");
+  const ids = form.getAll("ids").map((x) => String(x));
+  if (!ids.length) return { bulk: { kind: intent, requested: 0, succeeded: 0, failed: 0, results: [] as never[] }, error: "empty" };
+
+  if (intent === "bulk-status") {
+    const status = String(form.get("status") ?? "");
+    if (!["draft", "in_review", "published", "archived"].includes(status)) return { bulk: null, error: "bad_request" };
+    const allowed = status === "published"
+      ? await canAssessment(db, auth, "assessment.publish")
+      : await canAssessment(db, auth, "assessment.edit");
+    if (!allowed) return { bulk: null, error: "denied" };
+    const results = await bulkSetQuestionStatus(db, ids, status, actor);
+    for (const r of results) {
+      if (r.ok) {
+        await logAudit(db, {
+          actorUserId: auth.user.id,
+          actorRole: auth.user.roleId,
+          action: "assessment.question.bulk_status",
+          entityType: "question",
+          entityId: r.id,
+          after: { status },
+        });
+      }
+    }
+    return { bulk: summarize("bulk-status", results), error: null };
+  }
+
+  if (intent === "bulk-tag") {
+    if (!(await canAssessment(db, auth, "assessment.edit"))) return { bulk: null, error: "denied" };
+    const tagIds = form.getAll("tagIds").map((x) => String(x));
+    if (!tagIds.length) return { bulk: null, error: "empty" };
+    const results = await bulkTagQuestions(db, ids, tagIds);
+    for (const r of results) {
+      if (r.ok) {
+        await logAudit(db, {
+          actorUserId: auth.user.id,
+          actorRole: auth.user.roleId,
+          action: "assessment.question.bulk_tag",
+          entityType: "question",
+          entityId: r.id,
+          after: { tagIds },
+        });
+      }
+    }
+    return { bulk: summarize("bulk-tag", results), error: null };
+  }
+
+  return { bulk: null, error: "bad_request" };
+}
+
+function summarize(kind: string, results: Array<{ ok: boolean; error?: string; id: string }>) {
+  const succeeded = results.filter((r) => r.ok).length;
+  return {
+    kind,
+    requested: results.length,
+    succeeded,
+    failed: results.length - succeeded,
+    results: results.filter((r) => !r.ok).slice(0, 10),
+  };
+}
+
 type AssessmentTab = "questions" | "exams" | "grading";
 const ASSESSMENT_TABS_ALL: AssessmentTab[] = ["questions", "exams", "grading"];
 const ASSESSMENT_TABS_AUTH: AssessmentTab[] = ["questions", "exams"];
@@ -104,10 +177,42 @@ const qStatusTone: Record<string, "neutral" | "warning" | "success" | "brand"> =
   archived: "brand",
 };
 
+interface BulkActionData {
+  bulk: {
+    kind: string;
+    requested: number;
+    succeeded: number;
+    failed: number;
+    results: Array<{ id: string; error?: string }>;
+  } | null;
+  error: "denied" | "bad_request" | "empty" | null;
+}
+
 export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
   const { tab, perms, questions, exams, counts, subjects, tags, grading } = loaderData;
+  const actionData = useActionData<BulkActionData>();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const onPageIds = questions.map((q) => q.id);
+  const allSelected = onPageIds.length > 0 && onPageIds.every((id) => selected.has(id));
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) for (const id of onPageIds) next.delete(id);
+      else for (const id of onPageIds) next.add(id);
+      return next;
+    });
+  const canBulkEdit = perms.edit || perms.publish;
+  const bulk = actionData?.bulk ?? null;
+  const bulkError = actionData?.error ?? null;
 
   return (
     <div className="space-y-4">
@@ -132,6 +237,21 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
       </div>
 
       {!perms.read && <Alert kind="error">{t(locale, "assessment.denied")}</Alert>}
+
+      {bulkError === "denied" && <Alert kind="error">{t(locale, "assessment.bulkDenied")}</Alert>}
+      {bulkError === "bad_request" && <Alert kind="error">{t(locale, "assessment.opFailed")}</Alert>}
+      {bulk && (
+        <Alert kind={bulk.failed === 0 ? "success" : "warning"} data-testid="bulk-result">
+          {t(locale, "assessment.bulkPerformed", { succeeded: bulk.succeeded, failed: bulk.failed })}
+          {bulk.failed > 0 && (
+            <ul className="mt-1 list-inside list-disc text-xs">
+              {bulk.results.map((r) => (
+                <li key={r.id}>{r.error ?? "error"}</li>
+              ))}
+            </ul>
+          )}
+        </Alert>
+      )}
 
       <div className="flex gap-2 border-b">
         {(perms.grade ? ASSESSMENT_TABS_ALL : ASSESSMENT_TABS_AUTH).map((tb) => (
@@ -227,23 +347,78 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
               <CardBody className="text-sm text-slate-500">{t(locale, "assessment.noQuestions")}</CardBody>
             </Card>
           )}
+
+          {canBulkEdit && questions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg bg-slate-50 px-3 py-2" data-testid="bulk-bar">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4" data-testid="bulk-select-all" />
+                {t(locale, "assessment.selectAll")}
+              </label>
+              <span className="text-xs text-slate-600" data-testid="bulk-selected">
+                {t(locale, "assessment.selectedCount", { n: selected.size })}
+              </span>
+              {selected.size > 0 && (
+                <div className="ms-auto flex flex-wrap items-center gap-2">
+                  <Form method="post">
+                    <input type="hidden" name="_action" value="bulk-status" />
+                    {[...selected].map((id) => <input key={id} type="hidden" name="ids" value={id} />)}
+                    <select name="status" className={selectCls} defaultValue="in_review" aria-label={t(locale, "assessment.status")} data-testid="bulk-status-select">
+                      <option value="in_review">{t(locale, "assessment.status_in_review")}</option>
+                      <option value="draft">{t(locale, "assessment.status_draft")}</option>
+                      {perms.publish && <option value="published">{t(locale, "assessment.status_published")}</option>}
+                      <option value="archived">{t(locale, "assessment.status_archived")}</option>
+                    </select>
+                    <button type="submit" className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50">
+                      {t(locale, "assessment.bulkSetStatus")}
+                    </button>
+                  </Form>
+                  <Form method="post">
+                    <input type="hidden" name="_action" value="bulk-tag" />
+                    {[...selected].map((id) => <input key={id} type="hidden" name="ids" value={id} />)}
+                    <select name="tagIds" className={selectCls} defaultValue="" aria-label={t(locale, "assessment.filterTag")} data-testid="bulk-tag-select">
+                      <option value="" disabled>{t(locale, "assessment.chooseTag")}</option>
+                      {tags.map((tg) => (
+                        <option key={tg.id} value={tg.id}>{locale === "ar" ? tg.labelAr : tg.labelEn}</option>
+                      ))}
+                    </select>
+                    <button type="submit" className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50">
+                      {t(locale, "assessment.bulkAddTag")}
+                    </button>
+                  </Form>
+                </div>
+              )}
+            </div>
+          )}
+
           {questions.map((q) => (
-            <Link key={q.id} to={`/admin/assessment/questions/${q.id}`} className="block">
-              <Card className="transition hover:border-brand-300">
-                <CardBody className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{q.stemAr || q.stemEn}</p>
-                    <p className="text-xs text-slate-500">
-                      {t(locale, `assessment.type_${q.type}`)} · {t(locale, `assessment.diff_${q.difficulty}`)} ·{" "}
-                      {t(locale, "assessment.examPoints")}: {q.pointsDefault}
-                    </p>
-                  </div>
-                  <Badge tone={qStatusTone[q.status] ?? "neutral"}>
-                    {t(locale, `assessment.status_${q.status}`)}
-                  </Badge>
-                </CardBody>
-              </Card>
-            </Link>
+            <div key={q.id} className="flex items-center gap-3">
+              {canBulkEdit && (
+                <input
+                  type="checkbox"
+                  checked={selected.has(q.id)}
+                  onChange={() => toggle(q.id)}
+                  aria-label={t(locale, "assessment.selectRow")}
+                  className="h-4 w-4 shrink-0"
+                  data-testid={`select-question-${q.id}`}
+                />
+              )}
+              <Link to={`/admin/assessment/questions/${q.id}`} className="block min-w-0 flex-1">
+                <Card className="transition hover:border-brand-300">
+                  <CardBody className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{q.stemAr || q.stemEn}</p>
+                      <p className="text-xs text-slate-500">
+                        {t(locale, `assessment.type_${q.type}`)} · {t(locale, `assessment.diff_${q.difficulty}`)} ·{" "}
+                        {t(locale, "assessment.examPoints")}: {q.pointsDefault}
+                      </p>
+                    </div>
+                    <Badge tone={qStatusTone[q.status] ?? "neutral"}>
+                      {t(locale, `assessment.status_${q.status}`)}
+                    </Badge>
+                  </CardBody>
+                </Card>
+              </Link>
+            </div>
           ))}
         </>
       )}

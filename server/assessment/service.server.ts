@@ -400,6 +400,82 @@ export async function setQuestionStatus(db: DB, id: string, status: string, acto
   return { id, status };
 }
 
+export interface QuestionBulkResult {
+  id: string;
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Bulk status move across many questions (FEATURE-SPEC §5 "bulk tag/status").
+ * Each question follows the SAME single-question workflow rules (STATUS_FLOW),
+ * so a per-question failure is reported individually and never aborts the rest.
+ * The caller is responsible for authorization + audit.
+ */
+export async function bulkSetQuestionStatus(
+  db: DB,
+  ids: string[],
+  status: string,
+  actor: ActorCtx
+): Promise<QuestionBulkResult[]> {
+  const out: QuestionBulkResult[] = [];
+  for (const id of ids) {
+    try {
+      await setQuestionStatus(db, id, status, actor);
+      out.push({ id, ok: true });
+    } catch (err) {
+      out.push({ id, ok: false, error: err instanceof Error ? err.message : "error" });
+    }
+  }
+  return out;
+}
+
+/** Attach extra tags to a single question (idempotent union). */
+export async function addQuestionTags(db: DB, questionId: string, tagIds: string[]): Promise<void> {
+  const existing = await db
+    .select({ tagId: questionTags.tagId })
+    .from(questionTags)
+    .where(eq(questionTags.questionId, questionId));
+  const have = new Set(existing.map((t) => t.tagId));
+  for (const tagId of new Set(tagIds)) {
+    if (!have.has(tagId)) await db.insert(questionTags).values({ questionId, tagId });
+  }
+}
+
+/**
+ * Bulk add tags to many questions. Silently skips unknown tags (they would
+ * only be meaningful after creation via ensureTag) and per-question failures
+ * are reported individually.
+ */
+export async function bulkTagQuestions(
+  db: DB,
+  ids: string[],
+  tagIds: string[]
+): Promise<QuestionBulkResult[]> {
+  const validTags = await db.select({ id: tags.id }).from(tags).where(inArray(tags.id, tagIds));
+  const valid = new Set(validTags.map((t) => t.id));
+  const toAdd = [...new Set(tagIds)].filter((t) => valid.has(t));
+  const out: QuestionBulkResult[] = [];
+  for (const id of ids) {
+    try {
+      const q = await db
+        .select({ id: questions.id })
+        .from(questions)
+        .where(and(eq(questions.id, id), isNull(questions.deletedAt)))
+        .limit(1);
+      if (!q.length) {
+        out.push({ id, ok: false, error: "question not found" });
+        continue;
+      }
+      await addQuestionTags(db, id, toAdd);
+      out.push({ id, ok: true });
+    } catch (err) {
+      out.push({ id, ok: false, error: err instanceof Error ? err.message : "error" });
+    }
+  }
+  return out;
+}
+
 /** Soft delete — refused while the question is attached to any exam (archive instead). */
 export async function deleteQuestion(db: DB, id: string) {
   const attached = await db.select({ examId: examQuestions.examId }).from(examQuestions).where(eq(examQuestions.questionId, id)).limit(1);
@@ -451,8 +527,17 @@ export async function listQuestions(
   if (filter.subjectId) conds.push(eq(questions.subjectId, filter.subjectId));
   if (idsFilter) conds.push(inArray(questions.id, idsFilter));
   if (filter.q) {
+    // Question-bank search: match the stem text in either language as well as
+    // the explanations so a search genuinely covers the question body. (A
+    // dedicated FTS5 index is supported by D1 and can be layered on later; the
+    // model answer is deliberately excluded — it is grader-only reference.)
     const like = `%${filter.q}%`;
-    conds.push(or(sql`${questions.stemAr} LIKE ${like}`, sql`${questions.stemEn} LIKE ${like}`)!);
+    conds.push(or(
+      sql`${questions.stemAr} LIKE ${like}`,
+      sql`${questions.stemEn} LIKE ${like}`,
+      sql`${questions.explanationAr} LIKE ${like}`,
+      sql`${questions.explanationEn} LIKE ${like}`,
+    )!);
   }
   return db.select().from(questions).where(and(...conds)).orderBy(desc(questions.updatedAt)).limit(limit);
 }
