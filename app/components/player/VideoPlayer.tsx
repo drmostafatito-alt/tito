@@ -16,7 +16,8 @@ import { t, type Locale } from "~/lib/i18n";
  * and may auto-complete the lesson (onLessonCompleted → page revalidation).
  */
 interface PlaybackResponse {
-  type: "hls" | "mp4";
+  /** "embed" = third-party hosted player (YouTube) rendered in a sandboxed iframe. */
+  type: "hls" | "mp4" | "embed";
   url: string;
   token?: string | null;
   expiresAt: number;
@@ -55,6 +56,7 @@ export function VideoPlayer({
   const locale = root?.locale ?? "ar";
   const [state, setState] = useState<"loading" | "ready" | "denied" | "error">("loading");
   const [src, setSrc] = useState<string | null>(null);
+  const [kind, setKind] = useState<"hls" | "mp4" | "embed">("hls");
   const [poster, setPoster] = useState<string | null>(null);
   const [resumedNotice, setResumedNotice] = useState(false);
   const ref = useRef<HTMLVideoElement | null>(null);
@@ -77,6 +79,7 @@ export function VideoPlayer({
         const url = body.token && !body.url.includes("token=") ? `${body.url}?token=${body.token}` : body.url;
         if (typeof body.resumeAt === "number" && body.resumeAt > 5) resumePos.current = body.resumeAt;
         setSrc(url);
+        setKind(body.type === "embed" ? "embed" : (body.type ?? "hls"));
         setPoster(body.posterUrl ?? null);
         setState("ready");
       })
@@ -192,7 +195,27 @@ export function VideoPlayer({
       {state === "error" && (
         <div className="flex h-56 items-center justify-center text-sm text-amber-300">{t(locale, "player.error")}</div>
       )}
-      {state === "ready" && src && (
+      {state === "ready" && src && kind === "embed" && (
+        /* Third-party hosted player. The src is NOT user input: it is rebuilt
+         * server-side from a validated 11-char YouTube id, and CSP frame-src is
+         * locked to youtube-nocookie.com, so this frame cannot be pointed
+         * anywhere else. allow-same-origin is required for the YouTube player to
+         * function and is safe here because the origin is pinned by CSP. */
+        <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+          <iframe
+            src={src}
+            title={title ?? "video"}
+            className="absolute inset-0 h-full w-full border-0"
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen={allowFullscreen}
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+            data-testid="video-embed"
+          />
+        </div>
+      )}
+      {state === "ready" && src && kind !== "embed" && (
         <video
           ref={ref}
           className="h-auto w-full"

@@ -5,6 +5,8 @@ import { getSettings } from "../settings/service.server";
 import { type PlaybackInfo, type VideoProvider, type VideoRowLike, VideoNotConfiguredError } from "./provider";
 import { MockVideoProvider } from "./providers/mock.server";
 import { MuxVideoProvider } from "./providers/mux.server";
+import { YouTubeVideoProvider } from "./providers/youtube.server";
+import { parseYouTubeId, youTubeThumbnailUrl, youTubeWatchUrl } from "./youtube";
 
 /**
  * Video service — the only thing routes/business logic talk to. The active
@@ -18,6 +20,11 @@ function registry(env: Env): Record<string, VideoProvider> {
   return {
     mock: new MockVideoProvider(env),
     mux: new MuxVideoProvider({ env }),
+    // Not part of the `video.provider` SETTINGS choice (that selects the UPLOAD
+    // pipeline). YouTube rows are created explicitly from a validated URL and are
+    // resolved per-row here, so an owner can mix hosted uploads and YouTube
+    // links on the same platform.
+    youtube: new YouTubeVideoProvider(),
   };
 }
 
@@ -59,6 +66,63 @@ export async function registerMockVideo(db: DB, input: { durationSeconds?: numbe
     .where(eq(videos.id, row.id))
     .returning();
   return updated;
+}
+
+/**
+ * Register a YouTube video from a URL the owner pasted.
+ *
+ * The URL is never stored verbatim as a playable value: only the validated 11-char
+ * id is kept (in `providerAssetId`), and the embed URL is rebuilt from it at
+ * playback time. The original link is kept in `metadata.sourceUrl` purely so Admin
+ * can show the owner what they entered.
+ */
+export async function registerYouTubeVideo(
+  db: DB,
+  input: {
+    url: string;
+    title?: string;
+    titleAr?: string;
+    titleEn?: string;
+    descriptionAr?: string;
+    descriptionEn?: string;
+    durationSeconds?: number | null;
+  }
+): Promise<VideoRow> {
+  const id = parseYouTubeId(input.url);
+  if (!id) throw new Error("invalid YouTube URL");
+
+  const now = Date.now();
+  const row = {
+    id: crypto.randomUUID(),
+    provider: "youtube" as const,
+    providerAssetId: id,
+    playbackId: null,
+    status: "ready" as const,
+    durationSeconds: input.durationSeconds ?? null,
+    thumbnailUrl: youTubeThumbnailUrl(id),
+    thumbnailFileId: null,
+    byteSize: null,
+    width: null,
+    height: null,
+    masterR2Key: null,
+    metadata: {
+      source: "youtube",
+      youtubeId: id,
+      sourceUrl: youTubeWatchUrl(id),
+      // Canonical display title for Admin pickers; the per-locale fields below
+      // are what the UI prefers when it knows the viewer's locale.
+      title: input.title ?? input.titleEn ?? input.titleAr ?? null,
+      titleAr: input.titleAr ?? null,
+      titleEn: input.titleEn ?? null,
+      descriptionAr: input.descriptionAr ?? null,
+      descriptionEn: input.descriptionEn ?? null,
+    } as Record<string, unknown>,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.insert(videos).values(row);
+  const [inserted] = await db.select().from(videos).where(eq(videos.id, row.id));
+  return inserted;
 }
 
 /** Ingest a master file through the ACTIVE provider (R2 master first — ADR-006). */

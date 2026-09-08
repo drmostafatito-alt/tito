@@ -20,8 +20,14 @@ export function applySecurityHeaders(headers: HeaderLike, isDev: boolean, nonce?
     `default-src 'self'`,
     `script-src ${scriptSrc}`,
     `style-src 'self'${isDev ? " 'unsafe-inline'" : ""}`,
-    `img-src 'self' data: blob: https://image.mux.com`,
+    // i.ytimg.com serves YouTube poster images for owner-registered YouTube videos.
+    `img-src 'self' data: blob: https://image.mux.com https://i.ytimg.com`,
     `media-src 'self' blob: https://stream.mux.com`,
+    // WITHOUT an explicit frame-src, default-src 'self' would block the embedded
+    // YouTube player entirely. Pinned to the privacy-enhanced host only — the
+    // embed URL is rebuilt server-side from a validated video id, so no other
+    // origin can ever be framed.
+    `frame-src https://www.youtube-nocookie.com`,
     `font-src 'self'`,
     `connect-src 'self'${isDev ? " ws: http://localhost:* http://127.0.0.1:*" : ""}`,
     `worker-src 'self' blob:`,

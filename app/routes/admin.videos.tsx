@@ -3,7 +3,8 @@ import { Form, useActionData, useLoaderData, useRouteLoaderData, useNavigation }
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
-import { listVideos, registerMockVideo, ingestMaster, syncVideo } from "~server/video/service.server";
+import { listVideos, registerMockVideo, registerYouTubeVideo, ingestMaster, syncVideo } from "~server/video/service.server";
+import { parseYouTubeId } from "~server/video/youtube";
 import { getSettings } from "~server/settings/service.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { logAudit } from "~server/audit/log.server";
@@ -25,6 +26,9 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       status: v.status,
       durationSeconds: v.durationSeconds,
       title: (v.metadata as { title?: string } | null)?.title ?? v.playbackId ?? v.id,
+      titleAr: (v.metadata as { titleAr?: string | null } | null)?.titleAr ?? null,
+      titleEn: (v.metadata as { titleEn?: string | null } | null)?.titleEn ?? null,
+      youtubeId: v.provider === "youtube" ? v.providerAssetId : null,
     })),
   };
 }
@@ -44,6 +48,23 @@ export async function action({ context, request }: Route.ActionArgs) {
       title: String(form.get("title") ?? "").slice(0, 200) || undefined,
     });
     await logAudit(db, { actorUserId: auth.user.id, actorRole: auth.user.roleId, action: "videos.registered", entityType: "video", entityId: row.id, after: { provider: "mock" }, ipHash });
+    return { ok: true as const };
+  }
+  if (intent === "register-youtube") {
+    const url = String(form.get("url") ?? "").trim();
+    // Validate before touching the DB so a bad paste costs nothing and the owner
+    // gets an actionable message rather than a stored broken row.
+    if (!parseYouTubeId(url)) return { error: "youtube_invalid" as const };
+    const clip = (k: string, n: number) => String(form.get(k) ?? "").trim().slice(0, n) || undefined;
+    const row = await registerYouTubeVideo(db, {
+      url,
+      title: clip("title", 200),
+      titleAr: clip("titleAr", 200),
+      titleEn: clip("titleEn", 200),
+      descriptionAr: clip("descriptionAr", 2000),
+      descriptionEn: clip("descriptionEn", 2000),
+    });
+    await logAudit(db, { actorUserId: auth.user.id, actorRole: auth.user.roleId, action: "videos.registered", entityType: "video", entityId: row.id, after: { provider: "youtube", youtubeId: row.providerAssetId }, ipHash });
     return { ok: true as const };
   }
   if (intent === "ingest") {
@@ -118,7 +139,49 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
               <SubmitButton>{t(locale, "videosAdmin.ingestMaster")}</SubmitButton>
             </div>
           </Form>
+          <Form method="post" className="grid gap-3 border-t border-slate-200 pt-4" data-testid="youtube-form">
+            <input type="hidden" name="_action" value="register-youtube" />
+            <div className="sm:col-span-3">
+              <h2 className="text-sm font-semibold text-slate-700">{t(locale, "videosAdmin.youtubeHeading")}</h2>
+              <p className="text-xs text-slate-500">{t(locale, "videosAdmin.youtubeHeadingHint")}</p>
+            </div>
+            <label className="grid gap-1 text-sm sm:col-span-3">
+              <span>{t(locale, "videosAdmin.youtubeUrl")}</span>
+              <input
+                name="url"
+                type="url"
+                required
+                dir="ltr"
+                placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                className={input}
+                data-testid="youtube-url"
+              />
+              <span className="text-xs text-slate-400">{t(locale, "videosAdmin.youtubeUrlHint")}</span>
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "videosAdmin.titleAr")}</span>
+              <input name="titleAr" dir="rtl" className={input} />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "videosAdmin.titleEn")}</span>
+              <input name="titleEn" dir="ltr" className={input} />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "videosAdmin.descAr")}</span>
+              <textarea name="descriptionAr" dir="rtl" rows={2} className={input} />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "videosAdmin.descEn")}</span>
+              <textarea name="descriptionEn" dir="ltr" rows={2} className={input} />
+            </label>
+            <div className="flex items-end sm:col-span-3">
+              <SubmitButton>{t(locale, "videosAdmin.registerYouTube")}</SubmitButton>
+            </div>
+          </Form>
           {actionData?.ok && <p className="text-sm text-green-600">✓</p>}
+          {actionData && "error" in actionData && actionData.error === "youtube_invalid" && (
+            <p className="text-sm text-red-600" data-testid="youtube-error">{t(locale, "videosAdmin.youtubeInvalid")}</p>
+          )}
           {actionData && "error" in actionData && actionData.error === "provider" && (
             <p className="text-sm text-red-600">{(actionData as { detail?: string }).detail}</p>
           )}
@@ -137,6 +200,7 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
                 </Badge>
                 <span className="max-w-[40%] truncate">{v.title}</span>
                 {v.durationSeconds != null && <span className="text-xs text-slate-500">{v.durationSeconds}s</span>}
+                {v.youtubeId && <span className="font-mono text-xs text-slate-400" data-testid="youtube-id">{v.youtubeId}</span>}
                 {v.status !== "ready" && (
                   <Form method="post" className="inline">
                     <input type="hidden" name="_action" value="sync" />

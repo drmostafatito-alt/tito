@@ -8,7 +8,7 @@ export type VideoStatus = "pending" | "preparing" | "ready" | "errored";
 
 export interface VideoRowLike {
   id: string;
-  provider: "mux" | "mock" | "bunny" | "cfstream";
+  provider: "mux" | "mock" | "bunny" | "cfstream" | "youtube";
   providerAssetId: string | null;
   playbackId: string | null;
   status: VideoStatus;
@@ -18,7 +18,12 @@ export interface VideoRowLike {
 }
 
 export interface PlaybackInfo {
-  type: "hls" | "mp4";
+  /**
+   * "embed" = a third-party hosted player rendered in a sandboxed iframe
+   * (YouTube). No token is involved, because the URL is public and access has
+   * already been enforced by the entitlement resolver before this is minted.
+   */
+  type: "hls" | "mp4" | "embed";
   /** Final playback URL — token (when present) appended as ?token= by the provider */
   url: string;
   token?: string;
@@ -55,7 +60,7 @@ export interface AssetStatus {
 }
 
 export interface VideoProvider {
-  readonly id: "mux" | "mock" | "bunny" | "cfstream";
+  readonly id: "mux" | "mock" | "bunny" | "cfstream" | "youtube";
 
   createAsset(input: CreateAssetInput): Promise<CreateAssetResult>;
   getAssetStatus(providerAssetId: string): Promise<AssetStatus>;

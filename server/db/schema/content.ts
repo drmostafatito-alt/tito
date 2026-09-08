@@ -198,7 +198,7 @@ export const videos = sqliteTable(
   "videos",
   {
     id: text("id").primaryKey(),
-    provider: text("provider", { enum: ["mux", "mock", "bunny", "cfstream"] }).notNull(),
+    provider: text("provider", { enum: ["mux", "mock", "bunny", "cfstream", "youtube"] }).notNull(),
     providerAssetId: text("provider_asset_id"),
     playbackId: text("playback_id"),
     status: text("status", {

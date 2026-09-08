@@ -51,6 +51,13 @@ const CHILD_LABEL: Partial<Record<ContentType, string>> = {
   unit: "content.addLesson",
 };
 
+/** Human label for a video row in Admin lists (owner title > playbackId > id). */
+function videoLabel(v: { playbackId: string | null; metadata: unknown; id: string } | undefined): string {
+  if (!v) return "video";
+  const m = v.metadata as { title?: string | null; titleAr?: string | null; titleEn?: string | null } | null;
+  return m?.title ?? m?.titleEn ?? m?.titleAr ?? v.playbackId ?? v.id;
+}
+
 export async function loader({ context, request, params }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
   const db = getDb(getEnv(context));
@@ -150,10 +157,16 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
     imageFiles: imageFiles.map((f) => ({ id: f.id, label: f.originalFilename })),
     outline,
     allFiles: allFiles.map((f) => ({ id: f.id, name: f.originalFilename, kind: f.kind, visibility: f.visibility })),
-    allVideos: allVideos.map((v) => ({ id: v.id, status: v.status, title: (v.metadata as { title?: string } | null)?.title ?? v.playbackId ?? v.id })),
+    allVideos: allVideos.map((v) => {
+      const m = v.metadata as { title?: string | null; titleAr?: string | null; titleEn?: string | null } | null;
+      return { id: v.id, status: v.status, title: m?.title ?? v.playbackId ?? v.id, titleAr: m?.titleAr ?? null, titleEn: m?.titleEn ?? null };
+    }),
     lessonItems: items.map((i) => ({
       id: i.id, itemType: i.itemType, required: i.required, sortOrder: i.sortOrder,
-      label: i.itemType === "video" ? (videoMap.get(i.videoId!)?.playbackId ?? "video") : i.itemType === "file" ? (fileMap.get(i.fileId!)?.originalFilename ?? "file") : (examMap.get(i.examId ?? "")?.titleAr ?? i.examId ?? "exam"),
+      // A video's display name: the owner's title first, then playbackId, then a
+      // stable fallback. YouTube rows have no playbackId, so without the title
+      // they would all list as "video".
+      label: i.itemType === "video" ? videoLabel(videoMap.get(i.videoId!)) : i.itemType === "file" ? (fileMap.get(i.fileId!)?.originalFilename ?? "file") : (examMap.get(i.examId ?? "")?.titleAr ?? i.examId ?? "exam"),
     })),
     allExams: allExams.map((e) => ({ id: e.id, titleAr: e.titleAr, titleEn: e.titleEn })),
     prereqs,
@@ -664,7 +677,9 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                 <select name="videoId" className={input}>
                   <option value="">—</option>
                   {allVideos.map((v) => (
-                    <option key={v.id} value={v.id}>{v.title} ({v.status})</option>
+                    <option key={v.id} value={v.id}>
+                      {(locale === "ar" ? (v.titleAr ?? v.title) : (v.titleEn ?? v.title))} ({v.status})
+                    </option>
                   ))}
                 </select>
               </label>
