@@ -64,7 +64,7 @@ No duplicate asset URLs. Hero is a real CMS file, not a huge bitmap.
 
 **PASS** (one login; 1-device policy — sessions/devices cleared between admin tests).
 
-- Platform name: د/ مصطفى تيتو / Dr mostafa tito; tagline الفلسفة وعلم النفس
+- Platform name: د. مصطفى تيتو / Dr. Mostafa Tito; tagline الفلسفة وعلم النفس
 - Logo + hero image selected from uploaded files; header image visible on `/`
 - Data-driven YouTube social (`https://youtube.com/@qa-not-a-claim`) shown in footer when enabled
 - Theme primary `#0f766e`; heading font IBM Plex Sans Arabic; body Cairo

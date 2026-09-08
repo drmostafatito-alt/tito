@@ -2,7 +2,7 @@ import type { Dictionary } from "./ar";
 
 export const en: Dictionary = {
   common: {
-    appName: "Dr mostafa tito",
+    appName: "Dr. Mostafa Tito",
     cmsFormSubmit: "Submit",
     cmsFormFailed: "The form could not be submitted.",
     login: "Log in",

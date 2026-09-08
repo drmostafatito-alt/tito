@@ -1,9 +1,9 @@
 @import "tailwindcss";
 /* Subset-scoped fontsource imports (arabic + latin + latin-ext ONLY).
- * The blanket `400.css`…`700.css` imports pull the cyrillic-ext subset too;
- * those files are <4 KB so Vite inlines them as data: URIs, which CSP
- * `font-src 'self'` blocks → 8 console errors on every page. This site is
- * Arabic/English — cyrillic is never rendered. CSP stays strict (no data:). */
+ * Blanket `400.css`… imports also pull tiny subsets (cyrillic-ext, latin-ext
+ * for El Messiri <4 KB) that Vite inlines as data: URIs, which CSP
+ * `font-src 'self'` blocks → console errors on every page. This site is
+ * Arabic/English — anything else is never rendered. CSP stays strict. */
 @import "@fontsource/ibm-plex-sans-arabic/arabic-400.css";
 @import "@fontsource/ibm-plex-sans-arabic/latin-400.css";
 @import "@fontsource/ibm-plex-sans-arabic/latin-ext-400.css";
@@ -16,6 +16,16 @@
 @import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
 @import "@fontsource/ibm-plex-sans-arabic/latin-700.css";
 @import "@fontsource/ibm-plex-sans-arabic/latin-ext-700.css";
+/* Display voice — Arabic: El Messiri (arabic + latin; latin-ext skipped: <4KB → data-URI). */
+@import "@fontsource/el-messiri/arabic-500.css";
+@import "@fontsource/el-messiri/latin-500.css";
+@import "@fontsource/el-messiri/arabic-600.css";
+@import "@fontsource/el-messiri/latin-600.css";
+@import "@fontsource/el-messiri/arabic-700.css";
+@import "@fontsource/el-messiri/latin-700.css";
+/* Display voice — Latin: Fraunces variable (wght + opsz). All files >11KB → never inlined. */
+@import "@fontsource-variable/fraunces/opsz.css";
+@import "@fontsource-variable/fraunces/opsz-italic.css";
 
 /* Self-hosted Cairo (ADMIN-CUSTOMIZATION §5). Files live at /fonts/cairo. */
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 400; src: url("/fonts/cairo/cairo-ar-400.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFF; }
@@ -27,44 +37,97 @@
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 800; src: url("/fonts/cairo/cairo-ar-800.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFF; }
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 800; src: url("/fonts/cairo/cairo-lat-800.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
-/* ─── Design tokens (docs/ARCHITECTURE §9 — single source for the design system) ─── */
+/* ─── Design tokens: «المَجْلِس» — Paper, Pine Ink & Brass ───
+ * docs/ARCHITECTURE §9 + docs/reports/visual-identity-research.md.
+ * Ramps mirror the /theme.css mix algorithm exactly, so first paint (code
+ * defaults) matches the themed render (fresh DBs seed identical values).
+ * Runtime /theme.css overrides --color-brand-*, --color-accent-*, --color-ink,
+ * --color-ink-muted, --color-line, --color-surface, --color-page-bg and the
+ * status tokens — owner theme control is fully preserved. */
 @theme {
-  --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Display voice: El Messiri (AR) ↔ Fraunces (EN). The var is re-ordered per
+   * locale in @layer base below so each script gets its native display face. */
+  --font-display: "El Messiri", "Fraunces Variable", Georgia, "Times New Roman", serif;
+  --font-serif: "Fraunces Variable", Georgia, "Times New Roman", serif;
 
-  /* Brand: violet / indigo — premium educational */
-  --color-brand-50: #f5f3ff;
-  --color-brand-100: #ede9fe;
-  --color-brand-200: #ddd6fe;
-  --color-brand-300: #c4b5fd;
-  --color-brand-400: #a78bfa;
-  --color-brand-500: #8b5cf6;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-800: #5b21b6;
-  --color-brand-900: #4c1d95;
-  --color-brand-950: #2e1065;
+  /* Brand: deep pine ink — scholarly, calm, trustworthy (base #0e6b5e).
+   * 700/800 intentionally mirror the /theme.css secondary override. */
+  --color-brand-50: #e7f0ef;
+  --color-brand-100: #cfe1df;
+  --color-brand-200: #9fc4bf;
+  --color-brand-300: #6ea69e;
+  --color-brand-400: #3e897e;
+  --color-brand-500: #0e6b5e;
+  --color-brand-600: #0c5e53;
+  --color-brand-700: #143c38;
+  --color-brand-800: #0f2d2a;
+  --color-brand-900: #07362f;
+  --color-brand-950: #04221e;
 
-  /* Accent: indigo for CTAs and highlights */
-  --color-accent-50: #eef2ff;
-  --color-accent-100: #e0e7ff;
-  --color-accent-400: #818cf8;
-  --color-accent-500: #6366f1;
-  --color-accent-600: #4f46e5;
-  --color-accent-700: #4338ca;
+  /* Accent: brass/gold — wisdom, achievement (base #b78a1c). */
+  --color-accent-50: #f8f3e8;
+  --color-accent-100: #f1e8d2;
+  --color-accent-200: #e2d0a4;
+  --color-accent-300: #d4b977;
+  --color-accent-400: #c5a149;
+  --color-accent-500: #b78a1c;
+  --color-accent-600: #a17919;
+  --color-accent-700: #8b6915;
+  --color-accent-800: #715611;
+  --color-accent-900: #5c450e;
+  --color-accent-950: #3b2c09;
 
-  --radius-card: 1.25rem;
+  /* Semantic surfaces — runtime-overridable by owner theme. */
+  --color-surface: #fffdf8;
+  --color-ink: #211b14;
+  --color-ink-soft: #4a4238;
+  --color-ink-muted: #6f6455;
+  --color-line: #e3daca;
+
+  /* Static editorial neutrals (decorative; brand-agnostic by design). */
+  --color-paper: #f6f1e7;
+  --color-parchment: #fffdf8;
+  --color-sand-100: #efe7d6;
+  --color-sand-200: #e3daca;
+  --color-sand-300: #cfc0a1;
+  --color-sand-400: #b3a37f;
+
+  /* Status — runtime-overridable; softs mirror the /theme.css 88% mix. */
+  --color-success: #047857;
+  --color-success-soft: #e1efeb;
+  --color-warning: #b45309;
+  --color-warning-soft: #f6eae1;
+  --color-error: #b91c1c;
+  --color-error-soft: #f7e4e4;
+
+  --radius-card: 1rem;
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
   }
+  /* Locale-native display voice: Arabic → El Messiri first, English → Fraunces.
+   * NEVER letter-space Arabic (it disconnects letter joins); the EN kicker
+   * tracking below is scoped to html[lang="en"] only. */
+  html[lang="en"] {
+    --font-display: "Fraunces Variable", "El Messiri", Georgia, "Times New Roman", serif;
+  }
   body {
-    @apply font-sans text-slate-900 antialiased;
-    background-color: var(--color-page-bg, #faf8ff);
+    @apply font-sans antialiased;
+    background-color: var(--color-page-bg, #f6f1e7);
+    color: var(--color-ink, #211b14);
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--color-accent-200, #e2d0a4);
+    color: var(--color-ink, #211b14);
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-brand-600;
+    outline: 2px solid var(--color-brand-600, #0c5e53);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
   /* Forms: never smaller than 16px on iOS to avoid focus zoom */
   input,
@@ -72,27 +135,221 @@
   textarea {
     font-size: 1rem;
   }
-  .cms-richtext p {
-    margin-block: 0 0.75em;
+  h1, h2, h3, h4 { font-family: var(--font-heading, "Cairo"), "IBM Plex Sans Arabic", ui-sans-serif, sans-serif; }
+
+  /* ── CMS rich text: the scholar's page ── */
+  .cms-richtext {
+    max-width: 65ch;
+    line-height: 1.9;
+    overflow-wrap: break-word;
   }
-  .cms-richtext p:last-child {
-    margin-block-end: 0;
+  .cms-richtext > :first-child { margin-block-start: 0; }
+  .cms-richtext p { margin-block: 0 0.9em; }
+  .cms-richtext p:last-child { margin-block-end: 0; }
+  .cms-richtext h2, .cms-richtext h3, .cms-richtext h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--color-ink, #211b14);
   }
-  .cms-richtext h2 { font-size: 1.5rem; font-weight: 800; margin-block: 0 0.5em; }
-  .cms-richtext h3 { font-size: 1.25rem; font-weight: 700; margin-block: 0 0.4em; }
-  .cms-richtext ul, .cms-richtext ol { padding-inline-start: 1.25rem; margin-block: 0.5em; }
-  .cms-richtext a { color: var(--color-brand-700, #6d28d9); text-decoration: underline; }
-  .cms-richtext .rt-c-brand, .rt-c-brand { color: var(--color-brand-700, #6d28d9); }
-  .cms-richtext .rt-c-accent, .rt-c-accent { color: var(--color-accent-700, #4338ca); }
-  .cms-richtext .rt-c-success, .rt-c-success { color: var(--color-success, #059669); }
-  .cms-richtext .rt-c-warning, .rt-c-warning { color: var(--color-warning, #d97706); }
-  .cms-richtext .rt-c-error, .rt-c-error { color: var(--color-error, #e11d48); }
-  .cms-richtext .rt-c-ink, .rt-c-ink { color: var(--color-ink, #0f172a); }
+  .cms-richtext h2 { font-size: 1.5rem; margin-block: 1.4em 0.5em; }
+  .cms-richtext h3 { font-size: 1.25rem; margin-block: 1.2em 0.4em; }
+  .cms-richtext h4 { font-size: 1.1rem; margin-block: 1em 0.4em; }
+  .cms-richtext ul, .cms-richtext ol { padding-inline-start: 1.4rem; margin-block: 0.6em 1em; }
+  .cms-richtext li { margin-block: 0.3em; }
+  .cms-richtext li::marker { color: var(--color-accent-600, #a17919); font-weight: 700; }
+  .cms-richtext a {
+    color: var(--color-brand-700, #143c38);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent-400, #c5a149);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 4px;
+  }
+  .cms-richtext a:hover { text-decoration-color: currentColor; }
+  .cms-richtext blockquote {
+    font-family: var(--font-display);
+    font-size: 1.2em;
+    line-height: 1.9;
+    color: var(--color-brand-800, #0f2d2a);
+    border-inline-start: 3px solid var(--color-accent-500, #b78a1c);
+    padding-inline-start: 1.1em;
+    margin-block: 1.3em;
+  }
+  html[lang="en"] .cms-richtext blockquote { font-style: italic; }
+  .cms-richtext hr {
+    border: 0;
+    border-block-start: 1px solid var(--color-line, #e3daca);
+    margin-block: 1.8em;
+  }
+  .cms-richtext code {
+    font-size: 0.85em;
+    background: var(--color-sand-100, #efe7d6);
+    border: 1px solid var(--color-line, #e3daca);
+    border-radius: 6px;
+    padding: 0.1em 0.4em;
+  }
+  .cms-richtext pre {
+    direction: ltr;
+    text-align: left;
+    background: var(--color-brand-950, #04221e);
+    color: #f3ede0;
+    border-radius: var(--radius-card, 1rem);
+    padding: 1.1rem 1.25rem;
+    overflow-x: auto;
+    margin-block: 1.2em;
+  }
+  .cms-richtext pre code { background: transparent; border: 0; padding: 0; color: inherit; }
+  .cms-richtext .rt-c-brand, .rt-c-brand { color: var(--color-brand-700, #143c38); }
+  .cms-richtext .rt-c-accent, .rt-c-accent { color: var(--color-accent-700, #8b6915); }
+  .cms-richtext .rt-c-success, .rt-c-success { color: var(--color-success, #047857); }
+  .cms-richtext .rt-c-warning, .rt-c-warning { color: var(--color-warning, #b45309); }
+  .cms-richtext .rt-c-error, .rt-c-error { color: var(--color-error, #b91c1c); }
+  .cms-richtext .rt-c-ink, .rt-c-ink { color: var(--color-ink, #211b14); }
   .cms-richtext .rt-align-start { text-align: start; }
   .cms-richtext .rt-align-center { text-align: center; }
   .cms-richtext .rt-align-end { text-align: end; }
   .cms-richtext .rt-w-bold { font-weight: 700; }
-  h1, h2, h3, h4 { font-family: var(--font-heading, "Cairo"), "IBM Plex Sans Arabic", ui-sans-serif, sans-serif; }
+
+  /* Long-form article pages: lead paragraph + (Latin-only) drop cap.
+   * Arabic never takes italics or drop caps — it takes a lead + brass rule. */
+  .tito-article > .cms-richtext > p:first-of-type {
+    font-size: 1.12em;
+    color: var(--color-ink-soft, #4a4238);
+  }
+  html[lang="en"] .tito-article > .cms-richtext > p:first-of-type::first-letter {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 3.1em;
+    line-height: 0.9;
+    float: left;
+    margin: 0.08em 0.12em 0 0;
+    color: var(--color-brand-700, #143c38);
+  }
+}
+
+/* ─── Tito editorial components (visual layer; content stays in CMS/DB) ─── */
+@layer components {
+  /* Kicker: brass index label with a rule. EN gets tracked small-caps; AR keeps
+   * natural joins (no letter-spacing, no uppercase transform). */
+  .tito-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--color-accent-800, #715611);
+  }
+  .tito-kicker::before {
+    content: "";
+    inline-size: 1.75rem;
+    block-size: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: 0.75;
+    flex: none;
+  }
+  html[lang="en"] .tito-kicker {
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .tito-kicker-center::after {
+    content: "";
+    inline-size: 1.75rem;
+    block-size: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: 0.75;
+    flex: none;
+  }
+  /* Kicker on dark ink bands */
+  .tito-band .tito-kicker { color: var(--color-accent-300, #d4b977); }
+
+  /* Framed plate: owner/CMS imagery presented like a book illustration. */
+  .tito-plate {
+    background: var(--color-surface, #fffdf8);
+    border: 1px solid var(--color-line, #e3daca);
+    border-radius: var(--radius-card, 1rem);
+    padding: 0.6rem;
+    box-shadow: 0 1px 2px 0 rgb(33 27 20 / 0.06);
+  }
+  .tito-plate > img {
+    border-radius: calc(var(--radius-card, 1rem) - 0.5rem);
+  }
+  .tito-caption {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    color: var(--color-ink-muted, #6f6455);
+  }
+  html[lang="en"] .tito-caption { font-style: italic; }
+
+  /* Editorial link: brass underline that completes on hover. */
+  .tito-link {
+    font-weight: 600;
+    color: var(--color-brand-700, #143c38);
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent-400, #c5a149);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 4px;
+    transition: text-decoration-color 160ms ease, color 160ms ease;
+  }
+  .tito-link:hover { text-decoration-color: currentColor; }
+
+  /* Arrow nudge for "read more" links — direction-aware via logical transform. */
+  .tito-arrow { display: inline-block; transition: translate 180ms ease; }
+  [dir="rtl"] a:hover > .tito-arrow, [dir="rtl"] button:hover > .tito-arrow { translate: -0.25rem 0; }
+  [dir="ltr"] a:hover > .tito-arrow, [dir="ltr"] button:hover > .tito-arrow { translate: 0.25rem 0; }
+
+  /* Ornamental divider: hairline with a centered brass diamond. */
+  hr.tito-rule {
+    border: 0;
+    block-size: 1.25rem;
+    background:
+      linear-gradient(var(--color-line, #e3daca), var(--color-line, #e3daca)) center / 100% 1px no-repeat;
+    position: relative;
+    margin-block: 0.5rem;
+  }
+  hr.tito-rule::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 50%;
+    top: 50%;
+    inline-size: 7px;
+    block-size: 7px;
+    background: var(--color-parchment, #fffdf8);
+    border: 1.5px solid var(--color-accent-500, #b78a1c);
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  /* Ink band: deep pine stage for quotes + closing CTAs (theater, not gradient). */
+  .tito-band {
+    background-color: var(--color-brand-950, #04221e);
+    color: #f4eee1;
+  }
+  .tito-band ::selection { background: var(--color-accent-500, #b78a1c); color: #1a140f; }
+
+  /* Numbered editorial index rows (replaces card-grid-everything). */
+  .tito-index-row {
+    border-block-start: 1px solid var(--color-line, #e3daca);
+    transition: background-color 160ms ease;
+  }
+  .tito-index-row:last-child { border-block-end: 1px solid var(--color-line, #e3daca); }
+  a.tito-index-row:hover, .tito-index-row:has(a:hover) { background-color: color-mix(in srgb, var(--color-accent-100, #f1e8d2) 45%, transparent); }
+}
+
+/* Entrance: a single still breath, never a loop. Honors reduced motion. */
+@keyframes tito-rise {
+  from { opacity: 0; translate: 0 10px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .tito-rise { animation: tito-rise 560ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+  .tito-rise-1 { animation-delay: 70ms; }
+  .tito-rise-2 { animation-delay: 140ms; }
+  .tito-rise-3 { animation-delay: 210ms; }
 }
 
 /* iOS safe areas for fixed/sticky chrome (ARCHITECTURE §15) */

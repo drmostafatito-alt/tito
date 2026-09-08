@@ -86,7 +86,7 @@ Settings groups with an Admin write path: **8 of 11** — `platform`, `identity`
 ### Gap 1 — SEO and social preview existed only on `/` and `/p/:slug`
 
 **What was wrong.** Every other public and student route rendered a bare
-`<title>د/ مصطفى تيتو</title>` with no description, no Open Graph, no Twitter card, and no
+`<title>د. مصطفى تيتو</title>` with no description, no Open Graph, no Twitter card, and no
 canonical. Worse, **every page emitted two `<title>` elements**, because the root `Layout`
 hardcoded one *and* rendered `<Meta/>`.
 

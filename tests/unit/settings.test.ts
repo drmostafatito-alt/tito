@@ -15,7 +15,7 @@ describe("settings schemas (ADR-012)", () => {
   it("defaults parse from an empty document", () => {
     const platform = platformSettingsSchema.parse({});
     expect(platform.maintenance).toBe(false);
-    expect(platform.nameEn).toBe("Dr mostafa tito");
+    expect(platform.nameEn).toBe("Dr. Mostafa Tito");
 
     const devices = deviceSettingsSchema.parse({});
     expect(devices.maxPerStudent).toBe(1);

@@ -23,7 +23,7 @@ const desc = (meta: Array<Record<string, unknown>>) =>
 const og = (meta: Array<Record<string, unknown>>, prop: string) =>
   (find(meta, "property", prop)?.content as string) ?? null;
 
-const siteName = { ar: "د/ مصطفى تيتو", en: "Dr mostafa tito" };
+const siteName = { ar: "د. مصطفى تيتو", en: "Dr. Mostafa Tito" };
 
 describe("contentSeoMeta — admin-edited content drives SEO + social preview", () => {
   const course = {
@@ -33,16 +33,16 @@ describe("contentSeoMeta — admin-edited content drives SEO + social preview", 
 
   it("derives title, description and OG tags from the content row (Arabic)", () => {
     const meta = seo(course, "ar", "https://site.test/courses/full-revision", { siteName });
-    expect(title(meta)).toBe("مراجعة شاملة — د/ مصطفى تيتو");
+    expect(title(meta)).toBe("مراجعة شاملة — د. مصطفى تيتو");
     expect(desc(meta)).toBe("دورة شاملة تغطي المنهج بالكامل");
-    expect(og(meta, "og:title")).toBe("مراجعة شاملة — د/ مصطفى تيتو");
+    expect(og(meta, "og:title")).toBe("مراجعة شاملة — د. مصطفى تيتو");
     expect(og(meta, "og:description")).toBe("دورة شاملة تغطي المنهج بالكامل");
     expect(og(meta, "og:type")).toBe("website");
   });
 
   it("is independently bilingual: the English render never leaks Arabic copy", () => {
     const meta = seo(course, "en", "https://site.test/courses/full-revision", { siteName });
-    expect(title(meta)).toBe("Full Revision — Dr mostafa tito");
+    expect(title(meta)).toBe("Full Revision — Dr. Mostafa Tito");
     expect(desc(meta)).toBe("A complete course covering the syllabus");
     expect(og(meta, "og:description")).toBe("A complete course covering the syllabus");
     expect(title(meta)).not.toContain("مراجعة");
@@ -97,12 +97,12 @@ describe("contentSeoMeta — admin-edited content drives SEO + social preview", 
 
   it("omits the site-name suffix rather than duplicating it", () => {
     const meta = seo(
-      { title: { ar: "مراجعة — د/ مصطفى تيتو", en: "Full Revision — Dr mostafa tito" } },
+      { title: { ar: "مراجعة — د. مصطفى تيتو", en: "Full Revision — Dr. Mostafa Tito" } },
       "ar",
       "https://site.test/c/x",
       { siteName }
     );
-    expect(title(meta)).toBe("مراجعة — د/ مصطفى تيتو");
+    expect(title(meta)).toBe("مراجعة — د. مصطفى تيتو");
   });
 
   it("still works with no site name (empty-first platforms)", () => {
@@ -114,11 +114,11 @@ describe("contentSeoMeta — admin-edited content drives SEO + social preview", 
 describe("rootMetaFrom — meta() must reuse the locale the root loader picked", () => {
   it("reads locale + platform identity from the root match", () => {
     const r = rootMetaFrom([
-      { id: "root", data: { locale: "en", platform: { nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito", taglineAr: "فلسفة", taglineEn: "Philosophy" } } },
+      { id: "root", data: { locale: "en", platform: { nameAr: "د. مصطفى تيتو", nameEn: "Dr. Mostafa Tito", taglineAr: "فلسفة", taglineEn: "Philosophy" } } },
       { id: "public", data: {} },
     ]);
     expect(r.locale).toBe("en");
-    expect(r.siteName).toEqual({ ar: "د/ مصطفى تيتو", en: "Dr mostafa tito" });
+    expect(r.siteName).toEqual({ ar: "د. مصطفى تيتو", en: "Dr. Mostafa Tito" });
     expect(r.tagline).toEqual({ ar: "فلسفة", en: "Philosophy" });
   });
 

@@ -8,7 +8,7 @@ import {
 import { emailProvider, clearEmailCaptures, capturedEmails } from "~server/email/provider";
 
 const brand: EmailBrand = {
-  nameAr: "د/ مصطفى تيتو",
+  nameAr: "د. مصطفى تيتو",
   nameEn: "Dr Mostafa Tito",
   supportEmail: "support@example.com",
 };

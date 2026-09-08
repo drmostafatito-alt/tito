@@ -19,7 +19,7 @@ export interface EmailEnv {
 
 export function brandFromNames(nameAr?: string | null, nameEn?: string | null, supportEmail?: string | null): EmailBrand {
   return {
-    nameAr: nameAr ?? "د/ مصطفى تيتو",
+    nameAr: nameAr ?? "د. مصطفى تيتو",
     nameEn: nameEn ?? "Dr Mostafa Tito",
     supportEmail: supportEmail ?? null,
   };

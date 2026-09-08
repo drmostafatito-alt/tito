@@ -204,8 +204,8 @@ test.describe("QA closeout", () => {
 
     // --- appearance: platform name, logo, hero, socials, theme/font ---
     await page.goto("/admin/appearance?tab=system");
-    await page.locator('input[name="nameAr"]').fill("د/ مصطفى تيتو");
-    await page.locator('input[name="nameEn"]').fill("Dr mostafa tito");
+    await page.locator('input[name="nameAr"]').fill("د. مصطفى تيتو");
+    await page.locator('input[name="nameEn"]').fill("Dr. Mostafa Tito");
     await page.locator('input[name="taglineAr"]').fill("الفلسفة وعلم النفس");
     await page.getByRole("button", { name: /حفظ المجموعة|Save group/i }).click();
     await expect(page.locator("body")).toContainText(/تم الحفظ|Saved/);

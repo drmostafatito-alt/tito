@@ -11,7 +11,7 @@ import { ADMIN_STATE, FIXTURES } from "./helpers";
  */
 
 const COURSE = `/courses/${FIXTURES.courseSlug}`;
-const PLATFORM_AR = "د/ مصطفى تيتو";
+const PLATFORM_AR = "د. مصطفى تيتو";
 
 const metaContent = (page: import("@playwright/test").Page, selector: string) =>
   page.locator(`head ${selector}`).getAttribute("content");

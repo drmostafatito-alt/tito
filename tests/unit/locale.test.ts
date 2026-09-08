@@ -61,7 +61,7 @@ describe("user-facing branding", () => {
   it("does not expose EduCore as the app name", () => {
     expect(ar.common.appName).not.toMatch(/EduCore|إيدوكور/i);
     expect(en.common.appName).not.toMatch(/EduCore|إيدوكور/i);
-    expect(ar.common.appName).toBe("د/ مصطفى تيتو");
-    expect(en.common.appName).toBe("Dr mostafa tito");
+    expect(ar.common.appName).toBe("د. مصطفى تيتو");
+    expect(en.common.appName).toBe("Dr. Mostafa Tito");
   });
 });

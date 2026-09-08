@@ -59,7 +59,7 @@ test("Chromium click: AR → EN full document locale switch", async ({ page, con
   expect(enText).toMatch(/Welcome to your platform/i);
   expect(enText).toMatch(/^Home$/m);
   expect(enText).toMatch(/Log in/i);
-  expect(enText).toContain("Dr mostafa tito");
+  expect(enText).toContain("Dr. Mostafa Tito");
   expect(enText).not.toContain("كورسات ومراجعات");
   expect(enText).not.toContain("تسجيل الدخول");
   expect(posts.some((p) => p.method === "POST" && p.url.includes("/set-locale"))).toBe(true);

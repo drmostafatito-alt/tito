@@ -1,7 +1,7 @@
 /** Arabic dictionary (default locale). Keys are the contract — `en` must match this shape. */
 export const ar = {
   common: {
-    appName: "د/ مصطفى تيتو",
+    appName: "د. مصطفى تيتو",
     cmsFormSubmit: "إرسال",
     cmsFormFailed: "تعذر إرسال النموذج.",
     login: "تسجيل الدخول",
