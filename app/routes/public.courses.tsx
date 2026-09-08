@@ -7,6 +7,7 @@ import { catalogCourses } from "~server/content/service.server";
 import { lessonCounts, resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
+import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -15,7 +16,7 @@ import { t, type Locale } from "~/lib/i18n";
  * badge toggles, CTA label, layout) is admin-controlled via settings —
  * content rows and display config stay separate (Phase 3 stage 6).
  */
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
   const settings = await getSettings(db);
   const pres = settings.presentation.courseCard;
@@ -46,7 +47,27 @@ export async function loader({ context }: Route.LoaderArgs) {
       lessonCount: counts[r.course.id] ?? 0,
       imageUrl: (r.course.thumbnailFileId && images[r.course.thumbnailFileId]) || null,
     })),
+    url: request.url,
   };
+}
+
+/**
+ * Catalog index: no content row of its own, so the title comes from the
+ * localized page label and the description from the platform tagline — both
+ * owner-editable (Appearance → System), nothing hardcoded here.
+ */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [{ title: "Not Found" }];
+  const root = rootMetaFrom(matches);
+  return contentSeoMeta(
+    {
+      title: { ar: t("ar", "content.catalogTitle"), en: t("en", "content.catalogTitle") },
+      description: root.tagline ?? {},
+    },
+    root.locale,
+    loaderData.url,
+    { siteName: root.siteName }
+  );
 }
 
 const LAYOUT_GRID = {

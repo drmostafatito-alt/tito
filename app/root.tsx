@@ -1,4 +1,5 @@
 import type { Route } from "./+types/root";
+import type { MetaDescriptor } from "react-router";
 import {
   isRouteErrorResponse,
   Link,
@@ -48,6 +49,20 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     platform: settings.platform,
     user: auth ? { fullName: auth.user.fullName, roleId: auth.user.roleId, rank: auth.user.rank } : null,
   };
+}
+
+/**
+ * Root meta: the platform name is the DEFAULT document title (owner-editable in
+ * Appearance → System). Any route exporting `meta()` overrides it — previously
+ * `Layout` hardcoded a `<title>` *and* rendered `<Meta />`, so every page with
+ * route meta emitted TWO `<title>` elements (invalid HTML; crawlers and social
+ * scrapers may pick the wrong one).
+ */
+export function meta({ loaderData }: Route.MetaArgs): MetaDescriptor[] {
+  const locale = (loaderData?.locale ?? "ar") as Locale;
+  const platform = loaderData?.platform;
+  const name = locale === "ar" ? (platform?.nameAr ?? "") : (platform?.nameEn ?? "");
+  return [{ title: name || (locale === "ar" ? "منصة تعليمية" : "Learning Platform") }];
 }
 
 /** Global middleware: CSRF origin check on mutations + security headers (SECURITY.md §5/§6). */
@@ -107,15 +122,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
     | { locale?: Locale; platform?: { nameAr: string; nameEn: string } }
     | undefined;
   const locale = (data?.locale ?? "ar") as Locale;
-  const appName = locale === "ar" ? (data?.platform?.nameAr ?? "") : (data?.platform?.nameEn ?? "");
-  const fallbackName = locale === "ar" ? "منصة تعليمية" : "Learning Platform";
   return (
     <html lang={locale} dir={dirOf(locale)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="color-scheme" content="light" />
-        <title>{appName || fallbackName}</title>
         <Meta />
         <Links />
       </head>

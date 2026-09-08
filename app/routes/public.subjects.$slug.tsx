@@ -11,10 +11,11 @@ import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
+import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Subject page: visible courses of one published subject (catalog hierarchy). */
-export async function loader({ context, params }: Route.LoaderArgs) {
+export async function loader({ context, params, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
   const rows = await db.select().from(subjects).where(eq(subjects.slug, params.slug)).limit(1);
   const subject = rows[0];
@@ -56,7 +57,23 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       lessonCount: counts[r.course.id] ?? 0,
       imageUrl: (r.course.thumbnailFileId && images[r.course.thumbnailFileId]) || null,
     })),
+    url: request.url,
   };
+}
+
+/** SEO/social preview from the admin-edited subject row (Admin → Content). */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [{ title: "Not Found" }];
+  const root = rootMetaFrom(matches);
+  return contentSeoMeta(
+    {
+      title: { ar: loaderData.subject.titleAr, en: loaderData.subject.titleEn },
+      description: { ar: loaderData.subject.descriptionAr, en: loaderData.subject.descriptionEn },
+    },
+    root.locale,
+    loaderData.url,
+    { siteName: root.siteName }
+  );
 }
 
 export default function SubjectPage({ loaderData }: Route.ComponentProps) {

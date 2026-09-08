@@ -15,6 +15,7 @@ import { ProgressBar } from "~/components/ProgressBar";
 import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
 import { Icon } from "~/cms/icons";
+import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Course page: units + lessons with access-aware rendering, teacher/duration meta and student progress. */
@@ -130,6 +131,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     buyOption,
     lessonVerdicts,
     progress,
+    url: request.url,
     units: visibleUnits.map((u) => ({
       id: u.id,
       titleAr: u.titleAr,
@@ -145,6 +147,25 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
         })),
     })),
   };
+}
+
+/**
+ * SEO/social preview for the course page. The owner controls every value here
+ * from Admin → Content (title, description, thumbnail) — there is no separate
+ * SEO form because the content row already IS the source of truth.
+ */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [{ title: "Not Found" }];
+  const root = rootMetaFrom(matches);
+  return contentSeoMeta(
+    {
+      title: { ar: loaderData.course.titleAr, en: loaderData.course.titleEn },
+      description: { ar: loaderData.course.descriptionAr, en: loaderData.course.descriptionEn },
+    },
+    root.locale,
+    loaderData.url,
+    { ogImageUrl: loaderData.course.thumbnail, siteName: root.siteName }
+  );
 }
 
 export default function CoursePage({ loaderData }: Route.ComponentProps) {

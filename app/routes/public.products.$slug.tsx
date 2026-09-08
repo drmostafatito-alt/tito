@@ -8,6 +8,7 @@ import { resolvePublicImageUrls } from "~server/cms/render.server";
 import { formatMoney } from "~server/commerce/money";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
+import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -55,6 +56,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     itemsCount: view.items.length,
     imageUrl: (view.product.thumbnailFileId && images[view.product.thumbnailFileId]) || null,
     loggedIn: viewer.userId !== null,
+    url: request.url,
   };
 }
 
@@ -65,6 +67,21 @@ const PERIOD_KEY: Record<string, string> = {
   custom: "commerce.periodCustom",
   fixed_date: "commerce.periodFixed",
 };
+
+/** SEO/social preview from the admin-edited product row (Admin → Commerce). */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [{ title: "Not Found" }];
+  const root = rootMetaFrom(matches);
+  return contentSeoMeta(
+    {
+      title: { ar: loaderData.product.nameAr, en: loaderData.product.nameEn },
+      description: { ar: loaderData.product.descriptionAr, en: loaderData.product.descriptionEn },
+    },
+    root.locale,
+    loaderData.url,
+    { ogImageUrl: loaderData.imageUrl, siteName: root.siteName }
+  );
+}
 
 export default function ProductPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };

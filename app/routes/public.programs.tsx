@@ -6,10 +6,11 @@ import { getEnv } from "~server/cf.server";
 import { programs, grades, subjects } from "~server/db/schema";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
+import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Programs index: published programs with subject counts (catalog hierarchy root). */
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
   const progs = await db
     .select()
@@ -44,7 +45,27 @@ export async function loader({ context }: Route.LoaderArgs) {
       descriptionEn: p.descriptionEn,
       subjectCount: subjectCounts[p.id] ?? 0,
     })),
+    url: request.url,
   };
+}
+
+/**
+ * Catalog index: no content row of its own, so the title comes from the
+ * localized page label and the description from the platform tagline — both
+ * owner-editable (Appearance → System), nothing hardcoded here.
+ */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [{ title: "Not Found" }];
+  const root = rootMetaFrom(matches);
+  return contentSeoMeta(
+    {
+      title: { ar: t("ar", "catalog.programs"), en: t("en", "catalog.programs") },
+      description: root.tagline ?? {},
+    },
+    root.locale,
+    loaderData.url,
+    { siteName: root.siteName }
+  );
 }
 
 export default function ProgramsPage({ loaderData }: Route.ComponentProps) {

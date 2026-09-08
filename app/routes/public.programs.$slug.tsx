@@ -7,10 +7,11 @@ import { catalogCourses } from "~server/content/service.server";
 import { programs, grades, subjects } from "~server/db/schema";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
+import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Program page: published grades → subjects with visible-course counts. */
-export async function loader({ context, params }: Route.LoaderArgs) {
+export async function loader({ context, params, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
   const rows = await db.select().from(programs).where(eq(programs.slug, params.slug)).limit(1);
   const program = rows[0];
@@ -67,7 +68,23 @@ export async function loader({ context, params }: Route.LoaderArgs) {
           courseCount: counts[s.slug] ?? 0,
         })),
     })),
+    url: request.url,
   };
+}
+
+/** SEO/social preview from the admin-edited program row (Admin → Content). */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [{ title: "Not Found" }];
+  const root = rootMetaFrom(matches);
+  return contentSeoMeta(
+    {
+      title: { ar: loaderData.program.titleAr, en: loaderData.program.titleEn },
+      description: { ar: loaderData.program.descriptionAr, en: loaderData.program.descriptionEn },
+    },
+    root.locale,
+    loaderData.url,
+    { siteName: root.siteName }
+  );
 }
 
 export default function ProgramPage({ loaderData }: Route.ComponentProps) {
