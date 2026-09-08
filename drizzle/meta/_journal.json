@@ -64,6 +64,13 @@
       "when": 1788700000000,
       "tag": "0008_cms_customization",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1788897832668,
+      "tag": "0009_opposite_frank_castle",
+      "breakpoints": true
     }
   ]
 }
