@@ -15,6 +15,7 @@ export default [
     route("register", "routes/public/register.tsx"),
     route("forgot-password", "routes/public/forgot-password.tsx"),
     route("reset-password", "routes/public/reset-password.tsx"),
+    route("verify-email-change", "routes/public/verify-email-change.tsx"),
     route("set-locale", "routes/public/set-locale.tsx"),
   ]),
   route("logout", "routes/logout.tsx"),

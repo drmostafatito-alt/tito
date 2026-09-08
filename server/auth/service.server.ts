@@ -11,7 +11,7 @@ import { getSettings } from "../settings/service.server";
 import { hashPassword, isCommonPassword, verifyPassword } from "./password.server";
 import { createSession, hashToken, newOpaqueToken, revokeAllUserSessions, revokeSession } from "./session.server";
 import { resolveDevice } from "./devices.server";
-import { brandFromNames, sendPasswordResetEmail } from "../email/service.server";
+import { brandFromNames, sendPasswordResetEmail, sendWelcomeEmail } from "../email/service.server";
 import type { EmailLocale } from "../email/templates";
 import { z } from "zod";
 
@@ -87,6 +87,24 @@ export async function registerUser(
     updatedAt: now,
   });
   await logSecurityEvent(db, { userId, type: "registration", ipHash });
+
+  // Welcome email — sent only AFTER the registration row is committed, only when a
+  // delivery channel is configured, and idempotently (one DB insert => at most one
+  // send on this path; a retried duplicate registration returns email_taken before
+  // reaching here, so no duplicate welcome). A missing/unconfigured channel or a
+  // delivery error can never fail or duplicate the registration itself.
+  try {
+    const brand = brandFromNames(settings.platform.nameAr, settings.platform.nameEn, settings.platform.supportEmail);
+    await sendWelcomeEmail(env, {
+      to: email.data,
+      locale: "ar",
+      brand,
+      name: fullName.data,
+    });
+  } catch {
+    // non-fatal
+  }
+
   return { ok: true, userId };
 }
 

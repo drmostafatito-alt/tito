@@ -18,7 +18,9 @@ export type SecurityEventType =
   | "rate_limited"
   | "permission_denied"
   | "registration"
-  | "profile_updated";
+  | "profile_updated"
+  | "email_change_requested"
+  | "email_changed";
 
 export async function logSecurityEvent(
   db: DB,

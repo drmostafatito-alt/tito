@@ -44,6 +44,25 @@ export const teacherProfiles = sqliteTable("teacher_profiles", {
   updatedAt: integer("updated_at", { mode: "number" }).notNull(),
 });
 
+export const emailChangeTokens = sqliteTable(
+  "email_change_tokens",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    newEmail: text("new_email").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: integer("expires_at", { mode: "number" }).notNull(),
+    usedAt: integer("used_at", { mode: "number" }),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("email_change_token_uq").on(t.tokenHash),
+    index("email_change_user_idx").on(t.userId),
+  ]
+);
+
 export const devices = sqliteTable(
   "devices",
   {
@@ -135,6 +154,8 @@ export const securityEvents = sqliteTable(
         "permission_denied",
         "registration",
         "profile_updated",
+        "email_change_requested",
+        "email_changed",
       ],
     }).notNull(),
     ipHash: text("ip_hash"),

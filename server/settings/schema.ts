@@ -32,13 +32,14 @@ export type DeviceSettings = z.infer<typeof deviceSettingsSchema>;
 export const securitySettingsSchema = z.object({
   sessionDays: z.number().int().min(1).max(90).default(30),
   resetTokenMinutes: z.number().int().min(5).max(240).default(60),
-  rateLimits: z
-    .object({
-      loginPerMinute: z.number().int().min(1).default(10),
-      registerPerHour: z.number().int().min(1).default(5),
-      forgotPerHour: z.number().int().min(1).default(5),
-    })
-    .default({ loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5 }),
+    rateLimits: z
+      .object({
+        loginPerMinute: z.number().int().min(1).default(10),
+        registerPerHour: z.number().int().min(1).default(5),
+        forgotPerHour: z.number().int().min(1).default(5),
+        emailChangePerHour: z.number().int().min(1).default(5),
+      })
+      .default({ loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5, emailChangePerHour: 5 }),
 });
 export type SecuritySettings = z.infer<typeof securitySettingsSchema>;
 

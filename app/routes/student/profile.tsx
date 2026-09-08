@@ -8,6 +8,7 @@ import { getEnv } from "~server/cf.server";
 import { users, roles } from "~server/db/schema";
 import { logSecurityEvent } from "~server/security/events.server";
 import { LOCALE_COOKIE } from "~server/settings/locale.server";
+import { requestEmailChange } from "~server/users/emailchange.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
@@ -51,6 +52,21 @@ export async function action({ context, request }: Route.ActionArgs) {
   const env = getEnv(context);
   const db = getDb(env);
   const form = await request.formData();
+
+  // Self-service email change: request an out-of-band verification.
+  if (String(form.get("_action") ?? "") === "change-email") {
+    const newEmail = String(form.get("newEmail") ?? "");
+    const result = await requestEmailChange(env, db, { userId: auth.user.id }, newEmail, request, new URL(request.url).origin);
+    if (!result.ok) {
+      if (result.code === "rate_limited") return { emailError: "rate_limited" as const };
+      if (result.code === "invalid") return { emailError: "invalid" as const };
+      return { emailError: "same_email" as const };
+    }
+    // Enumeration-safe generic confirmation: we do not reveal whether the address
+    // was available; if it was, a verification email has been sent to it.
+    return { emailRequested: true as const };
+  }
+
   const parsed = profileSchema.safeParse({
     fullName: String(form.get("fullName") ?? ""),
     phone: String(form.get("phone") ?? ""),
@@ -106,7 +122,43 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
               <dd className="font-medium text-slate-800">{formatDate(locale, user.createdAt)}</dd>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-slate-500">{t(locale, "profile.emailLocked")}</p>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title={t(locale, "profile.emailChangeTitle")}
+          description={t(locale, "profile.emailChangeDesc")}
+        />
+        <CardBody>
+          {actionData && "emailRequested" in actionData && actionData.emailRequested && (
+            <Alert kind="success">{t(locale, "profile.emailChangeSent")}</Alert>
+          )}
+          {actionData && "emailError" in actionData && actionData.emailError && (
+            <Alert kind="error">
+              {actionData.emailError === "invalid"
+                ? t(locale, "profile.emailChangeInvalid")
+                : actionData.emailError === "same_email"
+                  ? t(locale, "profile.emailChangeSame")
+                  : t(locale, "profile.emailChangeRateLimited")}
+            </Alert>
+          )}
+          <Form method="post" className="flex flex-col gap-4">
+            <input type="hidden" name="_action" value="change-email" />
+            <Input
+              label={t(locale, "profile.newEmail")}
+              name="newEmail"
+              type="email"
+              required
+              maxLength={254}
+              autoComplete="email"
+              dir="ltr"
+              defaultValue={actionData && "emailRequested" in actionData ? "" : undefined}
+            />
+            <div className="flex justify-end">
+              <SubmitButton>{t(locale, "profile.emailChangeSubmit")}</SubmitButton>
+            </div>
+          </Form>
         </CardBody>
       </Card>
 
