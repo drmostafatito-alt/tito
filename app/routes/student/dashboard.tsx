@@ -137,10 +137,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const locale = root?.locale ?? "ar";
 
   const roleLabel: Record<string, string> = {
-    student: locale === "ar" ? "طالب" : "Student",
-    teacher: locale === "ar" ? "مدرّس" : "Teacher",
-    admin: locale === "ar" ? "مشرف" : "Admin",
-    super_admin: locale === "ar" ? "مشرف عام" : "Super admin",
+    student: t(locale, "dashboard.roleStudent"),
+    teacher: t(locale, "dashboard.roleTeacher"),
+    admin: t(locale, "dashboard.roleAdmin"),
+    super_admin: t(locale, "dashboard.roleSuperAdmin"),
   };
   const welcomeLine =
     (locale === "ar" ? loaderData.dash.welcome.ar : loaderData.dash.welcome.en) ||

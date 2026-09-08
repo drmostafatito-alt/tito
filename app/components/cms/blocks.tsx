@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "~/cms/icons";
 import { ls, type LStr } from "~/cms/l10n";
+import { t } from "~/lib/i18n";
 import { socialIconName } from "~/cms/social";
 import type { CardView, CmsRenderCtx, FormView } from "~/cms/render-types";
 
@@ -173,7 +174,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
       <input type="hidden" name="_cmsForm" value={form.slug} />
       {result && (
         <p role="status" className={`rounded-[var(--radius-btn)] px-4 py-3 text-sm ${result.ok ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
-          {result.ok ? ls(form.success, L) : ls(form.failure, L) || (L === "ar" ? "تعذر إرسال النموذج." : "The form could not be submitted.")}
+          {result.ok ? ls(form.success, L) : ls(form.failure, L) || t(L, "common.cmsFormFailed")}
         </p>
       )}
       {form.fields.map((f) => {
@@ -255,7 +256,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
         </label>
       )}
       <button type="submit" className={`inline-flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] bg-brand-600 px-6 py-3 text-base font-semibold text-white hover:bg-brand-700 ${compact ? "shrink-0" : "self-start"}`}>
-        {L === "ar" ? "إرسال" : "Submit"}
+        {t(L, "common.cmsFormSubmit")}
       </button>
     </form>
   );

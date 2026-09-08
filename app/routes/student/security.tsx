@@ -142,9 +142,7 @@ export default function Security() {
             </div>
           ))}
           <p className="text-xs text-slate-500">
-            {locale === "ar"
-              ? "إدارة الأجهزة الكاملة (إلغاء/استبدال) متاحة للإدارة وتُفتح للطالب في المرحلة ٣."
-              : "Full device management (revoke/replace) is admin-side in Phase 1 and opens to students in Phase 3."}
+            {t(locale, "security.devicesAdminOnly")}
           </p>
         </CardBody>
       </Card>

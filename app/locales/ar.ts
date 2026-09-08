@@ -2,6 +2,8 @@
 export const ar = {
   common: {
     appName: "د/ مصطفى تيتو",
+    cmsFormSubmit: "إرسال",
+    cmsFormFailed: "تعذر إرسال النموذج.",
     login: "تسجيل الدخول",
     register: "إنشاء حساب",
     logout: "تسجيل الخروج",
@@ -74,6 +76,10 @@ export const ar = {
     title: "لوحة الطالب",
     welcome: "أهلًا",
     role: "الدور",
+    roleStudent: "طالب",
+    roleTeacher: "مدرّس",
+    roleAdmin: "مشرف",
+    roleSuperAdmin: "مشرف عام",
     sessionCard: "جلستك الحالية",
     sessionExpires: "تنتهي في",
     deviceCard: "جهازك الحالي",
@@ -91,6 +97,7 @@ export const ar = {
     changePasswordNote: "تغيير كلمة المرور ينهي جميع الجلسات على كل الأجهزة.",
     signOutAll: "إنهاء جميع الجلسات",
     devicesTitle: "أجهزتك",
+    devicesAdminOnly: "إدارة الأجهزة (الإلغاء أو الاستبدال) تتم عبر الإدارة. تواصل مع الدعم إذا احتجت تغيير جهازك.",
     thisDevice: "هذا الجهاز",
     lastSeen: "آخر ظهور",
     passwordChanged: "تم تغيير كلمة المرور. يرجى تسجيل الدخول من جديد.",

@@ -3,6 +3,8 @@ import type { Dictionary } from "./ar";
 export const en: Dictionary = {
   common: {
     appName: "Dr mostafa tito",
+    cmsFormSubmit: "Submit",
+    cmsFormFailed: "The form could not be submitted.",
     login: "Log in",
     register: "Create account",
     logout: "Log out",
@@ -75,6 +77,10 @@ export const en: Dictionary = {
     title: "Student dashboard",
     welcome: "Welcome",
     role: "Role",
+    roleStudent: "Student",
+    roleTeacher: "Teacher",
+    roleAdmin: "Admin",
+    roleSuperAdmin: "Super admin",
     sessionCard: "Your current session",
     sessionExpires: "Expires",
     deviceCard: "Your current device",
@@ -92,6 +98,7 @@ export const en: Dictionary = {
     changePasswordNote: "Changing your password ends all sessions on all devices.",
     signOutAll: "Sign out all sessions",
     devicesTitle: "Your devices",
+    devicesAdminOnly: "Device management (revoke or replace) is handled by the administration. Contact support if you need to change your device.",
     thisDevice: "This device",
     lastSeen: "Last seen",
     passwordChanged: "Password changed. Please log in again.",
