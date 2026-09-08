@@ -131,8 +131,24 @@ describe("bulk student status service", () => {
   });
 
   it("dedupes, clamps to the bounded max, trims, and ignores empty ids", async () => {
+    // Seed 60 throwaway students as lightweight rows. The bulk service only reads
+    // each extra id's role/status/deletedAt, so driving them through the full
+    // registerUser+login path (2x PBKDF2-100k + device/session/audit/security-event
+    // writes EACH) is unnecessary and was pushing this test to vitest's default
+    // 5000ms limit under suite load (~4s of the window was fixture building).
+    // Direct inserts keep every assertion below identical (still 60 extras ->
+    // requested===62 after dedupe/trim) without the auth hashing cost. The auth
+    // path is intentionally slow (secure PBKDF2) — not an app perf regression.
+    const now = Date.now();
     const extra: string[] = [];
-    for (let i = 0; i < 60; i++) extra.push((await makeUser(`blk-x${i}`)).id);
+    for (let i = 0; i < 60; i++) {
+      const id = crypto.randomUUID();
+      await db.insert(users).values({
+        id, email: `blk-x${i}-${id.slice(0, 8)}@test.local`, passwordHash: "x", fullName: `Bulk X${i}`,
+        roleId: "student", status: "active", localePref: "ar", createdAt: now, updatedAt: now,
+      });
+      extra.push(id);
+    }
     const many = [...extra, s1.id, s1.id, s2.id, "  ", ""];
     const res = await bulkSetUserStatus(db, many, "suspended", { userId: superA.id, role: "super_admin", rank: 4 });
     expect(res.requested).toBeLessThanOrEqual(BULK_STUDENT_MAX);
