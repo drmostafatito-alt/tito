@@ -8,6 +8,7 @@ import {
   allLessonsForCourse,
   chainForLesson,
   courseBySlug,
+  coursePrereqGate,
   filesByIds,
   itemsForLesson,
   lessonBySlug,
@@ -49,6 +50,14 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 
   if (!verdict.allowed && verdict.reason === "anon") {
     throw redirect(`/login?next=${encodeURIComponent(`/learn/${params.courseSlug}/${params.lessonSlug}`)}`);
+  }
+
+  // Prerequisite gate (Phase E): a signed-in student must have completed every live
+  // transitive prerequisite course before content opens. Send gated students back
+  // to the course page, which explains the missing prerequisites. Staff bypass.
+  if (auth && auth.user.rank <= 1) {
+    const lock = await coursePrereqGate(db, { userId: auth.user.id, roleRank: auth.user.rank }, course.id);
+    if (lock.locked) throw redirect(`/courses/${course.slug}`);
   }
 
   const unitRows = await unitsForCourse(db, course.id);

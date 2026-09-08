@@ -398,3 +398,15 @@ notification preferences or an external channel can layer on later without
 schema change (audience column + user-scoped reads already exist). The
 `teachers` audience value is reserved by the spec and behaves as "no
 matching users" until a teacher role ships.
+
+## ADR-026 Course prerequisites are a completion-gated DAG enforced at open time (Phase E)
+
+**Status: Accepted**
+
+- **Context:** Courses are stand-alone today; nothing sequences them. Phase E adds course-level prerequisites so a learner must finish earlier course(s) before opening a later one. There is no completion/“enrollment” model besides per-lesson progress.
+- **Decision:**
+  1. **Data:** a `course_prerequisites` junction table (course_id → prerequisite_course_id), plain TEXT refs with app-layer integrity (both ends must exist; self-reference, duplicates and **cycles** are rejected at write — `setCoursePrerequisites` validates the resulting graph stays a DAG). Completion is defined by the learner: a prerequisite course is “completed” once **every published lesson** of it has a `completed` `lesson_progress` row (and it has ≥1 published lesson).
+  2. **Server gate:** `coursePrereqGate(db, {userId, roleRank}, courseId)` returns `{locked, missing}` for a signed-in **student** against the **transitive closure** of live (published, non-deleted) prerequisites. It is layered on top of `resolveContentAccess`, which stays a pure entitlement/visibility decision (no DB/progress access). It is consulted at the **open surfaces**: the course page (`/courses/:slug`, renders a locked state listing missing prerequisites and refuses lesson/unit access) and the learn route (a gated student is redirected to the course page). Staff (roleRank ≥ 2) and anonymous viewers bypass.
+  3. **Storefront stays the storefront:** the public catalog and buy CTAs still list/lock purchase of a prerequisite-gated course — a learner must be able to browse and buy before prerequisites are met. Gating applies to **opening content**, not to browsing/buying. (This is the deliberately chosen scope for “only sees/opens”; the page shows the prerequisite requirement rather than hiding the course.)
+  4. **Clone independence:** `duplicateNode` copies the course subtree only and does **not** carry prerequisite edges, media binaries, progress, entitlements or audit — consistent with copies defaulting to draft with scheduling cleared; admin re-applies prerequisites on the copy via the course editor.
+- **Consequences:** prerequisites compose transitively and are cycle-safe; admins manage them per course in the node editor (`_action=set-prerequisites`, audited as `content.course.prerequisites`). An archived/draft prerequisite stops gating (it is not live/completable), preventing permanent lockout; admins are expected to prune stale edges. Requires migration `0012_course_prerequisites.sql`.

@@ -4,7 +4,7 @@ import { eq, inArray } from "drizzle-orm";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { resolveAuth } from "~server/auth/session.server";
-import { allLessonsForCourse, chainForCourse, courseBySlug, unitsForCourse } from "~server/content/service.server";
+import { allLessonsForCourse, chainForCourse, courseBySlug, coursePrereqGate, unitsForCourse } from "~server/content/service.server";
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
 import { courseProgress, lessonProgressMap } from "~server/progress/service.server";
@@ -30,6 +30,15 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const verdict = chain
     ? await resolveContentAccess(db, subject, chain)
     : { allowed: false as const, reason: "not_published" as const };
+
+  // Prerequisite gate (Phase E): a signed-in student is locked out of a course's
+  // content until every live transitive prerequisite course is completed. The
+  // course stays visible/buyable in the storefront; opening content is gated here
+  // and again on the learn route. Staff/anonymous viewers are never gated.
+  const prereqLock =
+    auth && auth.user.rank <= 1
+      ? await coursePrereqGate(db, { userId: auth.user.id, roleRank: auth.user.rank }, course.id)
+      : { locked: false, missing: [] };
 
   const [unitRows, lessonRows, subjectRows] = await Promise.all([
     unitsForCourse(db, course.id),
@@ -117,6 +126,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     },
     subject: subjectRows[0] ?? null,
     verdict,
+    prereqLock,
     buyOption,
     lessonVerdicts,
     progress,
@@ -140,9 +150,15 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 export default function CoursePage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { course, subject, verdict, lessonVerdicts, progress, units, buyOption } = loaderData;
+  const { course, subject, verdict, prereqLock, lessonVerdicts, progress, units, buyOption } = loaderData;
   const title = locale === "ar" ? course.titleAr : course.titleEn;
   const desc = locale === "ar" ? course.descriptionAr : course.descriptionEn;
+  const gated = prereqLock.locked;
+  const lessonLockedFor = (lessonId: string) => {
+    if (gated) return true;
+    const lv = lessonVerdicts[lessonId];
+    return lv ? !lv.allowed : !verdict.allowed;
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -214,7 +230,24 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
         </Card>
       )}
 
-      {!verdict.allowed && (
+      {gated && prereqLock.missing.length > 0 && (
+        <Card className="mt-4">
+          <CardBody>
+            <p className="text-sm font-medium text-slate-700">{t(locale, "content.prereqRequired")}</p>
+            <ul className="mt-2 space-y-1">
+              {prereqLock.missing.map((m) => (
+                <li key={m.courseId}>
+                  <Link to={`/courses/${m.slug}`} className="text-sm text-blue-600 hover:underline">
+                    {locale === "ar" ? m.titleAr : m.titleEn}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
+
+      {!gated && !verdict.allowed && (
         <Card className="mt-4">
           <CardBody>
             <p className="text-sm text-slate-600">
@@ -250,7 +283,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                 <h2 className="font-semibold">
                   {ui + 1}. {locale === "ar" ? unit.titleAr : unit.titleEn}
                 </h2>
-                {verdict.allowed && (
+                {!gated && verdict.allowed && (
                   <Link to={`/courses/${course.slug}/units/${unit.id}`} className="text-sm text-blue-600 hover:underline">
                     {t(locale, "content.openUnit")}
                   </Link>
@@ -258,8 +291,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
               </div>
               <ol className="space-y-1.5">
                 {unit.lessons.map((lesson) => {
-                  const lv = lessonVerdicts[lesson.id];
-                  const lessonLocked = lv ? !lv.allowed : !verdict.allowed;
+                  const lessonLocked = lessonLockedFor(lesson.id);
                   const lp = progress?.lesson[lesson.id];
                   return (
                     <li key={lesson.slug} className="flex items-center gap-2 text-sm">

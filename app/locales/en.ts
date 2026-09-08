@@ -422,6 +422,11 @@ export const en: Dictionary = {
   content: {
     catalogTitle: "Courses",
     catalogEmpty: "No published courses yet.",
+    prereqRequired: "Complete the following course(s) first to unlock this course:",
+    prereqTitle: "Prerequisites",
+    prereqHint: "Students must complete the selected course(s) before this course can be opened.",
+    prereqEmpty: "No other courses exist yet to set as prerequisites.",
+    prereqCycleError: "Cannot save: this would create a circular prerequisite chain.",
     program: "Program",
     grade: "Grade",
     subject: "Subject",

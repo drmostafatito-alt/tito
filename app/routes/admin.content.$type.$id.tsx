@@ -19,14 +19,19 @@ import {
   getNode,
   itemsForLesson,
   moveNode,
+  prerequisitesForCourse,
+  setCoursePrerequisites,
   updateNode,
   videosByIds,
   filesByIds,
   ContentReferenceError,
+  PrerequisiteCycleError,
   type ContentType,
 } from "~server/content/service.server";
 import { listVideos } from "~server/video/service.server";
 import { listFiles } from "~server/files/storage.server";
+import { and, asc, eq, isNull, ne } from "drizzle-orm";
+import { courses } from "~server/db/schema";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
@@ -85,6 +90,19 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
     }
   }
 
+  // Course prerequisites: current set + the candidate pool (every other course).
+  let prereqs: Array<{ courseId: string; slug: string; titleAr: string; titleEn: string }> = [];
+  let prereqCandidates: Array<{ courseId: string; slug: string; titleAr: string; titleEn: string }> = [];
+  if (type === "course") {
+    prereqs = await prerequisitesForCourse(db, params.id);
+    const rows = await db
+      .select({ id: courses.id, slug: courses.slug, titleAr: courses.titleAr, titleEn: courses.titleEn })
+      .from(courses)
+      .where(and(isNull(courses.deletedAt), ne(courses.id, params.id)))
+      .orderBy(asc(courses.titleEn));
+    prereqCandidates = rows.map((c) => ({ courseId: c.id, slug: c.slug, titleAr: c.titleAr, titleEn: c.titleEn }));
+  }
+
   const imageFiles = type === "subject" || type === "course" ? await listFiles(db, 200) : [];
   const allFiles = type === "lesson" ? await listFiles(db, 200) : [];
   const allVideos = type === "lesson" ? await listVideos(db, 200) : [];
@@ -138,6 +156,8 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
       label: i.itemType === "video" ? (videoMap.get(i.videoId!)?.playbackId ?? "video") : i.itemType === "file" ? (fileMap.get(i.fileId!)?.originalFilename ?? "file") : (examMap.get(i.examId ?? "")?.titleAr ?? i.examId ?? "exam"),
     })),
     allExams: allExams.map((e) => ({ id: e.id, titleAr: e.titleAr, titleEn: e.titleEn })),
+    prereqs,
+    prereqCandidates,
   };
 }
 
@@ -195,6 +215,12 @@ export async function action({ context, request, params }: Route.ActionArgs) {
       case "archive":
         await archiveNode(db, type, id, actor);
         return { ok: true as const };
+      case "set-prerequisites": {
+        if (type !== "course") return { error: "generic" as const };
+        const ids = form.getAll("prereqIds").map(String).filter(Boolean);
+        await setCoursePrerequisites(db, id, ids, actor);
+        return { ok: true as const };
+      }
       case "duplicate": {
         if (type === "lessonItem") return { error: "generic" as const };
         const res = await duplicateNode(db, type, id, actor);
@@ -273,6 +299,7 @@ export async function action({ context, request, params }: Route.ActionArgs) {
   } catch (err) {
     // dangling parent/video/file reference → validation-shaped response, never a 500
     if (err instanceof ContentReferenceError) return { error: "validation" as const };
+    if (err instanceof PrerequisiteCycleError) return { error: "prereq_cycle" as const };
     throw err;
   }
 }
@@ -283,7 +310,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
   const [params] = useSearchParams();
-  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, allExams, outline, publicUrl } = loaderData;
+  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, allExams, outline, publicUrl, prereqs, prereqCandidates } = loaderData;
   const label = locale === "ar" ? String(node.titleAr ?? node.id) : String(node.titleEn ?? node.id);
 
   const input = "rounded-lg border border-slate-300 px-3 py-2";
@@ -447,6 +474,42 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
           </Form>
         </CardBody>
       </Card>
+
+      {isCourse && (
+        <Card>
+          <CardHeader
+            title={t(locale, "content.prereqTitle")}
+            description={t(locale, "content.prereqHint")}
+          />
+          <CardBody>
+            <Form method="post" className="space-y-3">
+              <input type="hidden" name="_action" value="set-prerequisites" />
+              {prereqCandidates.length === 0 ? (
+                <p className="text-sm text-slate-500">{t(locale, "content.prereqEmpty")}</p>
+              ) : (
+                <fieldset className="grid max-h-56 gap-1.5 overflow-y-auto rounded-lg border border-slate-200 p-3 sm:grid-cols-2">
+                  {prereqCandidates.map((c) => {
+                    const checked = prereqs.some((p) => p.courseId === c.courseId);
+                    return (
+                      <label key={c.courseId} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="prereqIds" value={c.courseId} defaultChecked={checked} className="h-4 w-4" />
+                        <span>{locale === "ar" ? c.titleAr : c.titleEn}</span>
+                        {c.slug && <span className="text-xs text-slate-400">/{c.slug}</span>}
+                      </label>
+                    );
+                  })}
+                </fieldset>
+              )}
+              <div className="flex items-center gap-3">
+                <SubmitButton>{t(locale, "content.save")}</SubmitButton>
+                {actionData && "error" in actionData && actionData.error === "prereq_cycle" && (
+                  <span className="text-sm text-red-600">{t(locale, "content.prereqCycleError")}</span>
+                )}
+              </div>
+            </Form>
+          </CardBody>
+        </Card>
+      )}
 
       {isCourse && (
         <Card>
