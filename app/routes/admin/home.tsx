@@ -258,7 +258,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader title={t(locale, "admin.recentActivity")} action={<Link to="/admin/analytics" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navAnalytics")}</Link>} />
+          <CardHeader title={t(locale, "admin.recentActivity")} action={<Link to="/admin/analytics" className="text-sm text-brand-800 hover:underline">{t(locale, "admin.navAnalytics")}</Link>} />
           <CardBody>
             {o?.recentActivity.length === 0 ? (
               <p className="text-sm text-ink-muted" data-testid="activity-empty">{t(locale, "admin.activityEmpty")}</p>
@@ -280,7 +280,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
         </Card>
 
         <Card>
-          <CardHeader title={t(locale, "admin.mRecentRegs")} action={<Link to="/admin/users" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navUsers")}</Link>} />
+          <CardHeader title={t(locale, "admin.mRecentRegs")} action={<Link to="/admin/users" className="text-sm text-brand-800 hover:underline">{t(locale, "admin.navUsers")}</Link>} />
           <CardBody>
             {o?.users.recent.length === 0 ? (
               <EmptyState icon="👤" title={t(locale, "adminUsers.empty")} />
@@ -288,7 +288,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
               <ul className="flex flex-col gap-2.5">
                 {o.users.recent.map((u) => (
                   <li key={u.id} className="flex items-center justify-between gap-2 text-sm" data-testid="recent-reg-row">
-                    <Link to={`/admin/users/${u.id}`} className="truncate text-blue-700 hover:underline">{u.fullName}</Link>
+                    <Link to={`/admin/users/${u.id}`} className="truncate text-brand-800 hover:underline">{u.fullName}</Link>
                     <span className="flex items-center gap-2">
                       <Badge tone="neutral">{t(locale, `adminUsers.role_${u.roleId}`)}</Badge>
                       <span className="text-xs text-ink-muted">{formatDate(locale, u.createdAt)}</span>
@@ -332,7 +332,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
         </Card>
 
         <Card>
-          <CardHeader title={t(locale, "admin.recentAudit")} action={<Link to="/admin/audit" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navAudit")}</Link>} />
+          <CardHeader title={t(locale, "admin.recentAudit")} action={<Link to="/admin/audit" className="text-sm text-brand-800 hover:underline">{t(locale, "admin.navAudit")}</Link>} />
           <CardBody>
             {loaderData.recentAudit.length === 0 ? (
               <p className="text-sm text-ink-muted">{t(locale, "admin.auditEmpty")}</p>

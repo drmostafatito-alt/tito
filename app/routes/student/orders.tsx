@@ -138,7 +138,7 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
         )}
         {orders.map((o) => (
           <Link key={o.id} to={`/orders/${o.orderNumber}`} className="block">
-            <Card className="transition hover:border-blue-300">
+            <Card className="transition hover:border-brand-300">
               <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div>
                   <p className="font-semibold">

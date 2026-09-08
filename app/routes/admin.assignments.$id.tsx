@@ -276,7 +276,7 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
     if (!perms.create) return <Alert kind="error">{t(locale, "assignment.denied")}</Alert>;
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <Link to="/admin/assignments" className="text-sm text-blue-600 hover:underline">← {t(locale, "assignment.backToList")}</Link>
+        <Link to="/admin/assignments" className="text-sm text-brand-700 hover:underline">← {t(locale, "assignment.backToList")}</Link>
         <h1 className="text-xl font-bold">{t(locale, "assignment.newAssignment")}</h1>
         {issues && <Alert kind="error">{issues.map((i) => `${i.path}: ${i.message}`).join(" — ")}</Alert>}
         <Card><CardHeader title={t(locale, "assignment.editTitle")} description={t(locale, "assignment.editHint")} /><CardBody>
@@ -300,7 +300,7 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
   return (
     <div className="space-y-4">
       <nav className="text-sm">
-        <Link to="/admin/assignments" className="inline-flex text-blue-600 hover:underline">← {t(locale, "assignment.backToList")}</Link>
+        <Link to="/admin/assignments" className="inline-flex text-brand-700 hover:underline">← {t(locale, "assignment.backToList")}</Link>
       </nav>
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-bold">{locale === "ar" ? a.titleAr : a.titleEn}</h1>
@@ -391,7 +391,7 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
                       <td className="max-w-sm px-4 py-3 text-ink-muted">
                         {s.textAnswer ? <p className="whitespace-pre-wrap text-sm">{s.textAnswer}</p> : <span className="text-sand-400">{t(locale, "assignment.noText")}</span>}
                         {s.file && (
-                          <a href={s.file.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex text-xs font-medium text-blue-600 hover:underline">
+                          <a href={s.file.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex text-xs font-medium text-brand-700 hover:underline">
                             {t(locale, "assignment.openFile")} ↗
                           </a>
                         )}

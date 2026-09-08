@@ -204,10 +204,10 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardBody className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <Link to="/profile/security" className="font-medium text-blue-700 hover:underline">
+          <Link to="/profile/security" className="font-medium text-brand-800 hover:underline">
             {t(locale, "dashboard.securityLink")}
           </Link>
-          <Link to="/dashboard" className="font-medium text-blue-700 hover:underline">
+          <Link to="/dashboard" className="font-medium text-brand-800 hover:underline">
             {t(locale, "common.dashboard")}
           </Link>
         </CardBody>

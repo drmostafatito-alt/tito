@@ -25,6 +25,7 @@ import { Badge } from "~/components/ui/Badge";
 import { SubmitButton } from "~/components/ui/Button";
 import { ProgressBar } from "~/components/ProgressBar";
 import { Card, CardBody } from "~/components/ui/Card";
+import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -216,15 +217,20 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
   const lessonCompleted = actionData?.completed ?? (progress?.lesson?.status === "completed" || false);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <nav className="mb-2 flex items-center gap-1 text-sm text-ink-muted" aria-label={t(locale, "common.breadcrumb")}>
-        <Link to={`/courses/${course.slug}`} className="hover:underline">
+    <main className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+      <nav className="mb-5 flex flex-wrap items-center gap-x-1.5 text-sm text-ink-muted" aria-label={t(locale, "common.breadcrumb")}>
+        <Link to={`/courses/${course.slug}`} className="font-semibold transition-colors hover:text-brand-800">
           {locale === "ar" ? course.titleAr : course.titleEn}
         </Link>
-        {unit && <span> / {locale === "ar" ? unit.titleAr : unit.titleEn}</span>}
+        {unit && (
+          <>
+            <span className="inline-block rtl:rotate-180" aria-hidden>›</span>
+            <span className="font-bold text-ink">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
+          </>
+        )}
       </nav>
-      <div className="mb-1 flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-bold">{title}</h1>
+      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h1 className="font-display text-3xl font-semibold leading-snug text-ink sm:text-4xl">{title}</h1>
         {lesson.freePreview && <Badge tone="success">{t(locale, "content.freePreview")}</Badge>}
         {progress && lessonCompleted && <Badge tone="success">{t(locale, "progress.completed")}</Badge>}
         {progress && !lessonCompleted && progress.lesson && <Badge tone="warning">{t(locale, "progress.inProgress")}</Badge>}
@@ -239,14 +245,14 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
       {pres.showDescription && (locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn) && (
-        <p className="mb-6 text-ink-muted">{locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn}</p>
+        <p className="mb-8 max-w-2xl text-lg leading-loose text-ink-soft">{locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn}</p>
       )}
 
       {!verdict.allowed ? (
         <Card>
           <CardBody>
-            <p className="text-sm text-ink-muted">{t(locale, "content.locked")}</p>
-            <Link to={`/courses/${course.slug}`} className="mt-2 inline-block text-sm text-blue-600 hover:underline">
+            <p className="text-sm font-medium text-ink-soft">{t(locale, "content.locked")}</p>
+            <Link to={`/courses/${course.slug}`} className="tito-link mt-2 inline-block text-sm">
               {t(locale, "common.back")}
             </Link>
           </CardBody>
@@ -256,8 +262,8 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
           {items.map((item) => {
             if (item.kind === "video") {
               return item.status === "ready" ? (
+                <div key={item.key} className="tito-plate">
                 <VideoPlayer
-                  key={item.key}
                   videoId={item.videoId}
                   lessonId={lessonId}
                   title={pres.video.showTitle ? t(locale, "content.videoItem") : undefined}
@@ -267,6 +273,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                   startAt={progress?.videos[item.videoId]?.positionSeconds ?? 0}
                   onLessonCompleted={() => revalidator.revalidate()}
                 />
+                </div>
               ) : (
                 <Card key={item.key}>
                   <CardBody className="text-sm text-ink-muted">
@@ -285,7 +292,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 <Card key={item.key}>
                   <CardBody className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-ink">{title}</h3>
+                      <h3 className="font-display text-lg font-semibold text-ink">{title}</h3>
                       {item.required && (
                         <span className="text-xs text-ink-muted">{t(locale, "content.required")}</span>
                       )}
@@ -295,7 +302,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                         ?embedded=true, so the iframe is the supported path. The
                         external link is always offered as well, so the quiz is
                         reachable even where embedding is blocked. */}
-                    <div className="overflow-hidden rounded-lg border border-line" data-testid="external-quiz">
+                    <div className="overflow-hidden rounded-[var(--radius-base,10px)] border border-line" data-testid="external-quiz">
                       <iframe
                         src={item.embedUrl}
                         title={title}
@@ -309,7 +316,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                       href={item.openUrl}
                       target="_blank"
                       rel="noopener noreferrer nofollow"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 underline"
+                      className="tito-link inline-flex items-center gap-1 text-sm"
                       data-testid="external-quiz-open"
                     >
                       {t(locale, "content.linkOpen")} ↗
@@ -324,19 +331,19 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 <Card key={item.key}>
                   <CardBody className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium">📄 {item.filename}</p>
+                      <p className="flex items-center gap-2 font-bold text-ink"><Icon name="file-text" size="sm" colorRole="brand" /> {item.filename}</p>
                       <p className="text-xs text-ink-muted">
                         {Math.max(1, Math.round(item.byteSize / 1024))} KB · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       {item.viewUrl && (
-                        <a href={item.viewUrl} target="_blank" rel="noopener" className="text-blue-600 hover:underline">
+                        <a href={item.viewUrl} target="_blank" rel="noopener" className="text-brand-700 hover:underline">
                           {t(locale, "content.view")}
                         </a>
                       )}
                       {item.downloadUrl && (
-                        <a href={item.downloadUrl} className="text-blue-600 hover:underline">
+                        <a href={item.downloadUrl} className="text-brand-700 hover:underline">
                           {t(locale, "content.download")}
                         </a>
                       )}
@@ -350,14 +357,14 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 <Card key={item.key}>
                   <CardBody className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium">📝 {locale === "ar" ? item.titleAr : item.titleEn}</p>
+                      <p className="flex items-center gap-2 font-bold text-ink"><Icon name="pencil" size="sm" colorRole="brand" /> {locale === "ar" ? item.titleAr : item.titleEn}</p>
                       <p className="text-xs text-ink-muted">
                         {t(locale, "content.examItem")} · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
                       </p>
                     </div>
                     <Link
                       to={`/exams/${item.slug}`}
-                      className="min-h-11 rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 sm:min-h-0 sm:py-2"
+                      className="min-h-11 rounded-[var(--radius-btn)] bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800 sm:min-h-0 sm:py-2"
                     >
                       {t(locale, "exam.start")}
                     </Link>
@@ -385,22 +392,25 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {pres.showPrevNext && (
-      <nav className="mt-8 flex justify-between text-sm" aria-label={t(locale, "common.prevNext")}>
+      <>
+      <hr className="tito-rule mt-10" />
+      <nav className="flex items-start justify-between gap-4 text-[15px]" aria-label={t(locale, "common.prevNext")}>
         {prev ? (
-          <Link to={`/learn/${course.slug}/${prev.slug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
-            <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
+          <Link to={`/learn/${course.slug}/${prev.slug}`} className="tito-link inline-flex min-h-11 max-w-[45%] items-center gap-1.5 text-start">
+            <span aria-hidden="true" className="tito-arrow inline-block rtl:rotate-180">←</span>
             {locale === "ar" ? prev.titleAr : prev.titleEn}
           </Link>
         ) : (
           <span />
         )}
         {next && verdict.allowed && (
-          <Link to={`/learn/${course.slug}/${next.slug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+          <Link to={`/learn/${course.slug}/${next.slug}`} className="tito-link inline-flex min-h-11 max-w-[45%] items-center justify-end gap-1.5 text-end">
             {locale === "ar" ? next.titleAr : next.titleEn}
-            <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
+            <span aria-hidden="true" className="tito-arrow inline-block rtl:rotate-180">→</span>
           </Link>
         )}
       </nav>
+      </>
       )}
     </main>
   );

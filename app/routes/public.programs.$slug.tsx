@@ -95,14 +95,14 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
   const hasSubjects = grades.some((g) => g.subjects.length > 0);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-ink-muted">
-        <Link to="/programs" className="hover:text-brand-700">{t(locale, "catalog.programs")}</Link>
-        <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-ink-soft">{locale === "ar" ? program.titleAr : program.titleEn}</span>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+      <nav aria-label="breadcrumb" className="mb-5 flex flex-wrap items-center gap-x-1.5 text-sm text-ink-muted">
+        <Link to="/programs" className="font-semibold transition-colors hover:text-brand-800">{t(locale, "catalog.programs")}</Link>
+        <span className="inline-block rtl:rotate-180" aria-hidden>›</span>
+        <span className="font-bold text-ink">{locale === "ar" ? program.titleAr : program.titleEn}</span>
       </nav>
-      <h1 className="text-2xl font-bold">{locale === "ar" ? program.titleAr : program.titleEn}</h1>
-      {desc && <p className="mt-2 text-ink-muted">{desc}</p>}
+      <h1 className="font-display text-3xl font-semibold leading-snug text-ink sm:text-4xl">{locale === "ar" ? program.titleAr : program.titleEn}</h1>
+      {desc && <p className="mt-3 max-w-3xl text-lg leading-loose text-ink-soft">{desc}</p>}
 
       {!hasSubjects ? (
         <p className="mt-6 text-ink-muted">{t(locale, "catalog.noSubjects")}</p>
@@ -111,14 +111,14 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
           {grades.map((g) =>
             g.subjects.length === 0 ? null : (
               <section key={g.id}>
-                <h2 className="mb-3 text-lg font-semibold text-ink-soft">{locale === "ar" ? g.titleAr : g.titleEn}</h2>
+                <h2 className="tito-kicker mb-4">{locale === "ar" ? g.titleAr : g.titleEn}</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {g.subjects.map((s) => (
-                    <Card key={s.slug}>
+                    <Card key={s.slug} className="transition-all duration-200 hover:-translate-y-0.5 hover:border-accent-400 hover:shadow-md">
                       <CardBody>
                         <Link to={`/subjects/${s.slug}`} className="group block">
-                          <h3 className="flex items-center gap-2 font-medium text-ink group-hover:text-brand-700">
-                            <Icon name="book-open" className="h-4.5 w-4.5 shrink-0 text-brand-500" aria-hidden />
+                          <h3 className="flex items-center gap-2.5 font-bold text-ink transition-colors group-hover:text-brand-800">
+                            <Icon name="book-open" size="sm" colorRole="accent" aria-hidden />
                             {locale === "ar" ? s.titleAr : s.titleEn}
                           </h3>
                           <p className="mt-1 text-sm text-ink-muted">

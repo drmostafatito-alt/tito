@@ -80,7 +80,9 @@ export default function CmsPage({ loaderData }: Route.ComponentProps) {
       {/* every CMS page exposes its title as the level-one heading (the hero
           block on the homepage supplies a visible h1; other pages use sr-only) */}
       <h1 className="sr-only">{ctx.locale === "ar" ? loaderData.title.ar : loaderData.title.en}</h1>
-      <PageView sections={loaderData.sections} ctx={ctx} main={false} />
+      <div className="tito-article">
+        <PageView sections={loaderData.sections} ctx={ctx} main={false} />
+      </div>
     </>
   );
 }

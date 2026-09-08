@@ -484,7 +484,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
               {loaderData.products.map((p) => (
                 <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 last:border-0" data-testid="product-row">
                   <div className="text-sm">
-                    <Link to={`/admin/commerce/products/${p.id}`} className="font-semibold text-blue-700 hover:underline">
+                    <Link to={`/admin/commerce/products/${p.id}`} className="font-semibold text-brand-800 hover:underline">
                       {locale === "ar" ? p.nameAr : p.nameEn}
                     </Link>
                     <span className="ms-2 text-xs text-ink-muted" dir="ltr">{p.slug}</span>
@@ -524,7 +524,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
             {loaderData.orders.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "commerceAdmin.noOrders")}</p>}
             {loaderData.orders.rows.map((o) => (
               <div key={o.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="admin-order-row">
-                <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-blue-700 hover:underline" dir="ltr">
+                <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-brand-800 hover:underline" dir="ltr">
                   {o.orderNumber}
                 </Link>
                 <span className="text-xs text-ink-muted" dir="ltr">{o.studentEmail ?? o.studentId.slice(0, 8)}</span>
@@ -555,7 +555,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
               <div key={p.id} className="space-y-2 border-b border-line py-3 last:border-0" data-testid="payment-review-row">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <div>
-                    <Link to={`/admin/commerce/orders/${p.orderId}`} className="font-mono text-xs text-blue-700 hover:underline" dir="ltr">
+                    <Link to={`/admin/commerce/orders/${p.orderId}`} className="font-mono text-xs text-brand-800 hover:underline" dir="ltr">
                       {p.orderNumber}
                     </Link>
                     <span className="ms-2 text-xs text-ink-muted" dir="ltr">{p.studentEmail ?? ""}</span>
@@ -746,7 +746,7 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
               {loaderData.batches.map((b) => (
                 <div key={b.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="batch-row">
                   <div>
-                    <Link to={`/admin/commerce/batches/${b.id}`} className="font-semibold text-blue-700 hover:underline">
+                    <Link to={`/admin/commerce/batches/${b.id}`} className="font-semibold text-brand-800 hover:underline">
                       {b.name}
                     </Link>
                     <p className="text-xs text-ink-muted">

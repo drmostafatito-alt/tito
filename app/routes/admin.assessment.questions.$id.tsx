@@ -279,7 +279,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
   return (
     <div className="space-y-4" key={isNew ? "new" : `q-${question?.id ?? ""}`}>
       <nav className="text-sm">
-        <Link to="/admin/assessment" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+        <Link to="/admin/assessment" className="inline-flex min-h-6 items-center text-brand-700 hover:underline">
           <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           {t(locale, "assessment.questionsTab")}
         </Link>

@@ -37,7 +37,7 @@ export default function ExamsPage({ loaderData }: Route.ComponentProps) {
         const title = locale === "ar" ? exam.titleAr : exam.titleEn;
         return (
           <Link key={exam.slug} to={`/exams/${exam.slug}`} className="block">
-            <Card className="transition hover:border-blue-300">
+            <Card className="transition hover:border-brand-300">
               <CardBody className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="font-semibold">{title}</h2>

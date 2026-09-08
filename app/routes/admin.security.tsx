@@ -80,9 +80,9 @@ function Pager({ page, total, tab, extra }: { page: number; total: number; tab: 
   };
   return (
     <div className="flex items-center justify-between pt-2 text-sm">
-      {page > 1 ? <Link className="text-blue-700 hover:underline" to={withPage(page - 1)} data-testid="sec-prev">{t(locale, "securityAdmin.prevPage")}</Link> : <span />}
+      {page > 1 ? <Link className="text-brand-800 hover:underline" to={withPage(page - 1)} data-testid="sec-prev">{t(locale, "securityAdmin.prevPage")}</Link> : <span />}
       <span className="text-xs text-ink-muted">{t(locale, "securityAdmin.pageOf", { page, total: totalPages })}</span>
-      {page < totalPages ? <Link className="text-blue-700 hover:underline" to={withPage(page + 1)} data-testid="sec-next">{t(locale, "securityAdmin.nextPage")}</Link> : <span />}
+      {page < totalPages ? <Link className="text-brand-800 hover:underline" to={withPage(page + 1)} data-testid="sec-next">{t(locale, "securityAdmin.nextPage")}</Link> : <span />}
     </div>
   );
 }
@@ -144,7 +144,7 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
                   {t(locale, `securityAdmin.ev_${e.type}`)}
                 </span>
                 {e.userEmail ? (
-                  <Link to={`/admin/users/${e.userId}`} className="text-xs text-blue-700 hover:underline" dir="ltr">{e.userEmail}</Link>
+                  <Link to={`/admin/users/${e.userId}`} className="text-xs text-brand-800 hover:underline" dir="ltr">{e.userEmail}</Link>
                 ) : (
                   <span className="text-xs text-ink-muted">{t(locale, "securityAdmin.anonymous")}</span>
                 )}
@@ -165,7 +165,7 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
             {loaderData.sessionsQ.rows.map((s) => (
               <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="session-row">
                 <div className="flex min-w-0 flex-col">
-                  <Link to={`/admin/users/${s.userId}`} className="truncate text-xs text-blue-700 hover:underline" dir="ltr">{s.userEmail}</Link>
+                  <Link to={`/admin/users/${s.userId}`} className="truncate text-xs text-brand-800 hover:underline" dir="ltr">{s.userEmail}</Link>
                   <span className="truncate text-xs text-ink-muted">{s.deviceLabel} · {s.devicePlatform}</span>
                 </div>
                 <span className="text-xs text-ink-muted">{t(locale, "securityAdmin.lastSeen")}: {formatDate(locale, s.lastSeenAt)}</span>

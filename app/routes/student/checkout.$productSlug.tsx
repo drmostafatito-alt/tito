@@ -166,7 +166,7 @@ export default function CheckoutPage({ loaderData }: Route.ComponentProps) {
               <SubmitButton name="_action" value="create_order">
                 {t(locale, "commerce.createOrder")}
               </SubmitButton>
-              <Link to={`/products/${product.slug}`} className="text-sm text-blue-600 hover:underline">
+              <Link to={`/products/${product.slug}`} className="text-sm text-brand-700 hover:underline">
                 {t(locale, "common.back")}
               </Link>
             </div>

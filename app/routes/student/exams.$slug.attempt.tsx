@@ -296,7 +296,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
         <Alert kind="warning">{t(locale, "exam.noQuestions")}</Alert>
-        <Link to={`/exams/${examSlug}`} className="mt-4 inline-flex min-h-6 items-center text-sm text-blue-600 hover:underline">
+        <Link to={`/exams/${examSlug}`} className="mt-4 inline-flex min-h-6 items-center text-sm text-brand-700 hover:underline">
           <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           {t(locale, "exam.backToExams")}
         </Link>
@@ -308,7 +308,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-10">
         <Alert kind="warning">{t(locale, "exam.attemptLocked")}</Alert>
-        <Link to={`/exams/${examSlug}`} className="inline-flex min-h-6 items-center text-sm text-blue-600 hover:underline">
+        <Link to={`/exams/${examSlug}`} className="inline-flex min-h-6 items-center text-sm text-brand-700 hover:underline">
           <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           {t(locale, "exam.backToExams")}
         </Link>

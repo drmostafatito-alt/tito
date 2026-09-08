@@ -286,7 +286,7 @@ export default function AdminProductPage({ loaderData }: Route.ComponentProps) {
               )}
               <a
                 href={`${loaderData.publicUrl}/products/${product.slug}`}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-brand-700 hover:underline"
                 target="_blank"
                 rel="noreferrer"
               >

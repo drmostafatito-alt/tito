@@ -103,7 +103,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
   return (
     <div className="space-y-4">
       <nav className="text-sm">
-        <Link to={`/admin/assessment/exams/${review.examId}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+        <Link to={`/admin/assessment/exams/${review.examId}`} className="inline-flex min-h-6 items-center text-brand-700 hover:underline">
           <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           {t(locale, "assessment.attemptsTitle")}
         </Link>
@@ -213,7 +213,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                         </div>
                       )}
                       {q.feedback && (
-                        <p className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs text-blue-800">
+                        <p className="rounded-lg border border-brand-200 bg-brand-50/60 px-3 py-2 text-xs text-brand-800">
                           <span className="font-medium">{t(locale, "assessment.feedback")}: </span>
                           <span dir="auto">{q.feedback}</span>
                         </p>
@@ -253,7 +253,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                   )}
 
                   {(q.explanationAr || q.explanationEn) && q.type !== "essay" && (
-                    <p className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs text-blue-800">
+                    <p className="rounded-lg border border-brand-200 bg-brand-50/60 px-3 py-2 text-xs text-brand-800">
                       <span className="font-medium">{t(locale, "assessment.explanation")}: </span>
                       {locale === "ar" ? q.explanationAr : q.explanationEn}
                     </p>

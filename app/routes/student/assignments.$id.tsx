@@ -157,7 +157,7 @@ export default function StudentAssignmentDetail({ loaderData }: Route.ComponentP
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <Link to="/assignments" className="text-sm text-blue-600 hover:underline">← {t(locale, "assignment.backToList")}</Link>
+      <Link to="/assignments" className="text-sm text-brand-700 hover:underline">← {t(locale, "assignment.backToList")}</Link>
 
       {sent && <Alert kind="success">{t(locale, "assignment.sentOk")}</Alert>}
       {err && reasonKey[err] && <Alert kind="error">{t(locale, reasonKey[err])}</Alert>}
@@ -194,7 +194,7 @@ export default function StudentAssignmentDetail({ loaderData }: Route.ComponentP
             <p className="text-ink-muted">{t(locale, "assignment.submittedOn")} {formatDate(locale, submission.submittedAt)}</p>
             {submission.textAnswer && <p className="whitespace-pre-wrap text-ink-soft">{submission.textAnswer}</p>}
             {submission.file && (
-              <a href={submission.file.url} target="_blank" rel="noopener noreferrer" className="inline-flex font-medium text-blue-600 hover:underline">
+              <a href={submission.file.url} target="_blank" rel="noopener noreferrer" className="inline-flex font-medium text-brand-700 hover:underline">
                 {submission.file.originalFilename} ↗
               </a>
             )}

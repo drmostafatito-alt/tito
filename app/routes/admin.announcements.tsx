@@ -146,7 +146,7 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
         <Card data-testid="ann-preview-panel">
           <CardHeader
             title={t(locale, "announcementsAdmin.previewTitle")}
-            action={<Link to="/admin/announcements" className="text-sm text-blue-700 hover:underline" data-testid="ann-preview-close">{t(locale, "announcementsAdmin.closePreview")}</Link>}
+            action={<Link to="/admin/announcements" className="text-sm text-brand-800 hover:underline" data-testid="ann-preview-close">{t(locale, "announcementsAdmin.closePreview")}</Link>}
           />
           <CardBody className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
@@ -247,8 +247,8 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="neutral">{t(locale, `announcementsAdmin.aud_${a.audience}`)}</Badge>
                 <span data-testid={`ann-status-${a.id}`}><Badge tone={STATUS_TONE[a.status] ?? "neutral"}>{t(locale, `announcementsAdmin.status_${a.status}`)}</Badge></span>
-                <Link to={`/admin/announcements?edit=${a.id}`} className="text-xs text-blue-700 hover:underline" data-testid={`ann-edit-${a.id}`}>{t(locale, "announcementsAdmin.edit")}</Link>
-                <Link to={`/admin/announcements?preview=${a.id}`} className="text-xs text-blue-700 hover:underline" data-testid={`ann-preview-${a.id}`}>{t(locale, "announcementsAdmin.preview")}</Link>
+                <Link to={`/admin/announcements?edit=${a.id}`} className="text-xs text-brand-800 hover:underline" data-testid={`ann-edit-${a.id}`}>{t(locale, "announcementsAdmin.edit")}</Link>
+                <Link to={`/admin/announcements?preview=${a.id}`} className="text-xs text-brand-800 hover:underline" data-testid={`ann-preview-${a.id}`}>{t(locale, "announcementsAdmin.preview")}</Link>
                 {a.status === "draft" && (
                   <Form method="post">
                     <input type="hidden" name="_action" value="publish" />
@@ -275,9 +275,9 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
           ))}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2 text-sm">
-              {list.page > 1 ? <Link className="text-blue-700 hover:underline" to={withPage(list.page - 1)} data-testid="ann-prev">{t(locale, "announcementsAdmin.prevPage")}</Link> : <span />}
+              {list.page > 1 ? <Link className="text-brand-800 hover:underline" to={withPage(list.page - 1)} data-testid="ann-prev">{t(locale, "announcementsAdmin.prevPage")}</Link> : <span />}
               <span className="text-xs text-ink-muted">{t(locale, "announcementsAdmin.pageOf", { page: list.page, total: totalPages })}</span>
-              {list.page < totalPages ? <Link className="text-blue-700 hover:underline" to={withPage(list.page + 1)} data-testid="ann-next">{t(locale, "announcementsAdmin.nextPage")}</Link> : <span />}
+              {list.page < totalPages ? <Link className="text-brand-800 hover:underline" to={withPage(list.page + 1)} data-testid="ann-next">{t(locale, "announcementsAdmin.nextPage")}</Link> : <span />}
             </div>
           )}
         </CardBody>

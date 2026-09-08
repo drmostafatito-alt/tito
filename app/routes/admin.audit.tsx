@@ -74,7 +74,7 @@ export default function AdminAudit({ loaderData }: Route.ComponentProps) {
                 <span className="font-mono" dir="ltr">{a.entityType}{a.entityId ? `#${a.entityId.slice(0, 8)}` : ""}</span>
                 {(a.before || a.after) && (
                   <details className="w-full" data-testid={`audit-details-${a.id}`}>
-                    <summary className="cursor-pointer text-blue-700 hover:underline">{t(locale, "auditAdmin.colDetails")}</summary>
+                    <summary className="cursor-pointer text-brand-800 hover:underline">{t(locale, "auditAdmin.colDetails")}</summary>
                     <pre className="mt-1 overflow-x-auto rounded bg-sand-100 p-2 text-[11px] text-ink-muted" dir="ltr">
 {a.before ? `before: ${JSON.stringify(a.before, null, 1)}\n` : ""}{a.after ? `after: ${JSON.stringify(a.after, null, 1)}` : ""}
                     </pre>
@@ -87,11 +87,11 @@ export default function AdminAudit({ loaderData }: Route.ComponentProps) {
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2 text-sm">
               {audit.page > 1 ? (
-                <Link className="text-blue-700 hover:underline" to={withPage(audit.page - 1)} data-testid="audit-prev">{t(locale, "auditAdmin.prevPage")}</Link>
+                <Link className="text-brand-800 hover:underline" to={withPage(audit.page - 1)} data-testid="audit-prev">{t(locale, "auditAdmin.prevPage")}</Link>
               ) : <span />}
               <span className="text-xs text-ink-muted">{t(locale, "auditAdmin.pageOf", { page: audit.page, total: totalPages })}</span>
               {audit.page < totalPages ? (
-                <Link className="text-blue-700 hover:underline" to={withPage(audit.page + 1)} data-testid="audit-next">{t(locale, "auditAdmin.nextPage")}</Link>
+                <Link className="text-brand-800 hover:underline" to={withPage(audit.page + 1)} data-testid="audit-next">{t(locale, "auditAdmin.nextPage")}</Link>
               ) : <span />}
             </div>
           )}

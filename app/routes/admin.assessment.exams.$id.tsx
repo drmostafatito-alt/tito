@@ -366,7 +366,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
     return (
       <div className="space-y-4" key={`exam-${params.id ?? "new"}`}>
         <nav className="text-sm">
-          <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+          <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-brand-700 hover:underline">
             <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
             {t(locale, "assessment.examsTab")}
           </Link>
@@ -423,7 +423,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
   return (
     <div className="space-y-4">
       <nav className="text-sm">
-        <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+        <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-brand-700 hover:underline">
           <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           {t(locale, "assessment.examsTab")}
         </Link>
@@ -432,7 +432,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
         <h1 className="text-xl font-bold">{locale === "ar" ? exam.titleAr : exam.titleEn}</h1>
         <StatusBadge status={exam.status} locale={locale} />
         {exam.status === "published" && (
-          <Link to={`/exams/${exam.slug}`} className="text-xs text-blue-600 hover:underline">
+          <Link to={`/exams/${exam.slug}`} className="text-xs text-brand-700 hover:underline">
             {t(locale, "assessment.previewStudent")} ↗
           </Link>
         )}

@@ -182,24 +182,26 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
       {/* Breadcrumbs */}
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-ink-muted">
-        <Link to="/courses" className="hover:text-brand-700">{t(locale, "content.catalogTitle")}</Link>
+      <nav aria-label="breadcrumb" className="mb-5 flex flex-wrap items-center gap-x-1.5 text-sm text-ink-muted">
+        <Link to="/courses" className="font-semibold transition-colors hover:text-brand-800">{t(locale, "content.catalogTitle")}</Link>
         {subject && (
           <>
-            <span className="mx-1.5" aria-hidden>›</span>
-            <Link to={`/subjects/${subject.slug}`} className="hover:text-brand-700">
+            <span className="inline-block rtl:rotate-180" aria-hidden>›</span>
+            <Link to={`/subjects/${subject.slug}`} className="font-semibold transition-colors hover:text-brand-800">
               {locale === "ar" ? subject.titleAr : subject.titleEn}
             </Link>
           </>
         )}
-        <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-ink-soft">{title}</span>
+        <span className="inline-block rtl:rotate-180" aria-hidden>›</span>
+        <span className="font-bold text-ink">{title}</span>
       </nav>
 
       {course.thumbnail && (
-        <img src={course.thumbnail} alt="" className="mb-4 h-40 w-full rounded-lg object-cover sm:h-52" />
+        <figure className="tito-plate mb-6">
+        <img src={course.thumbnail} alt="" loading="lazy" decoding="async" className="h-44 w-full object-cover sm:h-60" />
+      </figure>
       )}
 
       <div className="mb-2 flex items-center gap-2">
@@ -210,8 +212,8 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           <span className="text-sm text-ink-muted">{t(locale, "content.notAvailable")}</span>
         )}
       </div>
-      <h1 className="text-2xl font-bold">{title}</h1>
-      {desc && <p className="mt-2 text-ink-muted">{desc}</p>}
+      <h1 className="font-display max-w-3xl text-3xl font-semibold leading-snug text-ink sm:text-4xl sm:leading-snug">{title}</h1>
+      {desc && <p className="mt-3 max-w-3xl text-lg leading-loose text-ink-soft">{desc}</p>}
 
       {/* Meta row: teacher · lessons · duration */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
@@ -258,7 +260,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
             <ul className="mt-2 space-y-1">
               {prereqLock.missing.map((m) => (
                 <li key={m.courseId}>
-                  <Link to={`/courses/${m.slug}`} className="text-sm text-blue-600 hover:underline">
+                  <Link to={`/courses/${m.slug}`} className="text-sm text-brand-700 hover:underline">
                     {locale === "ar" ? m.titleAr : m.titleEn}
                   </Link>
                 </li>
@@ -273,7 +275,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           <CardBody>
             <p className="text-sm text-ink-muted">
               {verdict.reason === "anon" ? (
-                <Link to="/login" className="font-medium text-blue-600 hover:underline">
+                <Link to="/login" className="font-medium text-brand-700 hover:underline">
                   {t(locale, "content.loginToContinue")}
                 </Link>
               ) : (
@@ -283,7 +285,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
             {buyOption && (
               <Link
                 to={`/products/${buyOption.productSlug}`}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800"
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] bg-brand-700 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800"
                 data-testid="course-buy-cta"
               >
                 {t(locale, "commerce.buyCta")}
@@ -296,26 +298,27 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
         </Card>
       )}
 
-      <div className="mt-6 space-y-5">
+      <div className="mt-8 space-y-5">
         {units.map((unit, ui) => (
           <Card key={unit.id}>
             <CardBody>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-semibold">
-                  {ui + 1}. {locale === "ar" ? unit.titleAr : unit.titleEn}
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <h2 className="font-display flex items-baseline gap-2.5 text-xl font-semibold text-ink">
+                  <span aria-hidden="true" className="text-base font-semibold text-accent-600">{(ui + 1).toLocaleString(locale === "ar" ? "ar-EG" : "en-US", { minimumIntegerDigits: 2 })}</span>
+                  {locale === "ar" ? unit.titleAr : unit.titleEn}
                 </h2>
                 {!gated && verdict.allowed && (
-                  <Link to={`/courses/${course.slug}/units/${unit.id}`} className="text-sm text-blue-600 hover:underline">
+                  <Link to={`/courses/${course.slug}/units/${unit.id}`} className="tito-link shrink-0 text-sm">
                     {t(locale, "content.openUnit")}
                   </Link>
                 )}
               </div>
-              <ol className="space-y-1.5">
+              <ol className="divide-y divide-line">
                 {unit.lessons.map((lesson) => {
                   const lessonLocked = lessonLockedFor(lesson.id);
                   const lp = progress?.lesson[lesson.id];
                   return (
-                    <li key={lesson.slug} className="flex items-center gap-2 text-sm">
+                    <li key={lesson.slug} className="flex min-h-11 items-center gap-2.5 py-1.5 text-[15px]">
                       {lp?.status === "completed" && (
                         <Icon name="check-circle" className="h-4 w-4 shrink-0 text-success" aria-label={t(locale, "progress.completed")} />
                       )}
@@ -329,7 +332,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </span>
                       ) : (
-                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="inline-flex min-h-6 items-center text-blue-700 hover:underline">
+                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="inline-flex min-h-6 items-center font-medium text-ink underline-offset-4 transition-colors hover:text-brand-800 hover:underline">
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </Link>
                       )}

@@ -80,24 +80,27 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
   const { course, unit, lessons, courseAllowed } = loaderData;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-1 text-sm text-ink-muted">
-        <Link to="/courses" className="hover:text-brand-700">{t(locale, "content.catalogTitle")}</Link>
-        <span className="mx-1.5" aria-hidden>›</span>
-        <Link to={`/courses/${course.slug}`} className="hover:text-brand-700">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+      <nav aria-label="breadcrumb" className="mb-5 flex flex-wrap items-center gap-x-1.5 text-sm text-ink-muted">
+        <Link to="/courses" className="font-semibold transition-colors hover:text-brand-800">{t(locale, "content.catalogTitle")}</Link>
+        <span className="inline-block rtl:rotate-180" aria-hidden>›</span>
+        <Link to={`/courses/${course.slug}`} className="font-semibold transition-colors hover:text-brand-800">
           {locale === "ar" ? course.titleAr : course.titleEn}
         </Link>
-        <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-ink-soft">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
+        <span className="inline-block rtl:rotate-180" aria-hidden>›</span>
+        <span className="font-bold text-ink">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
       </nav>
-      <h1 className="mb-6 text-2xl font-bold">{locale === "ar" ? unit.titleAr : unit.titleEn}</h1>
-      <ol className="space-y-2">
-        {lessons.map((l, i) => (
-          <li key={l.slug}>
-            <Card>
-              <CardBody className="flex items-center justify-between gap-2">
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="text-sm text-ink-muted">{i + 1}.</span>
+      <div className="mb-8 flex flex-col items-start gap-3">
+        <span aria-hidden="true" className="h-1 w-10 rounded-full bg-accent-500" />
+        <h1 className="font-display text-3xl font-semibold leading-snug text-ink sm:text-4xl">{locale === "ar" ? unit.titleAr : unit.titleEn}</h1>
+      </div>
+      <Card>
+        <CardBody className="px-0 py-2 sm:px-2">
+          <ol className="divide-y divide-line">
+            {lessons.map((l, i) => (
+              <li key={l.slug} className="flex min-h-14 items-center justify-between gap-3 px-4 py-2.5 sm:px-5">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span aria-hidden="true" className="font-display w-8 shrink-0 text-lg font-semibold text-accent-600">{(i + 1).toLocaleString(locale === "ar" ? "ar-EG" : "en-US", { minimumIntegerDigits: 2 })}</span>
                   {l.progress?.status === "completed" && (
                     <Icon name="check-circle" className="h-4 w-4 shrink-0 text-success" aria-label={t(locale, "progress.completed")} />
                   )}
@@ -105,7 +108,7 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
                     <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400" aria-hidden />
                   )}
                   {l.allowed ? (
-                    <Link to={`/learn/${course.slug}/${l.slug}`} className="truncate font-medium text-blue-700 hover:underline">
+                    <Link to={`/learn/${course.slug}/${l.slug}`} className="truncate font-bold text-ink underline-offset-4 transition-colors hover:text-brand-800 hover:underline">
                       {locale === "ar" ? l.titleAr : l.titleEn}
                     </Link>
                   ) : (
@@ -119,17 +122,17 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
                 {l.allowed && l.progress?.status !== "completed" && (
                   <Link
                     to={`/learn/${course.slug}/${l.slug}`}
-                    className="shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
+                    className="tito-link shrink-0 text-sm"
                   >
                     {l.progress ? t(locale, "progress.resume") : t(locale, "content.openLesson")}
                   </Link>
                 )}
-              </CardBody>
-            </Card>
-          </li>
-        ))}
-        {lessons.length === 0 && <p className="text-sm text-ink-muted">—</p>}
-      </ol>
+              </li>
+            ))}
+            {lessons.length === 0 && <li className="px-4 py-6 text-sm text-ink-muted">—</li>}
+          </ol>
+        </CardBody>
+      </Card>
       {!courseAllowed && (
         <p className="mt-4 text-sm text-ink-muted">{t(locale, "content.locked")}</p>
       )}

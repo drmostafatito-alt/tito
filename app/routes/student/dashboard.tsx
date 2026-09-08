@@ -249,7 +249,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader
             title={t(locale, "dashboard.announcements")}
             action={
-              <Link to="/notifications" className="text-sm text-blue-700 hover:underline">
+              <Link to="/notifications" className="text-sm text-brand-800 hover:underline">
                 {loaderData.announcementsModule.unread > 0
                   ? t(locale, "dashboard.unreadCount", { n: loaderData.announcementsModule.unread })
                   : t(locale, "dashboard.viewAll")}

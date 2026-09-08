@@ -40,7 +40,7 @@ export default function ResultsPage({ loaderData }: Route.ComponentProps) {
         const title = locale === "ar" ? s.examTitleAr : s.examTitleEn;
         return (
           <Link key={s.attemptId} to={`/results/${s.attemptId}`} className="block">
-            <Card className="transition hover:border-blue-300">
+            <Card className="transition hover:border-brand-300">
               <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div>
                   <p className="font-semibold">{title}</p>

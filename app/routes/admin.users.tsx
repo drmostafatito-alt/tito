@@ -169,7 +169,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
                 <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} className="h-4 w-4" data-testid="bulk-select-all" />
                 {t(locale, "adminUsers.selectAllVisible")}
               </label>
-              <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-blue-700 hover:underline" data-testid="bulk-clear">
+              <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-brand-800 hover:underline" data-testid="bulk-clear">
                 {t(locale, "adminUsers.clearSelection")}
               </button>
               <span className="text-xs text-ink-muted" data-testid="bulk-selected">{t(locale, "adminUsers.selectedCount", { n: selected.size })}</span>
@@ -206,7 +206,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
                   />
                 )}
                 <div className="flex min-w-0 flex-col">
-                  <Link to={`/admin/users/${u.id}`} className="truncate font-medium text-blue-700 hover:underline" data-testid="user-link">
+                  <Link to={`/admin/users/${u.id}`} className="truncate font-medium text-brand-800 hover:underline" data-testid="user-link">
                     {u.fullName}
                   </Link>
                   <span className="truncate text-xs text-ink-muted" dir="ltr">{u.email}</span>
@@ -225,11 +225,11 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2 text-sm">
               {users.page > 1 ? (
-                <Link className="text-blue-700 hover:underline" to={withPage(users.page - 1)} data-testid="users-prev">{t(locale, "adminUsers.prevPage")}</Link>
+                <Link className="text-brand-800 hover:underline" to={withPage(users.page - 1)} data-testid="users-prev">{t(locale, "adminUsers.prevPage")}</Link>
               ) : <span />}
               <span className="text-xs text-ink-muted">{t(locale, "adminUsers.pageOf", { page: users.page, total: totalPages })}</span>
               {users.page < totalPages ? (
-                <Link className="text-blue-700 hover:underline" to={withPage(users.page + 1)} data-testid="users-next">{t(locale, "adminUsers.nextPage")}</Link>
+                <Link className="text-brand-800 hover:underline" to={withPage(users.page + 1)} data-testid="users-next">{t(locale, "adminUsers.nextPage")}</Link>
               ) : <span />}
             </div>
           )}

@@ -213,11 +213,11 @@
 
   /* Long-form article pages: lead paragraph + (Latin-only) drop cap.
    * Arabic never takes italics or drop caps — it takes a lead + brass rule. */
-  .tito-article > .cms-richtext > p:first-of-type {
+  .tito-article section:first-of-type .cms-richtext > p:first-of-type {
     font-size: 1.12em;
     color: var(--color-ink-soft, #4a4238);
   }
-  html[lang="en"] .tito-article > .cms-richtext > p:first-of-type::first-letter {
+  html[lang="en"] .tito-article section:first-of-type .cms-richtext > p:first-of-type::first-letter {
     font-family: var(--font-display);
     font-weight: 600;
     font-size: 3.1em;

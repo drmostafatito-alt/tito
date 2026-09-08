@@ -140,7 +140,7 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
             <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2.5 text-sm last:border-0" data-testid="teacher-row">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex min-w-0 flex-col">
-                  <Link to={`/admin/users/${u.id}`} className="truncate font-medium text-blue-700 hover:underline">
+                  <Link to={`/admin/users/${u.id}`} className="truncate font-medium text-brand-800 hover:underline">
                     {u.fullName}
                   </Link>
                   <span className="truncate text-xs text-ink-muted" dir="ltr">{u.email}</span>
@@ -172,11 +172,11 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2 text-sm">
               {teachers.page > 1 ? (
-                <Link className="text-blue-700 hover:underline" to={withPage(teachers.page - 1)}>{t(locale, "teachers.prevPage")}</Link>
+                <Link className="text-brand-800 hover:underline" to={withPage(teachers.page - 1)}>{t(locale, "teachers.prevPage")}</Link>
               ) : <span />}
               <span className="text-xs text-ink-muted">{t(locale, "teachers.pageOf", { page: teachers.page, total: totalPages })}</span>
               {teachers.page < totalPages ? (
-                <Link className="text-blue-700 hover:underline" to={withPage(teachers.page + 1)}>{t(locale, "teachers.nextPage")}</Link>
+                <Link className="text-brand-800 hover:underline" to={withPage(teachers.page + 1)}>{t(locale, "teachers.nextPage")}</Link>
               ) : <span />}
             </div>
           )}

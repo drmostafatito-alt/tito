@@ -451,7 +451,7 @@ export default function AdminAssessmentPage({ loaderData }: Route.ComponentProps
                   </div>
                   <div className="flex items-center gap-2">
                     {e.status === "published" && (
-                      <Link to={`/exams/${e.slug}`} className="text-xs text-blue-600 hover:underline">
+                      <Link to={`/exams/${e.slug}`} className="text-xs text-brand-700 hover:underline">
                         {t(locale, "assessment.previewStudent")}
                       </Link>
                     )}

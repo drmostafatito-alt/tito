@@ -91,20 +91,20 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
   const description = locale === "ar" ? product.descriptionAr : product.descriptionEn;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
-      <nav className="text-xs text-ink-muted" aria-label={t(locale, "common.breadcrumb")}>
-        <Link to="/courses" className="hover:text-brand-700">{t(locale, "content.catalogTitle")}</Link>
-        <span aria-hidden="true"> › </span>
-        <span className="text-ink-soft">{name}</span>
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:py-12">
+      <nav className="flex flex-wrap items-center gap-x-1.5 text-sm text-ink-muted" aria-label={t(locale, "common.breadcrumb")}>
+        <Link to="/courses" className="font-semibold transition-colors hover:text-brand-800">{t(locale, "content.catalogTitle")}</Link>
+        <span className="inline-block rtl:rotate-180" aria-hidden="true">›</span>
+        <span className="font-bold text-ink">{name}</span>
       </nav>
 
       <Card>
         <CardBody className="space-y-4">
           {imageUrl && (
-            <img src={imageUrl} alt="" className="h-44 w-full rounded-xl object-cover" />
+            <img src={imageUrl} alt="" loading="lazy" decoding="async" className="h-44 w-full rounded-[var(--radius-base,10px)] object-cover" />
           )}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-bold">{name}</h1>
+            <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">{name}</h1>
             <Badge tone="brand">{t(locale, `commerce.kind_${product.kind}` as never)}</Badge>
           </div>
           {description && <p className="text-sm leading-6 text-ink-muted whitespace-pre-line">{description}</p>}
@@ -119,7 +119,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
               return (
                 <div
                   key={plan.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-base,10px)] border border-line bg-paper/60 p-4"
                 >
                   <div>
                     <p className="font-semibold">{label}</p>
@@ -137,7 +137,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                           {formatMoney(plan.compareAtMinor, plan.currency)}
                         </p>
                       )}
-                      <p className="text-lg font-bold text-brand-700" dir="ltr" data-testid="plan-price">
+                      <p className="font-display text-xl font-semibold text-brand-800" dir="ltr" data-testid="plan-price">
                         {formatMoney(plan.effectiveMinor, plan.currency)}
                       </p>
                       {plan.promoActive && <p className="text-xs font-semibold text-warning">{t(locale, "commerce.promo")}</p>}
@@ -145,7 +145,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                     {loggedIn ? (
                       <Link
                         to={`/checkout/${product.slug}?plan=${plan.id}`}
-                        className="inline-flex min-h-11 items-center rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800"
+                        className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800"
                         data-testid="buy-cta"
                       >
                         {t(locale, "commerce.buyNow")}
@@ -153,7 +153,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                     ) : (
                       <Link
                         to={`/login?next=/products/${product.slug}`}
-                        className="inline-flex min-h-11 items-center rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800"
+                        className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800"
                       >
                         {t(locale, "commerce.loginToBuy")}
                       </Link>
@@ -165,7 +165,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
           </div>
 
           <p className="text-xs text-ink-muted">
-            <Link to="/activate" className="underline hover:text-brand-700">{t(locale, "commerce.haveCode")}</Link>
+            <Link to="/activate" className="tito-link text-xs">{t(locale, "commerce.haveCode")}</Link>
           </p>
         </CardBody>
       </Card>

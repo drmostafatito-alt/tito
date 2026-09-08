@@ -73,7 +73,7 @@ export default function AdminStudent360({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold text-ink">{L("s360.title")}</h1>
-        <Link to="/admin/users" className="text-sm text-blue-700 hover:underline">{L("adminUsers.backToList")}</Link>
+        <Link to="/admin/users" className="text-sm text-brand-800 hover:underline">{L("adminUsers.backToList")}</Link>
       </div>
 
       {/* Profile header */}

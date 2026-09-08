@@ -114,7 +114,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6" key={`user-${detail?.user?.id}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold text-ink">{u.fullName}</h1>
-        <Link to="/admin/users" className="text-sm text-blue-700 hover:underline">{t(locale, "adminUsers.backToList")}</Link>
+        <Link to="/admin/users" className="text-sm text-brand-800 hover:underline">{t(locale, "adminUsers.backToList")}</Link>
       </div>
 
       {actionData && "error" in actionData && (
@@ -213,7 +213,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         <CardHeader
           title={t(locale, "adminUsers.secEntitlements")}
           description={t(locale, "adminUsers.entitlementsNote")}
-          action={<Link to="/admin/entitlements" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navEntitlements")}</Link>}
+          action={<Link to="/admin/entitlements" className="text-sm text-brand-800 hover:underline">{t(locale, "admin.navEntitlements")}</Link>}
         />
         <CardBody className="space-y-2">
           {detail.entitlements.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
@@ -291,7 +291,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
             {detail.recentOrders.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
             {detail.recentOrders.map((o) => (
               <div key={o.id} className="flex items-center justify-between gap-2 text-sm" data-testid="user-order-row">
-                <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-blue-700 hover:underline" dir="ltr">{o.orderNumber}</Link>
+                <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-brand-800 hover:underline" dir="ltr">{o.orderNumber}</Link>
                 <span className="flex items-center gap-2">
                   <Badge tone={o.status === "paid" ? "success" : o.status === "pending" ? "warning" : "neutral"}>{t(locale, `commerce.order_${o.status}`)}</Badge>
                   <span className="text-xs text-ink-muted">{formatDate(locale, o.createdAt)}</span>

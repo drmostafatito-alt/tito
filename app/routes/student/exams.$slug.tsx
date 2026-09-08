@@ -128,7 +128,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
   return (
     <div className="space-y-4">
       <nav className="text-sm">
-        <Link to="/exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+        <Link to="/exams" className="inline-flex min-h-6 items-center text-brand-700 hover:underline">
           <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           {t(locale, "exam.backToExams")}
         </Link>
@@ -216,7 +216,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
               {a.status === "in_progress" ? (
                 <Link
                   to={`/exams/${exam.slug}/attempt`}
-                  className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 sm:min-h-0"
+                  className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 sm:min-h-0"
                 >
                   {t(locale, "exam.resume")}
                 </Link>
@@ -225,7 +225,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
               ) : (
                 <Link
                   to={`/results/${a.attemptId}`}
-                  className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 sm:min-h-0"
+                  className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 sm:min-h-0"
                 >
                   {t(locale, "exam.resultsTitle")}
                 </Link>
