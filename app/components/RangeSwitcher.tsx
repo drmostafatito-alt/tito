@@ -15,7 +15,7 @@ export function RangeSwitcher({ range, locale, base, ranges }: { range: string; 
           key={r}
           to={`${base}?range=${r}`}
           data-testid={`range-${r}`}
-          className={`inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-sm font-medium ${r === range ? "bg-brand-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}
+          className={`inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-sm font-semibold ${r === range ? "bg-brand-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}
         >
           {t(locale, `admin.range_${r}`)}
         </Link>

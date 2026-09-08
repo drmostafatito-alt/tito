@@ -1,10 +1,10 @@
 type AlertKind = "info" | "success" | "warning" | "error";
 
 const kinds: Record<AlertKind, { box: string; icon: string }> = {
-  info: { box: "bg-brand-50 text-brand-900 border-brand-200", icon: "ℹ" },
-  success: { box: "bg-emerald-50 text-emerald-900 border-emerald-200", icon: "✓" },
-  warning: { box: "bg-amber-50 text-amber-900 border-amber-200", icon: "⚠" },
-  error: { box: "bg-red-50 text-red-900 border-red-200", icon: "✕" },
+  info: { box: "bg-brand-50 text-brand-900 border-brand-200", icon: "✦" },
+  success: { box: "bg-success-soft text-success border-success/25", icon: "✓" },
+  warning: { box: "bg-warning-soft text-warning border-warning/25", icon: "⚠" },
+  error: { box: "bg-error-soft text-error border-error/25", icon: "✕" },
 };
 
 export function Alert({
@@ -15,7 +15,7 @@ export function Alert({
   children: React.ReactNode;
 }) {
   return (
-    <div role={kind === "error" ? "alert" : "status"} className={`flex items-start gap-2.5 rounded-lg border px-4 py-3 text-sm ${kinds[kind].box}`}>
+    <div role={kind === "error" ? "alert" : "status"} className={`flex items-start gap-2.5 rounded-[var(--radius-base,10px)] border px-4 py-3 text-sm font-medium ${kinds[kind].box}`}>
       <span aria-hidden="true" className="mt-0.5 font-bold leading-none">
         {kinds[kind].icon}
       </span>
