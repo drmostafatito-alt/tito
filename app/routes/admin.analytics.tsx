@@ -62,7 +62,7 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
             {detail.watchDaily.map((d) => (
               <div key={d.epochDay} className="flex items-center gap-3 text-sm" data-testid="watch-daily-row">
                 <span className="w-28 shrink-0 text-xs text-ink-muted">{dayLabel(d.epochDay)}</span>
-                <span className={`h-2.5 rounded bg-success-soft0 ${barFor(d.seconds, maxWatch)}`} aria-hidden="true" />
+                <span className={`h-2.5 rounded bg-success ${barFor(d.seconds, maxWatch)}`} aria-hidden="true" />
                 <span className="text-xs font-semibold text-ink-soft" dir="ltr">{fmtDuration(d.seconds)}</span>
               </div>
             ))}

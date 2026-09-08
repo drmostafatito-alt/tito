@@ -508,7 +508,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setConfirmOpen(true)}
             disabled={submitting}
-            className="min-h-11 flex-1 rounded-[var(--radius-btn)] bg-success px-4 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50 sm:flex-none"
+            className="min-h-11 flex-1 rounded-[var(--radius-btn)] bg-success px-4 text-sm font-bold text-white hover:brightness-90 disabled:opacity-50 sm:flex-none"
           >
             {submitting ? t(locale, "exam.saving") : t(locale, "exam.submit")}
           </button>
@@ -541,7 +541,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
               setConfirmOpen(false);
               void doSubmit();
             }}
-            className="min-h-11 flex-1 rounded-[var(--radius-btn)] bg-success px-3 text-sm font-bold text-white hover:bg-emerald-800"
+            className="min-h-11 flex-1 rounded-[var(--radius-btn)] bg-success px-3 text-sm font-bold text-white hover:brightness-90"
           >
             {t(locale, "exam.submitConfirmYes")}
           </button>

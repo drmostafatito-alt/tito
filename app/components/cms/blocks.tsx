@@ -859,13 +859,13 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = `https://wa.me/${phone}`;
       if (raw(p, "style") === "floating") {
         return (
-          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-success-soft0 text-white shadow-lg hover:bg-emerald-600 ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
+          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-success text-white shadow-lg hover:brightness-90 ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
             <Icon name="whatsapp" size="lg" colorRole="default" className="text-white" />
           </a>
         );
       }
       return (
-        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-success-soft0 px-6 py-3 text-base font-semibold text-white hover:bg-emerald-600">
+        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-success px-6 py-3 text-base font-semibold text-white hover:brightness-90">
           <Icon name="whatsapp" size="sm" colorRole="default" className="text-white" />
           {label}
         </a>

@@ -242,7 +242,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                         const mark = c.correct ? "✓" : c.selected ? "✗" : "";
                         return (
                           <li key={c.id} className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${tone}`}>
-                            <span className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.correct ? "bg-success-soft0" : c.selected ? "bg-error-soft0" : "bg-sand-200"}`} aria-hidden="true">
+                            <span className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.correct ? "bg-success" : c.selected ? "bg-error" : "bg-sand-200"}`} aria-hidden="true">
                               {mark}
                             </span>
                             <span className="min-w-0 text-ink-soft">{locale === "ar" ? c.contentAr : c.contentEn}</span>

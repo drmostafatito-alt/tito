@@ -323,7 +323,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
                 </div>
                 <label className="grid gap-1 text-sm">
                   <span>{t(locale, "commerce.proofFile")} <span className="text-xs text-sand-400">({t(locale, "commerce.optional")})</span></span>
-                  <input type="file" name="proofFile" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-sand-100 file:px-3 file:py-1.5 file:text-sm" />
+                  <input type="file" name="proofFile" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm text-ink-muted file:me-3 file:rounded-lg file:border-0 file:bg-sand-100 file:px-3 file:py-1.5 file:text-sm" />
                 </label>
                 <label className="grid gap-1 text-sm">
                   <span>{t(locale, "commerce.noteOptional")}</span>
