@@ -77,7 +77,7 @@ export default function Security() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="text-2xl font-bold text-ink">{t(locale, "security.title")}</h1>
+      <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "security.title")}</h1>
 
       {actionData?.error && <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>}
 

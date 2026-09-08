@@ -63,7 +63,7 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
         </Link>
       </nav>
 
-      <h1 className="text-xl font-bold">{title}</h1>
+      <h1 className="font-display text-3xl font-semibold text-ink">{title}</h1>
 
       {attemptInProgress && (
         <Alert kind="warning">

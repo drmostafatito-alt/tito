@@ -52,7 +52,7 @@ export default function StudentNotifications({ loaderData }: Route.ComponentProp
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-ink">{t(locale, "notifications.title")}</h1>
+        <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "notifications.title")}</h1>
         {loaderData.unread > 0 && (
           <Form method="post">
             <input type="hidden" name="_action" value="mark-all-read" />

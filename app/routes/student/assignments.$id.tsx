@@ -163,7 +163,7 @@ export default function StudentAssignmentDetail({ loaderData }: Route.ComponentP
       {err && reasonKey[err] && <Alert kind="error">{t(locale, reasonKey[err])}</Alert>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-bold">{title}</h1>
+        <h1 className="font-display text-3xl font-semibold text-ink">{title}</h1>
         {submission?.status === "graded" && <Badge tone="brand">{t(locale, "assignment.statusGraded")}</Badge>}
         {submission?.status === "submitted" && <Badge tone="warning">{t(locale, "assignment.statusPending")}</Badge>}
       </div>

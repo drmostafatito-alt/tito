@@ -148,10 +148,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-ink-muted">{welcomeLine}</p>
-          <h1 className="text-2xl font-bold text-ink">{loaderData.user.fullName}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col items-start gap-2">
+          <p className="tito-kicker">{welcomeLine}</p>
+          <h1 className="font-display text-3xl font-semibold leading-snug text-ink sm:text-4xl">{loaderData.user.fullName}</h1>
         </div>
         <Badge tone="brand">
           {t(locale, "dashboard.role")}: {roleLabel[loaderData.user.roleId] ?? loaderData.user.roleId}
@@ -171,14 +171,14 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   <li key={`${item.courseSlug}/${item.lessonSlug}`}>
                     <Link
                       to={`/learn/${item.courseSlug}/${item.lessonSlug}`}
-                      className="flex min-h-11 flex-col gap-1 rounded-lg border border-line px-4 py-2.5 hover:border-brand-300 hover:bg-brand-50/40"
+                      className="flex min-h-12 flex-col gap-1 rounded-[var(--radius-base,10px)] border border-line px-4 py-2.5 transition-colors hover:border-accent-500 hover:bg-accent-50/50"
                     >
-                      <span className="flex items-center justify-between gap-2 text-sm font-medium text-ink">
+                      <span className="flex items-center justify-between gap-2 text-[15px] font-bold text-ink">
                         {locale === "ar" ? item.lessonTitleAr || item.lessonTitleEn : item.lessonTitleEn || item.lessonTitleAr}
                         {item.status === "completed" ? (
                           <Badge tone="success">{t(locale, "progress.completed")}</Badge>
                         ) : (
-                          <span className="text-xs font-normal text-brand-700">{t(locale, "progress.resume")}</span>
+                          <span className="text-xs font-bold text-brand-700">{t(locale, "progress.resume")}</span>
                         )}
                       </span>
                       <span className="flex items-center gap-2 text-xs text-ink-muted">
@@ -200,15 +200,15 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardBody>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-line p-3 text-center">
-                <p className="text-2xl font-bold text-brand-700" dir="ltr">{loaderData.stats.completedLessons}</p>
+                <p className="font-display text-3xl font-semibold text-brand-800" dir="ltr">{loaderData.stats.completedLessons}</p>
                 <p className="text-xs text-ink-muted">{t(locale, "progress.completedLessons")}</p>
               </div>
               <div className="rounded-lg border border-line p-3 text-center">
-                <p className="text-2xl font-bold text-ink-soft" dir="ltr">{loaderData.stats.inProgressLessons}</p>
+                <p className="font-display text-3xl font-semibold text-ink" dir="ltr">{loaderData.stats.inProgressLessons}</p>
                 <p className="text-xs text-ink-muted">{t(locale, "progress.lessonsInProgress")}</p>
               </div>
               <div className="rounded-lg border border-line p-3 text-center">
-                <p className="text-2xl font-bold text-ink-soft" dir="ltr">{loaderData.stats.completedVideos}</p>
+                <p className="font-display text-3xl font-semibold text-ink" dir="ltr">{loaderData.stats.completedVideos}</p>
                 <p className="text-xs text-ink-muted">{t(locale, "progress.completedVideos")}</p>
               </div>
             </div>
@@ -228,7 +228,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   <li key={course.slug}>
                     <Link
                       to={`/courses/${course.slug}`}
-                      className="flex min-h-11 flex-col gap-1.5 rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-ink hover:border-brand-300 hover:bg-brand-50/40"
+                      className="flex min-h-12 flex-col gap-1.5 rounded-[var(--radius-base,10px)] border border-line px-4 py-2.5 text-sm font-bold text-ink transition-colors hover:border-accent-500 hover:bg-accent-50/50"
                     >
                       <span className="flex items-center justify-between gap-2">
                         {locale === "ar" ? course.titleAr || course.titleEn : course.titleEn || course.titleAr}
@@ -249,7 +249,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader
             title={t(locale, "dashboard.announcements")}
             action={
-              <Link to="/notifications" className="text-sm text-brand-800 hover:underline">
+              <Link to="/notifications" className="tito-link text-sm">
                 {loaderData.announcementsModule.unread > 0
                   ? t(locale, "dashboard.unreadCount", { n: loaderData.announcementsModule.unread })
                   : t(locale, "dashboard.viewAll")}
@@ -301,10 +301,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.quickActions")} />
           <CardBody>
             <div className="flex flex-wrap gap-2">
-              <Link to="/courses" className="inline-flex min-h-11 items-center rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800">
+              <Link to="/courses" className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800">
                 {t(locale, "content.catalogTitle")}
               </Link>
-              <Link to="/profile/security" className="inline-flex min-h-11 items-center rounded-lg border border-line bg-surface px-4 text-sm font-medium text-ink-soft hover:bg-sand-100">
+              <Link to="/profile/security" className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-line bg-surface px-5 text-sm font-semibold text-ink transition-colors hover:border-sand-300">
                 {t(locale, "security.devicesTitle")}
               </Link>
             </div>
@@ -319,17 +319,17 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <CardBody>
               <div className="flex flex-wrap gap-4 text-sm">
                 {loaderData.support.email && (
-                  <a href={`mailto:${loaderData.support.email}`} className="text-brand-700 hover:underline">{loaderData.support.email}</a>
+                  <a href={`mailto:${loaderData.support.email}`} className="tito-link text-sm">{loaderData.support.email}</a>
                 )}
                 {loaderData.support.phone && (
-                  <a href={`tel:${loaderData.support.phone}`} className="text-brand-700 hover:underline" dir="ltr">{loaderData.support.phone}</a>
+                  <a href={`tel:${loaderData.support.phone}`} className="tito-link text-sm" dir="ltr">{loaderData.support.phone}</a>
                 )}
                 {loaderData.support.whatsapp && (
                   <a
                     href={`https://wa.me/${loaderData.support.whatsapp.replace(/[^\d]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-brand-700 hover:underline"
+                    className="tito-link text-sm"
                   >
                     WhatsApp
                   </a>
@@ -361,9 +361,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardBody>
             <p className="text-sm font-medium text-ink">{loaderData.device.label}</p>
             <p className="mt-1 text-xs text-ink-muted">{loaderData.device.platform}</p>
-            <Link to="/profile/security" className="mt-3 inline-flex min-h-6 items-center text-sm font-medium text-brand-700 hover:underline">
+            <Link to="/profile/security" className="tito-link mt-3 inline-flex min-h-6 items-center gap-1 text-sm">
               {t(locale, "dashboard.securityLink")}
-              <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
+              <span aria-hidden="true" className="tito-arrow inline-block rtl:rotate-180">→</span>
             </Link>
           </CardBody>
         </Card>

@@ -5,7 +5,7 @@ import { requestPasswordReset } from "~server/auth/service.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
-import { Card } from "~/components/ui/Card";
+import { AuthShell } from "~/components/AuthShell";
 import { t, type Locale } from "~/lib/i18n";
 import { useRouteLoaderData } from "react-router";
 
@@ -23,10 +23,7 @@ export default function ForgotPassword() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
-        <h1 className="mb-1 text-2xl font-bold text-ink">{t(locale, "auth.forgotTitle")}</h1>
-        <p className="mb-6 text-sm text-ink-muted">{t(locale, "auth.forgotDesc")}</p>
+    <AuthShell title={t(locale, "auth.forgotTitle")} subtitle={t(locale, "auth.forgotDesc")}>
 
         {actionData?.sent && (
           <div className="mb-4 flex flex-col gap-3">
@@ -46,7 +43,6 @@ export default function ForgotPassword() {
           <Input label={t(locale, "auth.email")} name="email" type="email" required autoComplete="email" dir="ltr" />
           <SubmitButton className="w-full">{t(locale, "auth.forgotSubmit")}</SubmitButton>
         </Form>
-      </Card>
-    </div>
+    </AuthShell>
   );
 }

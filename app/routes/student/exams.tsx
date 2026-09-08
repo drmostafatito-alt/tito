@@ -27,7 +27,7 @@ export default function ExamsPage({ loaderData }: Route.ComponentProps) {
   const { exams } = loaderData;
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t(locale, "exam.listTitle")}</h1>
+      <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "exam.listTitle")}</h1>
       {exams.length === 0 && (
         <Card>
           <CardBody className="text-sm text-ink-muted">{t(locale, "exam.empty")}</CardBody>

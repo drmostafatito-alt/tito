@@ -190,7 +190,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
       </nav>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">{t(locale, "commerce.orderTitle")}</h1>
+        <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "commerce.orderTitle")}</h1>
         <Badge
           tone={
             order.status === "paid" ? "success" : order.status === "pending" ? "warning" :

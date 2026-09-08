@@ -433,7 +433,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
                       disabled={submitting}
                       aria-pressed={selected}
                       className={`flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-start text-sm transition ${
-                        selected ? "border-brand-500 bg-brand-50 text-brand-900" : "border-line bg-surface hover:border-line"
+                        selected ? "border-brand-600 bg-brand-50 font-semibold text-brand-900 ring-1 ring-brand-600" : "border-line bg-surface text-ink hover:border-brand-400"
                       }`}
                     >
                       <span
@@ -453,7 +453,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
         )}
 
         {/* navigator */}
-        <details className="mt-3 rounded-xl border bg-surface p-3">
+        <details className="mt-3 rounded-[var(--radius-card)] border border-line bg-surface p-3">
           <summary className="cursor-pointer text-xs font-medium text-ink-muted">
             {t(locale, "exam.navigatorTitle")} — {answeredCount}/{questions.length} {t(locale, "exam.answered")}
           </summary>
@@ -491,7 +491,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
             onClick={() => setIdx((i) => Math.max(0, i - 1))}
             disabled={idx === 0 || submitting}
             aria-label={t(locale, "exam.prevQuestion")}
-            className="min-h-11 rounded-lg border px-4 text-sm font-medium disabled:opacity-40"
+            className="min-h-11 rounded-[var(--radius-btn)] border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:border-sand-300 disabled:opacity-40"
           >
             <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           </button>
@@ -500,7 +500,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
             onClick={() => setIdx((i) => Math.min(questions.length - 1, i + 1))}
             disabled={idx >= questions.length - 1 || submitting}
             aria-label={t(locale, "exam.nextQuestion")}
-            className="min-h-11 flex-1 rounded-lg border px-4 text-sm font-medium disabled:opacity-40 sm:flex-none"
+            className="min-h-11 flex-1 rounded-[var(--radius-btn)] border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:border-sand-300 disabled:opacity-40 sm:flex-none"
           >
             <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
           </button>
@@ -508,7 +508,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setConfirmOpen(true)}
             disabled={submitting}
-            className="min-h-11 flex-1 rounded-lg bg-success px-4 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50 sm:flex-none"
+            className="min-h-11 flex-1 rounded-[var(--radius-btn)] bg-success px-4 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50 sm:flex-none"
           >
             {submitting ? t(locale, "exam.saving") : t(locale, "exam.submit")}
           </button>
@@ -531,7 +531,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
           <button
             type="button"
             onClick={() => setConfirmOpen(false)}
-            className="min-h-11 flex-1 rounded-lg border px-3 text-sm font-medium"
+            className="min-h-11 flex-1 rounded-[var(--radius-btn)] border border-line bg-surface px-3 text-sm font-semibold text-ink transition-colors hover:border-sand-300"
           >
             {t(locale, "exam.submitConfirmNo")}
           </button>
@@ -541,7 +541,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
               setConfirmOpen(false);
               void doSubmit();
             }}
-            className="min-h-11 flex-1 rounded-lg bg-success px-3 text-sm font-bold text-white hover:bg-emerald-800"
+            className="min-h-11 flex-1 rounded-[var(--radius-btn)] bg-success px-3 text-sm font-bold text-white hover:bg-emerald-800"
           >
             {t(locale, "exam.submitConfirmYes")}
           </button>

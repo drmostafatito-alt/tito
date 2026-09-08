@@ -30,7 +30,7 @@ export default function ResultsPage({ loaderData }: Route.ComponentProps) {
   const { summaries } = loaderData;
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t(locale, "exam.resultsTitle")}</h1>
+      <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "exam.resultsTitle")}</h1>
       {summaries.length === 0 && (
         <Card>
           <CardBody className="text-sm text-ink-muted">{t(locale, "exam.noAttempts")}</CardBody>

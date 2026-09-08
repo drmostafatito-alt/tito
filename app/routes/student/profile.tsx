@@ -100,7 +100,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="text-2xl font-bold text-ink">{t(locale, "profile.title")}</h1>
+      <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "profile.title")}</h1>
 
       {actionData && "error" in actionData && <Alert kind="error">{t(locale, "auth.errors.generic")}</Alert>}
       {actionData && "ok" in actionData && actionData.ok && <Alert kind="success">{t(locale, "profile.saved")}</Alert>}

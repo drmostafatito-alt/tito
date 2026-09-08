@@ -7,7 +7,7 @@ import { serializeCookie } from "~server/auth/cookies.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
-import { Card } from "~/components/ui/Card";
+import { AuthShell } from "~/components/AuthShell";
 import { t, type Locale } from "~/lib/i18n";
 import { useRouteLoaderData } from "react-router";
 
@@ -57,10 +57,7 @@ export default function Login() {
   const reset = params.get("reset");
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
-        <h1 className="mb-1 text-2xl font-bold text-ink">{t(locale, "auth.loginTitle")}</h1>
-        <p className="mb-6 text-sm text-ink-muted">{t(locale, "auth.loginSubtitle")}</p>
+    <AuthShell title={t(locale, "auth.loginTitle")} subtitle={t(locale, "auth.loginSubtitle")}>
 
         {reset && (
           <div className="mb-4">
@@ -115,12 +112,12 @@ export default function Login() {
         </Form>
 
         <div className="mt-4 flex flex-col gap-2 text-sm">
-          <Link to="/forgot-password" className="text-brand-700 hover:underline">
+          <Link to="/forgot-password" className="tito-link w-fit text-sm">
             {t(locale, "auth.forgotLink")}
           </Link>
           <p className="text-ink-muted">
             {t(locale, "auth.noAccount")}{" "}
-            <Link to="/register" className="font-medium text-brand-700 hover:underline">
+            <Link to="/register" className="tito-link text-sm">
               {t(locale, "common.register")}
             </Link>
           </p>
@@ -133,8 +130,7 @@ export default function Login() {
             <p>student@educore.local (local fixture)</p>
           </div>
         )}
-      </Card>
-    </div>
+    </AuthShell>
   );
 }
 

@@ -7,7 +7,7 @@ import { serializeCookie } from "~server/auth/cookies.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
-import { Card } from "~/components/ui/Card";
+import { AuthShell } from "~/components/AuthShell";
 import { t, type Locale } from "~/lib/i18n";
 import { useRouteLoaderData } from "react-router";
 
@@ -48,9 +48,7 @@ export default function Register() {
   const [params] = useSearchParams();
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
-        <h1 className="mb-6 text-2xl font-bold text-ink">{t(locale, "common.register")}</h1>
+    <AuthShell title={t(locale, "common.register")}>
 
         {actionData?.error && (
           <div className="mb-4">
@@ -101,11 +99,10 @@ export default function Register() {
 
         <p className="mt-4 text-sm text-ink-muted">
           {t(locale, "auth.haveAccount")}{" "}
-          <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`} className="font-medium text-brand-700 hover:underline">
+          <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`} className="tito-link text-sm">
             {t(locale, "common.login")}
           </Link>
         </p>
-      </Card>
-    </div>
+    </AuthShell>
   );
 }

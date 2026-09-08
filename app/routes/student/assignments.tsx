@@ -68,7 +68,7 @@ export default function StudentAssignmentsPage({ loaderData }: Route.ComponentPr
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">{t(locale, "assignment.myAssignments")}</h1>
+        <h1 className="font-display text-3xl font-semibold text-ink">{t(locale, "assignment.myAssignments")}</h1>
       </div>
 
       {items.length === 0 ? (

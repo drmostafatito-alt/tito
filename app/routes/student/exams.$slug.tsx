@@ -135,7 +135,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
       </nav>
 
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-bold">{title}</h1>
+        <h1 className="font-display text-3xl font-semibold text-ink">{title}</h1>
         {attempts.some((a) => a.status === "in_progress") && (
           <Badge tone="warning">{t(locale, "exam.inProgress")}</Badge>
         )}
