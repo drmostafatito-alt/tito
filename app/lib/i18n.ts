@@ -61,16 +61,52 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
  * shows a timestamp. Numbers stay Latin digits; en keeps an English month
  * abbreviation for readability.
  */
-export function formatDate(locale: Locale, epochMs: number): string {
-  const d = new Date(epochMs);
-  if (Number.isNaN(d.getTime())) return "";
-  const hh = pad2(d.getHours());
-  const mm = pad2(d.getMinutes());
-  const time = `${hh}:${mm}`;
+
+/** Date-only part in Latin digits: `8 Sep 2026` (en) / `08/09/2026` (ar). */
+function datePart(locale: Locale, d: Date): string {
   if (locale === "en") {
-    return `${d.getDate()} ${EN_SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${time}`;
+    return `${d.getDate()} ${EN_SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
   }
-  return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()} ${time}`;
+  return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+function isValid(d: Date): boolean {
+  return !Number.isNaN(d.getTime());
+}
+
+type TimeLike = number | Date;
+
+/** Normalise an epoch-ms number or a Date to a Date. */
+function toDate(value: TimeLike): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
+/** Join a date part + time with the locale's separator (en uses `, `, ar uses a space). */
+function joinDateTime(locale: Locale, date: string, time: string): string {
+  return locale === "en" ? `${date}, ${time}` : `${date} ${time}`;
+}
+
+/** Date + time (HH:MM) — e.g. `8 Sep 2026, 10:05` (en) / `08/09/2026 10:05` (ar). */
+export function formatDate(locale: Locale, value: TimeLike): string {
+  const d = toDate(value);
+  if (!isValid(d)) return "";
+  const time = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return joinDateTime(locale, datePart(locale, d), time);
+}
+
+/** Date only (no time) in Latin digits — for columns that show just a day. */
+export function formatDateShort(locale: Locale, value: TimeLike): string {
+  const d = toDate(value);
+  if (!isValid(d)) return "";
+  return datePart(locale, d);
+}
+
+/** Date + time with seconds (HH:MM:SS) — for edit/audit trails. */
+export function formatDateTime(locale: Locale, value: TimeLike): string {
+  const d = toDate(value);
+  if (!isValid(d)) return "";
+  const time = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  return joinDateTime(locale, datePart(locale, d), time);
 }
 
 export function localeName(locale: Locale): string {

@@ -25,7 +25,7 @@ import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
-import type { Locale } from "~/lib/i18n";
+import { formatDateTime, type Locale } from "~/lib/i18n";
 
 /**
  * Configurable forms admin (Phase 3 stage 2). Fields, labels, validation rules,
@@ -371,7 +371,7 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                   <ul className="flex flex-col gap-2">
                     {submissions.map((sub) => (
                       <li key={String(sub.id)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
-                        <span className="text-slate-500">{new Date(Number(sub.createdAt)).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
+                        <span className="text-slate-500">{formatDateTime(locale, Number(sub.createdAt))}</span>
                         <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-slate-700" dir="auto">{JSON.stringify(sub.data, null, 1)}</pre>
                       </li>
                     ))}

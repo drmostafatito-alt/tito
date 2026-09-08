@@ -22,7 +22,7 @@ import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { cmsLabel } from "~/cms/registry";
-import { t, type Locale } from "~/lib/i18n";
+import { t, formatDateShort, type Locale } from "~/lib/i18n";
 
 /** Admin → CMS pages list (Phase 3 stage 2). Every mutation: permission-checked + audited in the service. */
 
@@ -174,7 +174,7 @@ export default function AdminCmsPages({ loaderData }: Route.ComponentProps) {
                         <RowForm action="unarchive" pageId={page.id}>{L("cms.ui.unarchive")}</RowForm>
                       )}
                       {page.status !== "published" && <RowForm action="delete" pageId={page.id}>{L("cms.ui.delete")}</RowForm>}
-                      <span className="hidden text-xs text-slate-500 lg:inline">{new Date(page.updatedAt).toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
+                      <span className="hidden text-xs text-slate-500 lg:inline">{formatDateShort(locale, page.updatedAt)}</span>
                     </span>
                   </li>
                 );

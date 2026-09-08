@@ -36,7 +36,7 @@ import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
-import type { Locale } from "~/lib/i18n";
+import { formatDateTime, type Locale } from "~/lib/i18n";
 
 /**
  * CMS page builder (Phase 3 stage 2). Non-developer UX: section cards with
@@ -464,7 +464,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
                   {versions.map((v) => (
                     <li key={v.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
                       <span className="text-sm font-semibold text-slate-800">v{v.versionNo}</span>
-                      <span className="text-xs text-slate-500">{new Date(v.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</span>
+                      <span className="text-xs text-slate-500">{formatDateTime(locale, v.createdAt)}</span>
                       {v.note && <span className="w-full text-xs text-slate-500">{v.note}</span>}
                       {perms.canPublish && (
                         <MiniForm className="ms-auto">

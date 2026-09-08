@@ -15,7 +15,7 @@ import { signFileUrl } from "~server/files/storage.server";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
-import { t, type Locale } from "~/lib/i18n";
+import { t, formatDateTime, type Locale } from "~/lib/i18n";
 
 function typeBadge(type: string, locale: Locale) {
   const key = `assessment.type_${type}`;
@@ -149,7 +149,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
             </div>
             <div>
               <p className="text-xs text-slate-500">{t(locale, "assessment.startedOn")}</p>
-              <p className="font-semibold text-slate-800">{startedAt.toLocaleString()}</p>
+              <p className="font-semibold text-slate-800">{formatDateTime(locale, startedAt)}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500">{t(locale, "assessment.timeUsed")}</p>
