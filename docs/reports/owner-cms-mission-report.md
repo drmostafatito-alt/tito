@@ -217,16 +217,22 @@ Journeys driven end to end this mission:
 
 | | SHA |
 |---|---|
-| Local `HEAD` (`arena/01a080e8-tito`) | `4cb23a4…` |
+| Local `HEAD` (`arena/01a080e8-tito`) | `b4e8f9d…` (this report's correction commit) |
 | `arena/01a080e8-tito` on GitHub | `747242f…` |
 | `main` on GitHub | `bc71479…` |
 | Working tree | **clean** |
 
-Commits made this mission: `918eedb` (YouTube), `747242f` (Google Forms + free content),
-`4cb23a4` (CMS builder E2E).
+Commits made this mission, in order:
 
-**`4cb23a4` is committed locally but NOT pushed** — see the blocker below. No history was
-rewritten: no reset, rebase, amend, squash or force-push at any point.
+| SHA | Content | Pushed? |
+|---|---|---|
+| `918eedb` | YouTube videos end to end | ✅ |
+| `747242f` | Google Form quizzes + free-content journey | ✅ |
+| `4cb23a4` | CMS page-builder E2E coverage | ❌ |
+| `b4e8f9d` | this report | ❌ |
+
+**`4cb23a4` and `b4e8f9d` are committed locally but NOT pushed** — see the blocker below. No
+history was rewritten: no reset, rebase, amend, squash or force-push at any point.
 
 > **BLOCKER — GitHub authentication expired mid-session.**
 > Pushes of `918eedb` and `747242f` succeeded earlier. Later in the session the token became
