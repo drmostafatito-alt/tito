@@ -106,10 +106,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
 
   if (loaderData.maintenance) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6 text-center">
-        <BrandMark name={appName} />
-        <h1 className="mt-4 text-2xl font-bold">{t(locale, "maintenance.title")}</h1>
-        <p className="text-slate-600">{t(locale, "maintenance.body")}</p>
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-paper px-6 text-center">
+        <BrandMark name={appName} locale={locale} />
+        <h1 className="font-display mt-4 text-3xl font-semibold text-ink">{t(locale, "maintenance.title")}</h1>
+        <p className="max-w-md text-ink-muted">{t(locale, "maintenance.body")}</p>
       </main>
     );
   }
@@ -117,18 +117,20 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const idn = loaderData.identity;
   const hasContact = Boolean(idn.contactPhone || idn.contactEmail || idn.contactAddress.ar || idn.contactAddress.en);
   const copyrightText = locale === "ar" ? idn.copyright.ar || idn.copyright.en : idn.copyright.en || idn.copyright.ar;
-  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900";
-  const navActiveCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-2 text-sm font-semibold text-brand-700";
+  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 px-2 py-2 text-[15px] font-semibold text-ink-soft underline-offset-8 transition-colors hover:text-ink hover:underline hover:decoration-accent-500 hover:decoration-2";
+  const navActiveCls = "inline-flex min-h-11 items-center gap-1.5 px-2 py-2 text-[15px] font-bold text-ink underline decoration-accent-500 decoration-2 underline-offset-8";
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden">
-      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 pt-safe backdrop-blur-md">
-        <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 px-4">
+      <header className="sticky top-0 z-40 border-b border-line bg-paper/90 pt-safe backdrop-blur-md">
+        <div aria-hidden="true" className="h-1 bg-brand-950" />
+        <div aria-hidden="true" className="h-px bg-accent-500" />
+        <div className="mx-auto flex h-[4.5rem] w-full max-w-7xl items-center justify-between gap-3 px-4">
           <Link to="/" aria-label={appName} className="inline-flex min-h-11 shrink-0 items-center">
             {idn.logoUrl ? (
               <img src={idn.logoUrl} alt={appName} className="h-10 w-auto object-contain" />
             ) : (
-              <BrandMark name={appName} />
+              <BrandMark name={appName} locale={locale} />
             )}
           </Link>
 
@@ -145,12 +147,12 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                       <span>{locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}</span>
                       <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
                     </summary>
-                    <div className="absolute top-full z-50 mt-1 min-w-44 rounded-[var(--radius-card)] border border-slate-200 bg-white p-1.5 shadow-lg ltr:left-0 rtl:right-0">
+                    <div className="absolute top-full z-50 mt-1 min-w-44 rounded-[var(--radius-card)] border border-line bg-parchment p-1.5 shadow-md ltr:left-0 rtl:right-0">
                       {node.href && (
-                        <NavLink item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100" />
+                        <NavLink item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-ink hover:bg-sand-100" />
                       )}
                       {node.children.map((child) => (
-                        <NavLink key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100" />
+                        <NavLink key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-soft hover:bg-sand-100 hover:text-ink" />
                       ))}
                     </div>
                   </details>
@@ -222,26 +224,26 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* Mobile navigation panel */}
+        {/* Mobile navigation panel — an index, not a pile of pills */}
         {mobileOpen && (
-          <nav id="mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-slate-200 bg-white px-4 py-2 lg:hidden">
-            <ul className="flex flex-col">
+          <nav id="mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-line bg-parchment px-4 py-2 lg:hidden">
+            <ul className="flex flex-col divide-y divide-line">
               {loaderData.header.map((node) => (
-                <li key={node.id}>
+                <li key={node.id} className="py-0.5">
                   <NavLink
                     item={node}
                     locale={locale}
-                    className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2.5 text-base font-medium text-slate-800 hover:bg-slate-100"
+                    className="flex min-h-12 w-full items-center gap-2 px-1 py-2.5 text-base font-bold text-ink"
                     onNavigate={() => setMobileOpen(false)}
                   />
                   {node.children.length > 0 && (
-                    <ul className="mb-1 flex flex-col ps-4">
+                    <ul className="mb-2 flex flex-col border-s-2 border-sand-200 ms-2 ps-3">
                       {node.children.map((child) => (
                         <li key={child.id}>
                           <NavLink
                             item={child}
                             locale={locale}
-                            className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-600 hover:bg-slate-100"
+                            className="flex min-h-11 w-full items-center gap-2 px-1 py-2 text-[15px] font-medium text-ink-soft"
                             onNavigate={() => setMobileOpen(false)}
                           />
                         </li>
@@ -251,10 +253,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 </li>
               ))}
               {!loaderData.user && (
-                <li className="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:hidden">
+                <li className="flex flex-col gap-2 py-3 sm:hidden">
                   <Link
                     to="/register"
-                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white"
+                    className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-btn)] bg-brand-700 px-5 py-2 text-base font-semibold text-white"
                     onClick={() => setMobileOpen(false)}
                   >
                     {t(locale, "common.register")}
@@ -270,14 +272,15 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-200 bg-white pb-safe">
-        <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Colophon footer: deep pine ink band with a brass rule — the book's last page */}
+      <footer className="tito-band border-t-[3px] border-accent-600 pb-safe">
+        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col items-start gap-4">
             <Link to="/" aria-label={appName} className="inline-flex items-center">
-              {idn.logoUrl ? <img src={idn.logoUrl} alt={appName} className="h-9 w-auto object-contain" /> : <BrandMark name={appName} />}
+              {idn.logoUrl ? <img src={idn.logoUrl} alt={appName} className="h-10 w-auto object-contain" /> : <BrandMark name={appName} tagline={tagline} locale={locale} tone="dark" />}
             </Link>
-            {tagline && <p className="text-sm text-slate-500">{tagline}</p>}
+            {idn.logoUrl && tagline && <p className="font-display text-lg text-parchment/85">{tagline}</p>}
             {idn.socialsFooter.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {idn.socialsFooter.map((s) => (
@@ -286,10 +289,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                     href={s.url}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    aria-label={s.network}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    aria-label={locale === "ar" ? s.labelAr || s.network : s.labelEn || s.network}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full text-parchment/75 ring-1 ring-white/25 transition-colors hover:text-accent-300 hover:ring-accent-400"
                   >
-                    <Icon name={s.network} size="md" colorRole="default" className="text-current" />
+                    <Icon name={s.network} size="sm" colorRole="default" className="text-current" />
                   </a>
                 ))}
               </div>
@@ -301,16 +304,16 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             <nav key={node.id} aria-label={locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr} className="flex flex-col gap-1">
               {node.children.length > 0 ? (
                 <>
-                  <p className="mb-1 text-sm font-semibold text-slate-900">
+                  <p className="tito-kicker mb-2">
                     {locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}
                   </p>
-                  {node.href && <NavLink item={node} locale={locale} className="inline-flex min-h-9 items-center text-sm text-slate-600 hover:text-slate-900" />}
+                  {node.href && <NavLink item={node} locale={locale} className="inline-flex min-h-9 items-center text-[15px] font-semibold text-parchment/90 hover:text-parchment" />}
                   {node.children.map((child) => (
-                    <NavLink key={child.id} item={child} locale={locale} className="inline-flex min-h-9 items-center text-sm text-slate-600 hover:text-slate-900" />
+                    <NavLink key={child.id} item={child} locale={locale} className="inline-flex min-h-9 items-center text-[15px] text-parchment/70 transition-colors hover:text-parchment" />
                   ))}
                 </>
               ) : (
-                <NavLink item={node} locale={locale} className="inline-flex min-h-9 w-fit items-center text-sm text-slate-600 hover:text-slate-900" />
+                <NavLink item={node} locale={locale} className="inline-flex min-h-9 w-fit items-center text-[15px] font-semibold text-parchment/85 hover:text-parchment" />
               )}
             </nav>
           ))}
@@ -318,20 +321,20 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           {/* Contact column — only when configured (empty-first) */}
           {hasContact && (
             <div className="flex flex-col gap-2">
-              <p className="mb-1 text-sm font-semibold text-slate-900">{t(locale, "footer.contact")}</p>
+              <p className="tito-kicker mb-2">{t(locale, "footer.contact")}</p>
               {idn.contactPhone && (
-                <a href={`tel:${idn.contactPhone}`} className="inline-flex min-h-9 items-center gap-2 text-sm text-slate-600 hover:text-slate-900" dir="ltr">
-                  <Icon name="phone" size="sm" colorRole="muted" /> {idn.contactPhone}
+                <a href={`tel:${idn.contactPhone}`} className="inline-flex min-h-9 items-center gap-2 text-[15px] text-parchment/75 transition-colors hover:text-parchment" dir="ltr">
+                  <Icon name="phone" size="sm" colorRole="invert" /> {idn.contactPhone}
                 </a>
               )}
               {idn.contactEmail && (
-                <a href={`mailto:${idn.contactEmail}`} className="inline-flex min-h-9 items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
-                  <Icon name="mail" size="sm" colorRole="muted" /> {idn.contactEmail}
+                <a href={`mailto:${idn.contactEmail}`} className="inline-flex min-h-9 items-center gap-2 text-[15px] text-parchment/75 transition-colors hover:text-parchment">
+                  <Icon name="mail" size="sm" colorRole="invert" /> {idn.contactEmail}
                 </a>
               )}
               {(idn.contactAddress.ar || idn.contactAddress.en) && (
-                <p className="flex items-start gap-2 text-sm text-slate-600">
-                  <Icon name="map-pin" size="sm" colorRole="muted" className="mt-0.5" />
+                <p className="flex items-start gap-2 text-[15px] text-parchment/75">
+                  <Icon name="map-pin" size="sm" colorRole="invert" className="mt-0.5" />
                   <span>{locale === "ar" ? idn.contactAddress.ar || idn.contactAddress.en : idn.contactAddress.en || idn.contactAddress.ar}</span>
                 </p>
               )}
@@ -339,8 +342,8 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           )}
         </div>
 
-        <div className="border-t border-slate-100">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-sm text-slate-500 sm:flex-row">
+        <div className="border-t border-white/15">
+          <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-sm text-parchment/60 sm:flex-row">
             <span>
               {copyrightText || `© ${new Date().getFullYear()} ${appName} — ${t(locale, "footer.rights")}`}
             </span>
