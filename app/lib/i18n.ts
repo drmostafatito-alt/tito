@@ -46,12 +46,31 @@ export function isLocale(value: string | null | undefined): value is Locale {
   return value === "ar" || value === "en";
 }
 
-/** Locale-aware date/number formatting (ARCHITECTURE §9: Latin digits initially). */
+const EN_SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * Locale-aware date/number formatting (ARCHITECTURE §9: Latin digits initially).
+ *
+ * Rendered manually from fixed pieces instead of a full `Intl.DateTimeFormat`
+ * string so the server and the client produce byte-identical text: full
+ * locale dateStyle/timeStyle patterns include runtime-sensitive punctuation
+ * (e.g. `ar-EG` emits an Arabic comma `،` + RLM marks in workerd/ICU but an
+ * ASCII comma in the browser), which breaks React hydration on any page that
+ * shows a timestamp. Numbers stay Latin digits; en keeps an English month
+ * abbreviation for readability.
+ */
 export function formatDate(locale: Locale, epochMs: number): string {
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(epochMs));
+  const d = new Date(epochMs);
+  if (Number.isNaN(d.getTime())) return "";
+  const hh = pad2(d.getHours());
+  const mm = pad2(d.getMinutes());
+  const time = `${hh}:${mm}`;
+  if (locale === "en") {
+    return `${d.getDate()} ${EN_SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${time}`;
+  }
+  return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()} ${time}`;
 }
 
 export function localeName(locale: Locale): string {

@@ -28,4 +28,15 @@ describe("dictionary parity (ar/en must not drift)", () => {
     expect(dirOf("en")).toBe("ltr");
     expect(formatDate("en", 0)).toBeTruthy();
   });
+
+  it("formatDate is deterministic/ASCII so SSR === client (no hydration drift)", () => {
+    // Local-time construction so the expected fields are stable for any TZ runner.
+    const ts = new Date(2026, 8, 8, 10, 5, 0).getTime();
+    expect(formatDate("ar", ts)).toBe("08/09/2026 10:05");
+    expect(formatDate("en", ts)).toBe("8 Sep 2026, 10:05");
+    // Never emit runtime-sensitive Arabic punctuation / RLM marks (bug: React #418).
+    for (const out of [formatDate("ar", ts), formatDate("en", ts)]) {
+      expect(out).not.toMatch(/[،‏]/);
+    }
+  });
 });
