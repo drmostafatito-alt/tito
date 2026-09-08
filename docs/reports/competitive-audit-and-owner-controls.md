@@ -1,6 +1,6 @@
 # Competitive audit + owner-control implementation — evidence report
 
-Date: 2026-09-08 · Branch `arena/01a080e8-tito` @ `cdd8cff` · Baseline at start: `567aa8c`
+Date: 2026-09-08 · Branch `arena/01a080e8-tito` · Baseline at start: `567aa8c`
 
 ## 1. What was researched, and what evidence was actually found
 
@@ -88,6 +88,39 @@ Both were found by measurement, not by reading code, and both would have shipped
    became constant-derived. This also removed the E2E environment's Tailwind-v4-in-old-Chromium
    limitation from the critical path.
 
+## 4b. Phase 3/8/9 completed: hard-coded user-facing copy
+
+A scan of `app/routes` and `app/components` for Arabic literals outside
+`app/locales` and the CMS registry found 11 files. Most were benign — the
+`(عربي)` suffix on Admin editor fields is editor chrome meaning "this input is
+for Arabic", and default `صواب/خطأ` option text on a new true/false question is
+an owner-editable default.
+
+Three were genuine user-facing copy sitting inline in components, invisible to
+translation and impossible to keep consistent. They now live in the
+dictionaries:
+
+| Was | Now |
+|---|---|
+| `blocks.tsx` — CMS form submit button `"إرسال"/"Submit"` inline | `common.cmsFormSubmit` |
+| `blocks.tsx` — form failure fallback `"تعذر إرسال النموذج."` inline | `common.cmsFormFailed` |
+| `student/dashboard.tsx` — four role labels as inline ternaries | `dashboard.roleStudent` / `roleTeacher` / `roleAdmin` / `roleSuperAdmin` |
+| `student/security.tsx` — device notice inline | `security.devicesAdminOnly` |
+
+The security notice also **leaked internal roadmap language to students**: it
+read *"admin-side in Phase 1 and opens to students in Phase 3"*. The new string
+says only that device management is handled by the administration and to contact
+support. Both the unit and E2E tests assert `/Phase\s*[13]/` and `المرحلة` do
+not appear.
+
+`app/locales/en.ts` is declared `export const en: Dictionary` where
+`Dictionary = typeof ar`, so a key added to Arabic but not English fails
+typecheck — parity is compiler-enforced, not convention.
+
+Deliberately left alone: `public/home.tsx`'s fallback platform name duplicates
+the schema defaults in `platformSettingsSchema` and only renders if settings are
+empty; the `؟` avatar-initial fallback; and `RichTextEditor.tsx` admin chrome.
+
 ## 5. What was deliberately NOT implemented
 
 | Skipped | Reason |
@@ -129,18 +162,25 @@ AR/EN homepage content, hide/show, reorder, and templates are covered by the exi
 `tests/e2e/cms-builder.spec.ts` (5 tests); YouTube, Google Forms and free content by
 `youtube-content.spec.ts`, `free-content.spec.ts`. All were re-run green below.
 
+`tests/e2e/i18n-copy.spec.ts` — 2 tests: student dashboard role label renders `Role: Student` in EN
+and `الدور: طالب` in AR (asserting the role line specifically, because the seeded student's display
+name is itself Arabic); the security page shows the translated notice in both languages with no
+`Phase 1`/`Phase 3` or `المرحلة`.
+
 Unit: `tests/unit/whatsapp-fab.test.ts` — 17 tests (digits-only normalisation, message encoding
 including Arabic, wa.me URL cannot be redirected by the message, collision selector contents,
-`fabZone` LTR/RTL/mobile geometry and overlap truth table, schema defaults and length cap).
+`fabZone` LTR/RTL/mobile geometry and overlap truth table, schema defaults and length cap). `tests/unit/i18n-copy.test.ts` — 7 tests (new dictionary keys
+resolve in both locales, roadmap wording absent, and a source-level guard that the three components
+no longer contain the old literals).
 
 ## 7. Verification actually run
 
 | Check | Result |
 |---|---|
-| `npm run verify` | exit **0** (boundaries, unit, integration, client+server builds, tsc) |
-| Unit (`vitest.unit.config.ts`) | **251 passed** (23 files) — baseline 234, **+17** |
+| `npm run verify` (= `lint:imports` + `typecheck` + `test` + `build`) | exit **0** |
+| Unit (`vitest.unit.config.ts`) | **258 passed** (24 files) — baseline 234, **+24** |
 | Integration (`vitest.integration.config.ts`) | **306 passed** (23 files) — baseline 306, unchanged |
-| `npm run test:e2e` (full suite) | **78 passed, 0 failed** (3.6m) — baseline 75, **+3** |
+| `npm run test:e2e` (full suite) | **80 passed, 0 failed** (3.6m) — baseline 75, **+5** |
 
 Code paths these executed: `WhatsAppFab.recompute`/`fabZone`/`whatsAppHref` (unit + the collision
 spec driving a real `form_block` into the reserved corner), the `save-system` action branch in
@@ -157,13 +197,15 @@ presence), not painted boxes. Colour, hover state and the fade transition are un
 
 | Ref | SHA |
 |---|---|
-| `arena/01a080e8-tito` (local = remote) | `cdd8cff5643bfc447d07fd0dc5900f1f3ecceb31` |
+| `arena/01a080e8-tito` (local = remote) | tip of this mission's commits — see `git log 567aa8c..HEAD` |
 | `main` (remote) | `567aa8c17a0ca541225e768d16fae75b4d573ba5` — **unchanged** |
 
 Commits this mission:
 
 - `8673861` feat(home): owner-controlled floating WhatsApp button with collision avoidance
 - `cdd8cff` test(e2e): prove owner-controlled social links and contact details
+- `d2c0855` i18n: move user-facing copy out of components into the dictionaries
+- (the commit containing this file's final update)
 
 Working tree clean. No resets, rebases, force-pushes, squashes or amended commits. No PR opened.
 `main` was **not** integrated — the brief allows that only on explicit authorisation.
@@ -172,9 +214,17 @@ Working tree clean. No resets, rebases, force-pushes, squashes or amended commit
 
 Honestly stated, rather than presented as finished:
 
-- **Teacher/course experience and admin-dashboard gap analysis** (brief phases 8–9) were **not**
-  completed. I stopped once the audit showed the social/contact/homepage/header-footer targets
-  already existed and the one real gap was closed and proven.
+- **Phases 8–9 are now complete** as an audit: 29 admin routes and the student surfaces were
+  inventoried, the hard-coded-copy scan was run across `app/routes` and `app/components`, and every
+  genuine finding was fixed (section 4b). No further owner-control gap was found that the existing
+  CMS/settings architecture does not already cover, so nothing else was added — adding settings the
+  UI does not need is the feature explosion the brief forbids.
+- **Teacher-facing surfaces are thin by design, not by omission.** There is no separate teacher app;
+  teachers are managed in `admin.teachers.tsx` and use the admin surface with scoped permissions.
+  Building a distinct teacher portal would be a redesign, which the brief forbids.
 - Competitor capabilities needing real credentials remain unimplemented and unfaked: Mux streaming
   keys, Paymob/Fawry/Stripe keys + webhooks, transactional email, Google OAuth/Forms API for
   question import, YouTube Data API metadata, WhatsApp Business API.
+- **Not visually verified** anywhere in this report: the E2E Chromium is `HeadlessChrome/92`, which
+  predates Tailwind v4's `@layer` output, so utility classes do not apply. Colour, hover and fade
+  transitions are unverified; all assertions read DOM state instead.
