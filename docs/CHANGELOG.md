@@ -2,6 +2,21 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.10.1] — 2026-09-08 (branch `arena/01a07d8c-tito`)
+
+### Added — auth hardening + teacher role + question-bank operations
+
+Feature-gap batches on the working branch `arena/01a07d8c-tito` (no PR; delivered in place on the branch):
+
+- **Batch 1 — transactional email + password reset (`829c0b8`).** Provider-abstracted email layer (no credentials required in dev; owner action documented), single-use hashed expiring reset tokens, session revocation on reset, enumeration-safe forgot/reset UX, rate limiting + audit. See the email batch report in `docs/reports/`.
+- **Batch 2 — email change + verification + welcome email (`6fb120c`).** `email_change_tokens` (migration `0013_email_change_tokens.sql`), enumeration-safe request, atomic claim + ownership re-check on completion, single-use token consumed on success and failure, profile self-service UX + public verification route, best-effort welcome email after committed registration (at most one per account). Locale keys ar/en.
+- **Batch 3 — teacher authoring role + admin Teachers section + permission matrix (`2de64f7`).** Rank-2 teachers can author in the question bank **only** when the operator grants the teacher role an `assessment.*` permission row; `setTeacherPermission` is restricted to the authoring allowlist so billing/payment/user-admin/security/system permissions are unreachable; super_admin / admin-with-`users.manage` only; every grant/revoke audited. `/admin/teachers` lists teachers (search/activate/suspend) and edits the matrix. Granted teachers reach the reused question-bank editors via the admin shell (sidebar filtered to the assessment hub, home redirected to the question bank, grading tab gated behind `assessment.grade`).
+- **Batch 4 — question-bank bulk tag/status + permission wiring (`f86074e`).** `bulkSetQuestionStatus` / `bulkTagQuestions` (per-row results, single-question workflow rules, idempotent tag union), hub action `bulk-status`/`bulk-tag` (publish → `assessment.publish`, else/edit/tag → `assessment.edit`), bulk bar UI, additive search over stem + explanation.
+
+### Verification
+- `npm run verify` green for each batch (lint:imports, typegen + `tsc`, unit suite, integration suite incl. new `teachers.test.ts` 9/9 and `questionbulk.test.ts` 6/6, production build).
+- Security invariants verified in tests: role-scoped grants, never-grantable forbidden permissions, deny for teacher/student on matrix writes, audits, teacher admission/refusal at the route layer, per-question bulk failures.
+
 ## [0.10.0] — 2026-09-08
 
 ### Added — Phase 8 hardening (W0–W10) + assessment/homework extensions + post-8 operational batches
