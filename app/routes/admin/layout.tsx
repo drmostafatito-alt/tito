@@ -57,15 +57,16 @@ function urlPathIsHome(raw: string): boolean {
   return pathname === "/admin" || pathname === "/admin/";
 }
 
-function Brand({ appName, locale }: { appName: string; locale: Locale }) {
+function Brand({ appName, locale, tone = "dark" }: { appName: string; locale: Locale; tone?: "dark" | "light" }) {
+  const dark = tone === "dark";
   return (
     <Link to="/admin" aria-label={appName} className="flex items-center gap-2.5">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white" aria-hidden="true">
-        <AdminIcon name="logo" className="h-5 w-5" />
+      <span className={`font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base leading-none ${dark ? "bg-[#f4eee1] text-brand-950 ring-1 ring-inset ring-accent-500" : "bg-brand-950 text-[#f4eee1] ring-1 ring-inset ring-accent-400/70"}`} aria-hidden="true">
+        <span className="-translate-y-px">{locale === "ar" ? "م" : "T"}</span>
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-sm font-bold leading-tight text-white">{appName}</span>
-        <span className="block text-[11px] font-medium text-brand-300">{t(locale, "nav.adminLabel")}</span>
+        <span className={`font-display block truncate text-base font-semibold leading-tight ${dark ? "text-parchment" : "text-ink"}`}>{appName}</span>
+        <span className={`block text-[11px] font-bold ${dark ? "text-accent-300" : "text-accent-800"}`}>{t(locale, "nav.adminLabel")}</span>
       </span>
     </Link>
   );
@@ -203,10 +204,10 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         aria-label={t(locale, "nav.menu")}
       >
         <div className={`flex h-16 items-center border-b border-white/10 ${collapsed ? "justify-center px-2" : "justify-between gap-2 px-4"}`}>
-          {!collapsed && <Brand appName={appName} locale={locale} />}
+          {!collapsed && <Brand appName={appName} locale={locale} tone="dark" />}
           {collapsed && (
-            <Link to="/admin" aria-label={appName} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white">
-              <AdminIcon name="logo" className="h-5 w-5" />
+            <Link to="/admin" aria-label={appName} className="font-display flex h-9 w-9 items-center justify-center rounded-full bg-[#f4eee1] text-base leading-none text-brand-950 ring-1 ring-inset ring-accent-500">
+              <span aria-hidden="true" className="-translate-y-px">{locale === "ar" ? "م" : "T"}</span>
             </Link>
           )}
           <CollapseButton collapsed={collapsed} locale={locale} onToggle={() => setCollapsed((v) => !v)} />
@@ -253,7 +254,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             </div>
             {/* Mobile brand */}
             <div className="min-w-0 flex-1 lg:hidden">
-              <Brand appName={appName} locale={locale} />
+              <Brand appName={appName} locale={locale} tone="light" />
             </div>
 
             <div className="ms-auto flex shrink-0 items-center gap-1.5">
