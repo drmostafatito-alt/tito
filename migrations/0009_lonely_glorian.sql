@@ -21,22 +21,6 @@ CREATE TABLE `course_prerequisites` (
 CREATE UNIQUE INDEX `course_prerequisites_uidx` ON `course_prerequisites` (`course_id`,`prerequisite_course_id`);--> statement-breakpoint
 CREATE INDEX `course_prerequisites_course_idx` ON `course_prerequisites` (`course_id`);--> statement-breakpoint
 CREATE INDEX `course_prerequisites_prereq_idx` ON `course_prerequisites` (`prerequisite_course_id`);--> statement-breakpoint
-CREATE TABLE `page_templates` (
-	`id` text PRIMARY KEY NOT NULL,
-	`slug` text NOT NULL,
-	`title_ar` text NOT NULL,
-	`title_en` text NOT NULL,
-	`description_ar` text DEFAULT '' NOT NULL,
-	`description_en` text DEFAULT '' NOT NULL,
-	`thumbnail_file_id` text,
-	`snapshot` text NOT NULL,
-	`builtin` integer DEFAULT false NOT NULL,
-	`created_by` text,
-	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `page_templates_slug_unique` ON `page_templates` (`slug`);--> statement-breakpoint
 CREATE TABLE `assignment_submissions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`assignment_id` text NOT NULL,
@@ -79,9 +63,6 @@ CREATE TABLE `assignments` (
 CREATE INDEX `assignments_status_idx` ON `assignments` (`status`);--> statement-breakpoint
 CREATE INDEX `assignments_lesson_idx` ON `assignments` (`lesson_id`);--> statement-breakpoint
 CREATE INDEX `assignments_course_idx` ON `assignments` (`course_id`);--> statement-breakpoint
-ALTER TABLE `files` ADD `alt_ar` text DEFAULT '' NOT NULL;--> statement-breakpoint
-ALTER TABLE `files` ADD `alt_en` text DEFAULT '' NOT NULL;--> statement-breakpoint
-ALTER TABLE `files` ADD `updated_at` integer DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE `lesson_items` ADD `link_url` text;--> statement-breakpoint
 ALTER TABLE `lesson_items` ADD `title_ar` text;--> statement-breakpoint
 ALTER TABLE `lesson_items` ADD `title_en` text;--> statement-breakpoint

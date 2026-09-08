@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "166e09b5-e0e5-4cca-8f8e-0a992faaf130",
+  "id": "0008-cms-customization",
   "prevId": "0008-cms-customization",
   "tables": {
     "devices": {
@@ -101,94 +101,6 @@
         "devices_user_id_users_id_fk": {
           "name": "devices_user_id_users_id_fk",
           "tableFrom": "devices",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "email_change_tokens": {
-      "name": "email_change_tokens",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "new_email": {
-          "name": "new_email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "token_hash": {
-          "name": "token_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "used_at": {
-          "name": "used_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "email_change_token_uq": {
-          "name": "email_change_token_uq",
-          "columns": [
-            "token_hash"
-          ],
-          "isUnique": true
-        },
-        "email_change_user_idx": {
-          "name": "email_change_user_idx",
-          "columns": [
-            "user_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "email_change_tokens_user_id_users_id_fk": {
-          "name": "email_change_tokens_user_id_users_id_fk",
-          "tableFrom": "email_change_tokens",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -1056,67 +968,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "course_prerequisites": {
-      "name": "course_prerequisites",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "course_id": {
-          "name": "course_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "prerequisite_course_id": {
-          "name": "prerequisite_course_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "course_prerequisites_uidx": {
-          "name": "course_prerequisites_uidx",
-          "columns": [
-            "course_id",
-            "prerequisite_course_id"
-          ],
-          "isUnique": true
-        },
-        "course_prerequisites_course_idx": {
-          "name": "course_prerequisites_course_idx",
-          "columns": [
-            "course_id"
-          ],
-          "isUnique": false
-        },
-        "course_prerequisites_prereq_idx": {
-          "name": "course_prerequisites_prereq_idx",
-          "columns": [
-            "prerequisite_course_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "courses": {
       "name": "courses",
       "columns": {
@@ -1357,6 +1208,20 @@
           "autoincrement": false,
           "default": false
         },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "alt_ar": {
           "name": "alt_ar",
           "type": "text",
@@ -1372,20 +1237,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": "''"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
         },
         "updated_at": {
           "name": "updated_at",
@@ -1556,41 +1407,6 @@
         },
         "exam_id": {
           "name": "exam_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "link_url": {
-          "name": "link_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "title_ar": {
-          "name": "title_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "title_en": {
-          "name": "title_en",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "description_ar": {
-          "name": "description_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "description_en": {
-          "name": "description_en",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -2797,111 +2613,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "page_templates": {
-      "name": "page_templates",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title_ar": {
-          "name": "title_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title_en": {
-          "name": "title_en",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "description_ar": {
-          "name": "description_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "''"
-        },
-        "description_en": {
-          "name": "description_en",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "''"
-        },
-        "thumbnail_file_id": {
-          "name": "thumbnail_file_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "builtin": {
-          "name": "builtin",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "page_templates_slug_idx": {
-          "name": "page_templates_slug_idx",
-          "columns": [
-            "slug"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "page_versions": {
       "name": "page_versions",
       "columns": {
@@ -3518,13 +3229,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "file_id": {
-          "name": "file_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "points_earned": {
           "name": "points_earned",
           "type": "real",
@@ -4073,20 +3777,6 @@
         },
         "explanation_en": {
           "name": "explanation_en",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "model_answer_ar": {
-          "name": "model_answer_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "model_answer_en": {
-          "name": "model_answer_en",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -6082,8 +5772,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "assignment_submissions": {
-      "name": "assignment_submissions",
+    "page_templates": {
+      "name": "page_templates",
       "columns": {
         "id": {
           "name": "id",
@@ -6092,129 +5782,10 @@
           "notNull": true,
           "autoincrement": false
         },
-        "assignment_id": {
-          "name": "assignment_id",
+        "slug": {
+          "name": "slug",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "student_id": {
-          "name": "student_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'submitted'"
-        },
-        "text_answer": {
-          "name": "text_answer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "file_id": {
-          "name": "file_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "submitted_at": {
-          "name": "submitted_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "score": {
-          "name": "score",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "feedback": {
-          "name": "feedback",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "graded_by": {
-          "name": "graded_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "graded_at": {
-          "name": "graded_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "assignment_submissions_uidx": {
-          "name": "assignment_submissions_uidx",
-          "columns": [
-            "assignment_id",
-            "student_id"
-          ],
-          "isUnique": true
-        },
-        "assignment_submissions_assignment_idx": {
-          "name": "assignment_submissions_assignment_idx",
-          "columns": [
-            "assignment_id",
-            "submitted_at"
-          ],
-          "isUnique": false
-        },
-        "assignment_submissions_student_idx": {
-          "name": "assignment_submissions_student_idx",
-          "columns": [
-            "student_id"
-          ],
-          "isUnique": false
-        },
-        "assignment_submissions_status_idx": {
-          "name": "assignment_submissions_status_idx",
-          "columns": [
-            "status"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "assignments": {
-      "name": "assignments",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
           "notNull": true,
           "autoincrement": false
         },
@@ -6236,80 +5807,39 @@
           "name": "description_ar",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
         },
         "description_en": {
           "name": "description_en",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "instructions_ar": {
-          "name": "instructions_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "instructions_en": {
-          "name": "instructions_en",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "course_id": {
-          "name": "course_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "unit_id": {
-          "name": "unit_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "lesson_id": {
-          "name": "lesson_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "max_score": {
-          "name": "max_score",
-          "type": "real",
-          "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 100
+          "default": "''"
         },
-        "due_at": {
-          "name": "due_at",
+        "thumbnail_file_id": {
+          "name": "thumbnail_file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "snapshot": {
+          "name": "snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "builtin": {
+          "name": "builtin",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "allowed_submission_types": {
-          "name": "allowed_submission_types",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'draft'"
+          "default": false
         },
         "created_by": {
           "name": "created_by",
@@ -6334,32 +5864,17 @@
         }
       },
       "indexes": {
-        "assignments_status_idx": {
-          "name": "assignments_status_idx",
+        "page_templates_slug_idx": {
+          "name": "page_templates_slug_idx",
           "columns": [
-            "status"
+            "slug"
           ],
-          "isUnique": false
-        },
-        "assignments_lesson_idx": {
-          "name": "assignments_lesson_idx",
-          "columns": [
-            "lesson_id"
-          ],
-          "isUnique": false
-        },
-        "assignments_course_idx": {
-          "name": "assignments_course_idx",
-          "columns": [
-            "course_id"
-          ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     }
   },
   "views": {},

@@ -165,7 +165,7 @@ export const formSubmissions = sqliteTable(
 /** Saved page templates (independent snapshots). Built-ins live in code; custom rows here. */
 export const pageTemplates = sqliteTable("page_templates", {
   id: text("id").primaryKey(),
-  slug: text("slug").notNull().unique(),
+  slug: text("slug").notNull().unique("page_templates_slug_idx"),
   titleAr: text("title_ar").notNull(),
   titleEn: text("title_en").notNull(),
   descriptionAr: text("description_ar").notNull().default(""),
