@@ -6,7 +6,7 @@ All notable changes are documented here. Versioning stays 0.x until first produc
 
 ### Added — Phase 8 hardening (W0–W10) + assessment/homework extensions + post-8 operational batches
 
-This release captures the work delivered after the 0.9.0 (Phase 7) changelog entry. It is engineering-complete and pending the **owner-only production steps** in `docs/PROJECT-PLAN.md` §9 (deploy runbook, `bootstrap-admin --remote`, real provider credentials, real-device matrix).
+This release captures the work delivered after the 0.9.0 (Phase 7) changelog entry. It is engineering-complete and pending the **owner-only production steps** documented in `docs/DEPLOYMENT.md` and `docs/PROJECT-PLAN.md` (deploy runbook, `bootstrap-admin --remote`, real provider credentials, real-device matrix).
 
 - **Phase 8 hardening & release** — full audit/QA pass across security, accessibility, RTL/mobile, performance and dependencies; production-readiness gate (`check:production-readiness`) and final readiness report. See `docs/reports/phase-8-final-readiness-report.md` and the `docs/reports/phase-8-*` weekly reports.
 - **Assessment extensions** — question **pools + randomized exams** (stable per attempt), **essay / written-response questions** with a **manual grading queue** and handwritten file/image upload.
