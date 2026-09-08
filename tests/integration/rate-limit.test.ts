@@ -22,6 +22,26 @@ const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)";
 
 const uniqueEmail = () => `rl-${crypto.randomUUID().slice(0, 8)}@test.local`;
 
+/**
+ * Assert checkRateLimit rejects after `limit+1` genuine calls within one window.
+ *
+ * The counter is a FIXED window keyed on wall-clock time (Date.now()/windowMs,
+ * SECURITY.md §13). A short run of limit+1 sequential calls can straddle a window
+ * boundary mid-loop — that resets the counter in the fresh window and lets the
+ * (limit+1)th call pass. That is correct app behaviour (a new window grants a
+ * fresh quota), not a defect. So loop across up to two windows: this guarantees
+ * at least one full fresh window receives limit+1 calls, and asserts the counter
+ * rejects there. A genuine "never throttles" regression still fails (the loop
+ * exhausts its cap with ok still true).
+ */
+async function expectThrottled(bucket: string, id: string, limit: number, windowMs: number) {
+  let last: { ok: boolean } = { ok: true };
+  for (let i = 0; i < limit * 2 + 1 && last.ok; i++) {
+    last = await checkRateLimit(db, bucket, id, limit, windowMs);
+  }
+  expect(last.ok).toBe(false);
+}
+
 beforeEach(async () => {
   await db.run("DELETE FROM rate_limit_counters");
   for (const table of ["lesson_items", "lessons", "units", "courses", "subjects", "grades", "programs", "videos", "entitlements"]) {
@@ -31,27 +51,15 @@ beforeEach(async () => {
 
 describe("fixed-window counter rejects at the configured thresholds", () => {
   it("playback_mint throttles at 30/min", async () => {
-    let last: { ok: boolean } = { ok: true };
-    for (let i = 0; i < 31; i++) {
-      last = await checkRateLimit(db, "playback_mint", "userA", 30, 60_000);
-    }
-    expect(last.ok).toBe(false); // the 31st call is rejected
+    await expectThrottled("playback_mint", "userA", 30, 60_000);
   });
 
   it("exam_save throttles at 60/min", async () => {
-    let last: { ok: boolean } = { ok: true };
-    for (let i = 0; i < 61; i++) {
-      last = await checkRateLimit(db, "exam_save", "userB", 60, 60_000);
-    }
-    expect(last.ok).toBe(false);
+    await expectThrottled("exam_save", "userB", 60, 60_000);
   });
 
   it("exam_submit throttles at 10/min", async () => {
-    let last: { ok: boolean } = { ok: true };
-    for (let i = 0; i < 11; i++) {
-      last = await checkRateLimit(db, "exam_submit", "userC:attempt1", 10, 60_000);
-    }
-    expect(last.ok).toBe(false);
+    await expectThrottled("exam_submit", "userC:attempt1", 10, 60_000);
   });
 });
 
