@@ -30,7 +30,7 @@ export default function ExamsPage({ loaderData }: Route.ComponentProps) {
       <h1 className="text-xl font-bold">{t(locale, "exam.listTitle")}</h1>
       {exams.length === 0 && (
         <Card>
-          <CardBody className="text-sm text-slate-500">{t(locale, "exam.empty")}</CardBody>
+          <CardBody className="text-sm text-ink-muted">{t(locale, "exam.empty")}</CardBody>
         </Card>
       )}
       {exams.map((exam) => {
@@ -53,7 +53,7 @@ export default function ExamsPage({ loaderData }: Route.ComponentProps) {
                     <Badge tone="success">{t(locale, "exam.start")}</Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-muted">
                   {exam.durationMinutes !== null && exam.durationMinutes > 0
                     ? t(locale, "exam.duration").replace("{n}", String(exam.durationMinutes))
                     : t(locale, "exam.unlimitedDuration")}

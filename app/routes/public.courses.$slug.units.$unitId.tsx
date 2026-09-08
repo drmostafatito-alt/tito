@@ -81,14 +81,14 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-1 text-sm text-slate-500">
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
+      <nav aria-label="breadcrumb" className="mb-1 text-sm text-ink-muted">
+        <Link to="/courses" className="hover:text-brand-700">{t(locale, "content.catalogTitle")}</Link>
         <span className="mx-1.5" aria-hidden>›</span>
-        <Link to={`/courses/${course.slug}`} className="hover:text-brand-600">
+        <Link to={`/courses/${course.slug}`} className="hover:text-brand-700">
           {locale === "ar" ? course.titleAr : course.titleEn}
         </Link>
         <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
+        <span className="font-medium text-ink-soft">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
       </nav>
       <h1 className="mb-6 text-2xl font-bold">{locale === "ar" ? unit.titleAr : unit.titleEn}</h1>
       <ol className="space-y-2">
@@ -97,9 +97,9 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
             <Card>
               <CardBody className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="text-sm text-slate-500">{i + 1}.</span>
+                  <span className="text-sm text-ink-muted">{i + 1}.</span>
                   {l.progress?.status === "completed" && (
-                    <Icon name="check-circle" className="h-4 w-4 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
+                    <Icon name="check-circle" className="h-4 w-4 shrink-0 text-success" aria-label={t(locale, "progress.completed")} />
                   )}
                   {l.progress && l.progress.status !== "completed" && (
                     <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400" aria-hidden />
@@ -109,7 +109,7 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
                       {locale === "ar" ? l.titleAr : l.titleEn}
                     </Link>
                   ) : (
-                    <span className="inline-flex min-w-0 items-center gap-1.5 text-slate-500">
+                    <span className="inline-flex min-w-0 items-center gap-1.5 text-ink-muted">
                       <Icon name="lock" className="h-4 w-4 shrink-0" aria-hidden />
                       <span className="truncate">{locale === "ar" ? l.titleAr : l.titleEn}</span>
                     </span>
@@ -128,10 +128,10 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
             </Card>
           </li>
         ))}
-        {lessons.length === 0 && <p className="text-sm text-slate-500">—</p>}
+        {lessons.length === 0 && <p className="text-sm text-ink-muted">—</p>}
       </ol>
       {!courseAllowed && (
-        <p className="mt-4 text-sm text-slate-500">{t(locale, "content.locked")}</p>
+        <p className="mt-4 text-sm text-ink-muted">{t(locale, "content.locked")}</p>
       )}
     </div>
   );

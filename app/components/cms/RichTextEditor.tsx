@@ -7,7 +7,7 @@ import { safeHref } from "~/cms/links";
  * re-sanitizes on save/publish. Token color classes only — no style="" / JS.
  */
 const btn =
-  "inline-flex h-9 min-w-9 items-center justify-center rounded border border-slate-300 bg-white px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50";
+  "inline-flex h-9 min-w-9 items-center justify-center rounded border border-line bg-surface px-2 text-xs font-semibold text-ink-soft hover:bg-sand-100";
 
 /**
  * CSP `style-src 'self'` (no unsafe-inline) blocks React inline style props —
@@ -113,7 +113,7 @@ export function RichTextEditor({
         aria-multiline="true"
         aria-label={label ?? (dir === "rtl" ? "محرر نص منسق" : "Rich text editor")}
         dir={dir}
-        className={`cms-richtext rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 ${MIN_HEIGHT[rows] ?? "min-h-[8.4rem]"}`}
+        className={`cms-richtext rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 ${MIN_HEIGHT[rows] ?? "min-h-[8.4rem]"}`}
         dangerouslySetInnerHTML={{ __html: defaultValue }}
         onInput={sync}
         onBlur={sync}

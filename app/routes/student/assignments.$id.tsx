@@ -23,7 +23,7 @@ import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
-const textareaCls = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm";
+const textareaCls = "w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm";
 
 export async function loader({ context, request, params }: Route.LoaderArgs) {
   const { auth, settings } = await requireUser(context, request);
@@ -170,18 +170,18 @@ export default function StudentAssignmentDetail({ loaderData }: Route.ComponentP
 
       <Card>
         <CardBody className="space-y-3 text-sm">
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-slate-600">
-            <span><span className="text-slate-500">{t(locale, "assignment.maxScore")}:</span> <b>{assignment.maxScore}</b></span>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-ink-muted">
+            <span><span className="text-ink-muted">{t(locale, "assignment.maxScore")}:</span> <b>{assignment.maxScore}</b></span>
             {assignment.dueAt && (
-              <span><span className="text-slate-500">{t(locale, "assignment.dueAt")}:</span> <b>{formatDate(locale, assignment.dueAt)}</b></span>
+              <span><span className="text-ink-muted">{t(locale, "assignment.dueAt")}:</span> <b>{formatDate(locale, assignment.dueAt)}</b></span>
             )}
-            <span><span className="text-slate-500">{t(locale, "assignment.submitChannels")}:</span> <b>{channelsArr.map((c) => t(locale, `assignment.channel_${c}`)).join(" + ")}</b></span>
+            <span><span className="text-ink-muted">{t(locale, "assignment.submitChannels")}:</span> <b>{channelsArr.map((c) => t(locale, `assignment.channel_${c}`)).join(" + ")}</b></span>
           </div>
-          {description && <p className="whitespace-pre-wrap text-slate-700">{description}</p>}
+          {description && <p className="whitespace-pre-wrap text-ink-soft">{description}</p>}
           {instructions && (
-            <div className="rounded-lg bg-slate-50 p-3">
-              <p className="mb-1 font-semibold text-slate-700">{t(locale, "assignment.instructionsLabel")}</p>
-              <p className="whitespace-pre-wrap text-slate-600">{instructions}</p>
+            <div className="rounded-lg bg-sand-100 p-3">
+              <p className="mb-1 font-semibold text-ink-soft">{t(locale, "assignment.instructionsLabel")}</p>
+              <p className="whitespace-pre-wrap text-ink-muted">{instructions}</p>
             </div>
           )}
         </CardBody>
@@ -191,17 +191,17 @@ export default function StudentAssignmentDetail({ loaderData }: Route.ComponentP
         <Card>
           <CardHeader title={t(locale, "assignment.yourSubmission")} />
           <CardBody className="space-y-3 text-sm">
-            <p className="text-slate-500">{t(locale, "assignment.submittedOn")} {formatDate(locale, submission.submittedAt)}</p>
-            {submission.textAnswer && <p className="whitespace-pre-wrap text-slate-700">{submission.textAnswer}</p>}
+            <p className="text-ink-muted">{t(locale, "assignment.submittedOn")} {formatDate(locale, submission.submittedAt)}</p>
+            {submission.textAnswer && <p className="whitespace-pre-wrap text-ink-soft">{submission.textAnswer}</p>}
             {submission.file && (
               <a href={submission.file.url} target="_blank" rel="noopener noreferrer" className="inline-flex font-medium text-blue-600 hover:underline">
                 {submission.file.originalFilename} ↗
               </a>
             )}
             {submission.status === "graded" && resultVisible && (
-              <div className="rounded-lg bg-emerald-50 p-3">
-                <p className="font-semibold text-emerald-800">{t(locale, "assignment.colScore")}: {submission.score} / {assignment.maxScore}</p>
-                {submission.feedback && <p className="mt-1 whitespace-pre-wrap text-emerald-900">{submission.feedback}</p>}
+              <div className="rounded-lg bg-success-soft p-3">
+                <p className="font-semibold text-success">{t(locale, "assignment.colScore")}: {submission.score} / {assignment.maxScore}</p>
+                {submission.feedback && <p className="mt-1 whitespace-pre-wrap text-success">{submission.feedback}</p>}
               </div>
             )}
           </CardBody>
@@ -224,10 +224,10 @@ export default function StudentAssignmentDetail({ loaderData }: Route.ComponentP
               </Form>
             )}
             {allowFile && (
-              <Form method="post" encType="multipart/form-data" className="grid gap-2 border-t border-slate-100 pt-4">
+              <Form method="post" encType="multipart/form-data" className="grid gap-2 border-t border-line pt-4">
                 <input type="hidden" name="_action" value="submit_file" />
                 <input type="file" name="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="text-sm" />
-                <p className="text-xs text-slate-500">{t(locale, "assignment.fileHint")}</p>
+                <p className="text-xs text-ink-muted">{t(locale, "assignment.fileHint")}</p>
                 <div><SubmitButton variant="secondary" name="_action" value="submit_file">{t(locale, "assignment.uploadSubmit")}</SubmitButton></div>
               </Form>
             )}

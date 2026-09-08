@@ -27,8 +27,8 @@ import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { t, type Locale } from "~/lib/i18n";
 
-const selectCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm";
-const areaCls = "w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm";
+const selectCls = "h-[42px] w-full rounded-lg border border-line bg-surface px-3 text-sm";
+const areaCls = "w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm";
 
 interface ChoiceDraft {
   id: string | null;
@@ -313,7 +313,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
           <CardBody className="space-y-3">
             {isNew ? (
               <div>
-                <label className="text-sm font-medium text-slate-700">{t(locale, "assessment.type")}</label>
+                <label className="text-sm font-medium text-ink-soft">{t(locale, "assessment.type")}</label>
                 <select value={type} onChange={(e) => onTypeChange(e.target.value)} className={selectCls}>
                   <option value="mcq">{t(locale, "assessment.type_mcq")}</option>
                   <option value="true_false">{t(locale, "assessment.type_true_false")}</option>
@@ -322,21 +322,21 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 </select>
               </div>
             ) : (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-muted">
                 {t(locale, "assessment.type")}: {t(locale, `assessment.type_${question!.type}`)}
               </p>
             )}
             <div>
-              <label htmlFor="q-stem-ar" className="text-sm font-medium text-slate-700">{t(locale, "assessment.stemAr")}</label>
+              <label htmlFor="q-stem-ar" className="text-sm font-medium text-ink-soft">{t(locale, "assessment.stemAr")}</label>
               <textarea id="q-stem-ar" name="stemAr" required defaultValue={question?.stemAr ?? ""} rows={2} className={areaCls} />
             </div>
             <div>
-              <label htmlFor="q-stem-en" className="text-sm font-medium text-slate-700">{t(locale, "assessment.stemEn")}</label>
+              <label htmlFor="q-stem-en" className="text-sm font-medium text-ink-soft">{t(locale, "assessment.stemEn")}</label>
               <textarea id="q-stem-en" name="stemEn" required defaultValue={question?.stemEn ?? ""} rows={2} className={areaCls} />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <label htmlFor="q-difficulty" className="text-sm font-medium text-slate-700">{t(locale, "assessment.difficulty")}</label>
+                <label htmlFor="q-difficulty" className="text-sm font-medium text-ink-soft">{t(locale, "assessment.difficulty")}</label>
                 <select id="q-difficulty" name="difficulty" defaultValue={question?.difficulty ?? "medium"} className={selectCls}>
                   <option value="easy">{t(locale, "assessment.diff_easy")}</option>
                   <option value="medium">{t(locale, "assessment.diff_medium")}</option>
@@ -360,7 +360,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
           <Card>
             <CardBody className="space-y-3">
               <h2 className="text-sm font-semibold">{t(locale, "assessment.choices")}</h2>
-              {type === "multi_select" && <p className="text-xs text-amber-600">{t(locale, "exam.multiHint")}</p>}
+              {type === "multi_select" && <p className="text-xs text-warning">{t(locale, "exam.multiHint")}</p>}
               {choices.map((c, i) => (
                 <div key={i} className="rounded-lg border p-3">
                   <div className="flex items-start gap-2">
@@ -378,28 +378,28 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                         onChange={(e) => setChoices((prev) => prev.map((p, idx) => (idx === i ? { ...p, contentAr: e.target.value } : p)))}
                         placeholder={t(locale, "assessment.choiceAr")}
                         aria-label={`${t(locale, "assessment.choiceAr")} ${i + 1}`}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-line px-3 py-2 text-sm"
                       />
                       <input
                         value={c.contentEn}
                         onChange={(e) => setChoices((prev) => prev.map((p, idx) => (idx === i ? { ...p, contentEn: e.target.value } : p)))}
                         placeholder={t(locale, "assessment.choiceEn")}
                         aria-label={`${t(locale, "assessment.choiceEn")} ${i + 1}`}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-line px-3 py-2 text-sm"
                       />
                       <input
                         value={c.feedback}
                         onChange={(e) => setChoices((prev) => prev.map((p, idx) => (idx === i ? { ...p, feedback: e.target.value } : p)))}
                         placeholder={t(locale, "assessment.explanationAr")}
                         aria-label={`${t(locale, "assessment.explanationAr")} ${i + 1}`}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs"
+                        className="w-full rounded-lg border border-line px-3 py-1.5 text-xs"
                       />
                     </div>
                     {choices.length > 2 && (
                       <button
                         type="button"
                         onClick={() => setChoices((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="mt-2 text-xs text-red-600 hover:underline"
+                        className="mt-2 text-xs text-error hover:underline"
                       >
                         {t(locale, "assessment.remove")}
                       </button>
@@ -411,7 +411,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 <button
                   type="button"
                   onClick={() => setChoices((prev) => [...prev, { id: null, contentAr: "", contentEn: "", isCorrect: false, feedback: "" }])}
-                  className="min-h-11 rounded-lg border border-dashed px-4 text-sm text-slate-500 hover:border-brand-400 sm:min-h-0"
+                  className="min-h-11 rounded-lg border border-dashed px-4 text-sm text-ink-muted hover:border-brand-400 sm:min-h-0"
                 >
                   + {t(locale, "assessment.addChoice")}
                 </button>
@@ -424,13 +424,13 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
           <Card>
             <CardBody className="space-y-3">
               <h2 className="text-sm font-semibold">{t(locale, "assessment.modelAnswer")}</h2>
-              <p className="text-xs text-slate-500">{t(locale, "assessment.modelAnswerHint")}</p>
+              <p className="text-xs text-ink-muted">{t(locale, "assessment.modelAnswerHint")}</p>
               <div>
-                <label htmlFor="q-model-ar" className="text-sm font-medium text-slate-700">{t(locale, "assessment.modelAnswerAr")}</label>
+                <label htmlFor="q-model-ar" className="text-sm font-medium text-ink-soft">{t(locale, "assessment.modelAnswerAr")}</label>
                 <textarea id="q-model-ar" name="modelAnswerAr" defaultValue={question?.modelAnswerAr ?? ""} rows={4} className={areaCls} dir="auto" />
               </div>
               <div>
-                <label htmlFor="q-model-en" className="text-sm font-medium text-slate-700">{t(locale, "assessment.modelAnswerEn")}</label>
+                <label htmlFor="q-model-en" className="text-sm font-medium text-ink-soft">{t(locale, "assessment.modelAnswerEn")}</label>
                 <textarea id="q-model-en" name="modelAnswerEn" defaultValue={question?.modelAnswerEn ?? ""} rows={4} className={areaCls} dir="auto" />
               </div>
             </CardBody>
@@ -444,7 +444,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
             <h2 className="pt-2 text-sm font-semibold">{t(locale, "assessment.topicLinks")}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="q-subject" className="text-sm font-medium text-slate-700">Subject</label>
+                <label htmlFor="q-subject" className="text-sm font-medium text-ink-soft">Subject</label>
                 <select id="q-subject" name="subjectId" defaultValue={question?.subjectId ?? ""} className={selectCls}>
                   <option value="">—</option>
                   {subjects.map((s) => (
@@ -455,7 +455,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 </select>
               </div>
               <div>
-                <label htmlFor="q-course" className="text-sm font-medium text-slate-700">Course</label>
+                <label htmlFor="q-course" className="text-sm font-medium text-ink-soft">Course</label>
                 <select id="q-course" name="courseId" defaultValue={question?.courseId ?? ""} className={selectCls}>
                   <option value="">—</option>
                   {courses.map((s) => (
@@ -466,7 +466,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 </select>
               </div>
               <div>
-                <label htmlFor="q-unit" className="text-sm font-medium text-slate-700">Unit</label>
+                <label htmlFor="q-unit" className="text-sm font-medium text-ink-soft">Unit</label>
                 <select id="q-unit" name="unitId" defaultValue={question?.unitId ?? ""} className={selectCls}>
                   <option value="">—</option>
                   {units.map((s) => (
@@ -477,7 +477,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                 </select>
               </div>
               <div>
-                <label htmlFor="q-lesson" className="text-sm font-medium text-slate-700">Lesson</label>
+                <label htmlFor="q-lesson" className="text-sm font-medium text-ink-soft">Lesson</label>
                 <select id="q-lesson" name="lessonId" defaultValue={question?.lessonId ?? ""} className={selectCls}>
                   <option value="">—</option>
                   {lessons.map((s) => (
@@ -497,7 +497,7 @@ export default function QuestionEditorPage({ loaderData, actionData }: Route.Com
                     {locale === "ar" ? tg.labelAr : tg.labelEn}
                   </label>
                 ))}
-                {tags.length === 0 && <span className="text-xs text-slate-500">—</span>}
+                {tags.length === 0 && <span className="text-xs text-ink-muted">—</span>}
               </div>
             </div>
           </CardBody>

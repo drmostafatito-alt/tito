@@ -69,13 +69,13 @@ export default function ActivatePage({}: Route.ComponentProps) {
                 dir="ltr"
                 autoComplete="off"
                 maxLength={40}
-                className="rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase"
+                className="rounded-lg border border-line px-3 py-2 font-mono uppercase"
                 placeholder="EDU-XXXX-XXXX-XXXX"
                 data-testid="code-input"
               />
             </label>
             <SubmitButton name="_action" value="redeem">{t(locale, "commerce.redeemButton")}</SubmitButton>
-            <p className="text-xs text-slate-500">{t(locale, "commerce.redeemNotice")}</p>
+            <p className="text-xs text-ink-muted">{t(locale, "commerce.redeemNotice")}</p>
           </Form>
         </CardBody>
       </Card>

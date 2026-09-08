@@ -75,32 +75,32 @@ export default function AdminSearchPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{L("search.title")}</h1>
-        <p className="mt-1 text-sm text-slate-500">{L("search.subtitle")}</p>
+        <h1 className="text-2xl font-bold text-ink">{L("search.title")}</h1>
+        <p className="mt-1 text-sm text-ink-muted">{L("search.subtitle")}</p>
       </div>
 
       <Form method="get" role="search" className="flex flex-wrap items-center gap-2">
         <label className="sr-only" htmlFor="admin-search-q">{L("search.placeholder")}</label>
         <div className="relative min-w-0 flex-1">
-          <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-slate-400" aria-hidden>🔍</span>
+          <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-sand-400" aria-hidden>🔍</span>
           <input
             id="admin-search-q"
             name="q"
             defaultValue={q}
             autoFocus
             data-testid="admin-search-input"
-            className="h-12 w-full rounded-lg border border-slate-300 bg-white ps-10 pe-3 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="h-12 w-full rounded-lg border border-line bg-surface ps-10 pe-3 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
             placeholder={L("search.placeholder")}
           />
         </div>
-        <button type="submit" className="h-12 rounded-lg bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700">{L("search.button")}</button>
+        <button type="submit" className="h-12 rounded-lg bg-brand-700 px-5 text-sm font-semibold text-white hover:bg-brand-800">{L("search.button")}</button>
       </Form>
 
       {!q ? (
         <EmptyState title={L("search.prompt")} body={L("search.promptBody")} icon="🔍" />
       ) : (
         <>
-          <p className="text-sm text-slate-500">{L("search.resultCount", { n: String(total), q })}</p>
+          <p className="text-sm text-ink-muted">{L("search.resultCount", { n: String(total), q })}</p>
           {total === 0 && <EmptyState title={L("search.noResults")} body={L("search.noResultsBody", { q })} icon="🕵️" />}
 
           {sections.map((s) => {
@@ -109,10 +109,10 @@ export default function AdminSearchPage({ loaderData }: Route.ComponentProps) {
             if (!rows.length) return null;
             return (
               <section key={s.key} aria-label={s.label}>
-                <h2 className="mb-2 flex items-center gap-2 text-base font-bold text-slate-800">
+                <h2 className="mb-2 flex items-center gap-2 text-base font-bold text-ink">
                   {s.label} <Badge tone="neutral">{rows.length}</Badge>
                 </h2>
-                <Card><CardBody className="divide-y divide-slate-100 p-0">
+                <Card><CardBody className="divide-y divide-line p-0">
                   {rows.map((r, idx) => (
                     <Row key={`${s.key}-${String(r.id)}-${idx}`} kind={s.key} row={r} locale={locale} />
                   ))}
@@ -147,18 +147,18 @@ function Row({ kind, row, locale }: { kind: string; row: Record<string, unknown>
         : (String(row.titleEn ?? "") || String(row.titleAr ?? ""));
 
   const meta = kind === "students"
-    ? <span dir="ltr" className="text-slate-500">{String(row.email ?? "")}</span>
+    ? <span dir="ltr" className="text-ink-muted">{String(row.email ?? "")}</span>
     : row.status
       ? <Badge tone="neutral">{L(`search.status.${String(row.status)}`)}</Badge>
       : null;
 
   return (
-    <Link to={to} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
+    <Link to={to} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-sand-100">
       <div className="min-w-0">
-        <p className="truncate font-medium text-slate-800">{title}</p>
+        <p className="truncate font-medium text-ink">{title}</p>
         <p className="text-xs">{meta}</p>
       </div>
-      <span className="shrink-0 text-slate-300" aria-hidden>←</span>
+      <span className="shrink-0 text-sand-300" aria-hidden>←</span>
     </Link>
   );
 }

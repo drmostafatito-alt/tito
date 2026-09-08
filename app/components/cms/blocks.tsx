@@ -53,7 +53,7 @@ function SmartLink({ href, className, children, ariaLabel }: { href: string; cla
 const BUTTON_VARIANT = {
   primary: "bg-brand-700 text-white shadow-sm hover:bg-brand-800",
   secondary: "bg-surface text-ink border border-line shadow-sm hover:border-sand-300",
-  outline: "border border-sand-300 text-ink hover:border-brand-600 hover:text-brand-800",
+  outline: "border border-sand-300 text-ink hover:border-brand-700 hover:text-brand-800",
   ghost: "text-brand-800 hover:bg-brand-50",
 } as const;
 
@@ -168,7 +168,7 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
 function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; compact?: boolean }) {
   const L = ctx.locale;
   const result = ctx.formResults[form.slug];
-  const input = "w-full rounded-[var(--radius-btn)] border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted/70 focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
+  const input = "w-full rounded-[var(--radius-btn)] border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted/70 focus:border-brand-700 focus:outline-none focus:ring-1 focus:ring-brand-600";
   return (
     <form method="post" className={`flex flex-col gap-4 ${compact ? "" : "mx-auto w-full max-w-xl"}`} noValidate>
       <input type="hidden" name="_cmsForm" value={form.slug} />
@@ -655,7 +655,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 );
                 const wrapCls = `flex min-h-16 items-center px-4 py-3 ${idx < items.length - 1 ? "lg:border-e lg:border-white/15" : ""}`;
                 return href ? (
-                  <SmartLink key={idx} href={href} className={`${wrapCls} rounded-2xl transition-colors hover:bg-white/5`}>
+                  <SmartLink key={idx} href={href} className={`${wrapCls} rounded-2xl transition-colors hover:bg-surface/5`}>
                     {inner}
                   </SmartLink>
                 ) : (
@@ -859,13 +859,13 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = `https://wa.me/${phone}`;
       if (raw(p, "style") === "floating") {
         return (
-          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
+          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-success-soft0 text-white shadow-lg hover:bg-emerald-600 ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
             <Icon name="whatsapp" size="lg" colorRole="default" className="text-white" />
           </a>
         );
       }
       return (
-        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-emerald-500 px-6 py-3 text-base font-semibold text-white hover:bg-emerald-600">
+        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-success-soft0 px-6 py-3 text-base font-semibold text-white hover:bg-emerald-600">
           <Icon name="whatsapp" size="sm" colorRole="default" className="text-white" />
           {label}
         </a>

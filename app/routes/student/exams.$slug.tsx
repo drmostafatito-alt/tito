@@ -140,7 +140,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
           <Badge tone="warning">{t(locale, "exam.inProgress")}</Badge>
         )}
       </div>
-      {description && <p className="text-sm text-slate-600">{description}</p>}
+      {description && <p className="text-sm text-ink-muted">{description}</p>}
 
       {(autoExpired || expiredParam) && <Alert kind="warning">{t(locale, "exam.expiredNotice")}</Alert>}
       {!eligibility.ok && <Alert kind="info">{t(locale, reasonKey[eligibility.reason] ?? "exam.noAccess")}</Alert>}
@@ -149,13 +149,13 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
       <Card>
         <CardBody className="space-y-3">
           <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-3">
-            <p className="text-slate-600">
+            <p className="text-ink-muted">
               {policy.durationMinutes !== null && policy.durationMinutes > 0
                 ? t(locale, "exam.duration").replace("{n}", String(policy.durationMinutes))
                 : t(locale, "exam.unlimitedDuration")}
             </p>
-            <p className="text-slate-600">{t(locale, "exam.passPercent").replace("{n}", String(policy.passPercent))}</p>
-            <p className="text-slate-600">
+            <p className="text-ink-muted">{t(locale, "exam.passPercent").replace("{n}", String(policy.passPercent))}</p>
+            <p className="text-ink-muted">
               {policy.attemptsMax === null
                 ? t(locale, "exam.attemptsUnlimited")
                 : t(locale, "exam.attemptsUsed")
@@ -175,8 +175,8 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
       </Card>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-500">{t(locale, "exam.historyTitle")}</h2>
-        {attempts.length === 0 && <p className="text-sm text-slate-500">{t(locale, "exam.noAttempts")}</p>}
+        <h2 className="text-sm font-semibold text-ink-muted">{t(locale, "exam.historyTitle")}</h2>
+        {attempts.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "exam.noAttempts")}</p>}
         {attempts.map((a) => (
           <Card key={a.attemptId}>
             <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -196,21 +196,21 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
                   )}
                 </div>
                 {a.submittedAt !== null && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-muted">
                     {t(locale, "exam.submittedAt")}: {formatDate(locale, a.submittedAt)}
                   </p>
                 )}
                 {a.visible && a.score !== null && a.maxScore !== null && (
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs text-ink-muted">
                     {t(locale, "exam.score")}: {a.score}/{a.maxScore}
                     {a.percentage !== null ? ` · ${a.percentage}%` : ""}
                   </p>
                 )}
                 {!a.visible && a.status === "graded" && (
-                  <p className="text-xs text-slate-500">{t(locale, "exam.resultHidden")}</p>
+                  <p className="text-xs text-ink-muted">{t(locale, "exam.resultHidden")}</p>
                 )}
                 {!a.visible && a.status === "submitted" && (
-                  <p className="text-xs text-slate-500">{t(locale, "exam.awaitingGradingNote")}</p>
+                  <p className="text-xs text-ink-muted">{t(locale, "exam.awaitingGradingNote")}</p>
                 )}
               </div>
               {a.status === "in_progress" ? (
@@ -221,7 +221,7 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
                   {t(locale, "exam.resume")}
                 </Link>
               ) : a.status === "submitted" ? (
-                <span className="text-xs text-slate-400">{t(locale, "exam.awaitingGrading")}</span>
+                <span className="text-xs text-sand-400">{t(locale, "exam.awaitingGrading")}</span>
               ) : (
                 <Link
                   to={`/results/${a.attemptId}`}

@@ -54,8 +54,8 @@ export default function AdminCmsPreview({ loaderData }: Route.ComponentProps) {
   const title = locale === "ar" ? loaderData.page.titleAr : loaderData.page.titleEn;
 
   return (
-    <div className="-mx-4 -my-8 flex flex-col bg-white">
-      <div className="sticky top-16 z-30 flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+    <div className="-mx-4 -my-8 flex flex-col bg-surface">
+      <div className="sticky top-16 z-30 flex flex-wrap items-center gap-3 border-b border-warning/40 bg-warning-soft px-4 py-2 text-sm text-warning">
         <strong>{L("cms.ui.preview")}</strong>
         <span dir="ltr">/{loaderData.page.slug === "home" ? "" : `p/${loaderData.page.slug}`}</span>
         <Link to={`/admin/cms/pages/${loaderData.page.id}`} className="ms-auto font-medium underline underline-offset-4">{L("cms.ui.builder")}</Link>
@@ -74,7 +74,7 @@ export default function AdminCmsPreview({ loaderData }: Route.ComponentProps) {
       {loaderData.rendered ? (
         <PageView sections={loaderData.rendered.sections} ctx={loaderData.rendered.ctx} />
       ) : (
-        <p className="px-4 py-8 text-center text-sm text-slate-500">{title ? `${title} — ${L("cms.ui.noSections")}` : L("cms.ui.noSections")}</p>
+        <p className="px-4 py-8 text-center text-sm text-ink-muted">{title ? `${title} — ${L("cms.ui.noSections")}` : L("cms.ui.noSections")}</p>
       )}
     </div>
   );

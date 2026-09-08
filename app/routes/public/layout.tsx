@@ -171,7 +171,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                     aria-label={locale === "ar" ? s.labelAr || s.network : s.labelEn || s.network}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-muted hover:bg-sand-100"
                   >
                     <Icon name={s.network} size="sm" colorRole="default" className="text-current" />
                   </a>
@@ -181,12 +181,12 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             <LanguageSwitcher locale={locale} options={localeOptions} />
             {loaderData.user ? (
               <>
-                <Link to="/courses" className="hidden min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 md:inline-flex">
+                <Link to="/courses" className="hidden min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-medium text-ink-muted hover:bg-sand-100 md:inline-flex">
                   {t(locale, "content.catalogTitle")}
                 </Link>
                 <Link
                   to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
-                  className="inline-flex min-h-11 items-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+                  className="inline-flex min-h-11 items-center rounded-full bg-brand-700 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-800"
                 >
                   {loaderData.user.rank >= 3 ? t(locale, "common.admin") : t(locale, "common.dashboard")}
                 </Link>
@@ -195,14 +195,14 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               <>
                 <Link
                   to="/login"
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink-soft shadow-sm hover:bg-sand-100"
                 >
                   <Icon name="user" size="sm" colorRole="default" className="text-current" />
                   {t(locale, "common.login")}
                 </Link>
                 <Link
                   to="/register"
-                  className="hidden min-h-11 items-center gap-1.5 rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 sm:inline-flex"
+                  className="hidden min-h-11 items-center gap-1.5 rounded-full bg-brand-700 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-800 sm:inline-flex"
                 >
                   <Icon name="user" size="sm" colorRole="invert" className="text-white" />
                   {t(locale, "common.register")}
@@ -212,7 +212,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             {(loaderData.header.length > 0 || !loaderData.user) && (
               <button
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100 lg:hidden"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-soft hover:bg-sand-100 lg:hidden"
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-nav"
                 aria-label={t(locale, "common.menu")}

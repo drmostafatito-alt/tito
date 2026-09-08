@@ -317,21 +317,21 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50" data-attempt-id={attemptId}>
+    <div className="flex min-h-dvh flex-col bg-sand-100" data-attempt-id={attemptId}>
       {/* sticky header: exit · title · countdown · save state */}
-      <header className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
-          <Link to={`/exams/${examSlug}`} className="shrink-0 text-sm text-slate-500 hover:text-slate-800" aria-label={t(locale, "exam.backToExams")}>
+          <Link to={`/exams/${examSlug}`} className="shrink-0 text-sm text-ink-muted hover:text-ink" aria-label={t(locale, "exam.backToExams")}>
             ✕
           </Link>
           <h1 className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</h1>
-          {saveState === "saving" && <span className="shrink-0 text-xs text-slate-500">{t(locale, "exam.saving")}</span>}
-          {saveState === "saved" && <span className="shrink-0 text-xs text-emerald-600">{t(locale, "exam.saved")}</span>}
-          {saveState === "error" && <span className="shrink-0 text-xs text-red-600">{t(locale, "exam.saveError")}</span>}
+          {saveState === "saving" && <span className="shrink-0 text-xs text-ink-muted">{t(locale, "exam.saving")}</span>}
+          {saveState === "saved" && <span className="shrink-0 text-xs text-success">{t(locale, "exam.saved")}</span>}
+          {saveState === "error" && <span className="shrink-0 text-xs text-error">{t(locale, "exam.saveError")}</span>}
           {remaining !== null && (
             <span
               className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-xs font-bold ${
-                lowTime ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
+                lowTime ? "bg-error-soft text-error" : "bg-sand-100 text-ink-soft"
               }`}
               aria-label={t(locale, "exam.remaining")}
             >
@@ -349,17 +349,17 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
         )}
 
         {current && (
-          <section className="rounded-xl border bg-white p-4 shadow-sm" data-question-id={current.id}>
-            <div className="mb-3 flex items-center justify-between text-xs text-slate-500">
+          <section className="rounded-xl border bg-surface p-4 shadow-sm" data-question-id={current.id}>
+            <div className="mb-3 flex items-center justify-between text-xs text-ink-muted">
               <span>{t(locale, "exam.questionPos").replace("{i}", String(idx + 1)).replace("{n}", String(questions.length))}</span>
               <span>{t(locale, "exam.points").replace("{n}", String(current.points))}</span>
             </div>
             <h2 className="mb-4 text-base font-medium leading-relaxed">
               {locale === "ar" ? current.stemAr || current.stemEn : current.stemEn || current.stemAr}
             </h2>
-            {current.type === "multi_select" && <p className="mb-2 text-xs text-amber-600">{t(locale, "exam.multiHint")}</p>}
+            {current.type === "multi_select" && <p className="mb-2 text-xs text-warning">{t(locale, "exam.multiHint")}</p>}
             {current.type === "essay" && (
-              <p className="mb-2 text-xs text-slate-500">{t(locale, "exam.essayHint")}</p>
+              <p className="mb-2 text-xs text-ink-muted">{t(locale, "exam.essayHint")}</p>
             )}
             {current.type === "essay" ? (
               <div className="space-y-3">
@@ -371,10 +371,10 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
                   disabled={submitting}
                   rows={6}
                   aria-label={t(locale, "exam.essayLabel")}
-                  className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="w-full resize-y rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm leading-relaxed focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                 />
-                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-3">
-                  <p className="mb-2 text-xs text-slate-500">{t(locale, "exam.essayUploadHint")}</p>
+                <div className="rounded-lg border border-dashed border-line bg-sand-100/50 p-3">
+                  <p className="mb-2 text-xs text-ink-muted">{t(locale, "exam.essayUploadHint")}</p>
                   {files[current.id] ? (
                     <div className="flex flex-wrap items-center gap-2" data-essay-file>
                       <a
@@ -382,22 +382,22 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
                         target="_blank"
                         rel="noreferrer"
                         data-essay-file-link
-                        className="min-h-9 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                        className="min-h-9 rounded-lg border border-brand-300 bg-surface px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
                       >
                         {t(locale, "exam.viewSubmission")}
                       </a>
-                      <span dir="ltr" className="max-w-[14rem] truncate text-xs text-slate-500">{files[current.id].originalFilename}</span>
+                      <span dir="ltr" className="max-w-[14rem] truncate text-xs text-ink-muted">{files[current.id].originalFilename}</span>
                       <button
                         type="button"
                         onClick={() => void removeEssayFile(current.id)}
                         disabled={fileBusy || submitting}
-                        className="min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        className="min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium text-error hover:bg-error-soft disabled:opacity-50"
                       >
                         {t(locale, "exam.removeFile")}
                       </button>
                     </div>
                   ) : (
-                    <label className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-brand-400 disabled:opacity-50">
+                    <label className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-brand-400 disabled:opacity-50">
                       {fileBusy ? t(locale, "exam.uploading") : t(locale, "exam.uploadFile")}
                       <input
                         type="file"
@@ -413,7 +413,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
                     </label>
                   )}
                   {fileError && (
-                    <p className="mt-2 text-xs text-red-600" data-file-error>
+                    <p className="mt-2 text-xs text-error" data-file-error>
                       {fileErrorLabel(locale, fileError)}
                     </p>
                   )}
@@ -433,15 +433,15 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
                       disabled={submitting}
                       aria-pressed={selected}
                       className={`flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-start text-sm transition ${
-                        selected ? "border-brand-500 bg-brand-50 text-brand-900" : "border-slate-200 bg-white hover:border-slate-300"
+                        selected ? "border-brand-500 bg-brand-50 text-brand-900" : "border-line bg-surface hover:border-line"
                       }`}
                     >
                       <span
                         className={`flex h-4 w-4 shrink-0 items-center justify-center border ${
                           current.type === "multi_select" ? "rounded" : "rounded-full"
-                        } ${selected ? "border-brand-600 bg-brand-600" : "border-slate-300 bg-white"}`}
+                        } ${selected ? "border-brand-700 bg-brand-700" : "border-line bg-surface"}`}
                       >
-                        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                        {selected && <span className="h-1.5 w-1.5 rounded-full bg-surface" />}
                       </span>
                       <span className="flex-1">{content}</span>
                     </button>
@@ -453,8 +453,8 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
         )}
 
         {/* navigator */}
-        <details className="mt-3 rounded-xl border bg-white p-3">
-          <summary className="cursor-pointer text-xs font-medium text-slate-500">
+        <details className="mt-3 rounded-xl border bg-surface p-3">
+          <summary className="cursor-pointer text-xs font-medium text-ink-muted">
             {t(locale, "exam.navigatorTitle")} — {answeredCount}/{questions.length} {t(locale, "exam.answered")}
           </summary>
           <div className="mt-3 grid grid-cols-8 gap-1.5 sm:grid-cols-10">
@@ -469,10 +469,10 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
                   aria-current={i === idx}
                   className={`min-h-9 rounded-md border text-xs font-medium ${
                     i === idx
-                      ? "border-brand-600 bg-brand-600 text-white"
+                      ? "border-brand-700 bg-brand-700 text-white"
                       : answered
-                        ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 bg-white text-slate-500"
+                        ? "border-success/40 bg-success-soft text-success"
+                        : "border-line bg-surface text-ink-muted"
                   }`}
                 >
                   {i + 1}
@@ -484,7 +484,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
       </main>
 
       {/* sticky footer: prev/next + submit */}
-      <footer className="sticky bottom-0 border-t bg-white/95 backdrop-blur">
+      <footer className="sticky bottom-0 border-t bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-2.5">
           <button
             type="button"
@@ -508,7 +508,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setConfirmOpen(true)}
             disabled={submitting}
-            className="min-h-11 flex-1 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 sm:flex-none"
+            className="min-h-11 flex-1 rounded-lg bg-success px-4 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50 sm:flex-none"
           >
             {submitting ? t(locale, "exam.saving") : t(locale, "exam.submit")}
           </button>
@@ -521,9 +521,9 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
         onClose={() => setConfirmOpen(false)}
         title={t(locale, "exam.submitConfirmTitle")}
       >
-        <p className="text-sm text-slate-600">{t(locale, "exam.submitConfirmBody")}</p>
+        <p className="text-sm text-ink-muted">{t(locale, "exam.submitConfirmBody")}</p>
         {unanswered > 0 && (
-          <p className="mt-1 text-sm font-medium text-amber-600">
+          <p className="mt-1 text-sm font-medium text-warning">
             {t(locale, "exam.submitUnanswered").replace("{n}", String(unanswered))}
           </p>
         )}
@@ -541,7 +541,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
               setConfirmOpen(false);
               void doSubmit();
             }}
-            className="min-h-11 flex-1 rounded-lg bg-emerald-600 px-3 text-sm font-bold text-white hover:bg-emerald-700"
+            className="min-h-11 flex-1 rounded-lg bg-success px-3 text-sm font-bold text-white hover:bg-emerald-800"
           >
             {t(locale, "exam.submitConfirmYes")}
           </button>

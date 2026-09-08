@@ -102,7 +102,7 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
-  const input = "rounded-lg border border-slate-300 px-3 py-2";
+  const input = "rounded-lg border border-line px-3 py-2";
   const statusKey = (s: string) => (s === "ready" ? "videosAdmin.statusReady" : s === "preparing" ? "videosAdmin.statusPreparing" : s === "errored" ? "videosAdmin.statusErrored" : "videosAdmin.statusPending");
 
   return (
@@ -139,11 +139,11 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
               <SubmitButton>{t(locale, "videosAdmin.ingestMaster")}</SubmitButton>
             </div>
           </Form>
-          <Form method="post" className="grid gap-3 border-t border-slate-200 pt-4" data-testid="youtube-form">
+          <Form method="post" className="grid gap-3 border-t border-line pt-4" data-testid="youtube-form">
             <input type="hidden" name="_action" value="register-youtube" />
             <div className="sm:col-span-3">
-              <h2 className="text-sm font-semibold text-slate-700">{t(locale, "videosAdmin.youtubeHeading")}</h2>
-              <p className="text-xs text-slate-500">{t(locale, "videosAdmin.youtubeHeadingHint")}</p>
+              <h2 className="text-sm font-semibold text-ink-soft">{t(locale, "videosAdmin.youtubeHeading")}</h2>
+              <p className="text-xs text-ink-muted">{t(locale, "videosAdmin.youtubeHeadingHint")}</p>
             </div>
             <label className="grid gap-1 text-sm sm:col-span-3">
               <span>{t(locale, "videosAdmin.youtubeUrl")}</span>
@@ -156,7 +156,7 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
                 className={input}
                 data-testid="youtube-url"
               />
-              <span className="text-xs text-slate-400">{t(locale, "videosAdmin.youtubeUrlHint")}</span>
+              <span className="text-xs text-sand-400">{t(locale, "videosAdmin.youtubeUrlHint")}</span>
             </label>
             <label className="grid gap-1 text-sm">
               <span>{t(locale, "videosAdmin.titleAr")}</span>
@@ -180,10 +180,10 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
           </Form>
           {actionData?.ok && <p className="text-sm text-green-600">✓</p>}
           {actionData && "error" in actionData && actionData.error === "youtube_invalid" && (
-            <p className="text-sm text-red-600" data-testid="youtube-error">{t(locale, "videosAdmin.youtubeInvalid")}</p>
+            <p className="text-sm text-error" data-testid="youtube-error">{t(locale, "videosAdmin.youtubeInvalid")}</p>
           )}
           {actionData && "error" in actionData && actionData.error === "provider" && (
-            <p className="text-sm text-red-600">{(actionData as { detail?: string }).detail}</p>
+            <p className="text-sm text-error">{(actionData as { detail?: string }).detail}</p>
           )}
         </CardBody>
       </Card>
@@ -199,20 +199,20 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
                   {t(locale, statusKey(v.status))}
                 </Badge>
                 <span className="max-w-[40%] truncate">{v.title}</span>
-                {v.durationSeconds != null && <span className="text-xs text-slate-500">{v.durationSeconds}s</span>}
-                {v.youtubeId && <span className="font-mono text-xs text-slate-400" data-testid="youtube-id">{v.youtubeId}</span>}
+                {v.durationSeconds != null && <span className="text-xs text-ink-muted">{v.durationSeconds}s</span>}
+                {v.youtubeId && <span className="font-mono text-xs text-sand-400" data-testid="youtube-id">{v.youtubeId}</span>}
                 {v.status !== "ready" && (
                   <Form method="post" className="inline">
                     <input type="hidden" name="_action" value="sync" />
                     <input type="hidden" name="videoId" value={v.id} />
-                    <button className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
+                    <button className="rounded border border-line px-2 py-1 text-xs hover:bg-sand-100">
                       {t(locale, "videosAdmin.sync")}
                     </button>
                   </Form>
                 )}
               </li>
             ))}
-            {loaderData.videos.length === 0 && <li className="text-sm text-slate-500">{t(locale, "videosAdmin.empty")}</li>}
+            {loaderData.videos.length === 0 && <li className="text-sm text-ink-muted">{t(locale, "videosAdmin.empty")}</li>}
           </ul>
         </CardBody>
       </Card>

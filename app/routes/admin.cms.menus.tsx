@@ -105,7 +105,7 @@ function MiniForm({ children, className = "" }: { children: React.ReactNode; cla
 
 function ToolButton({ label, danger = false }: { label: string; danger?: boolean }) {
   return (
-    <button type="submit" className={`inline-flex min-h-9 items-center rounded-lg border px-2.5 text-xs font-medium ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}>
+    <button type="submit" className={`inline-flex min-h-9 items-center rounded-lg border px-2.5 text-xs font-medium ${danger ? "border-error/30 text-error hover:bg-error-soft" : "border-line bg-surface text-ink-muted hover:bg-sand-100"}`}>
       {label}
     </button>
   );
@@ -124,10 +124,10 @@ export default function AdminCmsMenus({ loaderData }: Route.ComponentProps) {
   const label = (ar: string, en: string) => (locale === "ar" ? ar || en : en || ar);
 
   const renderItem = (item: { id: string; labelAr: string; labelEn: string; href: string; external: boolean; icon: string | null; visible: boolean }, depth: number) => (
-    <li key={item.id} className={`flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 ${item.visible ? "bg-white" : "bg-slate-50 opacity-60"} ${depth > 0 ? "ms-6" : ""}`}>
+    <li key={item.id} className={`flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 ${item.visible ? "bg-surface" : "bg-sand-100 opacity-60"} ${depth > 0 ? "ms-6" : ""}`}>
       {item.icon && <Icon name={item.icon} size="sm" colorRole="muted" />}
-      <span className="text-sm font-medium text-slate-800">{label(item.labelAr, item.labelEn)}</span>
-      <span className="text-xs text-slate-500" dir="ltr">{item.href}</span>
+      <span className="text-sm font-medium text-ink">{label(item.labelAr, item.labelEn)}</span>
+      <span className="text-xs text-ink-muted" dir="ltr">{item.href}</span>
       {item.external && <Badge tone="neutral">↗</Badge>}
       <span className="ms-auto flex flex-wrap items-center gap-1.5">
         <MiniForm>
@@ -160,8 +160,8 @@ export default function AdminCmsMenus({ loaderData }: Route.ComponentProps) {
           <Input label={`${L("cms.ui.label")} (English)`} name="labelEn" defaultValue={item.labelEn} dir="ltr" />
           <Input label={L("cms.ui.href")} name="href" defaultValue={item.href} dir="ltr" hint={L("cms.ui.linkHint")} />
           <div className="flex flex-col">
-            <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.f.icon")}</span>
-            <select name="icon" defaultValue={item.icon ?? ""} className="h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm">
+            <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.f.icon")}</span>
+            <select name="icon" defaultValue={item.icon ?? ""} className="h-[42px] rounded-lg border border-line bg-surface px-3 text-sm">
               <option value="">—</option>
               {ICON_IDS.map((id) => <option key={id} value={id}>{id}</option>)}
             </select>
@@ -175,8 +175,8 @@ export default function AdminCmsMenus({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-slate-900"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
-        <h1 className="text-2xl font-bold text-slate-900">{L("cms.ui.menus")}</h1>
+        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-ink-muted hover:text-ink"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
+        <h1 className="text-2xl font-bold text-ink">{L("cms.ui.menus")}</h1>
       </div>
 
       <nav className="flex flex-wrap gap-2" aria-label={L("cms.ui.menus")}>
@@ -184,7 +184,7 @@ export default function AdminCmsMenus({ loaderData }: Route.ComponentProps) {
           <Link
             key={loc}
             to={`/admin/cms/menus?loc=${loc}`}
-            className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium ${location === loc ? "bg-brand-600 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+            className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium ${location === loc ? "bg-brand-700 text-white" : "border border-line bg-surface text-ink-soft hover:bg-sand-100"}`}
           >
             {L(`cms.ui.menu.${loc}`)}
           </Link>
@@ -209,7 +209,7 @@ export default function AdminCmsMenus({ loaderData }: Route.ComponentProps) {
                 </li>
               );
             })}
-            {menu.topLevel.length === 0 && <p className="py-4 text-center text-sm text-slate-500">{L("cms.ui.emptyPicker")}</p>}
+            {menu.topLevel.length === 0 && <p className="py-4 text-center text-sm text-ink-muted">{L("cms.ui.emptyPicker")}</p>}
           </ul>
         </CardBody>
       </Card>
@@ -224,15 +224,15 @@ export default function AdminCmsMenus({ loaderData }: Route.ComponentProps) {
             <Input label={`${L("cms.ui.label")} (English)`} name="labelEn" dir="ltr" />
             <Input label={L("cms.ui.href")} name="href" dir="ltr" required hint={L("cms.ui.linkHint")} placeholder="/courses" />
             <div className="flex flex-col">
-              <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.f.icon")}</span>
-              <select name="icon" defaultValue="" className="h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.f.icon")}</span>
+              <select name="icon" defaultValue="" className="h-[42px] rounded-lg border border-line bg-surface px-3 text-sm">
                 <option value="">—</option>
                 {ICON_IDS.map((id) => <option key={id} value={id}>{id}</option>)}
               </select>
             </div>
             <div className="flex flex-col">
-              <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.ui.parent")}</span>
-              <select name="parentId" defaultValue="" className="h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <span className="mb-1 text-sm font-medium text-ink-soft">{L("cms.ui.parent")}</span>
+              <select name="parentId" defaultValue="" className="h-[42px] rounded-lg border border-line bg-surface px-3 text-sm">
                 <option value="">{L("cms.ui.topLevel")}</option>
                 {menu.topLevel.map((i) => (
                   <option key={i.id} value={i.id}>{label(i.labelAr, i.labelEn)}</option>

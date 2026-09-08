@@ -36,7 +36,7 @@ export function SidebarContent({
                     `flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
                       isActive
                         ? "bg-brand-500/15 text-brand-200"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                        : "text-sand-400 hover:bg-surface/5 hover:text-sand-200"
                     }`
                   }
                 >
@@ -48,7 +48,7 @@ export function SidebarContent({
         }
         return (
           <nav key={section.id} aria-label={t(locale, section.labelKey)} className="flex flex-col gap-0.5">
-            <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-sand-400">
               {t(locale, section.labelKey)}
             </p>
             {section.items.map((item) => (
@@ -61,7 +61,7 @@ export function SidebarContent({
                   `group flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-brand-500/15 text-brand-100"
-                      : "text-slate-300 hover:bg-white/5 hover:text-slate-100"
+                      : "text-sand-300 hover:bg-white/5 hover:text-parchment"
                   }`
                 }
               >
@@ -94,7 +94,7 @@ export function CollapseButton({
       aria-expanded={!collapsed}
       title={t(locale, expand ? "nav.expand" : "nav.collapse")}
       aria-label={t(locale, expand ? "nav.expand" : "nav.collapse")}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200"
+      className="flex h-8 w-8 items-center justify-center rounded-lg text-sand-400 transition-colors hover:bg-surface/5 hover:text-sand-200"
     >
       <svg
         viewBox="0 0 24 24"

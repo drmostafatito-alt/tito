@@ -183,8 +183,8 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-4">
-      <nav className="text-xs text-slate-500">
-        <Link to="/orders" className="hover:text-brand-600">{t(locale, "commerce.myOrders")}</Link>
+      <nav className="text-xs text-ink-muted">
+        <Link to="/orders" className="hover:text-brand-700">{t(locale, "commerce.myOrders")}</Link>
         <span aria-hidden="true"> › </span>
         <span dir="ltr">{order.orderNumber}</span>
       </nav>
@@ -217,9 +217,9 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
               <span dir="ltr">{formatMoney(i.unitPriceMinor, order.currency)}</span>
             </div>
           ))}
-          <div className="border-t border-slate-100 pt-2">
+          <div className="border-t border-line pt-2">
             {order.discountMinor > 0 && (
-              <div className="flex items-center justify-between text-xs text-emerald-700">
+              <div className="flex items-center justify-between text-xs text-success">
                 <span>{t(locale, "commerce.discount")}</span>
                 <span dir="ltr">−{formatMoney(order.discountMinor, order.currency)}</span>
               </div>
@@ -229,7 +229,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
               <span dir="ltr">{formatMoney(order.totalMinor, order.currency)}</span>
             </div>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ink-muted">
             {t(locale, "common.createdAt")}: {formatDate(locale, order.createdAt)}
           </p>
         </CardBody>
@@ -239,16 +239,16 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "commerce.paymentInstructions")} />
           <CardBody className="space-y-3 text-sm">
-            <p className="text-slate-600">
+            <p className="text-ink-muted">
               {t(locale, "commerce.referenceLabel")}:{" "}
               <strong dir="ltr" data-testid="payment-reference">{latest.instructions.reference ?? order.orderNumber}</strong>
             </p>
             {(locale === "ar" ? latest.instructions.instructionsAr : latest.instructions.instructionsEn) ? (
-              <p className="whitespace-pre-line rounded-lg bg-slate-50 p-3 text-slate-700" data-testid="instructions-text">
+              <p className="whitespace-pre-line rounded-lg bg-sand-100 p-3 text-ink-soft" data-testid="instructions-text">
                 {locale === "ar" ? latest.instructions.instructionsAr : latest.instructions.instructionsEn}
               </p>
             ) : (
-              <p className="text-xs text-slate-500">{t(locale, "commerce.instructionsNotConfigured")}</p>
+              <p className="text-xs text-ink-muted">{t(locale, "commerce.instructionsNotConfigured")}</p>
             )}
 
             {latest.status === "under_review" ? (
@@ -261,33 +261,33 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
             ) : null}
 
             {latest.evidence && (latest.status === "under_review" || latest.status === "paid" || latest.status === "failed") && (
-              <dl className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm" data-testid="submitted-evidence">
+              <dl className="space-y-1 rounded-lg border border-line bg-sand-100 p-3 text-sm" data-testid="submitted-evidence">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">{t(locale, "commerce.transferReference")}</dt>
+                  <dt className="text-ink-muted">{t(locale, "commerce.transferReference")}</dt>
                   <dd dir="ltr">{latest.evidence.transferReference || "—"}</dd>
                 </div>
                 {latest.evidence.senderName ? (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">{t(locale, "commerce.senderName")}</dt>
+                    <dt className="text-ink-muted">{t(locale, "commerce.senderName")}</dt>
                     <dd>{latest.evidence.senderName}</dd>
                   </div>
                 ) : null}
                 {latest.evidence.transferAmountMinor != null ? (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">{t(locale, "commerce.transferAmount")}</dt>
+                    <dt className="text-ink-muted">{t(locale, "commerce.transferAmount")}</dt>
                     <dd dir="ltr">{formatMoney(latest.evidence.transferAmountMinor, order.currency)}</dd>
                   </div>
                 ) : null}
                 {latest.evidence.transferDateMs ? (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">{t(locale, "commerce.transferDate")}</dt>
+                    <dt className="text-ink-muted">{t(locale, "commerce.transferDate")}</dt>
                     <dd>{formatDate(locale, latest.evidence.transferDateMs)}</dd>
                   </div>
                 ) : null}
                 {latest.proofPreview ? (
                   <div className="flex flex-col gap-2 pt-1">
-                    <dt className="text-slate-500">{t(locale, "commerce.proofImage")}</dt>
-                    <img src={latest.proofPreview.url} alt={t(locale, "commerce.proofImageAlt")} className="max-h-48 w-full rounded-lg border border-slate-200 bg-white object-contain" data-testid="proof-preview-img" />
+                    <dt className="text-ink-muted">{t(locale, "commerce.proofImage")}</dt>
+                    <img src={latest.proofPreview.url} alt={t(locale, "commerce.proofImageAlt")} className="max-h-48 w-full rounded-lg border border-line bg-surface object-contain" data-testid="proof-preview-img" />
                   </div>
                 ) : null}
               </dl>
@@ -303,38 +303,38 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
                     required
                     dir="ltr"
                     maxLength={200}
-                    className="rounded-lg border border-slate-300 px-3 py-2"
+                    className="rounded-lg border border-line px-3 py-2"
                     placeholder={t(locale, "commerce.transferReferenceHint")}
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  <span>{t(locale, "commerce.senderName")} <span className="text-xs text-slate-400">({t(locale, "commerce.optional")})</span></span>
-                  <input name="senderName" dir="auto" maxLength={200} className="rounded-lg border border-slate-300 px-3 py-2" />
+                  <span>{t(locale, "commerce.senderName")} <span className="text-xs text-sand-400">({t(locale, "commerce.optional")})</span></span>
+                  <input name="senderName" dir="auto" maxLength={200} className="rounded-lg border border-line px-3 py-2" />
                 </label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="grid gap-1 text-sm">
-                    <span>{t(locale, "commerce.transferAmount")} <span className="text-xs text-slate-400">({t(locale, "commerce.mustEqualTotal")})</span></span>
-                    <input name="transferAmount" type="number" inputMode="decimal" step="0.01" min="0" dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2" placeholder={formatMoney(order.totalMinor, order.currency).replace(/[^\d.,\s]/g, "").trim()} />
+                    <span>{t(locale, "commerce.transferAmount")} <span className="text-xs text-sand-400">({t(locale, "commerce.mustEqualTotal")})</span></span>
+                    <input name="transferAmount" type="number" inputMode="decimal" step="0.01" min="0" dir="ltr" className="rounded-lg border border-line px-3 py-2" placeholder={formatMoney(order.totalMinor, order.currency).replace(/[^\d.,\s]/g, "").trim()} />
                   </label>
                   <label className="grid gap-1 text-sm">
-                    <span>{t(locale, "commerce.transferDate")} <span className="text-xs text-slate-400">({t(locale, "commerce.optional")})</span></span>
-                    <input type="datetime-local" name="transferDate" className="rounded-lg border border-slate-300 px-3 py-2" />
+                    <span>{t(locale, "commerce.transferDate")} <span className="text-xs text-sand-400">({t(locale, "commerce.optional")})</span></span>
+                    <input type="datetime-local" name="transferDate" className="rounded-lg border border-line px-3 py-2" />
                   </label>
                 </div>
                 <label className="grid gap-1 text-sm">
-                  <span>{t(locale, "commerce.proofFile")} <span className="text-xs text-slate-400">({t(locale, "commerce.optional")})</span></span>
-                  <input type="file" name="proofFile" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm" />
+                  <span>{t(locale, "commerce.proofFile")} <span className="text-xs text-sand-400">({t(locale, "commerce.optional")})</span></span>
+                  <input type="file" name="proofFile" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-sand-100 file:px-3 file:py-1.5 file:text-sm" />
                 </label>
                 <label className="grid gap-1 text-sm">
                   <span>{t(locale, "commerce.noteOptional")}</span>
-                  <input name="note" dir="auto" maxLength={500} className="rounded-lg border border-slate-300 px-3 py-2" />
+                  <input name="note" dir="auto" maxLength={500} className="rounded-lg border border-line px-3 py-2" />
                 </label>
-                <p className="text-xs text-slate-500">{t(locale, "commerce.proofPrivacy")}</p>
+                <p className="text-xs text-ink-muted">{t(locale, "commerce.proofPrivacy")}</p>
                 <div className="flex flex-wrap items-center gap-3">
                   <SubmitButton name="_action" value="confirm_payment">{t(locale, "commerce.confirmPayment")}</SubmitButton>
                   <SubmitButton variant="secondary" name="_action" value="cancel_order">{t(locale, "commerce.cancelOrder")}</SubmitButton>
                 </div>
-                <p className="text-xs text-slate-500">{t(locale, "commerce.confirmDisclaimer")}</p>
+                <p className="text-xs text-ink-muted">{t(locale, "commerce.confirmDisclaimer")}</p>
               </Form>
             )}
           </CardBody>
@@ -350,7 +350,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
         <CardBody className="space-y-2 text-sm">
           {payments.map((p) => (
             <div key={p.id} className="flex flex-wrap items-center justify-between gap-2" data-testid="payment-row">
-              <span className="text-xs text-slate-500" dir="ltr">
+              <span className="text-xs text-ink-muted" dir="ltr">
                 {p.provider} · {formatDate(locale, p.createdAt)}
               </span>
               <span className="flex items-center gap-2">

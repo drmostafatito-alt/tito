@@ -76,7 +76,7 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">{t(locale, "catalog.programs")}</h1>
       {loaderData.programs.length === 0 ? (
-        <p className="text-slate-500">{t(locale, "catalog.noPrograms")}</p>
+        <p className="text-ink-muted">{t(locale, "catalog.noPrograms")}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {loaderData.programs.map((p) => {
@@ -85,12 +85,12 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
               <Card key={p.slug}>
                 <CardBody>
                   <Link to={`/programs/${p.slug}`} className="group block">
-                    <h2 className="flex items-center gap-2 font-semibold text-slate-800 group-hover:text-brand-600">
+                    <h2 className="flex items-center gap-2 font-semibold text-ink group-hover:text-brand-700">
                       <Icon name="graduation-cap" className="h-5 w-5 text-brand-500" aria-hidden />
                       {locale === "ar" ? p.titleAr : p.titleEn}
                     </h2>
-                    {desc && <p className="mt-1.5 text-sm text-slate-600">{desc}</p>}
-                    <p className="mt-2 text-sm text-slate-500">
+                    {desc && <p className="mt-1.5 text-sm text-ink-muted">{desc}</p>}
+                    <p className="mt-2 text-sm text-ink-muted">
                       {t(locale, "catalog.subjects")}: <span className="tabular-nums">{p.subjectCount}</span>
                     </p>
                   </Link>

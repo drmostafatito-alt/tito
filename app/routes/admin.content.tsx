@@ -133,12 +133,12 @@ function TreeNode({ node, locale, depth = 0 }: { node: AdminTreeNode; locale: Lo
         <StatusBadge status={node.status} locale={locale} />
         <Link
           to={`/admin/content/${node.type}/${node.id}`}
-          className="min-w-0 flex-1 text-sm font-medium text-slate-800 hover:underline"
+          className="min-w-0 flex-1 text-sm font-medium text-ink hover:underline"
         >
           {label}
         </Link>
         {node.slug && (
-          <span dir="ltr" className="min-w-0 max-w-[45%] shrink truncate text-xs text-slate-500">
+          <span dir="ltr" className="min-w-0 max-w-[45%] shrink truncate text-xs text-ink-muted">
             /{node.slug}
           </span>
         )}
@@ -196,7 +196,7 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
     );
   }, [tree, needle, status, type, filtering]);
 
-  const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+  const selectCls = "h-[42px] rounded-lg border border-line bg-surface px-3 text-sm";
 
   return (
     <div className="flex flex-col gap-3">
@@ -206,7 +206,7 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
           onChange={(e) => setQ(e.target.value)}
           placeholder={t(locale, "content.searchTree")}
           aria-label={t(locale, "content.searchTree")}
-          className="h-[42px] min-w-[12rem] flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+          className="h-[42px] min-w-[12rem] flex-1 rounded-lg border border-line bg-surface px-3 text-sm"
           data-testid="content-tree-search"
         />
         <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label={t(locale, "content.status")} className={selectCls} data-testid="content-tree-status">
@@ -225,9 +225,9 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
 
       {rows ? (
         <>
-          <p className="text-xs text-slate-500">{t(locale, "content.resultsCount", { n: rows.length })}</p>
+          <p className="text-xs text-ink-muted">{t(locale, "content.resultsCount", { n: rows.length })}</p>
           {rows.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+            <p className="rounded-lg border border-dashed border-line bg-sand-100 px-4 py-6 text-center text-sm text-ink-muted">
               {t(locale, "content.filterNoMatch")}
             </p>
           ) : (
@@ -236,22 +236,22 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
                 <li key={node.id} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 py-0.5">
                   <StatusBadge status={node.status} locale={locale} />
                   {trail.length > 0 && (
-                    <span className="hidden truncate text-xs text-slate-500 sm:inline">
+                    <span className="hidden truncate text-xs text-ink-muted sm:inline">
                       {trail.map((a) => (locale === "ar" ? a.titleAr : a.titleEn)).join(" › ")} ›
                     </span>
                   )}
-                  <Link to={`/admin/content/${node.type}/${node.id}`} className="min-w-0 flex-1 text-sm font-medium text-slate-800 hover:underline">
+                  <Link to={`/admin/content/${node.type}/${node.id}`} className="min-w-0 flex-1 text-sm font-medium text-ink hover:underline">
                     {locale === "ar" ? node.titleAr : node.titleEn}
                   </Link>
                   <Badge tone="neutral">{t(locale, TYPE_LABEL_KEY[node.type] ?? "content.type")}</Badge>
-                  {node.slug && <span dir="ltr" className="hidden max-w-[30%] shrink truncate text-xs text-slate-500 md:inline">/{node.slug}</span>}
+                  {node.slug && <span dir="ltr" className="hidden max-w-[30%] shrink truncate text-xs text-ink-muted md:inline">/{node.slug}</span>}
                 </li>
               ))}
             </ul>
           )}
         </>
       ) : tree.length === 0 ? (
-        <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+        <p className="text-sm text-ink-muted">{t(locale, "content.catalogEmpty")}</p>
       ) : (
         <ul className="list-none p-0" data-testid="content-tree-full">{tree.map((n) => <TreeNode key={n.id} node={n} locale={locale} />)}</ul>
       )}
@@ -303,15 +303,15 @@ export default function AdminContent({ loaderData }: Route.ComponentProps) {
             <input type="hidden" name="_action" value="create-program" />
             <label className="grid gap-1 text-sm">
               <span>{t(locale, "content.titleAr")}</span>
-              <input name="titleAr" required dir="rtl" className="rounded-lg border border-slate-300 px-3 py-2" />
+              <input name="titleAr" required dir="rtl" className="rounded-lg border border-line px-3 py-2" />
             </label>
             <label className="grid gap-1 text-sm">
               <span>{t(locale, "content.titleEn")}</span>
-              <input name="titleEn" required dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2" />
+              <input name="titleEn" required dir="ltr" className="rounded-lg border border-line px-3 py-2" />
             </label>
             <label className="grid gap-1 text-sm">
               <span>{t(locale, "content.status")}</span>
-              <select name="status" className="rounded-lg border border-slate-300 px-3 py-2">
+              <select name="status" className="rounded-lg border border-line px-3 py-2">
                 <option value="draft">{t(locale, "content.statusDraft")}</option>
                 <option value="published">{t(locale, "content.statusPublished")}</option>
               </select>
@@ -357,7 +357,7 @@ function ContentCreator({ tree, locale }: { tree: AdminTreeNode[]; locale: Local
               name="contentType"
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2"
+              className="rounded-lg border border-line px-3 py-2"
             >
               {(["grade", "subject", "course", "unit", "lesson"] as const).map((tType) => (
                 <option key={tType} value={tType}>
@@ -372,7 +372,7 @@ function ContentCreator({ tree, locale }: { tree: AdminTreeNode[]; locale: Local
               name="parentId"
               value={parentId}
               onChange={(e) => setParentId(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2"
+              className="rounded-lg border border-line px-3 py-2"
             >
               {options.length === 0 && <option value="">—</option>}
               {options.map((o) => (
@@ -384,15 +384,15 @@ function ContentCreator({ tree, locale }: { tree: AdminTreeNode[]; locale: Local
           </label>
           <label className="grid gap-1 text-sm">
             <span>{t(locale, "content.titleAr")}</span>
-            <input name="titleAr" required dir="rtl" className="rounded-lg border border-slate-300 px-3 py-2" />
+            <input name="titleAr" required dir="rtl" className="rounded-lg border border-line px-3 py-2" />
           </label>
           <label className="grid gap-1 text-sm">
             <span>{t(locale, "content.titleEn")}</span>
-            <input name="titleEn" required dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2" />
+            <input name="titleEn" required dir="ltr" className="rounded-lg border border-line px-3 py-2" />
           </label>
           <label className="grid gap-1 text-sm">
             <span>{t(locale, "content.status")}</span>
-            <select name="status" className="rounded-lg border border-slate-300 px-3 py-2">
+            <select name="status" className="rounded-lg border border-line px-3 py-2">
               <option value="draft">{t(locale, "content.statusDraft")}</option>
               <option value="published">{t(locale, "content.statusPublished")}</option>
             </select>
@@ -403,7 +403,7 @@ function ContentCreator({ tree, locale }: { tree: AdminTreeNode[]; locale: Local
           </div>
         </Form>
         {options.length === 0 && (
-          <p className="mt-3 text-xs text-amber-600">
+          <p className="mt-3 text-xs text-warning">
             {t(locale, "content.selectParent", { type: t(locale, `content.${PARENT_OF[type]}`) })} —{" "}
             {t(locale, "content.needParentFirst")}
           </p>

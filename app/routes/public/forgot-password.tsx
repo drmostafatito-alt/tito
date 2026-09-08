@@ -25,8 +25,8 @@ export default function ForgotPassword() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-1 text-2xl font-bold text-slate-900">{t(locale, "auth.forgotTitle")}</h1>
-        <p className="mb-6 text-sm text-slate-500">{t(locale, "auth.forgotDesc")}</p>
+        <h1 className="mb-1 text-2xl font-bold text-ink">{t(locale, "auth.forgotTitle")}</h1>
+        <p className="mb-6 text-sm text-ink-muted">{t(locale, "auth.forgotDesc")}</p>
 
         {actionData?.sent && (
           <div className="mb-4 flex flex-col gap-3">

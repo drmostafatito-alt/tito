@@ -17,7 +17,7 @@ import { Card, CardBody } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
 import { et, t, formatDate, type Locale } from "~/lib/i18n";
 
-const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
+const inputCls = "rounded-lg border border-line px-3 py-2 text-sm";
 // client-side literal mirroring SECURITY_EVENT_TYPES (component code must not touch .server imports)
 const PAGE_SIZE = 25; // mirrors SECURITY_PAGE_SIZE (client-safe literal)
 const EVENT_TYPE_OPTIONS = [
@@ -27,7 +27,7 @@ const EVENT_TYPE_OPTIONS = [
   "sessions_revoked_all", "session_revoked", "rate_limited", "permission_denied",
   "registration", "profile_updated",
 ] as const;
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-line bg-surface px-3 text-sm";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -81,7 +81,7 @@ function Pager({ page, total, tab, extra }: { page: number; total: number; tab: 
   return (
     <div className="flex items-center justify-between pt-2 text-sm">
       {page > 1 ? <Link className="text-blue-700 hover:underline" to={withPage(page - 1)} data-testid="sec-prev">{t(locale, "securityAdmin.prevPage")}</Link> : <span />}
-      <span className="text-xs text-slate-500">{t(locale, "securityAdmin.pageOf", { page, total: totalPages })}</span>
+      <span className="text-xs text-ink-muted">{t(locale, "securityAdmin.pageOf", { page, total: totalPages })}</span>
       {page < totalPages ? <Link className="text-blue-700 hover:underline" to={withPage(page + 1)} data-testid="sec-next">{t(locale, "securityAdmin.nextPage")}</Link> : <span />}
     </div>
   );
@@ -95,7 +95,7 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">{t(locale, "securityAdmin.title")}</h1>
+      <h1 className="text-2xl font-bold text-ink">{t(locale, "securityAdmin.title")}</h1>
 
       {actionData && "error" in actionData && (
         <Alert kind="error"><span data-testid="sec-action-error">{et(locale, "securityAdmin", String(actionData.error))}</span></Alert>
@@ -115,7 +115,7 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
             key={tb}
             to={`/admin/security?tab=${tb}`}
             data-testid={`sec-tab-${tb}`}
-            className={`inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-sm font-medium ${tab === tb ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}
+            className={`inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-sm font-medium ${tab === tb ? "bg-brand-950 text-white" : "bg-surface text-ink-muted ring-1 ring-line hover:bg-sand-100"}`}
           >
             {t(locale, `securityAdmin.tab_${tb}`)}
           </Link>
@@ -136,20 +136,20 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
               </select>
               <SubmitButton variant="secondary">{t(locale, "securityAdmin.filter")}</SubmitButton>
             </Form>
-            <p className="text-xs text-slate-500" data-testid="sec-events-total">{t(locale, "securityAdmin.totalCount", { n: loaderData.eventsQ.total })}</p>
-            {loaderData.eventsQ.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "securityAdmin.emptyEvents")}</p>}
+            <p className="text-xs text-ink-muted" data-testid="sec-events-total">{t(locale, "securityAdmin.totalCount", { n: loaderData.eventsQ.total })}</p>
+            {loaderData.eventsQ.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "securityAdmin.emptyEvents")}</p>}
             {loaderData.eventsQ.rows.map((e) => (
-              <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="security-event-row">
-                <span className="text-xs font-medium text-slate-700" title={e.type}>
+              <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="security-event-row">
+                <span className="text-xs font-medium text-ink-soft" title={e.type}>
                   {t(locale, `securityAdmin.ev_${e.type}`)}
                 </span>
                 {e.userEmail ? (
                   <Link to={`/admin/users/${e.userId}`} className="text-xs text-blue-700 hover:underline" dir="ltr">{e.userEmail}</Link>
                 ) : (
-                  <span className="text-xs text-slate-500">{t(locale, "securityAdmin.anonymous")}</span>
+                  <span className="text-xs text-ink-muted">{t(locale, "securityAdmin.anonymous")}</span>
                 )}
                 {e.userRole && <Badge tone={e.userRole === "student" ? "neutral" : "warning"}>{t(locale, `adminUsers.role_${e.userRole}`)}</Badge>}
-                <span className="text-xs text-slate-500">{formatDate(locale, e.createdAt)}</span>
+                <span className="text-xs text-ink-muted">{formatDate(locale, e.createdAt)}</span>
               </div>
             ))}
             <Pager page={loaderData.eventsQ.page} total={loaderData.eventsQ.total} tab="events" extra={{ q: loaderData.q, type: loaderData.type }} />
@@ -160,15 +160,15 @@ export default function AdminSecurity({ loaderData }: Route.ComponentProps) {
       {tab === "sessions" && loaderData.sessionsQ && (
         <Card>
           <CardBody className="space-y-3">
-            <p className="text-xs text-slate-500" data-testid="sec-sessions-total">{t(locale, "securityAdmin.activeSessions", { n: loaderData.sessionsQ.total })}</p>
-            {loaderData.sessionsQ.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "securityAdmin.emptySessions")}</p>}
+            <p className="text-xs text-ink-muted" data-testid="sec-sessions-total">{t(locale, "securityAdmin.activeSessions", { n: loaderData.sessionsQ.total })}</p>
+            {loaderData.sessionsQ.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "securityAdmin.emptySessions")}</p>}
             {loaderData.sessionsQ.rows.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="session-row">
+              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="session-row">
                 <div className="flex min-w-0 flex-col">
                   <Link to={`/admin/users/${s.userId}`} className="truncate text-xs text-blue-700 hover:underline" dir="ltr">{s.userEmail}</Link>
-                  <span className="truncate text-xs text-slate-500">{s.deviceLabel} · {s.devicePlatform}</span>
+                  <span className="truncate text-xs text-ink-muted">{s.deviceLabel} · {s.devicePlatform}</span>
                 </div>
-                <span className="text-xs text-slate-500">{t(locale, "securityAdmin.lastSeen")}: {formatDate(locale, s.lastSeenAt)}</span>
+                <span className="text-xs text-ink-muted">{t(locale, "securityAdmin.lastSeen")}: {formatDate(locale, s.lastSeenAt)}</span>
                 {canManage && s.userId !== selfId && (
                   <div className="flex gap-2">
                     <Form method="post">

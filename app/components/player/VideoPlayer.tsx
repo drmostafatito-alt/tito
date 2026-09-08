@@ -185,9 +185,9 @@ export function VideoPlayer({
   }, [state, src, videoId, lessonId, onLessonCompleted]);
 
   return (
-    <figure className="overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
+    <figure className="overflow-hidden rounded-xl border border-line bg-brand-950">
       {state === "loading" && (
-        <div className="flex h-56 items-center justify-center text-sm text-slate-300">{t(locale, "player.loading")}</div>
+        <div className="flex h-56 items-center justify-center text-sm text-sand-300">{t(locale, "player.loading")}</div>
       )}
       {state === "denied" && (
         <div className="flex h-56 items-center justify-center text-sm text-red-300">{t(locale, "player.denied")}</div>
@@ -231,10 +231,10 @@ export function VideoPlayer({
         </video>
       )}
       {resumedNotice && state === "ready" && (
-        <p className="bg-slate-800 px-3 py-1.5 text-xs text-slate-300">{t(locale, "player.resumed")}</p>
+        <p className="bg-ink px-3 py-1.5 text-xs text-sand-300">{t(locale, "player.resumed")}</p>
       )}
       {title && state === "ready" && (
-        <figcaption className="bg-slate-900 px-3 py-2 text-sm text-slate-200">{title}</figcaption>
+        <figcaption className="bg-brand-950 px-3 py-2 text-sm text-sand-200">{title}</figcaption>
       )}
     </figure>
   );

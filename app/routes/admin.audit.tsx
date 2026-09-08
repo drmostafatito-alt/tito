@@ -10,8 +10,8 @@ import { Card, CardBody } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
-const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const inputCls = "rounded-lg border border-line px-3 py-2 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-line bg-surface px-3 text-sm";
 
 /** Read-only audit viewer (P7 §13) — no mutation path exists for audit rows. */
 export async function loader({ context, request }: Route.LoaderArgs) {
@@ -42,7 +42,7 @@ export default function AdminAudit({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">{t(locale, "auditAdmin.title")}</h1>
+      <h1 className="text-2xl font-bold text-ink">{t(locale, "auditAdmin.title")}</h1>
       <Alert kind="info">{t(locale, "auditAdmin.immutableNote")}</Alert>
 
       <Card>
@@ -58,24 +58,24 @@ export default function AdminAudit({ loaderData }: Route.ComponentProps) {
             <SubmitButton variant="secondary">{t(locale, "auditAdmin.filter")}</SubmitButton>
           </Form>
 
-          <p className="text-xs text-slate-500" data-testid="audit-total">{t(locale, "auditAdmin.totalCount", { n: audit.total })}</p>
+          <p className="text-xs text-ink-muted" data-testid="audit-total">{t(locale, "auditAdmin.totalCount", { n: audit.total })}</p>
 
-          {audit.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "auditAdmin.empty")}</p>}
+          {audit.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "auditAdmin.empty")}</p>}
 
           {audit.rows.map((a) => (
-            <div key={a.id} className="border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid="audit-row">
+            <div key={a.id} className="border-b border-line py-2.5 text-sm last:border-0" data-testid="audit-row">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono text-xs font-semibold text-slate-700" dir="ltr">{a.action}</span>
-                <span className="text-xs text-slate-500">{formatDate(locale, a.createdAt)}</span>
+                <span className="font-mono text-xs font-semibold text-ink-soft" dir="ltr">{a.action}</span>
+                <span className="text-xs text-ink-muted">{formatDate(locale, a.createdAt)}</span>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
                 <span dir="ltr">{a.actorEmail ?? a.actorUserId?.slice(0, 8) ?? t(locale, "auditAdmin.system")}</span>
                 {a.actorRole && <span className="font-mono" dir="ltr">[{a.actorRole}]</span>}
                 <span className="font-mono" dir="ltr">{a.entityType}{a.entityId ? `#${a.entityId.slice(0, 8)}` : ""}</span>
                 {(a.before || a.after) && (
                   <details className="w-full" data-testid={`audit-details-${a.id}`}>
                     <summary className="cursor-pointer text-blue-700 hover:underline">{t(locale, "auditAdmin.colDetails")}</summary>
-                    <pre className="mt-1 overflow-x-auto rounded bg-slate-50 p-2 text-[11px] text-slate-600" dir="ltr">
+                    <pre className="mt-1 overflow-x-auto rounded bg-sand-100 p-2 text-[11px] text-ink-muted" dir="ltr">
 {a.before ? `before: ${JSON.stringify(a.before, null, 1)}\n` : ""}{a.after ? `after: ${JSON.stringify(a.after, null, 1)}` : ""}
                     </pre>
                   </details>
@@ -89,7 +89,7 @@ export default function AdminAudit({ loaderData }: Route.ComponentProps) {
               {audit.page > 1 ? (
                 <Link className="text-blue-700 hover:underline" to={withPage(audit.page - 1)} data-testid="audit-prev">{t(locale, "auditAdmin.prevPage")}</Link>
               ) : <span />}
-              <span className="text-xs text-slate-500">{t(locale, "auditAdmin.pageOf", { page: audit.page, total: totalPages })}</span>
+              <span className="text-xs text-ink-muted">{t(locale, "auditAdmin.pageOf", { page: audit.page, total: totalPages })}</span>
               {audit.page < totalPages ? (
                 <Link className="text-blue-700 hover:underline" to={withPage(audit.page + 1)} data-testid="audit-next">{t(locale, "auditAdmin.nextPage")}</Link>
               ) : <span />}

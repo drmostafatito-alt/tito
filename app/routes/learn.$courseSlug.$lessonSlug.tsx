@@ -217,7 +217,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <nav className="mb-2 flex items-center gap-1 text-sm text-slate-500" aria-label={t(locale, "common.breadcrumb")}>
+      <nav className="mb-2 flex items-center gap-1 text-sm text-ink-muted" aria-label={t(locale, "common.breadcrumb")}>
         <Link to={`/courses/${course.slug}`} className="hover:underline">
           {locale === "ar" ? course.titleAr : course.titleEn}
         </Link>
@@ -231,7 +231,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
       </div>
       {progress && progress.course.total > 0 && (
         <div className="mb-4" aria-label={t(locale, "progress.courseProgress")}>
-          <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+          <div className="mb-1 flex items-center justify-between text-xs text-ink-muted">
             <span>{t(locale, "progress.courseProgress")}</span>
             <span dir="ltr">{progress.course.completed}/{progress.course.total} · {progress.course.pct}%</span>
           </div>
@@ -239,13 +239,13 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
       {pres.showDescription && (locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn) && (
-        <p className="mb-6 text-slate-600">{locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn}</p>
+        <p className="mb-6 text-ink-muted">{locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn}</p>
       )}
 
       {!verdict.allowed ? (
         <Card>
           <CardBody>
-            <p className="text-sm text-slate-600">{t(locale, "content.locked")}</p>
+            <p className="text-sm text-ink-muted">{t(locale, "content.locked")}</p>
             <Link to={`/courses/${course.slug}`} className="mt-2 inline-block text-sm text-blue-600 hover:underline">
               {t(locale, "common.back")}
             </Link>
@@ -269,7 +269,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 />
               ) : (
                 <Card key={item.key}>
-                  <CardBody className="text-sm text-slate-500">
+                  <CardBody className="text-sm text-ink-muted">
                     {t(locale, "content.videoItem")} — {t(locale, `videosAdmin.statusPending`)}…
                   </CardBody>
                 </Card>
@@ -285,17 +285,17 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 <Card key={item.key}>
                   <CardBody className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+                      <h3 className="text-sm font-semibold text-ink">{title}</h3>
                       {item.required && (
-                        <span className="text-xs text-slate-500">{t(locale, "content.required")}</span>
+                        <span className="text-xs text-ink-muted">{t(locale, "content.required")}</span>
                       )}
                     </div>
-                    {desc && <p className="text-sm text-slate-600">{desc}</p>}
+                    {desc && <p className="text-sm text-ink-muted">{desc}</p>}
                     {/* Google Forms sets its own X-Frame-Options for /viewform with
                         ?embedded=true, so the iframe is the supported path. The
                         external link is always offered as well, so the quiz is
                         reachable even where embedding is blocked. */}
-                    <div className="overflow-hidden rounded-lg border border-slate-200" data-testid="external-quiz">
+                    <div className="overflow-hidden rounded-lg border border-line" data-testid="external-quiz">
                       <iframe
                         src={item.embedUrl}
                         title={title}
@@ -309,7 +309,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                       href={item.openUrl}
                       target="_blank"
                       rel="noopener noreferrer nofollow"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 underline"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 underline"
                       data-testid="external-quiz-open"
                     >
                       {t(locale, "content.linkOpen")} ↗
@@ -325,7 +325,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                   <CardBody className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-medium">📄 {item.filename}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-ink-muted">
                         {Math.max(1, Math.round(item.byteSize / 1024))} KB · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
                       </p>
                     </div>
@@ -351,13 +351,13 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                   <CardBody className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-medium">📝 {locale === "ar" ? item.titleAr : item.titleEn}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-ink-muted">
                         {t(locale, "content.examItem")} · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
                       </p>
                     </div>
                     <Link
                       to={`/exams/${item.slug}`}
-                      className="min-h-11 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 sm:min-h-0 sm:py-2"
+                      className="min-h-11 rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 sm:min-h-0 sm:py-2"
                     >
                       {t(locale, "exam.start")}
                     </Link>
@@ -367,13 +367,13 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
             }
             return (
               <Card key={item.key}>
-                <CardBody className="text-sm text-slate-500">
+                <CardBody className="text-sm text-ink-muted">
                   {t(locale, "content.examItem")} — {t(locale, "content.examNotReady")}
                 </CardBody>
               </Card>
             );
           })}
-          {items.length === 0 && <p className="text-sm text-slate-500">—</p>}
+          {items.length === 0 && <p className="text-sm text-ink-muted">—</p>}
           <Form method="post" className="pt-2" data-lesson-id={lessonId}>
             <input type="hidden" name="_action" value="toggle-complete" />
             <input type="hidden" name="completed" value={lessonCompleted ? "0" : "1"} />

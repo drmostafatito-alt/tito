@@ -87,7 +87,7 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">{t(locale, "content.catalogTitle")}</h1>
       {loaderData.courses.length === 0 ? (
-        <p className="text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+        <p className="text-ink-muted">{t(locale, "content.catalogEmpty")}</p>
       ) : (
         <div className={`grid gap-4 ${LAYOUT_GRID[pres.layout as keyof typeof LAYOUT_GRID] ?? LAYOUT_GRID.standard}`}>
           {loaderData.courses.map((course) => {
@@ -116,7 +116,7 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
                   <h2 className="text-lg font-semibold">
                     <Link to={`/courses/${course.slug}`} className="hover:underline">{c(course)}</Link>
                   </h2>
-                  {meta.length > 0 && <p className="mt-1 text-sm text-slate-500">{meta.join(" · ")}</p>}
+                  {meta.length > 0 && <p className="mt-1 text-sm text-ink-muted">{meta.join(" · ")}</p>}
                   {cta && (
                     <Link to={`/courses/${course.slug}`} className="mt-3 inline-flex min-h-9 items-center text-sm font-semibold text-brand-700 hover:text-brand-800">
                       {cta}

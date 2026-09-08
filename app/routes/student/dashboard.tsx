@@ -150,8 +150,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-500">{welcomeLine}</p>
-          <h1 className="text-2xl font-bold text-slate-900">{loaderData.user.fullName}</h1>
+          <p className="text-sm text-ink-muted">{welcomeLine}</p>
+          <h1 className="text-2xl font-bold text-ink">{loaderData.user.fullName}</h1>
         </div>
         <Badge tone="brand">
           {t(locale, "dashboard.role")}: {roleLabel[loaderData.user.roleId] ?? loaderData.user.roleId}
@@ -164,16 +164,16 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "progress.continueTitle")} />
           <CardBody>
             {loaderData.continueItems.length === 0 ? (
-              <p className="text-sm text-slate-500">{t(locale, "progress.continueEmpty")}</p>
+              <p className="text-sm text-ink-muted">{t(locale, "progress.continueEmpty")}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {loaderData.continueItems.map((item) => (
                   <li key={`${item.courseSlug}/${item.lessonSlug}`}>
                     <Link
                       to={`/learn/${item.courseSlug}/${item.lessonSlug}`}
-                      className="flex min-h-11 flex-col gap-1 rounded-lg border border-slate-200 px-4 py-2.5 hover:border-brand-300 hover:bg-brand-50/40"
+                      className="flex min-h-11 flex-col gap-1 rounded-lg border border-line px-4 py-2.5 hover:border-brand-300 hover:bg-brand-50/40"
                     >
-                      <span className="flex items-center justify-between gap-2 text-sm font-medium text-slate-800">
+                      <span className="flex items-center justify-between gap-2 text-sm font-medium text-ink">
                         {locale === "ar" ? item.lessonTitleAr || item.lessonTitleEn : item.lessonTitleEn || item.lessonTitleAr}
                         {item.status === "completed" ? (
                           <Badge tone="success">{t(locale, "progress.completed")}</Badge>
@@ -181,7 +181,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                           <span className="text-xs font-normal text-brand-700">{t(locale, "progress.resume")}</span>
                         )}
                       </span>
-                      <span className="flex items-center gap-2 text-xs text-slate-500">
+                      <span className="flex items-center gap-2 text-xs text-ink-muted">
                         {locale === "ar" ? item.courseTitleAr || item.courseTitleEn : item.courseTitleEn || item.courseTitleAr}
                         <span dir="ltr">· {item.pct}%</span>
                       </span>
@@ -199,17 +199,17 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "progress.statsTitle")} />
           <CardBody>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-slate-200 p-3 text-center">
+              <div className="rounded-lg border border-line p-3 text-center">
                 <p className="text-2xl font-bold text-brand-700" dir="ltr">{loaderData.stats.completedLessons}</p>
-                <p className="text-xs text-slate-500">{t(locale, "progress.completedLessons")}</p>
+                <p className="text-xs text-ink-muted">{t(locale, "progress.completedLessons")}</p>
               </div>
-              <div className="rounded-lg border border-slate-200 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-700" dir="ltr">{loaderData.stats.inProgressLessons}</p>
-                <p className="text-xs text-slate-500">{t(locale, "progress.lessonsInProgress")}</p>
+              <div className="rounded-lg border border-line p-3 text-center">
+                <p className="text-2xl font-bold text-ink-soft" dir="ltr">{loaderData.stats.inProgressLessons}</p>
+                <p className="text-xs text-ink-muted">{t(locale, "progress.lessonsInProgress")}</p>
               </div>
-              <div className="rounded-lg border border-slate-200 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-700" dir="ltr">{loaderData.stats.completedVideos}</p>
-                <p className="text-xs text-slate-500">{t(locale, "progress.completedVideos")}</p>
+              <div className="rounded-lg border border-line p-3 text-center">
+                <p className="text-2xl font-bold text-ink-soft" dir="ltr">{loaderData.stats.completedVideos}</p>
+                <p className="text-xs text-ink-muted">{t(locale, "progress.completedVideos")}</p>
               </div>
             </div>
           </CardBody>
@@ -221,18 +221,18 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.myCourses")} />
           <CardBody>
             {loaderData.myCourses.length === 0 ? (
-              <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+              <p className="text-sm text-ink-muted">{t(locale, "content.catalogEmpty")}</p>
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {loaderData.myCourses.map((course) => (
                   <li key={course.slug}>
                     <Link
                       to={`/courses/${course.slug}`}
-                      className="flex min-h-11 flex-col gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 hover:border-brand-300 hover:bg-brand-50/40"
+                      className="flex min-h-11 flex-col gap-1.5 rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-ink hover:border-brand-300 hover:bg-brand-50/40"
                     >
                       <span className="flex items-center justify-between gap-2">
                         {locale === "ar" ? course.titleAr || course.titleEn : course.titleEn || course.titleAr}
-                        <span className="text-xs font-normal text-slate-500" dir="ltr">{course.pct}%</span>
+                        <span className="text-xs font-normal text-ink-muted" dir="ltr">{course.pct}%</span>
                       </span>
                       <ProgressBar pct={course.pct} label={t(locale, "progress.courseProgress")} />
                     </Link>
@@ -258,12 +258,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           />
           <CardBody>
             {loaderData.announcementsModule.items.length === 0 ? (
-              <p className="text-sm text-slate-500" data-testid="dash-announcements-empty">{t(locale, "notifications.empty")}</p>
+              <p className="text-sm text-ink-muted" data-testid="dash-announcements-empty">{t(locale, "notifications.empty")}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {loaderData.announcementsModule.items.map((a) => (
                   <li key={a.id} className="flex items-center justify-between gap-2 text-sm" data-testid="dash-announcement-row">
-                    <Link to="/notifications" className="truncate font-medium text-slate-800 hover:text-brand-700">
+                    <Link to="/notifications" className="truncate font-medium text-ink hover:text-brand-700">
                       {locale === "ar" ? a.titleAr || a.titleEn : a.titleEn || a.titleAr}
                     </Link>
                     {!a.readAt && <Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge>}
@@ -282,12 +282,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <ul className="flex flex-col gap-2">
               {loaderData.expiringModule.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-2 text-sm" data-testid="dash-expiry-row">
-                  <span className="truncate font-medium text-slate-800">
+                  <span className="truncate font-medium text-ink">
                     {(locale === "ar" ? s.titleAr || s.titleEn : s.titleEn || s.titleAr) || t(locale, "dashboard.subscriptionGeneric")}
                   </span>
                   <span className="flex items-center gap-2">
                     <Badge tone="warning">{t(locale, "dashboard.expiresOn")}</Badge>
-                    <span className="text-xs text-slate-500">{formatDate(locale, s.endAt)}</span>
+                    <span className="text-xs text-ink-muted">{formatDate(locale, s.endAt)}</span>
                   </span>
                 </li>
               ))}
@@ -301,10 +301,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.quickActions")} />
           <CardBody>
             <div className="flex flex-wrap gap-2">
-              <Link to="/courses" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
+              <Link to="/courses" className="inline-flex min-h-11 items-center rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800">
                 {t(locale, "content.catalogTitle")}
               </Link>
-              <Link to="/profile/security" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              <Link to="/profile/security" className="inline-flex min-h-11 items-center rounded-lg border border-line bg-surface px-4 text-sm font-medium text-ink-soft hover:bg-sand-100">
                 {t(locale, "security.devicesTitle")}
               </Link>
             </div>
@@ -344,13 +344,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "dashboard.sessionCard")} />
           <CardBody>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-ink-muted">
               {t(locale, "dashboard.sessionExpires")}{" "}
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-ink">
                 {formatDate(locale, loaderData.session.expiresAt)}
               </span>
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-ink-muted">
               {t(locale, "security.devicesTitle")}: {loaderData.activeDevices} · {locale === "ar" ? "جلسات" : "sessions"}: {loaderData.activeSessions}
             </p>
           </CardBody>
@@ -359,8 +359,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "dashboard.deviceCard")} />
           <CardBody>
-            <p className="text-sm font-medium text-slate-900">{loaderData.device.label}</p>
-            <p className="mt-1 text-xs text-slate-500">{loaderData.device.platform}</p>
+            <p className="text-sm font-medium text-ink">{loaderData.device.label}</p>
+            <p className="mt-1 text-xs text-ink-muted">{loaderData.device.platform}</p>
             <Link to="/profile/security" className="mt-3 inline-flex min-h-6 items-center text-sm font-medium text-brand-700 hover:underline">
               {t(locale, "dashboard.securityLink")}
               <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
@@ -373,13 +373,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <CardHeader title={locale === "ar" ? "آخر النشاطات الأمنية" : "Recent security activity"} />
         <CardBody>
           {loaderData.recentEvents.length === 0 ? (
-            <p className="text-sm text-slate-500">—</p>
+            <p className="text-sm text-ink-muted">—</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {loaderData.recentEvents.map((ev, i) => (
                 <li key={i} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-slate-600">{ev.type}</span>
-                  <span className="text-xs text-slate-500">{formatDate(locale, ev.createdAt)}</span>
+                  <span className="text-ink-muted">{ev.type}</span>
+                  <span className="text-xs text-ink-muted">{formatDate(locale, ev.createdAt)}</span>
                 </li>
               ))}
             </ul>

@@ -27,9 +27,9 @@ import { SubmitButton } from "~/components/ui/Button";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
-const selectCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm";
-const textareaCls = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm";
-const inputCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "h-[42px] w-full rounded-lg border border-line bg-surface px-3 text-sm";
+const textareaCls = "w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm";
+const inputCls = "h-[42px] w-full rounded-lg border border-line bg-surface px-3 text-sm";
 
 interface Issue { path: string; message: string; }
 const toLocalInput = (ms: number | null) => (ms === null ? "" : new Date(ms).toISOString().slice(0, 16));
@@ -200,41 +200,41 @@ function AssignmentForm({ locale, assignment, courses, units, lessons, disabled,
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-slate-700">{t(locale, "assignment.descriptionLabel")}{langAr}</span>
+          <span className="text-sm font-medium text-ink-soft">{t(locale, "assignment.descriptionLabel")}{langAr}</span>
           <textarea name="descriptionAr" defaultValue={assignment.descriptionAr ?? ""} disabled={disabled} className={textareaCls} rows={2} />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-slate-700">{t(locale, "assignment.descriptionLabel")}{langEn}</span>
+          <span className="text-sm font-medium text-ink-soft">{t(locale, "assignment.descriptionLabel")}{langEn}</span>
           <textarea name="descriptionEn" defaultValue={assignment.descriptionEn ?? ""} disabled={disabled} className={textareaCls} rows={2} />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-slate-700">{t(locale, "assignment.instructionsLabel")} ({t(locale, "assignment.langAr")})</span>
+          <span className="text-sm font-medium text-ink-soft">{t(locale, "assignment.instructionsLabel")} ({t(locale, "assignment.langAr")})</span>
           <textarea name="instructionsAr" defaultValue={assignment.instructionsAr ?? ""} disabled={disabled} className={textareaCls} rows={3} />
         </label>
         <label className="grid gap-1.5">
-          <span className="text-sm font-medium text-slate-700">{t(locale, "assignment.instructionsLabel")} ({t(locale, "assignment.langEn")})</span>
+          <span className="text-sm font-medium text-ink-soft">{t(locale, "assignment.instructionsLabel")} ({t(locale, "assignment.langEn")})</span>
           <textarea name="instructionsEn" defaultValue={assignment.instructionsEn ?? ""} disabled={disabled} className={textareaCls} rows={3} />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
-          <label className="text-sm font-medium text-slate-700">{t(locale, "assignment.courseLabel")}</label>
+          <label className="text-sm font-medium text-ink-soft">{t(locale, "assignment.courseLabel")}</label>
           <select name="courseId" defaultValue={assignment.courseId ?? ""} disabled={disabled} className={selectCls}>
             <option value="">—</option>
             {courses.map((c) => <option key={c.id} value={c.id}>{locale === "ar" ? c.labelAr : c.labelEn}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-sm font-medium text-slate-700">{t(locale, "assignment.unitLabel")}</label>
+          <label className="text-sm font-medium text-ink-soft">{t(locale, "assignment.unitLabel")}</label>
           <select name="unitId" defaultValue={assignment.unitId ?? ""} disabled={disabled} className={selectCls}>
             <option value="">—</option>
             {units.map((c) => <option key={c.id} value={c.id}>{locale === "ar" ? c.labelAr : c.labelEn}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-sm font-medium text-slate-700">{t(locale, "assignment.lessonLabel")}</label>
+          <label className="text-sm font-medium text-ink-soft">{t(locale, "assignment.lessonLabel")}</label>
           <select name="lessonId" defaultValue={assignment.lessonId ?? ""} disabled={disabled} className={selectCls}>
             <option value="">—</option>
             {lessons.map((c) => <option key={c.id} value={c.id}>{locale === "ar" ? c.labelAr : c.labelEn}</option>)}
@@ -244,11 +244,11 @@ function AssignmentForm({ locale, assignment, courses, units, lessons, disabled,
       <div className="grid gap-3 sm:grid-cols-3">
         <Input label={t(locale, "assignment.maxScore")} name="maxScore" type="number" min={1} step="0.5" defaultValue={String(assignment.maxScore)} disabled={disabled} required />
         <div>
-          <label className="text-sm font-medium text-slate-700">{t(locale, "assignment.dueAt")} (UTC)</label>
+          <label className="text-sm font-medium text-ink-soft">{t(locale, "assignment.dueAt")} (UTC)</label>
           <input name="dueAt" type="datetime-local" defaultValue={assignment.dueAt ? toLocalInput(assignment.dueAt) : ""} disabled={disabled} className={inputCls} />
         </div>
         <div className="sm:col-span-1">
-          <span className="text-sm font-medium text-slate-700">{t(locale, "assignment.submitChannels")}</span>
+          <span className="text-sm font-medium text-ink-soft">{t(locale, "assignment.submitChannels")}</span>
           <div className="mt-1.5 flex gap-4 text-sm">
             {(["text", "file"] as const).map((ch) => (
               <label key={ch} className="flex items-center gap-1.5">
@@ -330,15 +330,15 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
       <Card>
         <CardBody className="space-y-3">
           <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            <div><span className="text-slate-500">{t(locale, "assignment.maxScore")}: </span><b>{a.maxScore}</b></div>
-            <div><span className="text-slate-500">{t(locale, "assignment.dueAt")}: </span><b>{a.dueAt ? formatDate(locale, a.dueAt) : t(locale, "assignment.notSet")}</b></div>
-            <div><span className="text-slate-500">{t(locale, "assignment.submitChannels")}: </span><b>{channels.map((c) => labelEn(`assignment.channel_${c}`)).join(" + ")}</b></div>
+            <div><span className="text-ink-muted">{t(locale, "assignment.maxScore")}: </span><b>{a.maxScore}</b></div>
+            <div><span className="text-ink-muted">{t(locale, "assignment.dueAt")}: </span><b>{a.dueAt ? formatDate(locale, a.dueAt) : t(locale, "assignment.notSet")}</b></div>
+            <div><span className="text-ink-muted">{t(locale, "assignment.submitChannels")}: </span><b>{channels.map((c) => labelEn(`assignment.channel_${c}`)).join(" + ")}</b></div>
             <div className="sm:col-span-2 lg:col-span-3">
-              <span className="text-slate-500">{t(locale, "assignment.locationLabel")}: </span>
+              <span className="text-ink-muted">{t(locale, "assignment.locationLabel")}: </span>
               <b>{[locationName(location?.course), locationName(location?.unit), locationName(location?.lesson)].filter(Boolean).join(" › ") || t(locale, "assignment.notAttached")}</b>
             </div>
           </div>
-          {a.descriptionAr && <p className="text-sm text-slate-600">{locale === "ar" ? a.descriptionAr : a.descriptionEn}</p>}
+          {a.descriptionAr && <p className="text-sm text-ink-muted">{locale === "ar" ? a.descriptionAr : a.descriptionEn}</p>}
         </CardBody>
       </Card>
 
@@ -357,9 +357,9 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
 
       {/* stats (real data) */}
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card><CardBody><p className="text-2xl font-bold text-slate-800">{summary?.total ?? 0}</p><p className="text-sm text-slate-500">{t(locale, "assignment.totalSubmissions")}</p></CardBody></Card>
-        <Card><CardBody><p className="text-2xl font-bold text-amber-600">{summary?.submittedCount ?? 0}</p><p className="text-sm text-slate-500">{t(locale, "assignment.awaitingGrading")}</p></CardBody></Card>
-        <Card><CardBody><p className="text-2xl font-bold text-emerald-600">{summary?.gradedCount ?? 0}</p><p className="text-sm text-slate-500">{t(locale, "assignment.gradedTitle")}</p></CardBody></Card>
+        <Card><CardBody><p className="text-2xl font-bold text-ink">{summary?.total ?? 0}</p><p className="text-sm text-ink-muted">{t(locale, "assignment.totalSubmissions")}</p></CardBody></Card>
+        <Card><CardBody><p className="text-2xl font-bold text-warning">{summary?.submittedCount ?? 0}</p><p className="text-sm text-ink-muted">{t(locale, "assignment.awaitingGrading")}</p></CardBody></Card>
+        <Card><CardBody><p className="text-2xl font-bold text-success">{summary?.gradedCount ?? 0}</p><p className="text-sm text-ink-muted">{t(locale, "assignment.gradedTitle")}</p></CardBody></Card>
       </div>
 
       {/* submissions + grading */}
@@ -372,7 +372,7 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
             <div className="overflow-x-auto">
               <table className="w-full min-w-[860px] border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+                  <tr className="border-b border-line text-left text-xs text-ink-muted">
                     <th className="px-4 py-3 font-medium">{t(locale, "assignment.colStudent")}</th>
                     <th className="px-4 py-3 font-medium">{t(locale, "assignment.colAnswer")}</th>
                     <th className="px-4 py-3 font-medium">{t(locale, "assignment.colStatus")}</th>
@@ -382,14 +382,14 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
                 </thead>
                 <tbody>
                   {subs.map((s) => (
-                    <tr key={s.id} id={`sub-${s.id}`} className="border-b border-slate-100 last:border-0 align-top hover:bg-slate-50/60">
+                    <tr key={s.id} id={`sub-${s.id}`} className="border-b border-line last:border-0 align-top hover:bg-sand-100/60">
                       <td className="px-4 py-3">
-                        <p className="font-medium text-slate-800">{s.studentName}</p>
-                        <p className="text-xs text-slate-500" dir="ltr">{s.studentEmail}</p>
-                        <p className="mt-1 text-xs text-slate-400">{t(locale, "assignment.submittedOn")} {formatDate(locale, s.submittedAt)}</p>
+                        <p className="font-medium text-ink">{s.studentName}</p>
+                        <p className="text-xs text-ink-muted" dir="ltr">{s.studentEmail}</p>
+                        <p className="mt-1 text-xs text-sand-400">{t(locale, "assignment.submittedOn")} {formatDate(locale, s.submittedAt)}</p>
                       </td>
-                      <td className="max-w-sm px-4 py-3 text-slate-600">
-                        {s.textAnswer ? <p className="whitespace-pre-wrap text-sm">{s.textAnswer}</p> : <span className="text-slate-400">{t(locale, "assignment.noText")}</span>}
+                      <td className="max-w-sm px-4 py-3 text-ink-muted">
+                        {s.textAnswer ? <p className="whitespace-pre-wrap text-sm">{s.textAnswer}</p> : <span className="text-sand-400">{t(locale, "assignment.noText")}</span>}
                         {s.file && (
                           <a href={s.file.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex text-xs font-medium text-blue-600 hover:underline">
                             {t(locale, "assignment.openFile")} ↗
@@ -397,7 +397,7 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
                         )}
                       </td>
                       <td className="px-4 py-3"><Badge tone={s.status === "graded" ? "success" : "warning"}>{s.status === "graded" ? t(locale, "assignment.statusGraded") : t(locale, "assignment.statusPending")}</Badge></td>
-                      <td className="px-4 py-3 text-slate-700">{s.status === "graded" ? `${s.score} / ${a.maxScore}` : "—"}</td>
+                      <td className="px-4 py-3 text-ink-soft">{s.status === "graded" ? `${s.score} / ${a.maxScore}` : "—"}</td>
                       <td className="px-4 py-3">
                         {perms.grade ? (
                           <Form method="post" className="grid gap-2">
@@ -410,7 +410,7 @@ export default function AdminAssignmentDetail({ loaderData, actionData }: Route.
                             </SubmitButton>
                           </Form>
                         ) : (
-                          <span className="text-xs text-slate-400">{s.feedback}</span>
+                          <span className="text-xs text-sand-400">{s.feedback}</span>
                         )}
                       </td>
                     </tr>

@@ -96,32 +96,32 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/programs" className="hover:text-brand-600">{t(locale, "catalog.programs")}</Link>
+      <nav aria-label="breadcrumb" className="mb-3 text-sm text-ink-muted">
+        <Link to="/programs" className="hover:text-brand-700">{t(locale, "catalog.programs")}</Link>
         <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{locale === "ar" ? program.titleAr : program.titleEn}</span>
+        <span className="font-medium text-ink-soft">{locale === "ar" ? program.titleAr : program.titleEn}</span>
       </nav>
       <h1 className="text-2xl font-bold">{locale === "ar" ? program.titleAr : program.titleEn}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      {desc && <p className="mt-2 text-ink-muted">{desc}</p>}
 
       {!hasSubjects ? (
-        <p className="mt-6 text-slate-500">{t(locale, "catalog.noSubjects")}</p>
+        <p className="mt-6 text-ink-muted">{t(locale, "catalog.noSubjects")}</p>
       ) : (
         <div className="mt-6 space-y-6">
           {grades.map((g) =>
             g.subjects.length === 0 ? null : (
               <section key={g.id}>
-                <h2 className="mb-3 text-lg font-semibold text-slate-700">{locale === "ar" ? g.titleAr : g.titleEn}</h2>
+                <h2 className="mb-3 text-lg font-semibold text-ink-soft">{locale === "ar" ? g.titleAr : g.titleEn}</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {g.subjects.map((s) => (
                     <Card key={s.slug}>
                       <CardBody>
                         <Link to={`/subjects/${s.slug}`} className="group block">
-                          <h3 className="flex items-center gap-2 font-medium text-slate-800 group-hover:text-brand-600">
+                          <h3 className="flex items-center gap-2 font-medium text-ink group-hover:text-brand-700">
                             <Icon name="book-open" className="h-4.5 w-4.5 shrink-0 text-brand-500" aria-hidden />
                             {locale === "ar" ? s.titleAr : s.titleEn}
                           </h3>
-                          <p className="mt-1 text-sm text-slate-500">
+                          <p className="mt-1 text-sm text-ink-muted">
                             {t(locale, "content.coursesCount", { n: s.courseCount })}
                           </p>
                         </Link>

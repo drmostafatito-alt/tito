@@ -18,8 +18,8 @@ import { Modal } from "~/components/ui/Modal";
 import { Alert } from "~/components/ui/Alert";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
-const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const inputCls = "rounded-lg border border-line px-3 py-2 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-line bg-surface px-3 text-sm";
 
 type ActionData =
   | { status?: { id: string; ok: boolean; error?: string } }
@@ -99,7 +99,7 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">{t(locale, "teachers.title")}</h1>
+      <h1 className="text-2xl font-bold text-ink">{t(locale, "teachers.title")}</h1>
 
       {actStatus && !actStatus.ok && (
         <Alert kind="error">
@@ -130,30 +130,30 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
             <SubmitButton variant="secondary">{t(locale, "teachers.filter")}</SubmitButton>
           </Form>
 
-          <p className="text-xs text-slate-500" data-testid="teachers-total">
+          <p className="text-xs text-ink-muted" data-testid="teachers-total">
             {t(locale, "teachers.totalCount", { n: teachers.total })}
           </p>
 
-          {teachers.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "teachers.empty")}</p>}
+          {teachers.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "teachers.empty")}</p>}
 
           {teachers.rows.map((u) => (
-            <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid="teacher-row">
+            <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2.5 text-sm last:border-0" data-testid="teacher-row">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex min-w-0 flex-col">
                   <Link to={`/admin/users/${u.id}`} className="truncate font-medium text-blue-700 hover:underline">
                     {u.fullName}
                   </Link>
-                  <span className="truncate text-xs text-slate-500" dir="ltr">{u.email}</span>
+                  <span className="truncate text-xs text-ink-muted" dir="ltr">{u.email}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge tone="brand">{t(locale, "teachers.role_teacher")}</Badge>
                 <Badge tone={u.status === "active" ? "success" : "danger"}>{t(locale, `teachers.status_${u.status}`)}</Badge>
-                <span className="text-xs text-slate-500">{formatDate(locale, u.createdAt)}</span>
+                <span className="text-xs text-ink-muted">{formatDate(locale, u.createdAt)}</span>
                 {canManage && (
                   u.status === "active" ? (
                     <button type="button" onClick={() => setSuspendId(u.id)} data-testid={`suspend-${u.id}`}
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
+                      className="rounded-lg border border-error/30 px-3 py-1.5 text-xs font-medium text-error hover:bg-error-soft">
                       {t(locale, "teachers.suspend")}
                     </button>
                   ) : (
@@ -174,7 +174,7 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
               {teachers.page > 1 ? (
                 <Link className="text-blue-700 hover:underline" to={withPage(teachers.page - 1)}>{t(locale, "teachers.prevPage")}</Link>
               ) : <span />}
-              <span className="text-xs text-slate-500">{t(locale, "teachers.pageOf", { page: teachers.page, total: totalPages })}</span>
+              <span className="text-xs text-ink-muted">{t(locale, "teachers.pageOf", { page: teachers.page, total: totalPages })}</span>
               {teachers.page < totalPages ? (
                 <Link className="text-blue-700 hover:underline" to={withPage(teachers.page + 1)}>{t(locale, "teachers.nextPage")}</Link>
               ) : <span />}
@@ -187,14 +187,14 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
         <CardBody className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">{t(locale, "teachers.matrixTitle")}</h2>
-              <p className="mt-1 text-xs text-slate-500">{t(locale, "teachers.matrixHint")}</p>
+              <h2 className="text-lg font-bold text-ink">{t(locale, "teachers.matrixTitle")}</h2>
+              <p className="mt-1 text-xs text-ink-muted">{t(locale, "teachers.matrixHint")}</p>
             </div>
-            {!canManage && <span className="text-xs text-slate-400">{t(locale, "teachers.matrixReadOnly")}</span>}
+            {!canManage && <span className="text-xs text-sand-400">{t(locale, "teachers.matrixReadOnly")}</span>}
           </div>
 
           {matrix.map((m) => (
-            <div key={m.permission} className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid={`matrix-${m.permission}`}>
+            <div key={m.permission} className="flex items-center justify-between gap-3 border-b border-line py-2.5 text-sm last:border-0" data-testid={`matrix-${m.permission}`}>
               <div className="flex min-w-0 items-center gap-2">
                 <span className="truncate">{locale === "ar" ? m.labelAr : m.labelEn}</span>
                 {!m.authoring && <Badge tone="warning">{t(locale, "teachers.privileged")}</Badge>}
@@ -221,13 +221,13 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
         onClose={() => setSuspendId(null)}
         title={t(locale, "teachers.confirmSuspendTitle")}
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-muted">
           {suspendTarget
             ? t(locale, "teachers.confirmSuspendBody", { name: suspendTarget.fullName })
             : t(locale, "teachers.confirmSuspendBodyGeneric")}
         </p>
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={() => setSuspendId(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <button type="button" onClick={() => setSuspendId(null)} className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-soft hover:bg-sand-100">
             {t(locale, "teachers.cancel")}
           </button>
           {suspendTarget && (

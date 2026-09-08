@@ -59,8 +59,8 @@ export default function Login() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-1 text-2xl font-bold text-slate-900">{t(locale, "auth.loginTitle")}</h1>
-        <p className="mb-6 text-sm text-slate-500">{t(locale, "auth.loginSubtitle")}</p>
+        <h1 className="mb-1 text-2xl font-bold text-ink">{t(locale, "auth.loginTitle")}</h1>
+        <p className="mb-6 text-sm text-ink-muted">{t(locale, "auth.loginSubtitle")}</p>
 
         {reset && (
           <div className="mb-4">
@@ -118,7 +118,7 @@ export default function Login() {
           <Link to="/forgot-password" className="text-brand-700 hover:underline">
             {t(locale, "auth.forgotLink")}
           </Link>
-          <p className="text-slate-500">
+          <p className="text-ink-muted">
             {t(locale, "auth.noAccount")}{" "}
             <Link to="/register" className="font-medium text-brand-700 hover:underline">
               {t(locale, "common.register")}
@@ -127,7 +127,7 @@ export default function Login() {
         </div>
 
         {envDevNote(locale) && (
-          <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs leading-relaxed text-slate-500" dir="ltr">
+          <div className="mt-6 rounded-lg border border-dashed border-line bg-sand-100 p-3 text-xs leading-relaxed text-ink-muted" dir="ltr">
             <p className="mb-1 font-semibold">{t(locale, "auth.demoAccounts")}</p>
             <p>admin@educore.local (local seed only — not a production identity)</p>
             <p>student@educore.local (local fixture)</p>

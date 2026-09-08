@@ -29,7 +29,7 @@ function fmtTime(seconds: number | null): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-const areaCls = "w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm";
+const areaCls = "w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm";
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const { auth, settings } = await requireRole(context, request, 3);
@@ -114,10 +114,10 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h1 className="text-xl font-bold">{t(locale, "assessment.reviewAttempt")} — {examTitle}</h1>
-              <p className="mt-1 text-sm text-slate-500">
-                {t(locale, "assessment.colStudent")}: <span className="font-medium text-slate-800">{review.studentName}</span>
-                <span className="text-slate-500" dir="ltr"> ({review.studentEmail})</span>
-                <span className="text-slate-500"> · #{review.attemptNumber}</span>
+              <p className="mt-1 text-sm text-ink-muted">
+                {t(locale, "assessment.colStudent")}: <span className="font-medium text-ink">{review.studentName}</span>
+                <span className="text-ink-muted" dir="ltr"> ({review.studentEmail})</span>
+                <span className="text-ink-muted"> · #{review.attemptNumber}</span>
               </p>
             </div>
             <Badge tone={review.status === "graded" ? "success" : review.status === "submitted" ? "warning" : review.status === "in_progress" ? "warning" : "neutral"}>
@@ -136,24 +136,24 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                           : t(locale, "assessment.statusSubmitted")}
             </Badge>
           </div>
-          <div className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 rounded-xl border border-line bg-sand-100/60 p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-xs text-slate-500">{t(locale, "assessment.colScore")}</p>
-              <p className="font-semibold text-slate-800">{review.score ?? "—"} / {review.maxScore ?? "—"}{pct !== null && <span className="ml-1 text-xs text-slate-500 rtl:mr-1">({pct}%)</span>}</p>
+              <p className="text-xs text-ink-muted">{t(locale, "assessment.colScore")}</p>
+              <p className="font-semibold text-ink">{review.score ?? "—"} / {review.maxScore ?? "—"}{pct !== null && <span className="ml-1 text-xs text-ink-muted rtl:mr-1">({pct}%)</span>}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">{t(locale, "assessment.colResult")}</p>
-              <p className="font-semibold text-slate-800">
+              <p className="text-xs text-ink-muted">{t(locale, "assessment.colResult")}</p>
+              <p className="font-semibold text-ink">
                 {review.score === null ? "—" : review.passed === null ? "—" : review.passed ? t(locale, "assessment.resultPass") : t(locale, "assessment.resultFail")}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">{t(locale, "assessment.startedOn")}</p>
-              <p className="font-semibold text-slate-800">{formatDateTime(locale, startedAt)}</p>
+              <p className="text-xs text-ink-muted">{t(locale, "assessment.startedOn")}</p>
+              <p className="font-semibold text-ink">{formatDateTime(locale, startedAt)}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">{t(locale, "assessment.timeUsed")}</p>
-              <p className="font-semibold text-slate-800">{fmtTime(review.timeUsedSeconds)}</p>
+              <p className="text-xs text-ink-muted">{t(locale, "assessment.timeUsed")}</p>
+              <p className="font-semibold text-ink">{fmtTime(review.timeUsedSeconds)}</p>
             </div>
           </div>
         </CardBody>
@@ -164,7 +164,7 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
       {review.questions.length === 0 ? (
         <Card>
           <CardBody>
-            <p className="text-sm text-slate-500">{t(locale, "assessment.noQuestions")}</p>
+            <p className="text-sm text-ink-muted">{t(locale, "assessment.noQuestions")}</p>
           </CardBody>
         </Card>
       ) : (
@@ -175,22 +175,22 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                 <CardBody className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-start gap-2">
-                      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-600">{i + 1}</span>
+                      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-sand-100 text-xs font-bold text-ink-muted">{i + 1}</span>
                       <div>
                         <Badge tone="neutral">{typeBadge(q.type, locale)}</Badge>
-                        <p className="mt-1 font-medium text-slate-800">{locale === "ar" ? q.stemAr : q.stemEn}</p>
+                        <p className="mt-1 font-medium text-ink">{locale === "ar" ? q.stemAr : q.stemEn}</p>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-slate-500">
+                    <span className="shrink-0 text-xs text-ink-muted">
                       {q.type === "essay" ? (q.earned != null ? q.earned : t(locale, "assessment.pendingGrading")) : q.earned != null ? q.earned : "—"} / {q.points} {t(locale, "assessment.examPoints")}
                     </span>
                   </div>
 
                   {q.type === "essay" ? (
                     <div className="space-y-3">
-                      <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                        <p className="text-xs text-slate-500">{t(locale, "assessment.studentAnswer")}</p>
-                        {q.textAnswer ? <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700" dir="auto">{q.textAnswer}</p> : <p className="text-sm text-slate-500">{t(locale, "assessment.notAnswered")}</p>}
+                      <div className="rounded-lg border border-line bg-sand-100/60 p-3">
+                        <p className="text-xs text-ink-muted">{t(locale, "assessment.studentAnswer")}</p>
+                        {q.textAnswer ? <p className="mt-1 whitespace-pre-wrap text-sm text-ink-soft" dir="auto">{q.textAnswer}</p> : <p className="text-sm text-ink-muted">{t(locale, "assessment.notAnswered")}</p>}
                       </div>
                       {q.file && q.fileUrl && (
                         <div className="flex flex-wrap items-center gap-2">
@@ -199,17 +199,17 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                             target="_blank"
                             rel="noreferrer"
                             data-essay-file-link
-                            className="min-h-9 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                            className="min-h-9 rounded-lg border border-brand-300 bg-surface px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
                           >
                             {t(locale, "assessment.viewSubmissionFile")}
                           </a>
-                          <span dir="ltr" className="max-w-[16rem] truncate text-xs text-slate-500">{q.file.originalFilename}</span>
+                          <span dir="ltr" className="max-w-[16rem] truncate text-xs text-ink-muted">{q.file.originalFilename}</span>
                         </div>
                       )}
                       {(q.modelAnswerAr || q.modelAnswerEn) && (
-                        <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
-                          <p className="text-xs font-medium text-emerald-700">{t(locale, "assessment.modelAnswer")}</p>
-                          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700" dir="auto">{locale === "ar" ? q.modelAnswerAr || q.modelAnswerEn : q.modelAnswerEn || q.modelAnswerAr}</p>
+                        <div className="rounded-lg border border-success/30 bg-success-soft/60 p-3">
+                          <p className="text-xs font-medium text-success">{t(locale, "assessment.modelAnswer")}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-ink-soft" dir="auto">{locale === "ar" ? q.modelAnswerAr || q.modelAnswerEn : q.modelAnswerEn || q.modelAnswerAr}</p>
                         </div>
                       )}
                       {q.feedback && (
@@ -219,16 +219,16 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                         </p>
                       )}
                       {canGrade && (
-                        <form method="post" className="grid gap-2 rounded-lg border border-slate-200 p-3">
+                        <form method="post" className="grid gap-2 rounded-lg border border-line p-3">
                           <input type="hidden" name="questionId" value={q.id} />
                           <div className="flex flex-wrap items-end gap-3">
-                            <label className="flex flex-col gap-1 text-xs text-slate-500">
+                            <label className="flex flex-col gap-1 text-xs text-ink-muted">
                               {t(locale, "assessment.colScore")} (0–{q.points})
-                              <input name="points" type="number" min="0" max={q.points} step="0.5" defaultValue={q.earned != null ? q.earned : 0} required className="h-10 w-32 rounded-lg border border-slate-300 px-3 text-sm" />
+                              <input name="points" type="number" min="0" max={q.points} step="0.5" defaultValue={q.earned != null ? q.earned : 0} required className="h-10 w-32 rounded-lg border border-line px-3 text-sm" />
                             </label>
-                            <label className="flex-1 flex-col gap-1 text-xs text-slate-500">
+                            <label className="flex-1 flex-col gap-1 text-xs text-ink-muted">
                               {t(locale, "assessment.feedback")}
-                              <input name="feedback" defaultValue={q.feedback ?? ""} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                              <input name="feedback" defaultValue={q.feedback ?? ""} className="w-full rounded-lg border border-line px-3 py-2 text-sm" />
                             </label>
                             <SubmitButton variant="primary" className="min-h-10">{t(locale, "assessment.saveGrade")}</SubmitButton>
                           </div>
@@ -238,14 +238,14 @@ export default function AdminAttemptReviewPage({ loaderData }: Route.ComponentPr
                   ) : (
                     <ul className="grid gap-2 sm:grid-cols-2">
                       {q.choices.map((c) => {
-                        const tone = c.correct ? "bg-emerald-50 border-emerald-200" : c.selected ? "bg-red-50 border-red-200" : "bg-white border-slate-200";
+                        const tone = c.correct ? "bg-success-soft border-success/30" : c.selected ? "bg-error-soft border-error/30" : "bg-surface border-line";
                         const mark = c.correct ? "✓" : c.selected ? "✗" : "";
                         return (
                           <li key={c.id} className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${tone}`}>
-                            <span className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.correct ? "bg-emerald-500" : c.selected ? "bg-red-500" : "bg-slate-200"}`} aria-hidden="true">
+                            <span className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.correct ? "bg-success-soft0" : c.selected ? "bg-error-soft0" : "bg-sand-200"}`} aria-hidden="true">
                               {mark}
                             </span>
-                            <span className="min-w-0 text-slate-700">{locale === "ar" ? c.contentAr : c.contentEn}</span>
+                            <span className="min-w-0 text-ink-soft">{locale === "ar" ? c.contentAr : c.contentEn}</span>
                           </li>
                         );
                       })}

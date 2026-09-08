@@ -184,18 +184,18 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Breadcrumbs */}
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
+      <nav aria-label="breadcrumb" className="mb-3 text-sm text-ink-muted">
+        <Link to="/courses" className="hover:text-brand-700">{t(locale, "content.catalogTitle")}</Link>
         {subject && (
           <>
             <span className="mx-1.5" aria-hidden>›</span>
-            <Link to={`/subjects/${subject.slug}`} className="hover:text-brand-600">
+            <Link to={`/subjects/${subject.slug}`} className="hover:text-brand-700">
               {locale === "ar" ? subject.titleAr : subject.titleEn}
             </Link>
           </>
         )}
         <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{title}</span>
+        <span className="font-medium text-ink-soft">{title}</span>
       </nav>
 
       {course.thumbnail && (
@@ -207,14 +207,14 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           {t(locale, course.accessLevel === "public" ? "content.accessPublic" : course.accessLevel === "authenticated" ? "content.accessAuthenticated" : "content.accessEntitled")}
         </Badge>
         {!verdict.allowed && course.status !== "published" && (
-          <span className="text-sm text-slate-500">{t(locale, "content.notAvailable")}</span>
+          <span className="text-sm text-ink-muted">{t(locale, "content.notAvailable")}</span>
         )}
       </div>
       <h1 className="text-2xl font-bold">{title}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      {desc && <p className="mt-2 text-ink-muted">{desc}</p>}
 
       {/* Meta row: teacher · lessons · duration */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
         {course.teacherName && (
           <span className="inline-flex items-center gap-1.5">
             <Icon name="user" className="h-4 w-4" aria-hidden />
@@ -241,8 +241,8 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
         <Card className="mt-4">
           <CardBody>
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-medium text-slate-700">{t(locale, "progress.courseProgress")}</span>
-              <span className="tabular-nums text-slate-500">
+              <span className="font-medium text-ink-soft">{t(locale, "progress.courseProgress")}</span>
+              <span className="tabular-nums text-ink-muted">
                 {progress.course.completed}/{progress.course.total} · {progress.course.pct}%
               </span>
             </div>
@@ -254,7 +254,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
       {gated && prereqLock.missing.length > 0 && (
         <Card className="mt-4">
           <CardBody>
-            <p className="text-sm font-medium text-slate-700">{t(locale, "content.prereqRequired")}</p>
+            <p className="text-sm font-medium text-ink-soft">{t(locale, "content.prereqRequired")}</p>
             <ul className="mt-2 space-y-1">
               {prereqLock.missing.map((m) => (
                 <li key={m.courseId}>
@@ -271,7 +271,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
       {!gated && !verdict.allowed && (
         <Card className="mt-4">
           <CardBody>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-ink-muted">
               {verdict.reason === "anon" ? (
                 <Link to="/login" className="font-medium text-blue-600 hover:underline">
                   {t(locale, "content.loginToContinue")}
@@ -283,7 +283,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
             {buyOption && (
               <Link
                 to={`/products/${buyOption.productSlug}`}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800"
                 data-testid="course-buy-cta"
               >
                 {t(locale, "commerce.buyCta")}
@@ -317,14 +317,14 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                   return (
                     <li key={lesson.slug} className="flex items-center gap-2 text-sm">
                       {lp?.status === "completed" && (
-                        <Icon name="check-circle" className="h-4 w-4 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
+                        <Icon name="check-circle" className="h-4 w-4 shrink-0 text-success" aria-label={t(locale, "progress.completed")} />
                       )}
                       {lp && lp.status !== "completed" && (
                         <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400" aria-hidden />
                       )}
-                      {!lp && !lessonLocked && <span className="h-2 w-2 shrink-0 rounded-full bg-slate-300" aria-hidden />}
+                      {!lp && !lessonLocked && <span className="h-2 w-2 shrink-0 rounded-full bg-sand-300" aria-hidden />}
                       {lessonLocked ? (
-                        <span className="inline-flex items-center gap-1.5 text-slate-500">
+                        <span className="inline-flex items-center gap-1.5 text-ink-muted">
                           <Icon name="lock" className="h-4 w-4 shrink-0" aria-hidden />
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </span>
@@ -337,12 +337,12 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                     </li>
                   );
                 })}
-                {unit.lessons.length === 0 && <li className="text-sm text-slate-500">—</li>}
+                {unit.lessons.length === 0 && <li className="text-sm text-ink-muted">—</li>}
               </ol>
             </CardBody>
           </Card>
         ))}
-        {units.length === 0 && <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>}
+        {units.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "content.catalogEmpty")}</p>}
       </div>
     </div>
   );
