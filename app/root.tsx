@@ -66,7 +66,7 @@ export function meta({ loaderData }: Route.MetaArgs): MetaDescriptor[] {
   const locale = (loaderData?.locale ?? "ar") as Locale;
   const platform = loaderData?.platform;
   const name = locale === "ar" ? (platform?.nameAr ?? "") : (platform?.nameEn ?? "");
-  return [{ title: name || (locale === "ar" ? "منصة تعليمية" : "Learning Platform") }];
+  return [{ title: name || (locale === "ar" ? "د. مصطفى تيتو" : "Dr. Mostafa Tito") }];
 }
 
 /** Global middleware: CSRF origin check on mutations + security headers (SECURITY.md §5/§6). */
