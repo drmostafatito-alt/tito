@@ -179,10 +179,18 @@ export const lessonItems = sqliteTable(
   {
     id: text("id").primaryKey(),
     lessonId: text("lesson_id").notNull(),
-    itemType: text("item_type", { enum: ["video", "file", "exam"] }).notNull(),
+    itemType: text("item_type", { enum: ["video", "file", "exam", "link"] }).notNull(),
     videoId: text("video_id"),
     fileId: text("file_id"),
     examId: text("exam_id"),
+    // "link" items only (migration 0014): an external Google Form / quiz. The URL
+    // stored here is the CANONICAL embed URL rebuilt server-side from a validated
+    // Google Forms id — never the owner's raw paste.
+    linkUrl: text("link_url"),
+    titleAr: text("title_ar"),
+    titleEn: text("title_en"),
+    descriptionAr: text("description_ar"),
+    descriptionEn: text("description_en"),
     sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
     required: integer("required", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "number" }).notNull(),

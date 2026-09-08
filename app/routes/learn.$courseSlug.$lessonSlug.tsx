@@ -114,6 +114,21 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
           downloadUrl,
         };
       }
+      if (item.itemType === "link" && item.linkUrl) {
+        return {
+          key: item.id,
+          kind: "link" as const,
+          required: item.required,
+          // linkUrl is the canonical Google Forms embed URL, rebuilt server-side
+          // from a validated form id at save time — never the owner's raw paste.
+          embedUrl: item.linkUrl,
+          openUrl: item.linkUrl.replace(/[?&]embedded=true$/, ""),
+          titleAr: item.titleAr,
+          titleEn: item.titleEn,
+          descriptionAr: item.descriptionAr,
+          descriptionEn: item.descriptionEn,
+        };
+      }
       const e = item.examId ? examMap.get(item.examId) : null;
       return {
         key: item.id,
@@ -256,6 +271,49 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 <Card key={item.key}>
                   <CardBody className="text-sm text-slate-500">
                     {t(locale, "content.videoItem")} — {t(locale, `videosAdmin.statusPending`)}…
+                  </CardBody>
+                </Card>
+              );
+            }
+            if (item.kind === "link") {
+              const title = (locale === "ar" ? item.titleAr : item.titleEn)
+                ?? (locale === "ar" ? item.titleEn : item.titleAr)
+                ?? t(locale, "content.linkItem");
+              const desc = (locale === "ar" ? item.descriptionAr : item.descriptionEn)
+                ?? (locale === "ar" ? item.descriptionEn : item.descriptionAr);
+              return (
+                <Card key={item.key}>
+                  <CardBody className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+                      {item.required && (
+                        <span className="text-xs text-slate-500">{t(locale, "content.required")}</span>
+                      )}
+                    </div>
+                    {desc && <p className="text-sm text-slate-600">{desc}</p>}
+                    {/* Google Forms sets its own X-Frame-Options for /viewform with
+                        ?embedded=true, so the iframe is the supported path. The
+                        external link is always offered as well, so the quiz is
+                        reachable even where embedding is blocked. */}
+                    <div className="overflow-hidden rounded-lg border border-slate-200" data-testid="external-quiz">
+                      <iframe
+                        src={item.embedUrl}
+                        title={title}
+                        className="h-[600px] w-full border-0"
+                        loading="lazy"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                      />
+                    </div>
+                    <a
+                      href={item.openUrl}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 underline"
+                      data-testid="external-quiz-open"
+                    >
+                      {t(locale, "content.linkOpen")} ↗
+                    </a>
                   </CardBody>
                 </Card>
               );

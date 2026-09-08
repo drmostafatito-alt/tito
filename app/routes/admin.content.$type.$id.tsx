@@ -5,6 +5,7 @@ import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getExam, listExams } from "~server/assessment/service.server";
+import { parseGoogleFormUrl } from "~server/content/external-links";
 import {
   adminTree,
   archiveNode,
@@ -166,7 +167,10 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
       // A video's display name: the owner's title first, then playbackId, then a
       // stable fallback. YouTube rows have no playbackId, so without the title
       // they would all list as "video".
-      label: i.itemType === "video" ? videoLabel(videoMap.get(i.videoId!)) : i.itemType === "file" ? (fileMap.get(i.fileId!)?.originalFilename ?? "file") : (examMap.get(i.examId ?? "")?.titleAr ?? i.examId ?? "exam"),
+      label: i.itemType === "video" ? videoLabel(videoMap.get(i.videoId!))
+        : i.itemType === "file" ? (fileMap.get(i.fileId!)?.originalFilename ?? "file")
+        : i.itemType === "link" ? (i.titleEn ?? i.titleAr ?? i.linkUrl ?? "external quiz")
+        : (examMap.get(i.examId ?? "")?.titleAr ?? i.examId ?? "exam"),
     })),
     allExams: allExams.map((e) => ({ id: e.id, titleAr: e.titleAr, titleEn: e.titleEn })),
     prereqs,
@@ -291,11 +295,30 @@ export async function action({ context, request, params }: Route.ActionArgs) {
       }
       case "add-item": {
         const lessonId = id;
-        const itemType = str(form, "itemType") as "video" | "file" | "exam" | null;
+        const itemType = str(form, "itemType") as "video" | "file" | "exam" | "link" | null;
         if (!itemType) return { error: "validation" as const };
+        const maxOrder = (await itemsForLesson(db, lessonId)).reduce((m, i) => Math.max(m, i.sortOrder), -1);
+
+        if (itemType === "link") {
+          // External Google Form / quiz. Only the canonical embed URL derived
+          // from a validated Google Forms id is ever stored.
+          const quiz = parseGoogleFormUrl(str(form, "linkUrl"));
+          if (!quiz) return { error: "link_invalid" as const };
+          await createLessonItem(db, {
+            lessonId, itemType,
+            linkUrl: quiz.embedUrl,
+            titleAr: (str(form, "titleAr") ?? "").slice(0, 200) || null,
+            titleEn: (str(form, "titleEn") ?? "").slice(0, 200) || null,
+            descriptionAr: (str(form, "descriptionAr") ?? "").slice(0, 2000) || null,
+            descriptionEn: (str(form, "descriptionEn") ?? "").slice(0, 2000) || null,
+            sortOrder: maxOrder + 1,
+            required: form.get("required") === "on",
+          }, actor);
+          return { ok: true as const };
+        }
+
         const refId = itemType === "video" ? str(form, "videoId") : itemType === "file" ? str(form, "fileId") : str(form, "examId");
         if (!refId) return { error: "validation" as const };
-        const maxOrder = (await itemsForLesson(db, lessonId)).reduce((m, i) => Math.max(m, i.sortOrder), -1);
         await createLessonItem(db, {
           lessonId, itemType,
           videoId: itemType === "video" ? refId : null,
@@ -666,10 +689,11 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
               <input type="hidden" name="_action" value="add-item" />
               <label className="grid gap-1 text-sm">
                 <span>{t(locale, "content.items")}</span>
-                <select name="itemType" className={input}>
+                <select name="itemType" className={input} data-testid="item-type">
                   <option value="video">{t(locale, "content.videoItem")}</option>
                   <option value="file">{t(locale, "content.fileItem")}</option>
                   <option value="exam">{t(locale, "content.examItem")}</option>
+                  <option value="link">{t(locale, "content.linkItem")}</option>
                 </select>
               </label>
               <label className="grid gap-1 text-sm">
@@ -701,12 +725,40 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                   ))}
                 </select>
               </label>
+              <div className="sm:col-span-4 grid gap-3 sm:grid-cols-2 border-t border-slate-200 pt-3" data-testid="link-fields">
+                <p className="sm:col-span-2 text-xs text-slate-500">{t(locale, "content.linkHint")}</p>
+                <label className="grid gap-1 text-sm sm:col-span-2">
+                  <span>{t(locale, "content.linkUrl")}</span>
+                  <input name="linkUrl" type="url" dir="ltr" className={input} data-testid="link-url"
+                    placeholder="https://docs.google.com/forms/d/e/1FAIpQLS\u2026/viewform" />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>{t(locale, "content.linkTitleAr")}</span>
+                  <input name="titleAr" dir="rtl" className={input} />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>{t(locale, "content.linkTitleEn")}</span>
+                  <input name="titleEn" dir="ltr" className={input} />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>{t(locale, "content.linkDescAr")}</span>
+                  <textarea name="descriptionAr" dir="rtl" rows={2} className={input} />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>{t(locale, "content.linkDescEn")}</span>
+                  <textarea name="descriptionEn" dir="ltr" rows={2} className={input} />
+                </label>
+              </div>
+
               <label className="flex items-center gap-2 self-end text-sm">
                 <input type="checkbox" name="required" defaultChecked className="h-4 w-4" />
                 {t(locale, "content.required")}
               </label>
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-4 flex flex-wrap items-center gap-3">
                 <SubmitButton>{t(locale, "content.addItem")}</SubmitButton>
+                {actionData && "error" in actionData && actionData.error === "link_invalid" && (
+                  <span className="text-sm text-red-600" data-testid="link-error">{t(locale, "content.linkInvalid")}</span>
+                )}
               </div>
             </Form>
           </CardBody>

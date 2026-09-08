@@ -41,7 +41,7 @@ test.describe("owner-managed YouTube video", () => {
     await page.waitForLoadState("load");
 
     // only the normalised 11-char id is stored/echoed back
-    await expect(page.getByTestId("youtube-id").first()).toHaveText(YT_ID, { timeout: 15_000 });
+    await expect(page.getByTestId("youtube-id").filter({ hasText: YT_ID }).first()).toBeVisible({ timeout: 15_000 });
 
     // ---- 2) a non-YouTube URL is refused, not stored ---------------------
     await page.goto("/admin/videos");

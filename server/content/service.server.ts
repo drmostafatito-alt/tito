@@ -91,10 +91,18 @@ export const createLessonSchema = z.object({
 
 export const createLessonItemSchema = z.object({
   lessonId: z.string().min(1),
-  itemType: z.enum(["video", "file", "exam"]),
+  itemType: z.enum(["video", "file", "exam", "link"]),
   videoId: z.string().optional().nullable(),
   fileId: z.string().optional().nullable(),
   examId: z.string().optional().nullable(),
+  // "link" items (external Google Form / quiz) — linkUrl must already be the
+  // canonical embed URL produced by parseGoogleFormUrl(); this layer does not
+  // accept raw owner input.
+  linkUrl: z.string().url().max(500).optional().nullable(),
+  titleAr: z.string().max(200).optional().nullable(),
+  titleEn: z.string().max(200).optional().nullable(),
+  descriptionAr: z.string().max(2000).optional().nullable(),
+  descriptionEn: z.string().max(2000).optional().nullable(),
   sortOrder: z.number().int().min(0).default(0),
   required: z.boolean().default(true),
 });
@@ -308,11 +316,19 @@ export async function createLesson(db: DB, input: z.infer<typeof createLessonSch
 export async function createLessonItem(db: DB, input: z.infer<typeof createLessonItemSchema>, actor: ActorCtx) {
   if (input.itemType === "video" && !input.videoId) throw new Error("video item requires videoId");
   if (input.itemType === "file" && !input.fileId) throw new Error("file item requires fileId");
+  if (input.itemType === "link" && !input.linkUrl) throw new Error("link item requires linkUrl");
   await assertContentRef(db, "lesson", input.lessonId, "lessonId");
   await assertVideoRef(db, input.videoId, "videoId");
   await assertFileRef(db, input.fileId, "fileId");
   const id = crypto.randomUUID();
-  const row = { id, lessonId: input.lessonId, itemType: input.itemType, videoId: input.videoId ?? null, fileId: input.fileId ?? null, examId: input.examId ?? null, sortOrder: input.sortOrder, required: input.required, createdAt: Date.now() };
+  const row = {
+    id, lessonId: input.lessonId, itemType: input.itemType,
+    videoId: input.videoId ?? null, fileId: input.fileId ?? null, examId: input.examId ?? null,
+    linkUrl: input.itemType === "link" ? (input.linkUrl ?? null) : null,
+    titleAr: input.titleAr ?? null, titleEn: input.titleEn ?? null,
+    descriptionAr: input.descriptionAr ?? null, descriptionEn: input.descriptionEn ?? null,
+    sortOrder: input.sortOrder, required: input.required, createdAt: Date.now(),
+  };
   await db.insert(lessonItems).values(row);
   await logAudit(db, { actorUserId: actor.userId, actorRole: actor.role, action: "content.lesson_item.created", entityType: "lesson_item", entityId: id, after: row });
   return row;

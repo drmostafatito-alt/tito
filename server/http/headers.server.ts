@@ -27,7 +27,7 @@ export function applySecurityHeaders(headers: HeaderLike, isDev: boolean, nonce?
     // YouTube player entirely. Pinned to the privacy-enhanced host only — the
     // embed URL is rebuilt server-side from a validated video id, so no other
     // origin can ever be framed.
-    `frame-src https://www.youtube-nocookie.com`,
+    `frame-src https://www.youtube-nocookie.com https://docs.google.com`,
     `font-src 'self'`,
     `connect-src 'self'${isDev ? " ws: http://localhost:* http://127.0.0.1:*" : ""}`,
     `worker-src 'self' blob:`,

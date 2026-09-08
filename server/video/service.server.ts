@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { DB } from "../db/client.server";
 import { videos } from "../db/schema";
 import { getSettings } from "../settings/service.server";
@@ -206,8 +206,13 @@ export async function getVideo(db: DB, videoId: string): Promise<VideoRow | null
   return rows[0] ?? null;
 }
 
+/**
+ * Newest first: both consumers are Admin surfaces (the Video list and the lesson
+ * item picker), and an owner who has just registered a video needs to see it at
+ * the top rather than scroll past the whole back catalogue to confirm the save.
+ */
 export async function listVideos(db: DB, limit = 100) {
-  return db.select().from(videos).orderBy(videos.createdAt).limit(limit);
+  return db.select().from(videos).orderBy(desc(videos.createdAt)).limit(limit);
 }
 
 /**

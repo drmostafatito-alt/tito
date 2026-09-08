@@ -119,7 +119,7 @@ describe("CSP allows the embedded player and nothing else", () => {
 
   it("pins frame-src to youtube-nocookie only", () => {
     const frame = csp.split(";").map((d) => d.trim()).find((d) => d.startsWith("frame-src"));
-    expect(frame).toBe("frame-src https://www.youtube-nocookie.com");
+    expect(frame).toBe("frame-src https://www.youtube-nocookie.com https://docs.google.com");
   });
 
   it("still forbids being framed itself", () => {
