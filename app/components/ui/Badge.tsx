@@ -2,7 +2,7 @@ type BadgeTone = "brand" | "neutral" | "success" | "warning" | "danger";
 
 const tones: Record<BadgeTone, string> = {
   brand: "bg-brand-800 text-white",
-  neutral: "bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200",
+  neutral: "bg-slate-100 font-semibold text-ink ring-1 ring-inset ring-line",
   success: "bg-emerald-100 text-emerald-800",
   warning: "bg-amber-100 text-amber-800",
   danger: "bg-red-100 text-red-800",

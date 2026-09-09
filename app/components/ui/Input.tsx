@@ -20,14 +20,14 @@ export function Input({ label, error, hint, className = "", id, ...rest }: Input
       <input
         id={inputId}
         className={`w-full rounded-[var(--radius-btn)] border bg-white px-3.5 py-2.5 text-ink placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-700/30 ${
-          error ? "border-red-500" : "border-slate-300 focus:border-brand-700"
+          error ? "border-red-500" : "border-line focus:border-brand-700"
         }`}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : hint ? hintId : undefined}
         {...rest}
       />
       {hint && !error && (
-        <p id={hintId} className="text-xs text-slate-500">
+        <p id={hintId} className="text-xs text-ink-muted">
           {hint}
         </p>
       )}

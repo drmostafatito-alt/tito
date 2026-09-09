@@ -158,13 +158,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   console.error("[error-boundary]", error);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-slate-50 px-6 text-center">
-      <p className="text-5xl font-bold text-brand-700">{isRouteErrorResponse(error) ? error.status : "500"}</p>
-      <h1 className="text-2xl font-bold">{message.title}</h1>
-      <p className="text-slate-600">{message.body}</p>
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-white px-6 text-center">
+      <p className="sig-display flex items-center gap-3 text-6xl text-ink"><span className="h-5 w-5 shrink-0 bg-accent-500" aria-hidden="true" />{isRouteErrorResponse(error) ? error.status : "500"}</p>
+      <h1 className="sig-display border-t-2 border-brand-800 pt-4 text-3xl text-ink">{message.title}</h1>
+      <p className="max-w-md text-ink-muted">{message.body}</p>
       <Link
         to="/"
-        className="mt-2 rounded-lg bg-brand-600 px-5 py-2.5 font-medium text-white hover:bg-brand-700"
+        className="mt-2 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-6 py-2.5 font-semibold text-white hover:bg-brand-800"
       >
         {t("ar", "errors.goHome")}
       </Link>

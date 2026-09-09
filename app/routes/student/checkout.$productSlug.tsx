@@ -120,7 +120,7 @@ export default function CheckoutPage({ loaderData }: Route.ComponentProps) {
                 return (
                   <label
                     key={plan.id}
-                    className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-btn)] border border-line p-3 transition-colors has-[:checked]:border-brand-800 has-[:checked]:bg-brand-50"
+                    className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-btn)] border border-line p-3 transition-colors has-[:checked]:border-brand-800 has-[:checked]:bg-slate-100"
                   >
                     <span className="flex items-center gap-2 text-sm">
                       <input

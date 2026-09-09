@@ -433,7 +433,7 @@ export default function AttemptPage({ loaderData }: Route.ComponentProps) {
                       disabled={submitting}
                       aria-pressed={selected}
                       className={`flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-start text-sm transition ${
-                        selected ? "border-brand-800 bg-brand-50 text-ink" : "border-line bg-white hover:border-brand-800"
+                        selected ? "border-brand-800 bg-slate-100 text-ink" : "border-line bg-white hover:border-brand-800"
                       }`}
                     >
                       <span

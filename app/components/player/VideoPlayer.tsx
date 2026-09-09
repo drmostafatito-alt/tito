@@ -185,7 +185,7 @@ export function VideoPlayer({
   }, [state, src, videoId, lessonId, onLessonCompleted]);
 
   return (
-    <figure className="overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
+    <figure className="overflow-hidden rounded-xl border border-line bg-slate-900">
       {state === "loading" && (
         <div className="flex h-56 items-center justify-center text-sm text-slate-300">{t(locale, "player.loading")}</div>
       )}

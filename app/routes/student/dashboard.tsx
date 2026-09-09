@@ -164,7 +164,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "progress.continueTitle")} />
           <CardBody>
             {loaderData.continueItems.length === 0 ? (
-              <p className="text-sm text-slate-500">{t(locale, "progress.continueEmpty")}</p>
+              <p className="text-sm text-ink-muted">{t(locale, "progress.continueEmpty")}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {loaderData.continueItems.map((item) => (
@@ -221,7 +221,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.myCourses")} />
           <CardBody>
             {loaderData.myCourses.length === 0 ? (
-              <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+              <p className="text-sm text-ink-muted">{t(locale, "content.catalogEmpty")}</p>
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {loaderData.myCourses.map((course) => (
@@ -258,7 +258,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           />
           <CardBody>
             {loaderData.announcementsModule.items.length === 0 ? (
-              <p className="text-sm text-slate-500" data-testid="dash-announcements-empty">{t(locale, "notifications.empty")}</p>
+              <p className="text-sm text-ink-muted" data-testid="dash-announcements-empty">{t(locale, "notifications.empty")}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {loaderData.announcementsModule.items.map((a) => (
@@ -373,7 +373,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <CardHeader title={locale === "ar" ? "آخر النشاطات الأمنية" : "Recent security activity"} />
         <CardBody>
           {loaderData.recentEvents.length === 0 ? (
-            <p className="text-sm text-slate-500">—</p>
+            <p className="text-sm text-ink-muted">—</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {loaderData.recentEvents.map((ev, i) => (

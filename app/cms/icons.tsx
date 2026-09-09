@@ -99,13 +99,13 @@ export const ICON_SIZE_CLASS: Record<string, string> = {
 };
 
 export const ICON_COLOR_CLASS: Record<string, string> = {
-  default: "text-slate-700",
-  brand: "text-brand-700",
+  default: "text-ink",
+  brand: "text-ink",
   accent: "text-accent-600",
   success: "text-emerald-600",
   warning: "text-amber-600",
   error: "text-rose-600",
-  muted: "text-slate-400",
+  muted: "text-ink-muted",
   invert: "text-white",
 };
 

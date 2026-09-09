@@ -375,7 +375,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
               </Card>
             );
           })}
-          {items.length === 0 && <p className="text-sm text-slate-500">—</p>}
+          {items.length === 0 && <p className="text-sm text-ink-muted">—</p>}
           <Form method="post" className="pt-2" data-lesson-id={lessonId}>
             <input type="hidden" name="_action" value="toggle-complete" />
             <input type="hidden" name="completed" value={lessonCompleted ? "0" : "1"} />

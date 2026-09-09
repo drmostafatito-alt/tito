@@ -114,7 +114,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
       <main className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6 text-center">
         <BrandMark name={appName} />
         <h1 className="mt-4 text-2xl font-bold">{t(locale, "maintenance.title")}</h1>
-        <p className="text-slate-600">{t(locale, "maintenance.body")}</p>
+        <p className="text-ink-muted">{t(locale, "maintenance.body")}</p>
       </main>
     );
   }
@@ -161,7 +161,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                         <NavLink item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-[var(--radius-base)] px-3 py-2 text-sm font-bold text-ink hover:bg-slate-100" />
                       )}
                       {node.children.map((child) => (
-                        <NavLink key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-[var(--radius-base)] px-3 py-2 text-sm text-slate-700 hover:bg-slate-100" />
+                        <NavLink key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-[var(--radius-base)] px-3 py-2 text-sm font-medium text-ink hover:bg-slate-100" />
                       ))}
                     </div>
                   </details>
@@ -180,7 +180,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                     aria-label={locale === "ar" ? s.labelAr || s.network : s.labelEn || s.network}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-btn)] text-slate-600 hover:bg-slate-100 hover:text-ink"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-btn)] text-ink-muted hover:bg-slate-100 hover:text-ink"
                   >
                     <Icon name={s.network} size="sm" colorRole="default" className="text-current" />
                   </a>
@@ -190,7 +190,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             <LanguageSwitcher locale={locale} options={localeOptions} />
             {loaderData.user ? (
               <>
-                <Link to="/courses" className="hidden min-h-11 items-center px-3 py-2 text-sm font-semibold text-slate-600 hover:text-ink md:inline-flex">
+                <Link to="/courses" className="hidden min-h-11 items-center px-3 py-2 text-sm font-semibold text-ink-muted hover:text-ink md:inline-flex">
                   <span className="sig-u">{t(locale, "content.catalogTitle")}</span>
                 </Link>
                 <Link to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"} className={`inline-flex ${blackBtn}`}>
@@ -231,7 +231,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
         {mobileOpen && (
           <div className="absolute inset-x-0 top-full z-40 max-h-[calc(100dvh-4rem)] overflow-y-auto border-t-2 border-brand-800 bg-white shadow-xl lg:hidden">
             <nav id="mobile-nav" aria-label={t(locale, "common.navMain")} className="mx-auto w-full max-w-7xl px-4 py-4">
-              <ul className="flex flex-col divide-y divide-slate-100">
+              <ul className="flex flex-col divide-y divide-line">
                 {loaderData.header.map((node, i) => (
                   <li key={node.id} className="py-1">
                     <NavLink
@@ -243,13 +243,13 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                       drawer
                     />
                     {node.children.length > 0 && (
-                      <ul className="mb-1 flex flex-col border-s-2 border-slate-200 ps-4 ms-2">
+                      <ul className="mb-1 flex flex-col border-s-2 border-line ps-4 ms-2">
                         {node.children.map((child) => (
                           <li key={child.id}>
                             <NavLink
                               item={child}
                               locale={locale}
-                              className="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-base)] px-2 py-2 text-[15px] text-slate-600 hover:bg-slate-50"
+                              className="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-base)] px-2 py-2 text-[15px] font-medium text-ink-muted hover:bg-slate-50 hover:text-ink"
                               onNavigate={() => setMobileOpen(false)}
                             />
                           </li>

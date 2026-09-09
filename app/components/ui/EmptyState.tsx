@@ -10,7 +10,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border-2 border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border-2 border-dashed border-line bg-white px-6 py-12 text-center">
       {icon && (
         <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-brand-800 text-2xl text-white" aria-hidden="true">
           {icon}

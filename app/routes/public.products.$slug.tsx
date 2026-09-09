@@ -167,7 +167,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
             })}
           </div>
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ink-muted">
             <Link to="/activate" className="inline-flex min-h-9 items-center font-bold text-ink"><span className="sig-u">{t(locale, "commerce.haveCode")}</span></Link>
           </p>
         </CardBody>

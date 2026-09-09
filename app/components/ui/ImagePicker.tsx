@@ -77,25 +77,25 @@ export function ImagePicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="text-sm font-medium text-ink">{label}</span>
       <input type="hidden" name={name} value={val} />
       {current ? (
-        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-2">
+        <div className="flex items-center gap-3 rounded-lg border border-line bg-white p-2">
           <img
             src={`/files/${val}`}
             alt={current.label}
-            className={`${previewCls} shrink-0 rounded-md border border-slate-100 bg-slate-50 object-cover`}
+            className={`${previewCls} shrink-0 rounded-md border border-line bg-slate-50 object-cover`}
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-ink">{current.label}</p>
-            <p className="truncate text-xs text-slate-500" dir="ltr">{val}</p>
+            <p className="truncate text-xs text-ink-muted" dir="ltr">{val}</p>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-center">
+        <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-slate-50 px-3 py-4 text-center">
           <span className="text-2xl text-slate-300" aria-hidden="true">🖼️</span>
-          <span className="text-sm font-medium text-slate-600">{t(locale, "media.noImage")}</span>
-          <span className="text-xs text-slate-500">{t(locale, "media.noImageHint")}</span>
+          <span className="text-sm font-medium text-ink-muted">{t(locale, "media.noImage")}</span>
+          <span className="text-xs text-ink-muted">{t(locale, "media.noImageHint")}</span>
         </div>
       )}
 
@@ -104,11 +104,11 @@ export function ImagePicker({
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="inline-flex min-h-10 items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="inline-flex min-h-10 items-center rounded-lg border border-line bg-white px-3 text-sm font-medium text-ink hover:bg-slate-50"
         >
           {t(locale, "media.chooseFromLibrary")}
         </button>
-        <label className="inline-flex min-h-10 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-brand-700 hover:bg-brand-50">
+        <label className="inline-flex min-h-10 cursor-pointer items-center rounded-lg border border-line bg-white px-3 text-sm font-medium text-ink hover:bg-slate-100">
           {uploading ? t(locale, "media.uploading") : t(locale, "media.uploadImage")}
           <input
             ref={fileRef}
@@ -133,7 +133,7 @@ export function ImagePicker({
           href="/admin/files"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-brand-700 hover:bg-brand-50"
+          className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-ink hover:bg-slate-100"
         >
           {t(locale, "media.manageLibrary")}
         </a>
@@ -142,15 +142,15 @@ export function ImagePicker({
       {error && <p className="text-xs font-medium text-red-600">{error}</p>}
 
       {open && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-          <p className="mb-2 text-xs text-slate-500">{t(locale, "media.uploadNote")}</p>
+        <div className="rounded-lg border border-line bg-slate-50 p-2">
+          <p className="mb-2 text-xs text-ink-muted">{t(locale, "media.uploadNote")}</p>
           <ul
             className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-4"
             role="listbox"
             aria-label={label}
           >
             {images.length === 0 ? (
-              <li className="col-span-full p-3 text-center text-xs text-slate-500">
+              <li className="col-span-full p-3 text-center text-xs text-ink-muted">
                 {t(locale, "media.noLibraryItems")}
               </li>
             ) : (
@@ -165,7 +165,7 @@ export function ImagePicker({
                     }`}
                   >
                     <img src={`/files/${img.id}`} alt={img.label} className="h-16 w-full rounded-md object-cover" loading="lazy" />
-                    <span className="truncate text-[11px] text-slate-600">{img.label}</span>
+                    <span className="truncate text-[11px] text-ink-muted">{img.label}</span>
                   </button>
                 </li>
               ))

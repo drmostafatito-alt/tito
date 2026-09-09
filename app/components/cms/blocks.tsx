@@ -52,9 +52,9 @@ function SmartLink({ href, className, children, ariaLabel }: { href: string; cla
 
 const BUTTON_VARIANT = {
   primary: "bg-brand-700 text-white hover:bg-brand-800",
-  secondary: "bg-white text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 hover:ring-slate-400",
-  outline: "border border-slate-400 text-slate-900 hover:border-brand-800 hover:bg-slate-50",
-  ghost: "text-slate-900 hover:bg-slate-100",
+  secondary: "bg-white font-semibold text-ink ring-1 ring-inset ring-line hover:bg-slate-50 hover:ring-ink",
+  outline: "border border-line font-semibold text-ink hover:border-brand-800 hover:bg-slate-50",
+  ghost: "font-semibold text-ink hover:bg-slate-100",
   light: "bg-white text-brand-800 hover:bg-slate-100",
 } as const;
 
@@ -117,7 +117,7 @@ function CardGrid({ rows, ctx, ctaFallback }: { rows: CardView[]; ctx: CmsRender
               )}
             </div>
             {ls(row.desc, L) && <p className="line-clamp-2 text-sm leading-relaxed text-ink-muted">{ls(row.desc, L)}</p>}
-            {row.meta && ls(row.meta, L) && <p className="text-xs text-slate-500">{ls(row.meta, L)}</p>}
+            {row.meta && ls(row.meta, L) && <p className="text-xs text-ink-muted">{ls(row.meta, L)}</p>}
             <div className="mt-auto pt-2">
               <SmartLink href={row.href} className="inline-flex min-h-11 items-center text-sm font-bold text-ink">
                 <span className="sig-u">{(row.cta && ls(row.cta, L)) || (ctaFallback ? ls(ctaFallback, L) : "") || ls(row.title, L)}</span>
@@ -158,7 +158,7 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
         {cells.map(([value, label], i) => (
           <div key={i} className="flex min-w-16 flex-col items-center rounded-[var(--radius-btn)] bg-brand-800 px-3 py-2 text-white">
             <span className="sig-display text-2xl tabular-nums">{value ?? "--"}</span>
-            <span className="text-[11px] text-slate-300">{label}</span>
+            <span className="text-[11px] font-medium text-white/70">{label}</span>
           </div>
         ))}
       </div>
@@ -169,7 +169,7 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
 function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; compact?: boolean }) {
   const L = ctx.locale;
   const result = ctx.formResults[form.slug];
-  const input = "w-full rounded-[var(--radius-btn)] border border-slate-300 bg-white px-3 py-2.5 text-sm text-ink placeholder:text-slate-400 focus:border-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-700/30";
+  const input = "w-full rounded-[var(--radius-btn)] border border-line bg-white px-3 py-2.5 text-sm text-ink placeholder:text-slate-400 focus:border-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-700/30";
   return (
     <form method="post" className={`flex flex-col gap-4 ${compact ? "" : "mx-auto w-full max-w-xl"}`} noValidate>
       <input type="hidden" name="_cmsForm" value={form.slug} />
@@ -210,7 +210,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             control = (
               <div className="flex flex-wrap gap-3" role="radiogroup" aria-labelledby={`cmsf-${form.slug}-${f.name}-legend`}>
                 {f.options.map((o) => (
-                  <label key={o.value} className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700">
+                  <label key={o.value} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
                     <input type="radio" name={f.name} value={o.value} className="h-4 w-4" />
                     {ls(o.label, L)}
                   </label>
@@ -220,7 +220,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             break;
           case "checkbox":
             control = (
-              <label className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700">
+              <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
                 <input type="checkbox" id={`cmsf-${form.slug}-${f.name}`} name={f.name} value="on" className="h-4 w-4" />
                 {ls(f.label, L)}
               </label>
@@ -243,15 +243,15 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
         return (
           <div key={f.name}>
             {f.type !== "checkbox" && f.type !== "radio" && label}
-            {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-sm font-medium text-slate-700">{ls(f.label, L)}{f.required && <span className="text-rose-600"> *</span>}</span>}
+            {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-sm font-medium text-ink">{ls(f.label, L)}{f.required && <span className="text-rose-600"> *</span>}</span>}
             {control}
-            {ls(f.help, L) && <p className="mt-1 text-xs text-slate-500">{ls(f.help, L)}</p>}
+            {ls(f.help, L) && <p className="mt-1 text-xs text-ink-muted">{ls(f.help, L)}</p>}
             {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
           </div>
         );
       })}
       {form.consentRequired && (
-        <label className="inline-flex min-h-11 items-start gap-2 text-sm text-slate-600">
+        <label className="inline-flex min-h-11 items-start gap-2 text-sm text-ink-muted">
           <input type="checkbox" name="__consent" value="on" className="mt-1 h-4 w-4" />
           <span>{ls(form.consent, L)}{result && !result.ok && result.errors.__consent && <span className="text-rose-600"> *</span>}</span>
         </label>
@@ -506,7 +506,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
           <Suspense fallback={<div className="h-40 rounded-xl bg-slate-100" />}>
             <VideoPlayer videoId={videoId} title={str(p, "caption", L) || undefined} />
           </Suspense>
-          {str(p, "caption", L) && <p className="mt-2 text-center text-sm text-slate-500">{str(p, "caption", L)}</p>}
+          {str(p, "caption", L) && <p className="mt-2 text-center text-sm text-ink-muted">{str(p, "caption", L)}</p>}
         </div>
       );
     }
@@ -531,7 +531,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className={`flex flex-col gap-2 ${ALIGN[align as keyof typeof ALIGN] ?? ALIGN.center}`}>
           {icon && <Icon name={icon} size={raw(p, "size") || "lg"} colorRole={raw(p, "colorRole") || "brand"} />}
-          {label && <p className="font-medium text-slate-700">{label}</p>}
+          {label && <p className="font-medium text-ink">{label}</p>}
         </div>
       );
     }
@@ -689,7 +689,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 )}
                 <span className="flex flex-col">
                   {str(item, "name", L) && <span className="text-sm font-bold text-ink">{str(item, "name", L)}</span>}
-                  {str(item, "role", L) && <span className="text-xs text-slate-500">{str(item, "role", L)}</span>}
+                  {str(item, "role", L) && <span className="text-xs text-ink-muted">{str(item, "role", L)}</span>}
                 </span>
               </figcaption>
             </figure>
@@ -734,7 +734,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "announcement": {
       const text = str(p, "text", L);
       if (!text) return null;
-      const tone = { info: "bg-slate-100 text-slate-800", success: "bg-emerald-50 text-emerald-800", warning: "bg-amber-50 text-amber-800", brand: "bg-brand-800 text-white" }[raw(p, "tone")] ?? "bg-slate-100 text-slate-800";
+      const tone = { info: "bg-slate-100 text-ink", success: "bg-emerald-50 text-emerald-800", warning: "bg-amber-50 text-amber-800", brand: "bg-brand-800 text-white" }[raw(p, "tone")] ?? "bg-slate-100 text-ink";
       return (
         <div className={`flex flex-wrap items-center justify-center gap-3 rounded-[var(--radius-card)] border-2 border-brand-800 px-5 py-3 text-sm font-medium ${tone}`}>
           {raw(p, "icon") && <Icon name={raw(p, "icon")} size="sm" colorRole="default" className="text-current" />}
@@ -810,12 +810,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const network = raw(item, "network");
             const label = str(item, "label", L);
             return asButtons ? (
-              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] border border-slate-300 px-4 py-2.5 text-sm font-semibold text-ink hover:border-brand-800 hover:bg-slate-50">
+              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] border border-line px-4 py-2.5 text-sm font-semibold text-ink hover:border-brand-800 hover:bg-slate-50">
                 <Icon name={network} size="sm" colorRole="default" className="text-current" />
                 {label || network}
               </a>
             ) : (
-              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" aria-label={label || network} className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-btn)] border border-line text-slate-600 transition-colors hover:border-brand-800 hover:text-ink">
+              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" aria-label={label || network} className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-btn)] border border-line text-ink-muted transition-colors hover:border-brand-800 hover:text-ink">
                 <Icon name={network} size="md" colorRole="default" className="text-current" />
               </a>
             );
@@ -834,7 +834,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <ul className="flex flex-col gap-3">
           {rows.map(([icon, value], idx) => (
-            <li key={idx} className="flex items-center gap-3 text-sm text-slate-700">
+            <li key={idx} className="flex items-center gap-3 text-sm font-medium text-ink">
               <Icon name={icon} size="sm" colorRole="brand" />
               <span dir={icon === "phone" || icon === "mail" ? "ltr" : undefined}>{value}</span>
             </li>
