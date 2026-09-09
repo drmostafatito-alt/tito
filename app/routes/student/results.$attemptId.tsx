@@ -54,16 +54,18 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-4">
       <nav className="flex items-center justify-between text-sm">
-        <Link to="/results" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
-          <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
-          {t(locale, "exam.resultsTitle")}
+        <Link to="/results" className="inline-flex min-h-9 items-center gap-1 font-bold text-ink">
+          <span aria-hidden="true" className="text-accent-600 rtl:rotate-180">←</span>
+          <span className="sig-u">{t(locale, "exam.resultsTitle")}</span>
         </Link>
-        <Link to={`/exams/${examSlug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
-          {t(locale, "exam.backToExams")}
+        <Link to={`/exams/${examSlug}`} className="inline-flex min-h-9 items-center font-bold text-ink">
+          <span className="sig-u">{t(locale, "exam.backToExams")}</span>
         </Link>
       </nav>
 
-      <h1 className="text-xl font-bold">{title}</h1>
+      <div className="border-b-2 border-brand-800 pb-4">
+        <h1 className="sig-display text-3xl text-ink">{title}</h1>
+      </div>
 
       {attemptInProgress && (
         <Alert kind="warning">
@@ -77,7 +79,7 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardBody className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-slate-500">
+            <span className="text-sm font-semibold tabular-nums text-ink-muted">
               {t(locale, "exam.attemptNumber").replace("{n}", String(s.attemptNumber))}
             </span>
             {s.status === "graded" && s.visible && (
@@ -88,36 +90,36 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
           </div>
 
           {s.status === "graded" && !s.visible && (
-            <p className="text-sm text-slate-500">{t(locale, "exam.resultHidden")}</p>
+            <p className="text-sm text-ink-muted">{t(locale, "exam.resultHidden")}</p>
           )}
 
           {s.visible && (
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
               <div>
-                <dt className="text-xs text-slate-500">{t(locale, "exam.score")}</dt>
-                <dd className="text-lg font-bold">
+                <dt className="text-xs font-semibold text-ink-muted">{t(locale, "exam.score")}</dt>
+                <dd className="text-lg font-bold tabular-nums text-ink">
                   {s.score}/{s.maxScore}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">{t(locale, "exam.percentage")}</dt>
-                <dd className="text-lg font-bold">{s.percentage !== null ? `${s.percentage}%` : "—"}</dd>
+                <dt className="text-xs font-semibold text-ink-muted">{t(locale, "exam.percentage")}</dt>
+                <dd className="text-lg font-bold tabular-nums text-accent-600">{s.percentage !== null ? `${s.percentage}%` : "—"}</dd>
               </div>
               {s.correctCount !== null && (
                 <div>
-                  <dt className="text-xs text-slate-500">{t(locale, "exam.correctAnswers")}</dt>
-                  <dd className="text-lg font-bold">{s.correctCount}</dd>
+                  <dt className="text-xs font-semibold text-ink-muted">{t(locale, "exam.correctAnswers")}</dt>
+                  <dd className="text-lg font-bold tabular-nums text-ink">{s.correctCount}</dd>
                 </div>
               )}
               {s.submittedAt !== null && (
                 <div className="col-span-2">
-                  <dt className="text-xs text-slate-500">{t(locale, "exam.submittedAt")}</dt>
+                  <dt className="text-xs font-semibold text-ink-muted">{t(locale, "exam.submittedAt")}</dt>
                   <dd>{formatDate(locale, s.submittedAt)}</dd>
                 </div>
               )}
               {s.timeUsedSeconds !== null && (
                 <div>
-                  <dt className="text-xs text-slate-500">{t(locale, "exam.timeUsed")}</dt>
+                  <dt className="text-xs font-semibold text-ink-muted">{t(locale, "exam.timeUsed")}</dt>
                   <dd>
                     {Math.floor(s.timeUsedSeconds / 60)}:{String(s.timeUsedSeconds % 60).padStart(2, "0")}
                   </dd>
@@ -130,7 +132,10 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
 
       {review && review.questions.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-500">{t(locale, "exam.reviewTitle")}</h2>
+          <h2 className="flex items-center gap-2 text-sm font-bold text-ink">
+            <span aria-hidden="true" className="inline-block h-2.5 w-2.5 bg-accent-500" />
+            {t(locale, "exam.reviewTitle")}
+          </h2>
           {review.questions.map((q, i) => {
             const stem = locale === "ar" ? q.stemAr || q.stemEn : q.stemEn || q.stemAr;
             const explanation = locale === "ar" ? q.explanationAr : q.explanationEn;
@@ -138,7 +143,7 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
               <Card key={q.id}>
                 <CardBody className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium">
+                    <p className="text-[15px] font-bold text-ink">
                       {i + 1}. {stem}
                     </p>
                     <Badge tone={(q.earned ?? 0) >= q.points ? "success" : (q.earned ?? 0) > 0 ? "warning" : "danger"}>
@@ -156,21 +161,21 @@ export default function ResultDetailPage({ loaderData }: Route.ComponentProps) {
                               ? "border-emerald-300 bg-emerald-50"
                               : c.selected
                                 ? "border-red-200 bg-red-50"
-                                : "border-slate-200"
+                                : "border-line"
                           }`}
                         >
                           {c.selected && <span aria-hidden>{c.correct === true ? "✓" : c.correct === false ? "✕" : "•"}</span>}
                           {!c.selected && c.correct === true && <span aria-hidden>✓</span>}
                           <span className="flex-1">{content}</span>
-                          {c.selected && <span className="text-xs text-slate-500">{t(locale, "exam.yourAnswer")}</span>}
-                          {c.feedback && <span className="text-xs text-slate-500">{c.feedback}</span>}
+                          {c.selected && <span className="text-xs font-semibold text-ink-muted">{t(locale, "exam.yourAnswer")}</span>}
+                          {c.feedback && <span className="text-xs text-ink-muted">{c.feedback}</span>}
                         </li>
                       );
                     })}
                   </ul>
-                  {!q.answered && <p className="text-xs text-slate-500">{t(locale, "exam.notAnswered")}</p>}
+                  {!q.answered && <p className="text-xs font-semibold text-ink-muted">{t(locale, "exam.notAnswered")}</p>}
                   {explanation && (
-                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    <p className="rounded-[var(--radius-btn)] border-s-2 border-s-brand-800 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-ink-muted">
                       <span className="font-semibold">{t(locale, "exam.explanation")}: </span>
                       {explanation}
                     </p>

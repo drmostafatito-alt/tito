@@ -42,8 +42,10 @@ export default function ActivatePage({}: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t(locale, "commerce.activateTitle")}</h1>
+    <div className="max-w-xl space-y-4">
+      <div className="border-b-2 border-brand-800 pb-4">
+        <h1 className="sig-display text-3xl text-ink">{t(locale, "commerce.activateTitle")}</h1>
+      </div>
 
       {actionData && "error" in actionData && (
         <div data-testid="redeem-error">
@@ -61,7 +63,7 @@ export default function ActivatePage({}: Route.ComponentProps) {
         <CardBody>
           <Form method="post" className="space-y-3">
             <input type="hidden" name="_action" value="redeem" />
-            <label className="grid gap-1 text-sm">
+            <label className="grid gap-1.5 text-sm font-semibold text-ink">
               <span>{t(locale, "commerce.codeLabel")}</span>
               <input
                 name="code"
@@ -69,13 +71,13 @@ export default function ActivatePage({}: Route.ComponentProps) {
                 dir="ltr"
                 autoComplete="off"
                 maxLength={40}
-                className="rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase"
+                className="rounded-[var(--radius-btn)] border border-line bg-white px-3 py-2.5 font-mono uppercase focus:border-brand-800 focus:outline-none"
                 placeholder="EDU-XXXX-XXXX-XXXX"
                 data-testid="code-input"
               />
             </label>
             <SubmitButton name="_action" value="redeem">{t(locale, "commerce.redeemButton")}</SubmitButton>
-            <p className="text-xs text-slate-500">{t(locale, "commerce.redeemNotice")}</p>
+            <p className="text-xs leading-relaxed text-ink-muted">{t(locale, "commerce.redeemNotice")}</p>
           </Form>
         </CardBody>
       </Card>

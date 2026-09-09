@@ -87,7 +87,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
     { to: "/assignments", label: t(locale, "assignment.myAssignments") },
     { to: "/orders", label: t(locale, "commerce.myOrders") },
     { to: "/notifications", label: t(locale, "notifications.navLabel"), badge: loaderData.unreadNotifications },
-    { to: "/profile", label: t(locale, "profile.title") },
+    { to: "/profile", label: t(locale, "profile.title"), end: true },
     { to: "/profile/security", label: t(locale, "dashboard.securityLink") },
   ];
 
@@ -104,7 +104,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
           {/* Desktop navigation */}
           <nav className="hidden items-center gap-0.5 xl:flex" aria-label={t(locale, "common.navMain")}>
             {coreLinks.map((l) => (
-              <RRNavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? activeLinkCls : navLinkCls)}>
+              <RRNavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => (isActive ? activeLinkCls : navLinkCls)}>
                 {l.label}
                 {l.badge ? (
                   <span className="rounded-full bg-accent-600 px-1.5 text-[11px] font-bold text-white" dir="ltr" data-testid="nav-unread-badge">{l.badge}</span>
@@ -166,7 +166,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
           <nav id="student-mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-line bg-white px-4 py-3 xl:hidden">
             <div className="flex flex-col gap-1">
               {coreLinks.map((l) => (
-                <RRNavLink key={l.to} to={l.to} onClick={close} className={({ isActive }) => (isActive ? activeLinkCls + " w-full" : navLinkCls + " w-full")}>
+                <RRNavLink key={l.to} to={l.to} end={l.end} onClick={close} className={({ isActive }) => (isActive ? activeLinkCls + " w-full" : navLinkCls + " w-full")}>
                   {l.label}
                   {l.badge ? (
                     <span className="rounded-full bg-accent-600 px-1.5 text-[11px] font-bold text-white" dir="ltr">{l.badge}</span>

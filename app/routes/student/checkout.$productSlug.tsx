@@ -97,8 +97,10 @@ export default function CheckoutPage({ loaderData }: Route.ComponentProps) {
   const selected = plans.find((p) => p.id === selectedPlanId) ?? plans[0];
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t(locale, "commerce.checkoutTitle")}</h1>
+    <div className="mx-auto max-w-2xl space-y-4">
+      <div className="border-b-2 border-brand-800 pb-4">
+        <h1 className="sig-display text-3xl text-ink">{t(locale, "commerce.checkoutTitle")}</h1>
+      </div>
 
       {actionData && "error" in actionData && (
         <div data-testid="checkout-error">
@@ -118,7 +120,7 @@ export default function CheckoutPage({ loaderData }: Route.ComponentProps) {
                 return (
                   <label
                     key={plan.id}
-                    className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50"
+                    className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-btn)] border border-line p-3 transition-colors has-[:checked]:border-brand-800 has-[:checked]:bg-brand-50"
                   >
                     <span className="flex items-center gap-2 text-sm">
                       <input
@@ -128,12 +130,12 @@ export default function CheckoutPage({ loaderData }: Route.ComponentProps) {
                         defaultChecked={plan.id === selected?.id}
                         required
                       />
-                      {label}
+                      <span className="font-semibold text-ink">{label}</span>
                       {plan.kind === "recurring" && (
-                        <span className="text-xs text-slate-500">{t(locale, "commerce.recurring")}</span>
+                        <span className="text-xs text-ink-muted">{t(locale, "commerce.recurring")}</span>
                       )}
                     </span>
-                    <span className="text-sm font-bold" dir="ltr" data-testid="checkout-price">
+                    <span className="text-sm font-bold tabular-nums text-ink" dir="ltr" data-testid="checkout-price">
                       {formatMoney(plan.effectiveMinor, plan.currency)}
                     </span>
                   </label>
@@ -141,33 +143,33 @@ export default function CheckoutPage({ loaderData }: Route.ComponentProps) {
               })}
             </fieldset>
 
-            <label className="grid gap-1 text-sm">
+            <label className="grid gap-1.5 text-sm font-semibold text-ink">
               <span>{t(locale, "commerce.discountCode")}</span>
               <input
                 name="discountCode"
                 dir="ltr"
                 autoComplete="off"
-                className="rounded-lg border border-slate-300 px-3 py-2"
+                className="rounded-[var(--radius-btn)] border border-line bg-white px-3 py-2.5 focus:border-brand-800 focus:outline-none"
                 placeholder={t(locale, "commerce.discountOptional")}
               />
             </label>
 
             {selected && (
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3 text-sm">
+              <div className="flex items-center justify-between rounded-[var(--radius-btn)] border-2 border-brand-800 p-3 text-sm">
                 <span className="font-semibold">{t(locale, "commerce.totalDue")}</span>
-                <span className="text-base font-bold text-brand-700" dir="ltr" data-testid="checkout-total">
+                <span className="text-lg font-bold tabular-nums text-ink" dir="ltr" data-testid="checkout-total">
                   {formatMoney(selected.effectiveMinor, selected.currency)}
                 </span>
               </div>
             )}
 
-            <p className="text-xs text-slate-500">{t(locale, "commerce.checkoutNotice")}</p>
+            <p className="text-xs leading-relaxed text-ink-muted">{t(locale, "commerce.checkoutNotice")}</p>
             <div className="flex items-center gap-3">
               <SubmitButton name="_action" value="create_order">
                 {t(locale, "commerce.createOrder")}
               </SubmitButton>
-              <Link to={`/products/${product.slug}`} className="text-sm text-blue-600 hover:underline">
-                {t(locale, "common.back")}
+              <Link to={`/products/${product.slug}`} className="inline-flex min-h-11 items-center text-sm font-bold text-ink">
+                <span className="sig-u">{t(locale, "common.back")}</span>
               </Link>
             </div>
           </Form>

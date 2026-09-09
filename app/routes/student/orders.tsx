@@ -80,11 +80,11 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">{t(locale, "commerce.myOrders")}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-brand-800 pb-4">
+        <h1 className="sig-display text-3xl text-ink">{t(locale, "commerce.myOrders")}</h1>
         <Link
           to="/activate"
-          className="inline-flex min-h-11 items-center rounded-lg border border-brand-300 px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+          className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-line bg-white px-5 text-sm font-semibold text-ink transition-colors hover:border-brand-800"
           data-testid="activate-link"
         >
           {t(locale, "commerce.activateTitle")}
@@ -93,7 +93,8 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
 
       {subscriptions.length > 0 && (
         <section className="space-y-3" aria-labelledby="subs-heading" data-testid="subscriptions-section">
-          <h2 id="subs-heading" className="text-sm font-semibold text-slate-600">
+          <h2 id="subs-heading" className="flex items-center gap-2 text-sm font-bold text-ink">
+            <span aria-hidden="true" className="inline-block h-2.5 w-2.5 bg-accent-500" />
             {t(locale, "commerce.mySubscriptions")}
           </h2>
           {subscriptions.map((s) => {
@@ -107,8 +108,8 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
               <Card key={s.id}>
                 <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <div>
-                    <p className="font-semibold">{title}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-bold text-ink">{title}</p>
+                    <p className="mt-0.5 text-xs tabular-nums text-ink-muted">
                       {s.currentPeriodEnd !== null
                         ? t(locale, "commerce.accessUntil").replace("{date}", formatDate(locale, s.currentPeriodEnd))
                         : t(locale, "commerce.noEnd")}
@@ -126,30 +127,31 @@ export default function OrdersPage({ loaderData }: Route.ComponentProps) {
       )}
 
       <section className="space-y-3" aria-labelledby="orders-heading">
-        <h2 id="orders-heading" className="text-sm font-semibold text-slate-600">
+        <h2 id="orders-heading" className="flex items-center gap-2 text-sm font-bold text-ink">
+          <span aria-hidden="true" className="inline-block h-2.5 w-2.5 bg-accent-500" />
           {t(locale, "commerce.ordersHistory")}
         </h2>
         {orders.length === 0 && (
           <Card>
-            <CardBody className="text-sm text-slate-500" data-testid="orders-empty">
+            <CardBody className="text-sm text-ink-muted" data-testid="orders-empty">
               {t(locale, "commerce.noOrders")}
             </CardBody>
           </Card>
         )}
         {orders.map((o) => (
           <Link key={o.id} to={`/orders/${o.orderNumber}`} className="block">
-            <Card className="transition hover:border-blue-300">
+            <Card className="transition-colors hover:border-brand-800">
               <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div>
-                  <p className="font-semibold">
+                  <p className="font-bold text-ink">
                     {(locale === "ar" ? o.items[0]?.titleAr : o.items[0]?.titleEn) || o.orderNumber}
                   </p>
-                  <p className="text-xs text-slate-500" dir="ltr">
+                  <p className="mt-0.5 text-xs tabular-nums text-ink-muted" dir="ltr">
                     {o.orderNumber} · {formatDate(locale, o.createdAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold" dir="ltr" data-testid="order-total">
+                  <span className="font-bold tabular-nums text-ink" dir="ltr" data-testid="order-total">
                     {formatMoney(o.totalMinor, o.currency)}
                   </span>
                   <Badge tone={ORDER_TONE[o.status] ?? "neutral"}>

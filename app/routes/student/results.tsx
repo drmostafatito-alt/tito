@@ -30,21 +30,23 @@ export default function ResultsPage({ loaderData }: Route.ComponentProps) {
   const { summaries } = loaderData;
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t(locale, "exam.resultsTitle")}</h1>
+      <div className="border-b-2 border-brand-800 pb-4">
+        <h1 className="sig-display text-3xl text-ink">{t(locale, "exam.resultsTitle")}</h1>
+      </div>
       {summaries.length === 0 && (
         <Card>
-          <CardBody className="text-sm text-slate-500">{t(locale, "exam.noAttempts")}</CardBody>
+          <CardBody className="text-sm text-ink-muted">{t(locale, "exam.noAttempts")}</CardBody>
         </Card>
       )}
       {summaries.map((s) => {
         const title = locale === "ar" ? s.examTitleAr : s.examTitleEn;
         return (
           <Link key={s.attemptId} to={`/results/${s.attemptId}`} className="block">
-            <Card className="transition hover:border-blue-300">
+            <Card className="transition-colors hover:border-brand-800">
               <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div>
-                  <p className="font-semibold">{title}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-bold text-ink">{title}</p>
+                  <p className="mt-0.5 text-xs tabular-nums text-ink-muted">
                     {t(locale, "exam.attemptNumber").replace("{n}", String(s.attemptNumber))}
                     {s.submittedAt !== null ? ` · ${formatDate(locale, s.submittedAt)}` : ""}
                   </p>

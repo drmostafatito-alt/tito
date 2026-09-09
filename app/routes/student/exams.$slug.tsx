@@ -128,19 +128,19 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
   return (
     <div className="space-y-4">
       <nav className="text-sm">
-        <Link to="/exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
-          <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
-          {t(locale, "exam.backToExams")}
+        <Link to="/exams" className="inline-flex min-h-9 items-center gap-1 font-bold text-ink">
+          <span aria-hidden="true" className="text-accent-600 rtl:rotate-180">←</span>
+          <span className="sig-u">{t(locale, "exam.backToExams")}</span>
         </Link>
       </nav>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-bold">{title}</h1>
+      <div className="flex flex-wrap items-center gap-2 border-b-2 border-brand-800 pb-4">
+        <h1 className="sig-display text-3xl text-ink">{title}</h1>
         {attempts.some((a) => a.status === "in_progress") && (
           <Badge tone="warning">{t(locale, "exam.inProgress")}</Badge>
         )}
       </div>
-      {description && <p className="text-sm text-slate-600">{description}</p>}
+      {description && <p className="max-w-2xl text-[15px] leading-relaxed text-ink-muted">{description}</p>}
 
       {(autoExpired || expiredParam) && <Alert kind="warning">{t(locale, "exam.expiredNotice")}</Alert>}
       {!eligibility.ok && <Alert kind="info">{t(locale, reasonKey[eligibility.reason] ?? "exam.noAccess")}</Alert>}
@@ -149,13 +149,13 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
       <Card>
         <CardBody className="space-y-3">
           <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-3">
-            <p className="text-slate-600">
+            <p className="font-medium tabular-nums text-ink">
               {policy.durationMinutes !== null && policy.durationMinutes > 0
                 ? t(locale, "exam.duration").replace("{n}", String(policy.durationMinutes))
                 : t(locale, "exam.unlimitedDuration")}
             </p>
-            <p className="text-slate-600">{t(locale, "exam.passPercent").replace("{n}", String(policy.passPercent))}</p>
-            <p className="text-slate-600">
+            <p className="font-medium tabular-nums text-ink">{t(locale, "exam.passPercent").replace("{n}", String(policy.passPercent))}</p>
+            <p className="font-medium tabular-nums text-ink">
               {policy.attemptsMax === null
                 ? t(locale, "exam.attemptsUnlimited")
                 : t(locale, "exam.attemptsUsed")
@@ -175,14 +175,17 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
       </Card>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-500">{t(locale, "exam.historyTitle")}</h2>
-        {attempts.length === 0 && <p className="text-sm text-slate-500">{t(locale, "exam.noAttempts")}</p>}
+        <h2 className="flex items-center gap-2 text-sm font-bold text-ink">
+          <span aria-hidden="true" className="inline-block h-2.5 w-2.5 bg-accent-500" />
+          {t(locale, "exam.historyTitle")}
+        </h2>
+        {attempts.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "exam.noAttempts")}</p>}
         {attempts.map((a) => (
           <Card key={a.attemptId}>
             <CardBody className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">
+                  <span className="font-bold tabular-nums text-ink">
                     {t(locale, "exam.attemptNumber").replace("{n}", String(a.attemptNumber))}
                   </span>
                   {a.status === "in_progress" ? (
@@ -196,36 +199,36 @@ export default function ExamIntroPage({ loaderData, actionData }: Route.Componen
                   )}
                 </div>
                 {a.submittedAt !== null && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs tabular-nums text-ink-muted">
                     {t(locale, "exam.submittedAt")}: {formatDate(locale, a.submittedAt)}
                   </p>
                 )}
                 {a.visible && a.score !== null && a.maxScore !== null && (
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs font-semibold tabular-nums text-ink">
                     {t(locale, "exam.score")}: {a.score}/{a.maxScore}
                     {a.percentage !== null ? ` · ${a.percentage}%` : ""}
                   </p>
                 )}
                 {!a.visible && a.status === "graded" && (
-                  <p className="text-xs text-slate-500">{t(locale, "exam.resultHidden")}</p>
+                  <p className="text-xs text-ink-muted">{t(locale, "exam.resultHidden")}</p>
                 )}
                 {!a.visible && a.status === "submitted" && (
-                  <p className="text-xs text-slate-500">{t(locale, "exam.awaitingGradingNote")}</p>
+                  <p className="text-xs text-ink-muted">{t(locale, "exam.awaitingGradingNote")}</p>
                 )}
               </div>
               {a.status === "in_progress" ? (
                 <Link
                   to={`/exams/${exam.slug}/attempt`}
-                  className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 sm:min-h-0"
+                  className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-line px-4 py-2 text-xs font-bold text-ink transition-colors hover:border-brand-800"
                 >
                   {t(locale, "exam.resume")}
                 </Link>
               ) : a.status === "submitted" ? (
-                <span className="text-xs text-slate-400">{t(locale, "exam.awaitingGrading")}</span>
+                <span className="text-xs font-semibold text-ink-muted">{t(locale, "exam.awaitingGrading")}</span>
               ) : (
                 <Link
                   to={`/results/${a.attemptId}`}
-                  className="min-h-11 rounded-lg border px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 sm:min-h-0"
+                  className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-line px-4 py-2 text-xs font-bold text-ink transition-colors hover:border-brand-800"
                 >
                   {t(locale, "exam.resultsTitle")}
                 </Link>

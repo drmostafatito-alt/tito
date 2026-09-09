@@ -77,7 +77,9 @@ export default function Security() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">{t(locale, "security.title")}</h1>
+      <div className="border-b-2 border-brand-800 pb-4">
+        <h1 className="sig-display text-3xl text-ink">{t(locale, "security.title")}</h1>
+      </div>
 
       {actionData?.error && <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>}
 
@@ -126,22 +128,22 @@ export default function Security() {
         <CardHeader title={t(locale, "security.devicesTitle")} />
         <CardBody className="flex flex-col gap-3">
           {loaderData.devices.map((d) => (
-            <div key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/50 px-3.5 py-2.5">
+            <div key={d.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-btn)] border border-line px-3.5 py-2.5">
               <div>
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-bold text-ink">
                   {d.label}{" "}
                   {d.id === loaderData.currentDeviceId && (
-                    <span className="text-xs font-normal text-brand-700">· {t(locale, "security.thisDevice")}</span>
+                    <span className="text-xs font-bold text-accent-600">· {t(locale, "security.thisDevice")}</span>
                   )}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="mt-0.5 text-xs tabular-nums text-ink-muted">
                   {t(locale, "security.lastSeen")}: {formatDate(locale, d.lastSeenAt)}
                 </p>
               </div>
               <Badge tone={d.status === "active" ? "success" : "neutral"}>{d.status}</Badge>
             </div>
           ))}
-          <p className="text-xs text-slate-500">
+          <p className="text-xs leading-relaxed text-ink-muted">
             {t(locale, "security.devicesAdminOnly")}
           </p>
         </CardBody>
