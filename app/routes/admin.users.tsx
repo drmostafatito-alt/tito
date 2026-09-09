@@ -19,10 +19,10 @@ import { Modal } from "~/components/ui/Modal";
 import { Alert } from "~/components/ui/Alert";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
-const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
+const inputCls = "rounded-lg border border-line px-3 py-2 text-sm";
 const ROLE_OPTIONS = ["student", "teacher", "admin", "super_admin"] as const;
 const STATUS_OPTIONS = ["active", "suspended"] as const;
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-line bg-white px-3 text-sm";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -122,7 +122,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">{t(locale, "adminUsers.title")}</h1>
+      <h1 className="text-2xl font-bold text-ink">{t(locale, "adminUsers.title")}</h1>
 
       {actError === "denied" && <Alert kind="error">{t(locale, "adminUsers.noManagePerm")}</Alert>}
       {actError === "empty" && <Alert kind="warning">{t(locale, "adminUsers.bulkNoSelection")}</Alert>}
@@ -159,7 +159,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
             <SubmitButton variant="secondary">{t(locale, "adminUsers.filter")}</SubmitButton>
           </Form>
 
-          <p className="text-xs text-slate-500" data-testid="users-total">
+          <p className="text-xs text-ink-muted" data-testid="users-total">
             {t(locale, "adminUsers.totalCount", { n: users.total })}
           </p>
 
@@ -169,10 +169,10 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
                 <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} className="h-4 w-4" data-testid="bulk-select-all" />
                 {t(locale, "adminUsers.selectAllVisible")}
               </label>
-              <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-blue-700 hover:underline" data-testid="bulk-clear">
+              <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-ink hover:underline" data-testid="bulk-clear">
                 {t(locale, "adminUsers.clearSelection")}
               </button>
-              <span className="text-xs text-slate-600" data-testid="bulk-selected">{t(locale, "adminUsers.selectedCount", { n: selected.size })}</span>
+              <span className="text-xs text-ink-muted" data-testid="bulk-selected">{t(locale, "adminUsers.selectedCount", { n: selected.size })}</span>
               {selected.size > 0 && (
                 <div className="ms-auto flex flex-wrap items-center gap-2">
                   <Form method="post">
@@ -190,10 +190,10 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
             </div>
           )}
 
-          {users.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.empty")}</p>}
+          {users.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.empty")}</p>}
 
           {users.rows.map((u) => (
-            <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid="admin-user-row">
+            <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2.5 text-sm last:border-0" data-testid="admin-user-row">
               <div className="flex min-w-0 items-center gap-3">
                 {canManage && u.roleId === "student" && (
                   <input
@@ -206,10 +206,10 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
                   />
                 )}
                 <div className="flex min-w-0 flex-col">
-                  <Link to={`/admin/users/${u.id}`} className="truncate font-medium text-blue-700 hover:underline" data-testid="user-link">
+                  <Link to={`/admin/users/${u.id}`} className="truncate font-medium text-ink hover:underline" data-testid="user-link">
                     {u.fullName}
                   </Link>
-                  <span className="truncate text-xs text-slate-500" dir="ltr">{u.email}</span>
+                  <span className="truncate text-xs text-ink-muted" dir="ltr">{u.email}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -217,7 +217,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
                 <span data-testid={`user-status-${u.id}`}>
                   <Badge tone={u.status === "active" ? "success" : "danger"}>{t(locale, `adminUsers.status_${u.status}`)}</Badge>
                 </span>
-                <span className="text-xs text-slate-500">{formatDate(locale, u.createdAt)}</span>
+                <span className="text-xs text-ink-muted">{formatDate(locale, u.createdAt)}</span>
               </div>
             </div>
           ))}
@@ -225,11 +225,11 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2 text-sm">
               {users.page > 1 ? (
-                <Link className="text-blue-700 hover:underline" to={withPage(users.page - 1)} data-testid="users-prev">{t(locale, "adminUsers.prevPage")}</Link>
+                <Link className="text-ink hover:underline" to={withPage(users.page - 1)} data-testid="users-prev">{t(locale, "adminUsers.prevPage")}</Link>
               ) : <span />}
-              <span className="text-xs text-slate-500">{t(locale, "adminUsers.pageOf", { page: users.page, total: totalPages })}</span>
+              <span className="text-xs text-ink-muted">{t(locale, "adminUsers.pageOf", { page: users.page, total: totalPages })}</span>
               {users.page < totalPages ? (
-                <Link className="text-blue-700 hover:underline" to={withPage(users.page + 1)} data-testid="users-next">{t(locale, "adminUsers.nextPage")}</Link>
+                <Link className="text-ink hover:underline" to={withPage(users.page + 1)} data-testid="users-next">{t(locale, "adminUsers.nextPage")}</Link>
               ) : <span />}
             </div>
           )}
@@ -241,9 +241,9 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
         onClose={() => setConfirmingSuspend(false)}
         title={t(locale, "adminUsers.confirmBulkSuspendTitle")}
       >
-        <p className="text-sm text-slate-600">{t(locale, "adminUsers.confirmBulkSuspendBody", { n: selected.size })}</p>
+        <p className="text-sm text-ink-muted">{t(locale, "adminUsers.confirmBulkSuspendBody", { n: selected.size })}</p>
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={() => setConfirmingSuspend(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <button type="button" onClick={() => setConfirmingSuspend(false)} className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink hover:bg-slate-50">
             {t(locale, "adminUsers.cancel")}
           </button>
           <Form method="post" onSubmit={() => setConfirmingSuspend(false)}>

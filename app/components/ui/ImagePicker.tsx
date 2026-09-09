@@ -87,7 +87,7 @@ export function ImagePicker({
             className={`${previewCls} shrink-0 rounded-md border border-slate-100 bg-slate-50 object-cover`}
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-slate-800">{current.label}</p>
+            <p className="truncate text-sm font-semibold text-ink">{current.label}</p>
             <p className="truncate text-xs text-slate-500" dir="ltr">{val}</p>
           </div>
         </div>
@@ -161,7 +161,7 @@ export function ImagePicker({
                     onClick={() => { setVal(img.id); setOpen(false); }}
                     aria-selected={val === img.id}
                     className={`flex w-full flex-col gap-1 rounded-lg border p-1.5 text-start hover:bg-white ${
-                      val === img.id ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white"
+                      val === img.id ? "border-brand-800 bg-white ring-1 ring-brand-800" : "border-line bg-white"
                     }`}
                   >
                     <img src={`/files/${img.id}`} alt={img.label} className="h-16 w-full rounded-md object-cover" loading="lazy" />

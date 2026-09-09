@@ -23,11 +23,11 @@ import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
 import { et, t, formatDate, type Locale } from "~/lib/i18n";
 
-const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
+const inputCls = "w-full rounded-lg border border-line px-3 py-2 text-sm";
 // client-side literals mirroring AUDIENCES/ANNOUNCEMENT_STATUSES (component code must not touch .server imports)
 const AUDIENCE_OPTIONS = ["all", "students", "teachers"] as const;
 const STATUS_OPTIONS = ["draft", "published", "archived"] as const;
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-line bg-white px-3 text-sm";
 
 /** datetime-local (wall clock, treated as UTC — same convention as exam windows) ↔ epoch ms */
 const toLocalInput = (ms: number | null) => (ms == null ? "" : new Date(ms).toISOString().slice(0, 16));
@@ -127,9 +127,9 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">{t(locale, "announcementsAdmin.title")}</h1>
+        <h1 className="text-2xl font-bold text-ink">{t(locale, "announcementsAdmin.title")}</h1>
         {!showForm && (
-          <Link to="/admin/announcements?new=1" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700" data-testid="new-announcement">
+          <Link to="/admin/announcements?new=1" className="inline-flex min-h-11 items-center rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800" data-testid="new-announcement">
             {t(locale, "announcementsAdmin.newBtn")}
           </Link>
         )}
@@ -146,22 +146,22 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
         <Card data-testid="ann-preview-panel">
           <CardHeader
             title={t(locale, "announcementsAdmin.previewTitle")}
-            action={<Link to="/admin/announcements" className="text-sm text-blue-700 hover:underline" data-testid="ann-preview-close">{t(locale, "announcementsAdmin.closePreview")}</Link>}
+            action={<Link to="/admin/announcements" className="text-sm text-ink hover:underline" data-testid="ann-preview-close">{t(locale, "announcementsAdmin.closePreview")}</Link>}
           />
           <CardBody className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
               <Badge tone={STATUS_TONE[preview.status] ?? "neutral"}>{t(locale, `announcementsAdmin.status_${preview.status}`)}</Badge>
               <Badge tone="neutral">{t(locale, `announcementsAdmin.aud_${preview.audience}`)}</Badge>
               {preview.publishAt ? <span>{t(locale, "announcementsAdmin.fieldPublishAt")}: {formatDate(locale, preview.publishAt)}</span> : null}
               {preview.expiresAt ? <span>{t(locale, "announcementsAdmin.fieldExpiresAt")}: {formatDate(locale, preview.expiresAt)}</span> : null}
             </div>
-            <p className="text-xs text-slate-500">{t(locale, "announcementsAdmin.previewNote")}</p>
-            <div className="rounded-lg border border-slate-200 bg-white p-3">
+            <p className="text-xs text-ink-muted">{t(locale, "announcementsAdmin.previewNote")}</p>
+            <div className="rounded-lg border border-line bg-white p-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-slate-900" data-testid="ann-preview-title">{pvTitle || "—"}</span>
+                <span className="font-medium text-ink" data-testid="ann-preview-title">{pvTitle || "—"}</span>
                 <Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge>
               </div>
-              {pvBody ? <p className="mt-2 whitespace-pre-line text-sm text-slate-600" data-testid="ann-preview-body">{pvBody}</p> : <p className="mt-2 text-sm text-slate-400">{t(locale, "announcementsAdmin.noBody")}</p>}
+              {pvBody ? <p className="mt-2 whitespace-pre-line text-sm text-ink-muted" data-testid="ann-preview-body">{pvBody}</p> : <p className="mt-2 text-sm text-ink-muted">{t(locale, "announcementsAdmin.noBody")}</p>}
             </div>
           </CardBody>
         </Card>
@@ -176,27 +176,27 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
               {editing && <input type="hidden" name="id" value={editing.id} />}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldTitleAr")}</span>
+                  <span className="font-medium text-ink">{t(locale, "announcementsAdmin.fieldTitleAr")}</span>
                   <input name="titleAr" className={inputCls} defaultValue={editing?.titleAr ?? ""} required maxLength={200} data-testid="ann-title-ar" />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldTitleEn")}</span>
+                  <span className="font-medium text-ink">{t(locale, "announcementsAdmin.fieldTitleEn")}</span>
                   <input name="titleEn" className={inputCls} defaultValue={editing?.titleEn ?? ""} required maxLength={200} dir="ltr" data-testid="ann-title-en" />
                 </label>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldBodyAr")}</span>
+                  <span className="font-medium text-ink">{t(locale, "announcementsAdmin.fieldBodyAr")}</span>
                   <textarea name="bodyAr" className={`${inputCls} min-h-24`} defaultValue={editing?.bodyAr ?? ""} maxLength={5000} data-testid="ann-body-ar" />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldBodyEn")}</span>
+                  <span className="font-medium text-ink">{t(locale, "announcementsAdmin.fieldBodyEn")}</span>
                   <textarea name="bodyEn" className={`${inputCls} min-h-24`} defaultValue={editing?.bodyEn ?? ""} maxLength={5000} dir="ltr" data-testid="ann-body-en" />
                 </label>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldAudience")}</span>
+                  <span className="font-medium text-ink">{t(locale, "announcementsAdmin.fieldAudience")}</span>
                   <select name="audience" className={selectCls} defaultValue={editing?.audience ?? "all"} data-testid="ann-audience">
                     {AUDIENCE_OPTIONS.map((a) => (
                       <option key={a} value={a}>{t(locale, `announcementsAdmin.aud_${a}`)}</option>
@@ -204,17 +204,17 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
                   </select>
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldPublishAt")} <span className="text-xs text-slate-500">({t(locale, "announcementsAdmin.optional")})</span></span>
+                  <span className="font-medium text-ink">{t(locale, "announcementsAdmin.fieldPublishAt")} <span className="text-xs text-ink-muted">({t(locale, "announcementsAdmin.optional")})</span></span>
                   <input type="datetime-local" name="publishAt" className={selectCls} defaultValue={toLocalInput(editing?.publishAt ?? null)} data-testid="ann-publish-at" />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">{t(locale, "announcementsAdmin.fieldExpiresAt")} <span className="text-xs text-slate-500">({t(locale, "announcementsAdmin.optional")})</span></span>
+                  <span className="font-medium text-ink">{t(locale, "announcementsAdmin.fieldExpiresAt")} <span className="text-xs text-ink-muted">({t(locale, "announcementsAdmin.optional")})</span></span>
                   <input type="datetime-local" name="expiresAt" className={selectCls} defaultValue={toLocalInput(editing?.expiresAt ?? null)} data-testid="ann-expires-at" />
                 </label>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span data-testid="ann-save"><SubmitButton>{editing ? t(locale, "announcementsAdmin.save") : t(locale, "announcementsAdmin.saveDraft")}</SubmitButton></span>
-                <Link to="/admin/announcements" className="inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">{t(locale, "announcementsAdmin.cancel")}</Link>
+                <Link to="/admin/announcements" className="inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-medium text-ink-muted hover:bg-slate-100">{t(locale, "announcementsAdmin.cancel")}</Link>
               </div>
             </Form>
           </CardBody>
@@ -232,13 +232,13 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
             </select>
             <SubmitButton variant="secondary">{t(locale, "announcementsAdmin.filter")}</SubmitButton>
           </Form>
-          <p className="text-xs text-slate-500" data-testid="ann-total">{t(locale, "announcementsAdmin.totalCount", { n: list.total })}</p>
-          {list.rows.length === 0 && <p className="text-sm text-slate-500">{t(locale, "announcementsAdmin.empty")}</p>}
+          <p className="text-xs text-ink-muted" data-testid="ann-total">{t(locale, "announcementsAdmin.totalCount", { n: list.total })}</p>
+          {list.rows.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "announcementsAdmin.empty")}</p>}
           {list.rows.map((a) => (
-            <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid="announcement-row">
+            <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2.5 text-sm last:border-0" data-testid="announcement-row">
               <div className="flex min-w-0 flex-col">
-                <span className="truncate font-medium text-slate-800">{locale === "ar" ? a.titleAr : a.titleEn}</span>
-                <span className="text-xs text-slate-500">
+                <span className="truncate font-medium text-ink">{locale === "ar" ? a.titleAr : a.titleEn}</span>
+                <span className="text-xs text-ink-muted">
                   {t(locale, "adminUsers.colUpdated")}: {formatDate(locale, a.updatedAt)}
                   {a.publishAt ? ` · ${t(locale, "announcementsAdmin.fieldPublishAt")}: ${formatDate(locale, a.publishAt)}` : ""}
                   {a.expiresAt ? ` · ${t(locale, "announcementsAdmin.fieldExpiresAt")}: ${formatDate(locale, a.expiresAt)}` : ""}
@@ -247,8 +247,8 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="neutral">{t(locale, `announcementsAdmin.aud_${a.audience}`)}</Badge>
                 <span data-testid={`ann-status-${a.id}`}><Badge tone={STATUS_TONE[a.status] ?? "neutral"}>{t(locale, `announcementsAdmin.status_${a.status}`)}</Badge></span>
-                <Link to={`/admin/announcements?edit=${a.id}`} className="text-xs text-blue-700 hover:underline" data-testid={`ann-edit-${a.id}`}>{t(locale, "announcementsAdmin.edit")}</Link>
-                <Link to={`/admin/announcements?preview=${a.id}`} className="text-xs text-blue-700 hover:underline" data-testid={`ann-preview-${a.id}`}>{t(locale, "announcementsAdmin.preview")}</Link>
+                <Link to={`/admin/announcements?edit=${a.id}`} className="text-xs text-ink hover:underline" data-testid={`ann-edit-${a.id}`}>{t(locale, "announcementsAdmin.edit")}</Link>
+                <Link to={`/admin/announcements?preview=${a.id}`} className="text-xs text-ink hover:underline" data-testid={`ann-preview-${a.id}`}>{t(locale, "announcementsAdmin.preview")}</Link>
                 {a.status === "draft" && (
                   <Form method="post">
                     <input type="hidden" name="_action" value="publish" />
@@ -275,9 +275,9 @@ export default function AdminAnnouncements({ loaderData }: Route.ComponentProps)
           ))}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2 text-sm">
-              {list.page > 1 ? <Link className="text-blue-700 hover:underline" to={withPage(list.page - 1)} data-testid="ann-prev">{t(locale, "announcementsAdmin.prevPage")}</Link> : <span />}
-              <span className="text-xs text-slate-500">{t(locale, "announcementsAdmin.pageOf", { page: list.page, total: totalPages })}</span>
-              {list.page < totalPages ? <Link className="text-blue-700 hover:underline" to={withPage(list.page + 1)} data-testid="ann-next">{t(locale, "announcementsAdmin.nextPage")}</Link> : <span />}
+              {list.page > 1 ? <Link className="text-ink hover:underline" to={withPage(list.page - 1)} data-testid="ann-prev">{t(locale, "announcementsAdmin.prevPage")}</Link> : <span />}
+              <span className="text-xs text-ink-muted">{t(locale, "announcementsAdmin.pageOf", { page: list.page, total: totalPages })}</span>
+              {list.page < totalPages ? <Link className="text-ink hover:underline" to={withPage(list.page + 1)} data-testid="ann-next">{t(locale, "announcementsAdmin.nextPage")}</Link> : <span />}
             </div>
           )}
         </CardBody>

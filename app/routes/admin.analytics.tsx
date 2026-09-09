@@ -36,19 +36,19 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">{t(locale, "analyticsAdmin.title")}</h1>
+        <h1 className="text-2xl font-bold text-ink">{t(locale, "analyticsAdmin.title")}</h1>
         <RangeSwitcher range={range} locale={locale} base="/admin/analytics" ranges={RANGE_KEYS} />
       </div>
 
       <Card>
         <CardHeader title={t(locale, "analyticsAdmin.eventBreakdown")} description={t(locale, "analyticsAdmin.eventNote")} />
         <CardBody className="space-y-2">
-          {detail.eventBreakdown.length === 0 && <p className="text-sm text-slate-500">{t(locale, "analyticsAdmin.empty")}</p>}
+          {detail.eventBreakdown.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "analyticsAdmin.empty")}</p>}
           {detail.eventBreakdown.map((e) => (
             <div key={e.type} className="flex items-center gap-3 text-sm" data-testid="event-row">
-              <span className="w-40 shrink-0 font-mono text-xs text-slate-600" dir="ltr">{e.type}</span>
-              <span className={`h-2.5 rounded bg-brand-500 ${barFor(e.count, maxEvents)}`} aria-hidden="true" />
-              <span className="text-xs font-semibold text-slate-700" dir="ltr">{e.count.toLocaleString("en-US")}</span>
+              <span className="w-40 shrink-0 font-mono text-xs text-ink-muted" dir="ltr">{e.type}</span>
+              <span className={`h-2.5 rounded bg-slate-1000 ${barFor(e.count, maxEvents)}`} aria-hidden="true" />
+              <span className="text-xs font-semibold text-ink" dir="ltr">{e.count.toLocaleString("en-US")}</span>
             </div>
           ))}
         </CardBody>
@@ -58,12 +58,12 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "analyticsAdmin.watchDaily")} description={t(locale, "analyticsAdmin.last14")} />
           <CardBody className="space-y-2">
-            {detail.watchDaily.length === 0 && <p className="text-sm text-slate-500">{t(locale, "analyticsAdmin.empty")}</p>}
+            {detail.watchDaily.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "analyticsAdmin.empty")}</p>}
             {detail.watchDaily.map((d) => (
               <div key={d.epochDay} className="flex items-center gap-3 text-sm" data-testid="watch-daily-row">
-                <span className="w-28 shrink-0 text-xs text-slate-500">{dayLabel(d.epochDay)}</span>
+                <span className="w-28 shrink-0 text-xs text-ink-muted">{dayLabel(d.epochDay)}</span>
                 <span className={`h-2.5 rounded bg-emerald-500 ${barFor(d.seconds, maxWatch)}`} aria-hidden="true" />
-                <span className="text-xs font-semibold text-slate-700" dir="ltr">{fmtDuration(d.seconds)}</span>
+                <span className="text-xs font-semibold text-ink" dir="ltr">{fmtDuration(d.seconds)}</span>
               </div>
             ))}
           </CardBody>
@@ -72,12 +72,12 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "analyticsAdmin.regsDaily")} description={t(locale, "analyticsAdmin.last14")} />
           <CardBody className="space-y-2">
-            {detail.registrationsDaily.length === 0 && <p className="text-sm text-slate-500">{t(locale, "analyticsAdmin.empty")}</p>}
+            {detail.registrationsDaily.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "analyticsAdmin.empty")}</p>}
             {detail.registrationsDaily.map((d) => (
               <div key={d.epochDay} className="flex items-center gap-3 text-sm" data-testid="regs-daily-row">
-                <span className="w-28 shrink-0 text-xs text-slate-500">{dayLabel(d.epochDay)}</span>
-                <span className={`h-2.5 rounded bg-brand-500 ${barFor(d.count, maxRegs)}`} aria-hidden="true" />
-                <span className="text-xs font-semibold text-slate-700" dir="ltr">{d.count}</span>
+                <span className="w-28 shrink-0 text-xs text-ink-muted">{dayLabel(d.epochDay)}</span>
+                <span className={`h-2.5 rounded bg-slate-1000 ${barFor(d.count, maxRegs)}`} aria-hidden="true" />
+                <span className="text-xs font-semibold text-ink" dir="ltr">{d.count}</span>
               </div>
             ))}
           </CardBody>
@@ -87,15 +87,15 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={t(locale, "analyticsAdmin.topWatched")} />
         <CardBody className="space-y-1.5">
-          {top.length === 0 && <p className="text-sm text-slate-500">{t(locale, "analyticsAdmin.empty")}</p>}
+          {top.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "analyticsAdmin.empty")}</p>}
           {top.map((v) => (
             <div key={v.videoId} className="flex flex-wrap items-center justify-between gap-2 text-sm" data-testid="top-watched-row">
-              <span className="truncate font-medium text-slate-700">
+              <span className="truncate font-medium text-ink">
                 {v.lessonTitleAr || v.lessonTitleEn ? (locale === "ar" ? v.lessonTitleAr || v.lessonTitleEn : v.lessonTitleEn || v.lessonTitleAr) : `${t(locale, "analyticsAdmin.videoFallback")} ${v.videoId.slice(0, 8)}`}
               </span>
-              <span className="flex items-center gap-3 text-xs text-slate-500">
+              <span className="flex items-center gap-3 text-xs text-ink-muted">
                 <span dir="ltr">{t(locale, "analyticsAdmin.plays", { n: v.plays })}</span>
-                <span className="font-semibold text-slate-700" dir="ltr">{fmtDuration(v.seconds)}</span>
+                <span className="font-semibold text-ink" dir="ltr">{fmtDuration(v.seconds)}</span>
               </span>
             </div>
           ))}
@@ -105,16 +105,16 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={t(locale, "analyticsAdmin.examPerf")} />
         <CardBody className="space-y-1.5">
-          {detail.examPerformance.length === 0 && <p className="text-sm text-slate-500">{t(locale, "analyticsAdmin.empty")}</p>}
+          {detail.examPerformance.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "analyticsAdmin.empty")}</p>}
           {detail.examPerformance.map((e) => (
-            <div key={e.examId} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-1.5 text-sm last:border-0" data-testid="exam-perf-row">
-              <Link to={`/admin/assessment/exams/${e.examId}`} className="truncate font-medium text-blue-700 hover:underline">
+            <div key={e.examId} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-1.5 text-sm last:border-0" data-testid="exam-perf-row">
+              <Link to={`/admin/assessment/exams/${e.examId}`} className="truncate font-medium text-ink hover:underline">
                 {locale === "ar" ? e.titleAr || e.titleEn : e.titleEn || e.titleAr}
               </Link>
-              <span className="flex items-center gap-3 text-xs text-slate-500" dir="ltr">
+              <span className="flex items-center gap-3 text-xs text-ink-muted" dir="ltr">
                 <span>{t(locale, "analyticsAdmin.colAttempts")}: {e.attempts}</span>
                 <span>{t(locale, "analyticsAdmin.colPassed")}: {e.passed}/{e.graded}</span>
-                <span className="font-semibold text-slate-700">{e.avgPct == null ? "—" : `${e.avgPct}%`}</span>
+                <span className="font-semibold text-ink">{e.avgPct == null ? "—" : `${e.avgPct}%`}</span>
               </span>
             </div>
           ))}
@@ -125,11 +125,11 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "analyticsAdmin.ordersStatus")} />
           <CardBody className="space-y-1.5">
-            {detail.ordersByStatus.length === 0 && <p className="text-sm text-slate-500">{t(locale, "analyticsAdmin.empty")}</p>}
+            {detail.ordersByStatus.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "analyticsAdmin.empty")}</p>}
             {detail.ordersByStatus.map((o) => (
               <div key={o.status} className="flex items-center justify-between text-sm" data-testid="orders-status-row">
-                <span className="font-mono text-xs text-slate-600" dir="ltr">{o.status}</span>
-                <span className="text-xs text-slate-500" dir="ltr">{o.count} · {o.totalMinor}</span>
+                <span className="font-mono text-xs text-ink-muted" dir="ltr">{o.status}</span>
+                <span className="text-xs text-ink-muted" dir="ltr">{o.count} · {o.totalMinor}</span>
               </div>
             ))}
           </CardBody>
@@ -137,11 +137,11 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "analyticsAdmin.codeStatus")} />
           <CardBody className="space-y-1.5">
-            {detail.codeStatusBreakdown.length === 0 && <p className="text-sm text-slate-500">{t(locale, "analyticsAdmin.empty")}</p>}
+            {detail.codeStatusBreakdown.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "analyticsAdmin.empty")}</p>}
             {detail.codeStatusBreakdown.map((c) => (
               <div key={c.status} className="flex items-center justify-between text-sm" data-testid="code-status-row">
-                <span className="font-mono text-xs text-slate-600" dir="ltr">{c.status}</span>
-                <span className="text-xs font-semibold text-slate-700" dir="ltr">{c.count}</span>
+                <span className="font-mono text-xs text-ink-muted" dir="ltr">{c.status}</span>
+                <span className="text-xs font-semibold text-ink" dir="ltr">{c.count}</span>
               </div>
             ))}
           </CardBody>

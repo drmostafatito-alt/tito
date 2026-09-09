@@ -349,7 +349,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, allExams, outline, publicUrl, prereqs, prereqCandidates } = loaderData;
   const label = locale === "ar" ? String(node.titleAr ?? node.id) : String(node.titleEn ?? node.id);
 
-  const input = "rounded-lg border border-slate-300 px-3 py-2";
+  const input = "rounded-lg border border-line px-3 py-2";
   const isCourse = type === "course";
   const isLesson = type === "lesson";
   const hasThumb = type === "subject" || isCourse;
@@ -358,16 +358,16 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-6" key={`${type}-${String(node.id)}`}>
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/content" className="inline-flex min-h-6 items-center text-sm text-slate-600 hover:underline"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {t(locale, "admin.navContent")}</Link>
+        <Link to="/admin/content" className="inline-flex min-h-6 items-center text-sm text-ink-muted hover:underline"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {t(locale, "admin.navContent")}</Link>
         <h1 className="text-xl font-bold">{label}</h1>
         <Badge tone="neutral">{type}</Badge>
-        {typeof node.slug === "string" && <span className="text-xs text-slate-600">/{String(node.slug)}</span>}
+        {typeof node.slug === "string" && <span className="text-xs text-ink-muted">/{String(node.slug)}</span>}
         {publicUrl && (
           <a
             href={publicUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-line bg-white px-2.5 text-xs font-medium text-ink-muted hover:bg-slate-50"
           >
             {t(locale, "content.viewSite")}
             <span aria-hidden="true" className="text-[10px]">↗</span>
@@ -388,11 +388,11 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
             <div className="flex flex-wrap gap-2">
               <Form method="post">
                 <input type="hidden" name="_action" value="move-up" />
-                <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>↑ {t(locale, "content.moveUp")}</button>
+                <button className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>↑ {t(locale, "content.moveUp")}</button>
               </Form>
               <Form method="post">
                 <input type="hidden" name="_action" value="move-down" />
-                <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>↓ {t(locale, "content.moveDown")}</button>
+                <button className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>↓ {t(locale, "content.moveDown")}</button>
               </Form>
               {canDuplicate && (
                 <Form
@@ -402,7 +402,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                   }}
                 >
                   <input type="hidden" name="_action" value="duplicate" />
-                  <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>⧉ {t(locale, "content.duplicate")}</button>
+                  <button className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>⧉ {t(locale, "content.duplicate")}</button>
                 </Form>
               )}
               <Form method="post">
@@ -521,16 +521,16 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
             <Form method="post" className="space-y-3">
               <input type="hidden" name="_action" value="set-prerequisites" />
               {prereqCandidates.length === 0 ? (
-                <p className="text-sm text-slate-500">{t(locale, "content.prereqEmpty")}</p>
+                <p className="text-sm text-ink-muted">{t(locale, "content.prereqEmpty")}</p>
               ) : (
-                <fieldset className="grid max-h-56 gap-1.5 overflow-y-auto rounded-lg border border-slate-200 p-3 sm:grid-cols-2">
+                <fieldset className="grid max-h-56 gap-1.5 overflow-y-auto rounded-lg border border-line p-3 sm:grid-cols-2">
                   {prereqCandidates.map((c) => {
                     const checked = prereqs.some((p) => p.courseId === c.courseId);
                     return (
                       <label key={c.courseId} className="flex items-center gap-2 text-sm">
                         <input type="checkbox" name="prereqIds" value={c.courseId} defaultChecked={checked} className="h-4 w-4" />
                         <span>{locale === "ar" ? c.titleAr : c.titleEn}</span>
-                        {c.slug && <span className="text-xs text-slate-400">/{c.slug}</span>}
+                        {c.slug && <span className="text-xs text-ink-muted">/{c.slug}</span>}
                       </label>
                     );
                   })}
@@ -555,34 +555,34 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
           />
           <CardBody>
             {!outline || outline.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center">
-                <span className="text-3xl text-slate-300" aria-hidden="true">📚</span>
-                <p className="font-medium text-slate-700">{t(locale, "content.noUnits")}</p>
-                <p className="max-w-sm text-sm text-slate-500">{t(locale, "content.noUnitsHint")}</p>
-                <span className="text-sm text-slate-500">{t(locale, "content.addFirstUnit")} ↓</span>
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-line bg-slate-50/60 px-6 py-8 text-center">
+                <span className="text-3xl text-ink-muted" aria-hidden="true">○</span>
+                <p className="font-medium text-ink">{t(locale, "content.noUnits")}</p>
+                <p className="max-w-sm text-sm text-ink-muted">{t(locale, "content.noUnitsHint")}</p>
+                <span className="text-sm text-ink-muted">{t(locale, "content.addFirstUnit")} ↓</span>
               </div>
             ) : (
               <ol className="flex flex-col gap-3">
                 {outline.map((u, ui) => (
-                  <li key={u.id} className="overflow-hidden rounded-xl border border-slate-200">
-                    <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2">
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-700">{ui + 1}</span>
-                      <Link to={`/admin/content/unit/${u.id}`} className="text-sm font-semibold text-slate-800 hover:text-brand-700 hover:underline">
+                  <li key={u.id} className="overflow-hidden rounded-xl border border-line">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-line bg-slate-50 px-3 py-2">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-ink">{ui + 1}</span>
+                      <Link to={`/admin/content/unit/${u.id}`} className="text-sm font-semibold text-ink hover:text-ink hover:underline">
                         {locale === "ar" ? u.titleAr : u.titleEn}
                       </Link>
                       {u.status !== "published" && <Badge tone="warning">{t(locale, "content.inDraft")}</Badge>}
                     </div>
                     {u.lessons.length === 0 ? (
-                      <p className="px-4 py-3 text-sm text-slate-500">{t(locale, "content.noUnitsHint")}</p>
+                      <p className="px-4 py-3 text-sm text-ink-muted">{t(locale, "content.noUnitsHint")}</p>
                     ) : (
                       <ul className="flex flex-col">
                         {u.lessons.map((l) => (
-                          <li key={l.id} className="flex items-center gap-2 border-b border-slate-50 px-4 py-2 text-sm last:border-0">
-                            <Link to={`/admin/content/lesson/${l.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-slate-700 hover:text-brand-700 hover:underline">
+                          <li key={l.id} className="flex items-center gap-2 border-b border-line px-4 py-2 text-sm last:border-0">
+                            <Link to={`/admin/content/lesson/${l.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-ink hover:text-ink hover:underline">
                               <span aria-hidden="true">▶</span>
                               <span className="truncate">{locale === "ar" ? l.titleAr : l.titleEn}</span>
                             </Link>
-                            <span className="text-xs text-slate-500">{t(locale, "content.lessonItemsCount", { n: l.items })}</span>
+                            <span className="text-xs text-ink-muted">{t(locale, "content.lessonItemsCount", { n: l.items })}</span>
                             {l.status !== "published" && <Badge tone="warning">{t(locale, "content.inDraft")}</Badge>}
                           </li>
                         ))}
@@ -659,8 +659,8 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                     <Link to={`/admin/content/${c.label}/${c.id}`} className="hover:underline">
                       {locale === "ar" ? c.titleAr : c.titleEn}
                     </Link>
-                    {c.slug && <span className="text-xs text-slate-500">/{c.slug}</span>}
-                    {c.status && <span className="text-xs text-slate-500">({c.status})</span>}
+                    {c.slug && <span className="text-xs text-ink-muted">/{c.slug}</span>}
+                    {c.status && <span className="text-xs text-ink-muted">({c.status})</span>}
                   </li>
                 ))}
               </ul>
@@ -679,11 +679,11 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                   <Badge tone={i.itemType === "video" ? "brand" : i.itemType === "file" ? "neutral" : "warning"}>
                     {t(locale, i.itemType === "video" ? "content.videoItem" : i.itemType === "file" ? "content.fileItem" : "content.examItem")}
                   </Badge>
-                  <span className="max-w-[50%] truncate text-slate-600">{i.label}</span>
-                  {i.required && <span className="text-xs text-slate-500">{t(locale, "content.required")}</span>}
+                  <span className="max-w-[50%] truncate text-ink-muted">{i.label}</span>
+                  {i.required && <span className="text-xs text-ink-muted">{t(locale, "content.required")}</span>}
                 </li>
               ))}
-              {lessonItems.length === 0 && <li className="text-sm text-slate-500">—</li>}
+              {lessonItems.length === 0 && <li className="text-sm text-ink-muted">—</li>}
             </ul>
             <Form method="post" className="grid gap-3 sm:grid-cols-4">
               <input type="hidden" name="_action" value="add-item" />
@@ -725,8 +725,8 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                   ))}
                 </select>
               </label>
-              <div className="sm:col-span-4 grid gap-3 sm:grid-cols-2 border-t border-slate-200 pt-3" data-testid="link-fields">
-                <p className="sm:col-span-2 text-xs text-slate-500">{t(locale, "content.linkHint")}</p>
+              <div className="sm:col-span-4 grid gap-3 sm:grid-cols-2 border-t border-line pt-3" data-testid="link-fields">
+                <p className="sm:col-span-2 text-xs text-ink-muted">{t(locale, "content.linkHint")}</p>
                 <label className="grid gap-1 text-sm sm:col-span-2">
                   <span>{t(locale, "content.linkUrl")}</span>
                   <input name="linkUrl" type="url" dir="ltr" className={input} data-testid="link-url"

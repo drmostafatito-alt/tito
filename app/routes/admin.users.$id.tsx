@@ -22,10 +22,10 @@ import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
 import { et, t, formatDate, type Locale } from "~/lib/i18n";
 
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-line bg-white px-3 text-sm";
 // client-side literal mirroring USER_ROLES (component code must not touch .server imports)
 const ROLE_OPTIONS = ["student", "teacher", "admin", "super_admin"] as const;
-const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
+const inputCls = "rounded-lg border border-line px-3 py-2 text-sm";
 
 export async function loader({ context, request, params }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -93,9 +93,9 @@ export async function action({ context, request, params }: Route.ActionArgs) {
 
 function Row({ label, value, ltr }: { label: string; value: string | number | null; ltr?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-slate-100 py-1.5 text-sm last:border-0">
-      <span className="text-slate-500">{label}</span>
-      <span className={`font-medium text-slate-800 ${ltr ? "font-mono text-xs" : ""}`} dir={ltr ? "ltr" : undefined}>{value ?? "—"}</span>
+    <div className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 text-sm last:border-0">
+      <span className="text-ink-muted">{label}</span>
+      <span className={`font-medium text-ink ${ltr ? "font-mono text-xs" : ""}`} dir={ltr ? "ltr" : undefined}>{value ?? "—"}</span>
     </div>
   );
 }
@@ -113,8 +113,8 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6" key={`user-${detail?.user?.id}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-slate-900">{u.fullName}</h1>
-        <Link to="/admin/users" className="text-sm text-blue-700 hover:underline">{t(locale, "adminUsers.backToList")}</Link>
+        <h1 className="text-2xl font-bold text-ink">{u.fullName}</h1>
+        <Link to="/admin/users" className="text-sm text-ink hover:underline">{t(locale, "adminUsers.backToList")}</Link>
       </div>
 
       {actionData && "error" in actionData && (
@@ -151,7 +151,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
             {isSelf && <Alert kind="warning">{t(locale, "adminUsers.selfNote")}</Alert>}
 
             {u.roleId === "student" && (
-              <Link to={`/admin/students/${u.id}`} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+              <Link to={`/admin/students/${u.id}`} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
                 {t(locale, "adminUsers.open360")}
               </Link>
             )}
@@ -183,7 +183,7 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
                   ))}
                 </select>
                 <span data-testid="set-role-btn"><SubmitButton variant="secondary">{t(locale, "adminUsers.applyRole")}</SubmitButton></span>
-                <p className="w-full text-xs text-slate-500">{t(locale, "adminUsers.roleNote")}</p>
+                <p className="w-full text-xs text-ink-muted">{t(locale, "adminUsers.roleNote")}</p>
               </Form>
             )}
           </CardBody>
@@ -202,8 +202,8 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         ].map((s) => (
           <Card key={s.label}>
             <CardBody>
-              <p className="text-2xl font-bold text-slate-900" dir="ltr">{s.value}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{s.label}</p>
+              <p className="text-2xl font-bold text-ink" dir="ltr">{s.value}</p>
+              <p className="mt-0.5 text-xs text-ink-muted">{s.label}</p>
             </CardBody>
           </Card>
         ))}
@@ -213,25 +213,25 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         <CardHeader
           title={t(locale, "adminUsers.secEntitlements")}
           description={t(locale, "adminUsers.entitlementsNote")}
-          action={<Link to="/admin/entitlements" className="text-sm text-blue-700 hover:underline">{t(locale, "admin.navEntitlements")}</Link>}
+          action={<Link to="/admin/entitlements" className="text-sm text-ink hover:underline">{t(locale, "admin.navEntitlements")}</Link>}
         />
         <CardBody className="space-y-2">
-          {detail.entitlements.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
+          {detail.entitlements.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
           {detail.entitlements.map((e) => {
             const active = e.status === "active" && e.startsAt <= now && (e.expiresAt === null || e.expiresAt > now);
             return (
-              <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-sm last:border-0" data-testid="user-entitlement-row">
+              <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 text-sm last:border-0" data-testid="user-entitlement-row">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={active ? "success" : e.status === "revoked" ? "danger" : "neutral"}>{t(locale, `adminUsers.ent_${active ? "active" : e.status}`)}</Badge>
                   <span className="font-medium">
                     {t(locale, `adminUsers.res_${e.resourceType}`)}{" "}
                     {(locale === "ar" ? e.resourceTitleAr || e.resourceTitleEn : e.resourceTitleEn || e.resourceTitleAr) ??
-                      (e.resourceId ? <span className="font-mono text-xs text-slate-500" dir="ltr"> #{e.resourceId.slice(0, 8)}</span> : null)}
+                      (e.resourceId ? <span className="font-mono text-xs text-ink-muted" dir="ltr"> #{e.resourceId.slice(0, 8)}</span> : null)}
                   </span>
-                  <span className="text-xs text-slate-500">{t(locale, `adminUsers.src_${e.sourceType}`)}</span>
+                  <span className="text-xs text-ink-muted">{t(locale, `adminUsers.src_${e.sourceType}`)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500" dir="ltr">
+                  <span className="text-xs text-ink-muted" dir="ltr">
                     {formatDate(locale, e.startsAt)} → {e.expiresAt ? formatDate(locale, e.expiresAt) : t(locale, "adminUsers.noExpiry")}
                   </span>
                   {active && perms.manage && (
@@ -252,13 +252,13 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "adminUsers.secProgress")} />
           <CardBody className="space-y-1.5">
-            {detail.recentProgress.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
+            {detail.recentProgress.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
             {detail.recentProgress.map((p) => (
               <div key={p.lessonId} className="flex items-center justify-between gap-2 text-sm" data-testid="user-progress-row">
                 <span className="truncate">{locale === "ar" ? p.titleAr || p.titleEn : p.titleEn || p.titleAr}</span>
                 <span className="flex items-center gap-2">
                   <Badge tone={p.status === "completed" ? "success" : "neutral"}>{p.status === "completed" ? t(locale, "adminUsers.completed") : t(locale, "adminUsers.inProgress")}</Badge>
-                  <span className="text-xs text-slate-500">{formatDate(locale, p.lastActivityAt)}</span>
+                  <span className="text-xs text-ink-muted">{formatDate(locale, p.lastActivityAt)}</span>
                 </span>
               </div>
             ))}
@@ -268,10 +268,10 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "adminUsers.secAttempts")} />
           <CardBody className="space-y-1.5">
-            {detail.recentAttempts.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
+            {detail.recentAttempts.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
             {detail.recentAttempts.map((a) => (
               <div key={a.id} className="flex items-center justify-between gap-2 text-sm" data-testid="user-attempt-row">
-                <Link to={`/admin/assessment/attempts/${a.id}`} className="truncate text-slate-700 hover:text-brand-700 hover:underline">
+                <Link to={`/admin/assessment/attempts/${a.id}`} className="truncate text-ink hover:text-ink hover:underline">
                   {locale === "ar" ? a.examTitleAr || a.examTitleEn : a.examTitleEn || a.examTitleAr}
                 </Link>
                 <span className="flex items-center gap-2">
@@ -288,13 +288,13 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "adminUsers.secOrders")} />
           <CardBody className="space-y-1.5">
-            {detail.recentOrders.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
+            {detail.recentOrders.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
             {detail.recentOrders.map((o) => (
               <div key={o.id} className="flex items-center justify-between gap-2 text-sm" data-testid="user-order-row">
-                <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-blue-700 hover:underline" dir="ltr">{o.orderNumber}</Link>
+                <Link to={`/admin/commerce/orders/${o.id}`} className="font-mono text-xs text-ink hover:underline" dir="ltr">{o.orderNumber}</Link>
                 <span className="flex items-center gap-2">
                   <Badge tone={o.status === "paid" ? "success" : o.status === "pending" ? "warning" : "neutral"}>{t(locale, `commerce.order_${o.status}`)}</Badge>
-                  <span className="text-xs text-slate-500">{formatDate(locale, o.createdAt)}</span>
+                  <span className="text-xs text-ink-muted">{formatDate(locale, o.createdAt)}</span>
                 </span>
               </div>
             ))}
@@ -304,11 +304,11 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "adminUsers.secSecurity")} />
           <CardBody className="space-y-1.5">
-            {detail.recentSecurity.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
+            {detail.recentSecurity.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
             {detail.recentSecurity.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-2 text-sm" data-testid="user-security-row">
-                <span className="font-mono text-xs text-slate-600" dir="ltr">{s.type}</span>
-                <span className="text-xs text-slate-500">{formatDate(locale, s.createdAt)}</span>
+                <span className="font-mono text-xs text-ink-muted" dir="ltr">{s.type}</span>
+                <span className="text-xs text-ink-muted">{formatDate(locale, s.createdAt)}</span>
               </div>
             ))}
           </CardBody>
@@ -317,13 +317,13 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "adminUsers.secDevices")} />
           <CardBody className="space-y-1.5">
-            {detail.devicesList.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
+            {detail.devicesList.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
             {detail.devicesList.map((d) => (
               <div key={d.id} className="flex items-center justify-between gap-2 text-sm" data-testid="user-device-row">
-                <span className="truncate">{d.label} <span className="text-xs text-slate-500">({d.platform})</span></span>
+                <span className="truncate">{d.label} <span className="text-xs text-ink-muted">({d.platform})</span></span>
                 <span className="flex items-center gap-2">
                   <Badge tone={d.status === "active" ? "success" : "danger"}>{d.status === "active" ? t(locale, "adminUsers.devActive") : t(locale, "adminUsers.devRevoked")}</Badge>
-                  <span className="text-xs text-slate-500">{formatDate(locale, d.lastSeenAt)}</span>
+                  <span className="text-xs text-ink-muted">{formatDate(locale, d.lastSeenAt)}</span>
                 </span>
               </div>
             ))}
@@ -333,10 +333,10 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardHeader title={t(locale, "adminUsers.secSessions")} />
           <CardBody className="space-y-1.5">
-            {detail.activeSessions.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
+            {detail.activeSessions.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "adminUsers.noRows")}</p>}
             {detail.activeSessions.map((s) => (
               <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-sm" data-testid="user-session-row">
-                <span className="truncate">{s.deviceLabel} <span className="text-xs text-slate-500">{formatDate(locale, s.lastSeenAt)}</span></span>
+                <span className="truncate">{s.deviceLabel} <span className="text-xs text-ink-muted">{formatDate(locale, s.lastSeenAt)}</span></span>
                 {perms.manage && !isSelf && (
                   <Form method="post">
                     <input type="hidden" name="_action" value="revoke-session" />

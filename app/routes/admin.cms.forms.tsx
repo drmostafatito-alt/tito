@@ -147,13 +147,13 @@ function MiniForm({ children }: { children: React.ReactNode }) {
 
 function ToolButton({ label, danger = false }: { label: string; danger?: boolean }) {
   return (
-    <button type="submit" className={`inline-flex min-h-9 items-center rounded-lg border px-2.5 text-xs font-medium ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}>
+    <button type="submit" className={`inline-flex min-h-9 items-center rounded-lg border px-2.5 text-xs font-medium ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-line bg-white text-ink-muted hover:bg-slate-50"}`}>
       {label}
     </button>
   );
 }
 
-const inputCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none";
+const inputCls = "h-[42px] rounded-lg border border-line bg-white px-3 text-sm focus:border-brand-800 focus:outline-none";
 
 export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
@@ -167,8 +167,8 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-slate-900"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
-        <h1 className="text-2xl font-bold text-slate-900">{L("cms.ui.forms")}</h1>
+        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-ink-muted hover:text-ink"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
+        <h1 className="text-2xl font-bold text-ink">{L("cms.ui.forms")}</h1>
       </div>
 
       {actionData && "error" in actionData && actionData.error === "denied" && <Alert kind="error">{L("cms.ui.permissionDenied")}</Alert>}
@@ -184,7 +184,7 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                 <Input label={L("cms.ui.titleAr")} name="titleAr" dir="rtl" required />
                 <Input label={L("cms.ui.titleEn")} name="titleEn" dir="ltr" />
                 <div className="flex flex-col">
-                  <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.ui.actionType")}</span>
+                  <span className="mb-1 text-sm font-medium text-ink">{L("cms.ui.actionType")}</span>
                   <select name="actionType" defaultValue="generic" className={inputCls}>
                     <option value="generic">generic</option>
                     <option value="contact">contact</option>
@@ -199,16 +199,16 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
           <Card>
             <CardBody>
               {loaderData.forms.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">{L("cms.ui.noPages")}</p>
+                <p className="py-6 text-center text-sm text-ink-muted">{L("cms.ui.noPages")}</p>
               ) : (
-                <ul className="flex flex-col divide-y divide-slate-100">
+                <ul className="flex flex-col divide-y divide-line">
                   {(loaderData.forms as unknown as Array<Record<string, unknown>>).map((f) => (
                     <li key={String(f.id)} className="flex flex-wrap items-center gap-2 py-2.5">
                       <Badge tone={f.status === "active" ? "success" : "neutral"}>{String(f.status)}</Badge>
-                      <Link to={`/admin/cms/forms?form=${String(f.id)}`} className="text-sm font-semibold text-slate-900 hover:underline">
+                      <Link to={`/admin/cms/forms?form=${String(f.id)}`} className="text-sm font-semibold text-ink hover:underline">
                         {label(f.titleAr as string, f.titleEn as string)}
                       </Link>
-                      <span className="text-xs text-slate-500" dir="ltr">{String(f.slug)} · {String(f.actionType)}</span>
+                      <span className="text-xs text-ink-muted" dir="ltr">{String(f.slug)} · {String(f.actionType)}</span>
                     </li>
                   ))}
                 </ul>
@@ -234,7 +234,7 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                   <Input label={L("cms.ui.titleAr")} name="titleAr" defaultValue={String(f.titleAr ?? "")} dir="rtl" />
                   <Input label={L("cms.ui.titleEn")} name="titleEn" defaultValue={String(f.titleEn ?? "")} dir="ltr" />
                   <div className="flex flex-col">
-                    <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.ui.actionType")}</span>
+                    <span className="mb-1 text-sm font-medium text-ink">{L("cms.ui.actionType")}</span>
                     <select name="actionType" defaultValue={String(f.actionType)} className={inputCls}>
                       <option value="generic">generic</option>
                       <option value="contact">contact</option>
@@ -242,7 +242,7 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                     </select>
                   </div>
                   <div className="flex flex-col">
-                    <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.ui.formStatus")}</span>
+                    <span className="mb-1 text-sm font-medium text-ink">{L("cms.ui.formStatus")}</span>
                     <select name="status" defaultValue={String(f.status)} className={inputCls}>
                       <option value="active">active</option>
                       <option value="disabled">disabled</option>
@@ -252,11 +252,11 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                   <Input label={`${L("cms.ui.successMsg")} (English)`} name="successEn" defaultValue={String(f.successEn ?? "")} dir="ltr" />
                   <Input label={`${L("cms.ui.failureMsg")} (عربي)`} name="failureAr" defaultValue={String(f.failureAr ?? "")} dir="rtl" />
                   <Input label={`${L("cms.ui.failureMsg")} (English)`} name="failureEn" defaultValue={String(f.failureEn ?? "")} dir="ltr" />
-                  <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700">
+                  <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
                     <input type="checkbox" name="consentRequired" defaultChecked={f.consentRequired === true} className="h-4 w-4" />
                     {L("cms.ui.consentRequired")}
                   </label>
-                  <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700">
+                  <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
                     <input type="checkbox" name="storeSubmissions" defaultChecked={f.storeSubmissions === true} className="h-4 w-4" />
                     {L("cms.ui.storeSubmissions")}
                   </label>
@@ -271,15 +271,15 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
               <CardHeader title={L("cms.ui.fields")} />
               <CardBody>
                 {fields.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-slate-500">{L("cms.ui.noFields")}</p>
+                  <p className="py-4 text-center text-sm text-ink-muted">{L("cms.ui.noFields")}</p>
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {fields.map((fd) => (
-                      <li key={String(fd.id)} className={`rounded-lg border border-slate-200 px-3 py-2 ${fd.enabled ? "bg-white" : "bg-slate-50 opacity-60"}`}>
+                      <li key={String(fd.id)} className={`rounded-lg border border-line px-3 py-2 ${fd.enabled ? "bg-white" : "bg-slate-50 opacity-60"}`}>
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge tone="neutral">{String(fd.type)}</Badge>
-                          <span className="text-sm font-medium text-slate-800">{label(fd.labelAr as string, fd.labelEn as string) || String(fd.name)}</span>
-                          <span className="text-xs text-slate-500" dir="ltr">{String(fd.name)}</span>
+                          <span className="text-sm font-medium text-ink">{label(fd.labelAr as string, fd.labelEn as string) || String(fd.name)}</span>
+                          <span className="text-xs text-ink-muted" dir="ltr">{String(fd.name)}</span>
                           {fd.required === true && <Badge tone="warning">{L("cms.ui.required")}</Badge>}
                           <span className="ms-auto flex items-center gap-1.5">
                             <MiniForm>
@@ -300,7 +300,7 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                           </span>
                         </div>
                         <details className="mt-1">
-                          <summary className="min-h-9 cursor-pointer text-xs font-medium text-brand-700">{L("cms.ui.edit")}</summary>
+                          <summary className="min-h-9 cursor-pointer text-xs font-medium text-ink">{L("cms.ui.edit")}</summary>
                           <Form method="post" className="mt-2 grid gap-3 sm:grid-cols-2">
                             <input type="hidden" name="_action" value="update-field" />
                             <input type="hidden" name="formId" value={formId} />
@@ -313,18 +313,18 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                             <Input label={`${L("cms.ui.helpText")} (English)`} name="helpEn" defaultValue={String(fd.helpEn ?? "")} dir="ltr" />
                             <Input label={L("cms.ui.defaultValue")} name="defaultValue" defaultValue={String(fd.defaultValue ?? "")} dir="ltr" />
                             <div className="flex flex-col">
-                              <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.ui.optionsJson")}</span>
-                              <textarea name="optionsJson" rows={3} dir="ltr" defaultValue={fd.options ? JSON.stringify(fd.options) : ""} placeholder={L("cms.ui.optionsHint")} className="rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-brand-500 focus:outline-none" />
+                              <span className="mb-1 text-sm font-medium text-ink">{L("cms.ui.optionsJson")}</span>
+                              <textarea name="optionsJson" rows={3} dir="ltr" defaultValue={fd.options ? JSON.stringify(fd.options) : ""} placeholder={L("cms.ui.optionsHint")} className="rounded-lg border border-line px-3 py-2 font-mono text-xs focus:border-brand-800 focus:outline-none" />
                             </div>
                             <div className="flex flex-col">
-                              <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.ui.validationJson")}</span>
-                              <textarea name="validationJson" rows={3} dir="ltr" defaultValue={fd.validation ? JSON.stringify(fd.validation) : ""} placeholder={L("cms.ui.validationHint")} className="rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-brand-500 focus:outline-none" />
+                              <span className="mb-1 text-sm font-medium text-ink">{L("cms.ui.validationJson")}</span>
+                              <textarea name="validationJson" rows={3} dir="ltr" defaultValue={fd.validation ? JSON.stringify(fd.validation) : ""} placeholder={L("cms.ui.validationHint")} className="rounded-lg border border-line px-3 py-2 font-mono text-xs focus:border-brand-800 focus:outline-none" />
                             </div>
-                            <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700">
+                            <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
                               <input type="checkbox" name="required" defaultChecked={fd.required === true} className="h-4 w-4" />
                               {L("cms.ui.required")}
                             </label>
-                            <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700">
+                            <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
                               <input type="checkbox" name="enabled" defaultChecked={fd.enabled !== false} className="h-4 w-4" />
                               {L("cms.ui.enabled")}
                             </label>
@@ -346,14 +346,14 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
                   <input type="hidden" name="formId" value={formId} />
                   <Input label={L("cms.ui.fieldName")} name="name" dir="ltr" required pattern="[a-z][a-z0-9_]*" placeholder="full_name" />
                   <div className="flex flex-col">
-                    <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.ui.fieldType")}</span>
+                    <span className="mb-1 text-sm font-medium text-ink">{L("cms.ui.fieldType")}</span>
                     <select name="type" defaultValue="text" className={inputCls}>
                       {FORM_FIELD_TYPES.map((ty) => <option key={ty} value={ty}>{ty}</option>)}
                     </select>
                   </div>
                   <Input label={`${L("cms.ui.label")} (عربي)`} name="labelAr" dir="rtl" />
                   <Input label={`${L("cms.ui.label")} (English)`} name="labelEn" dir="ltr" />
-                  <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700">
+                  <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
                     <input type="checkbox" name="required" className="h-4 w-4" />
                     {L("cms.ui.required")}
                   </label>
@@ -366,13 +366,13 @@ export default function AdminCmsForms({ loaderData }: Route.ComponentProps) {
               <CardHeader title={L("cms.ui.submissions")} />
               <CardBody>
                 {submissions.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-slate-500">{L("cms.ui.noSubmissions")}</p>
+                  <p className="py-4 text-center text-sm text-ink-muted">{L("cms.ui.noSubmissions")}</p>
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {submissions.map((sub) => (
-                      <li key={String(sub.id)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs">
-                        <span className="text-slate-500">{formatDateTime(locale, Number(sub.createdAt))}</span>
-                        <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-slate-700" dir="auto">{JSON.stringify(sub.data, null, 1)}</pre>
+                      <li key={String(sub.id)} className="rounded-lg border border-line px-3 py-2 text-xs">
+                        <span className="text-ink-muted">{formatDateTime(locale, Number(sub.createdAt))}</span>
+                        <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-ink" dir="auto">{JSON.stringify(sub.data, null, 1)}</pre>
                       </li>
                     ))}
                   </ul>

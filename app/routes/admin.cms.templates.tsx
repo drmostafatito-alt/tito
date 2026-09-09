@@ -45,10 +45,10 @@ export default function AdminCmsTemplates({ loaderData }: Route.ComponentProps) 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-slate-900">
+        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-ink-muted hover:text-ink">
           <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}
         </Link>
-        <h1 className="text-2xl font-bold text-slate-900">{L("cms.ui.templates")}</h1>
+        <h1 className="text-2xl font-bold text-ink">{L("cms.ui.templates")}</h1>
       </div>
       {actionData && "error" in actionData && actionData.error === "denied" && <Alert kind="error">{L("cms.ui.permissionDenied")}</Alert>}
       {actionData && "issues" in actionData && actionData.issues && <Alert kind="error">{actionData.issues.join(" — ")}</Alert>}
@@ -56,18 +56,18 @@ export default function AdminCmsTemplates({ loaderData }: Route.ComponentProps) 
         <CardHeader title={L("cms.ui.templates")} description={L("cms.ui.confirmReplace")} />
         <CardBody>
           {loaderData.templates.length === 0 ? (
-            <p className="text-sm text-slate-500">{L("cms.ui.noTemplates")}</p>
+            <p className="text-sm text-ink-muted">{L("cms.ui.noTemplates")}</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-slate-100">
+            <ul className="flex flex-col divide-y divide-line">
               {loaderData.templates.map((tpl) => {
                 const title = locale === "ar" ? tpl.titleAr || tpl.titleEn : tpl.titleEn || tpl.titleAr;
                 const desc = locale === "ar" ? tpl.descriptionAr : tpl.descriptionEn;
                 return (
                   <li key={tpl.id} className="flex flex-wrap items-center gap-2 py-3">
-                    <span className="font-semibold text-slate-900">{title}</span>
+                    <span className="font-semibold text-ink">{title}</span>
                     {tpl.builtin && <Badge tone="brand">{L("cms.ui.builtin")}</Badge>}
-                    {desc && <span className="w-full text-sm text-slate-500">{desc}</span>}
-                    <span className="ms-auto text-xs text-slate-500" dir="ltr">{tpl.slug}</span>
+                    {desc && <span className="w-full text-sm text-ink-muted">{desc}</span>}
+                    <span className="ms-auto text-xs text-ink-muted" dir="ltr">{tpl.slug}</span>
                     {!tpl.builtin && (
                       <Form method="post">
                         <input type="hidden" name="_action" value="delete" />

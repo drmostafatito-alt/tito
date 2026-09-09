@@ -32,7 +32,7 @@ import { et, t, formatDate, type Locale } from "~/lib/i18n";
  * Refund never deletes history: state transitions + entitlement revocation.
  */
 
-const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
+const inputCls = "rounded-lg border border-line px-3 py-2 text-sm";
 
 const TONE: Record<string, "success" | "warning" | "danger" | "neutral"> = {
   pending: "warning", awaiting_payment: "warning", under_review: "warning", paid: "success",
@@ -161,8 +161,8 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-4" key={`order-${order?.id}`}>
-      <nav className="text-xs text-slate-500">
-        <Link to="/admin/commerce?tab=orders" className="hover:text-brand-600">{t(locale, "commerceAdmin.title")}</Link>
+      <nav className="text-xs text-ink-muted">
+        <Link to="/admin/commerce?tab=orders" className="hover:text-ink">{t(locale, "commerceAdmin.title")}</Link>
         <span aria-hidden="true"> › </span>
         <span dir="ltr">{order.orderNumber}</span>
       </nav>
@@ -188,16 +188,16 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
         <CardHeader title={t(locale, "commerceAdmin.orderSummary")} />
         <CardBody className="space-y-2 text-sm">
           <p>
-            <span className="text-slate-500">{t(locale, "commerceAdmin.student")}: </span>
+            <span className="text-ink-muted">{t(locale, "commerceAdmin.student")}: </span>
             <span dir="ltr" data-testid="order-student">{order.studentEmail}</span>
           </p>
           {items.map((i) => (
-            <div key={i.id} className="border-b border-slate-100 pb-2 last:border-0">
+            <div key={i.id} className="border-b border-line pb-2 last:border-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{locale === "ar" ? i.titleAr : i.titleEn}</span>
                 <span dir="ltr">{formatMoney(i.unitPriceMinor, order.currency)}</span>
               </div>
-              <p className="text-xs text-slate-500" data-testid="frozen-spec">
+              <p className="text-xs text-ink-muted" data-testid="frozen-spec">
                 {t(locale, "commerceAdmin.frozenSpec")}: {i.spec.grants.map((g) => `${g.resourceType}:${g.resourceId.slice(0, 8)}`).join(", ")}
                 {i.spec.recurring ? ` · ${t(locale, "commerce.recurring")}` : ""}
                 {i.spec.durationDays ? ` · ${i.spec.durationDays}d` : ""}
@@ -214,7 +214,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
             <span>{t(locale, "commerce.totalDue")}</span>
             <span dir="ltr" data-testid="order-due">{formatMoney(order.totalMinor, order.currency)}</span>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ink-muted">
             {t(locale, "commerceAdmin.source")}: {order.source} · {formatDate(locale, order.createdAt)}
           </p>
         </CardBody>
@@ -224,9 +224,9 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
         <CardHeader title={t(locale, "commerceAdmin.paymentsTrail")} />
         <CardBody className="space-y-4">
           {payments.map((p) => (
-            <div key={p.id} className="space-y-2 rounded-xl border border-slate-200 p-3" data-testid="admin-payment-card">
+            <div key={p.id} className="space-y-2 rounded-xl border border-line p-3" data-testid="admin-payment-card">
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="text-xs text-slate-500" dir="ltr">
+                <span className="text-xs text-ink-muted" dir="ltr">
                   {p.provider} · {formatDate(locale, p.createdAt)}
                   {p.paidAt ? ` · paid ${formatDate(locale, p.paidAt)}` : ""}
                 </span>
@@ -237,18 +237,18 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
               </div>
               {p.evidence && (
                 <div className="rounded-lg bg-slate-50 p-3 text-xs" data-testid="admin-evidence">
-                  <p className="font-semibold text-slate-700">{t(locale, "commerceAdmin.evidence")}</p>
+                  <p className="font-semibold text-ink">{t(locale, "commerceAdmin.evidence")}</p>
                   <dl className="mt-1 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
-                    <div className="flex justify-between gap-3"><dt className="text-slate-500">{t(locale, "commerce.transferReference")}</dt><dd dir="ltr">{p.evidence.transferReference || "—"}</dd></div>
-                    {p.evidence.senderName ? <div className="flex justify-between gap-3"><dt className="text-slate-500">{t(locale, "commerce.senderName")}</dt><dd>{p.evidence.senderName}</dd></div> : null}
-                    {p.evidence.transferAmountMinor != null ? <div className="flex justify-between gap-3"><dt className="text-slate-500">{t(locale, "commerce.transferAmount")}</dt><dd dir="ltr">{formatMoney(p.evidence.transferAmountMinor, p.currency)}</dd></div> : null}
-                    {p.evidence.transferDateMs ? <div className="flex justify-between gap-3"><dt className="text-slate-500">{t(locale, "commerce.transferDate")}</dt><dd>{formatDate(locale, p.evidence.transferDateMs)}</dd></div> : null}
+                    <div className="flex justify-between gap-3"><dt className="text-ink-muted">{t(locale, "commerce.transferReference")}</dt><dd dir="ltr">{p.evidence.transferReference || "—"}</dd></div>
+                    {p.evidence.senderName ? <div className="flex justify-between gap-3"><dt className="text-ink-muted">{t(locale, "commerce.senderName")}</dt><dd>{p.evidence.senderName}</dd></div> : null}
+                    {p.evidence.transferAmountMinor != null ? <div className="flex justify-between gap-3"><dt className="text-ink-muted">{t(locale, "commerce.transferAmount")}</dt><dd dir="ltr">{formatMoney(p.evidence.transferAmountMinor, p.currency)}</dd></div> : null}
+                    {p.evidence.transferDateMs ? <div className="flex justify-between gap-3"><dt className="text-ink-muted">{t(locale, "commerce.transferDate")}</dt><dd>{formatDate(locale, p.evidence.transferDateMs)}</dd></div> : null}
                   </dl>
-                  {p.evidence.note ? <p className="mt-1 text-slate-600">{p.evidence.note}</p> : null}
+                  {p.evidence.note ? <p className="mt-1 text-ink-muted">{p.evidence.note}</p> : null}
                   {p.proofPreview ? (
                     <figure className="mt-2">
-                      <img src={p.proofPreview.url} alt={t(locale, "commerce.proofImageAlt")} className="max-h-64 rounded-lg border border-slate-200 bg-white object-contain" data-testid="admin-proof-img" />
-                      <figcaption className="mt-1 text-slate-500">{t(locale, "commerceAdmin.proofView")}</figcaption>
+                      <img src={p.proofPreview.url} alt={t(locale, "commerce.proofImageAlt")} className="max-h-64 rounded-lg border border-line bg-white object-contain" data-testid="admin-proof-img" />
+                      <figcaption className="mt-1 text-ink-muted">{t(locale, "commerceAdmin.proofView")}</figcaption>
                     </figure>
                   ) : null}
                 </div>
@@ -266,7 +266,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
                     <input type="hidden" name="paymentId" value={p.id} />
                     <label className="grid gap-1 text-xs">
                       <span>{t(locale, "commerceAdmin.receivedAmount")}</span>
-                      <input name="receivedAmount" type="number" min={0} step={1} defaultValue={p.amountMinor} required className="w-36 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" dir="ltr" />
+                      <input name="receivedAmount" type="number" min={0} step={1} defaultValue={p.amountMinor} required className="w-36 rounded-lg border border-line px-2 py-1.5 text-sm" dir="ltr" />
                     </label>
                     <SubmitButton name="_action" value="approve">{t(locale, "commerceAdmin.approve")}</SubmitButton>
                   </Form>
@@ -275,7 +275,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
                     <input type="hidden" name="paymentId" value={p.id} />
                     <label className="grid gap-1 text-xs">
                       <span>{t(locale, "commerceAdmin.rejectReason")}</span>
-                      <input name="reason" required maxLength={500} className="w-48 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
+                      <input name="reason" required maxLength={500} className="w-48 rounded-lg border border-line px-2 py-1.5 text-sm" />
                     </label>
                     <SubmitButton variant="secondary" name="_action" value="reject">{t(locale, "commerceAdmin.reject")}</SubmitButton>
                   </Form>
@@ -290,7 +290,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
                     <input name="reason" required maxLength={500} className={inputCls} />
                   </label>
                   <SubmitButton variant="secondary" name="_action" value="refund">{t(locale, "commerceAdmin.refundFull")}</SubmitButton>
-                  <span className="w-full text-xs text-slate-500">{t(locale, "commerceAdmin.refundEffect")}</span>
+                  <span className="w-full text-xs text-ink-muted">{t(locale, "commerceAdmin.refundEffect")}</span>
                 </Form>
               )}
             </div>

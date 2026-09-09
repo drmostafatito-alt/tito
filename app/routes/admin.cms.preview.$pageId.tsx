@@ -74,7 +74,7 @@ export default function AdminCmsPreview({ loaderData }: Route.ComponentProps) {
       {loaderData.rendered ? (
         <PageView sections={loaderData.rendered.sections} ctx={loaderData.rendered.ctx} />
       ) : (
-        <p className="px-4 py-8 text-center text-sm text-slate-500">{title ? `${title} — ${L("cms.ui.noSections")}` : L("cms.ui.noSections")}</p>
+        <p className="px-4 py-8 text-center text-sm text-ink-muted">{title ? `${title} — ${L("cms.ui.noSections")}` : L("cms.ui.noSections")}</p>
       )}
     </div>
   );

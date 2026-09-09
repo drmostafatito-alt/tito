@@ -37,7 +37,7 @@ import { SubmitButton } from "~/components/ui/Button";
 import { PoolBuilder } from "~/components/admin/PoolBuilder";
 import { t, type Locale } from "~/lib/i18n";
 
-const selectCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "h-[42px] w-full rounded-lg border border-line bg-white px-3 text-sm";
 
 interface Issue {
   path: string;
@@ -366,7 +366,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
     return (
       <div className="space-y-4" key={`exam-${params.id ?? "new"}`}>
         <nav className="text-sm">
-          <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+          <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-ink hover:underline">
             <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
             {t(locale, "assessment.examsTab")}
           </Link>
@@ -381,7 +381,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
           <Input label={t(locale, "assessment.descAr")} name="descriptionAr" />
           <Input label={t(locale, "assessment.descEn")} name="descriptionEn" />
           <div>
-            <label htmlFor="exam-attach-kind-new" className="text-sm font-medium text-slate-700">{t(locale, "assessment.lessonLink")}</label>
+            <label htmlFor="exam-attach-kind-new" className="text-sm font-medium text-ink">{t(locale, "assessment.lessonLink")}</label>
             <select id="exam-attach-kind-new" name="attachKind" className={selectCls} defaultValue="">
               <option value="">—</option>
               <option value="course">Course</option>
@@ -423,7 +423,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
   return (
     <div className="space-y-4">
       <nav className="text-sm">
-        <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
+        <Link to="/admin/assessment?tab=exams" className="inline-flex min-h-6 items-center text-ink hover:underline">
           <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
           {t(locale, "assessment.examsTab")}
         </Link>
@@ -432,12 +432,12 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
         <h1 className="text-xl font-bold">{locale === "ar" ? exam.titleAr : exam.titleEn}</h1>
         <StatusBadge status={exam.status} locale={locale} />
         {exam.status === "published" && (
-          <Link to={`/exams/${exam.slug}`} className="text-xs text-blue-600 hover:underline">
+          <Link to={`/exams/${exam.slug}`} className="text-xs text-ink hover:underline">
             {t(locale, "assessment.previewStudent")} ↗
           </Link>
         )}
       </div>
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-ink-muted">
         {t(locale, "assessment.attemptsCount")}: {counts.total}
         {counts.live > 0 ? ` (${counts.live} ${t(locale, "exam.inProgress")})` : ""} · {t(locale, "assessment.totalPoints")}: {totalPoints}
       </p>
@@ -498,7 +498,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="exam-attach-kind" className="text-sm font-medium text-slate-700">{t(locale, "assessment.lessonLink")}</label>
+                <label htmlFor="exam-attach-kind" className="text-sm font-medium text-ink">{t(locale, "assessment.lessonLink")}</label>
                 <select id="exam-attach-kind" name="attachKind" className={selectCls} defaultValue={exam.lessonId ? "lesson" : exam.courseId ? "course" : ""} disabled={!draft || !perms.edit}>
                   <option value="">—</option>
                   <option value="course">Course</option>
@@ -546,7 +546,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="exam-show" className="text-sm font-medium text-slate-700">{t(locale, "assessment.showResults")}</label>
+                <label htmlFor="exam-show" className="text-sm font-medium text-ink">{t(locale, "assessment.showResults")}</label>
                 <select id="exam-show" name="show" className={selectCls} defaultValue={cfg.show} disabled={!draft || !perms.edit}>
                   <option value="immediate">{t(locale, "assessment.show_immediate")}</option>
                   <option value="after_end">{t(locale, "assessment.show_after_end")}</option>
@@ -554,7 +554,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                 </select>
               </div>
               <div>
-                <label htmlFor="exam-mode" className="text-sm font-medium text-slate-700">{t(locale, "assessment.selectionMode")}</label>
+                <label htmlFor="exam-mode" className="text-sm font-medium text-ink">{t(locale, "assessment.selectionMode")}</label>
                 <select id="exam-mode" name="mode" className={selectCls} defaultValue={cfg.mode} disabled={!draft || !perms.edit}>
                   <option value="manual">{t(locale, "assessment.mode_manual")}</option>
                   <option value="pool">{t(locale, "assessment.mode_pool")}</option>
@@ -578,17 +578,17 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="exam-starts-at" className="text-sm font-medium text-slate-700">{t(locale, "assessment.startsAt")} (UTC)</label>
+                <label htmlFor="exam-starts-at" className="text-sm font-medium text-ink">{t(locale, "assessment.startsAt")} (UTC)</label>
                 <input id="exam-starts-at" type="datetime-local" name="startsAt" defaultValue={cfg.startsAt} className={selectCls} disabled={!draft || !perms.edit} />
               </div>
               <div>
-                <label htmlFor="exam-ends-at" className="text-sm font-medium text-slate-700">{t(locale, "assessment.endsAt")} (UTC)</label>
+                <label htmlFor="exam-ends-at" className="text-sm font-medium text-ink">{t(locale, "assessment.endsAt")} (UTC)</label>
                 <input id="exam-ends-at" type="datetime-local" name="endsAt" defaultValue={cfg.endsAt} className={selectCls} disabled={!draft || !perms.edit} />
               </div>
             </div>
-            <details open={cfg.mode === "pool"} className="rounded-lg border border-slate-200">
-              <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-slate-700">{t(locale, "assessment.poolsTitle")}</summary>
-              <div className="border-t border-slate-100 px-3 pb-3 pt-1">
+            <details open={cfg.mode === "pool"} className="rounded-lg border border-line">
+              <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-ink">{t(locale, "assessment.poolsTitle")}</summary>
+              <div className="border-t border-line px-3 pb-3 pt-1">
                 <PoolBuilder
                   name="poolsJson"
                   poolsJson={cfg.poolsJson}
@@ -627,18 +627,18 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
               </Alert>
             )}
             {poolIssues.length === 0 && <Alert kind="success">{t(locale, "assessment.poolPreviewOk")}</Alert>}
-            <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
-              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
+            <div className="grid gap-2 text-xs text-ink-muted sm:grid-cols-2">
+              <div className="rounded-lg border border-line bg-slate-50/60 p-2">
                 {t(locale, "assessment.requestedTotal")}: <span className="font-bold">{poolPreview.requestedTotal}</span>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
+              <div className="rounded-lg border border-line bg-slate-50/60 p-2">
                 {t(locale, "assessment.resolvedTotal")}: <span className="font-bold">{poolPreview.resolvedTotal}</span>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px] border-collapse text-xs">
                 <thead>
-                  <tr className="border-b text-start text-slate-500">
+                  <tr className="border-b text-start text-ink-muted">
                     <th className="py-1 pe-2 text-start font-medium">{t(locale, "assessment.poolN", { n: "" }).trim() || "Pool"}</th>
                     <th className="py-1 pe-2 text-start font-medium">{t(locale, "assessment.filterDifficulty")}</th>
                     <th className="py-1 pe-2 text-start font-medium">{t(locale, "assessment.type")}</th>
@@ -648,7 +648,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                 </thead>
                 <tbody>
                   {poolPreview.pools.map((p, i) => (
-                    <tr key={i} className="border-b border-slate-100">
+                    <tr key={i} className="border-b border-line">
                       <td className="py-1 pe-2 font-medium">{i + 1}</td>
                       <td className="py-1 pe-2">{p.difficulty ? t(locale, `assessment.diff_${p.difficulty}`) : "—"}</td>
                       <td className="py-1 pe-2" dir="ltr">{p.type ?? t(locale, "assessment.poolObjectiveDefault")}</td>
@@ -659,7 +659,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-slate-500">{t(locale, "assessment.poolPreviewNote")}</p>
+            <p className="text-xs text-ink-muted">{t(locale, "assessment.poolPreviewNote")}</p>
           </CardBody>
         </Card>
       )}
@@ -671,16 +671,16 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
             {t(locale, "assessment.attachedQuestions")} ({attached.length})
           </h2>
           {cfg.mode === "pool" && <p className="text-xs text-amber-600">{t(locale, "assessment.mode_pool")}</p>}
-          {attached.length === 0 && <p className="text-sm text-slate-500">{t(locale, "assessment.noQuestions")}</p>}
+          {attached.length === 0 && <p className="text-sm text-ink-muted">{t(locale, "assessment.noQuestions")}</p>}
           <ol className="space-y-2">
             {attached.map((a, i) => (
               <li key={a.questionId} className="flex flex-wrap items-center gap-2 rounded-lg border p-2.5 text-sm">
-                <span className="w-6 text-center text-xs text-slate-500">{i + 1}</span>
+                <span className="w-6 text-center text-xs text-ink-muted">{i + 1}</span>
                 <div className="min-w-0 flex-1">
-                  <Link to={`/admin/assessment/questions/${a.questionId}`} className="block truncate font-medium hover:text-brand-700">
+                  <Link to={`/admin/assessment/questions/${a.questionId}`} className="block truncate font-medium hover:text-ink">
                     {a.stemAr || a.stemEn}
                   </Link>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-ink-muted">
                     {t(locale, `assessment.type_${a.type}`)} · {t(locale, `assessment.status_${a.status}`)}
                   </span>
                 </div>
@@ -689,7 +689,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                     <Form method="post" className="flex items-center gap-1">
                       <input type="hidden" name="_action" value="points" />
                       <input type="hidden" name="questionId" value={a.questionId} />
-                      <input name="points" type="number" step="0.5" min="0.5" max="1000" defaultValue={a.points} className="h-9 w-20 rounded-lg border border-slate-300 px-2 text-xs" aria-label={t(locale, "assessment.examPoints")} />
+                      <input name="points" type="number" step="0.5" min="0.5" max="1000" defaultValue={a.points} className="h-9 w-20 rounded-lg border border-line px-2 text-xs" aria-label={t(locale, "assessment.examPoints")} />
                       <SubmitButton size="sm" variant="secondary">
                         {t(locale, "assessment.examPoints")}
                       </SubmitButton>
@@ -719,7 +719,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                     </Form>
                   </div>
                 ) : (
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-ink-muted">
                     {t(locale, "assessment.examPoints")}: {a.points}
                   </span>
                 )}
@@ -730,7 +730,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
             <Form method="post" className="flex flex-wrap items-end gap-2 border-t pt-3">
               <input type="hidden" name="_action" value="attach" />
               <div className="min-w-0 flex-1">
-                <label className="text-sm font-medium text-slate-700">{t(locale, "assessment.pickQuestion")}</label>
+                <label className="text-sm font-medium text-ink">{t(locale, "assessment.pickQuestion")}</label>
                 <select name="questionId" className={selectCls} required>
                   <option value="">—</option>
                   {bank.map((q) => (
@@ -753,15 +753,15 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
         <CardHeader title={t(locale, "assessment.attemptsTitle")} description={t(locale, "assessment.attemptsHint")} />
         <CardBody>
           {attempts.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center">
-              <span className="text-3xl text-slate-300" aria-hidden="true">🗒️</span>
-              <p className="font-medium text-slate-600">{t(locale, "assessment.noAttempts")}</p>
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-line bg-slate-50/60 px-6 py-8 text-center">
+              <span className="text-3xl text-ink-muted" aria-hidden="true">○</span>
+              <p className="font-medium text-ink-muted">{t(locale, "assessment.noAttempts")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs text-slate-500 rtl:text-right">
+                  <tr className="border-b border-line text-left text-xs text-ink-muted rtl:text-right">
                     <th className="px-3 py-2 font-medium">{t(locale, "assessment.colStudent")}</th>
                     <th className="px-3 py-2 font-medium">{t(locale, "assessment.attemptNo")}</th>
                     <th className="px-3 py-2 font-medium">{t(locale, "assessment.colStatus")}</th>
@@ -772,24 +772,24 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                 </thead>
                 <tbody>
                   {attempts.map((a) => (
-                    <tr key={a.id} className="border-b border-slate-100 align-middle last:border-0 hover:bg-slate-50/60">
+                    <tr key={a.id} className="border-b border-line align-middle last:border-0 hover:bg-slate-50/60">
                       <td className="px-3 py-2.5">
-                        <p className="font-medium text-slate-800">{a.studentName}</p>
-                        <p className="text-xs text-slate-500" dir="ltr">{a.studentEmail}</p>
+                        <p className="font-medium text-ink">{a.studentName}</p>
+                        <p className="text-xs text-ink-muted" dir="ltr">{a.studentEmail}</p>
                       </td>
-                      <td className="px-3 py-2.5 text-slate-500">#{a.attemptNumber}</td>
+                      <td className="px-3 py-2.5 text-ink-muted">#{a.attemptNumber}</td>
                       <td className="px-3 py-2.5">
                         <Badge tone={a.status === "graded" || a.status === "submitted" ? "success" : a.status === "in_progress" ? "warning" : "neutral"}>
                           {attemptStatusLabel(locale, a.status, a.gradingStatus)}
                         </Badge>
                       </td>
-                      <td className="px-3 py-2.5 text-slate-700">
+                      <td className="px-3 py-2.5 text-ink">
                         {a.score !== null ? `${a.score} / ${a.maxScore ?? "—"}` : "—"}
-                        {a.percentage !== null && <span className="ml-1 text-xs text-slate-500 rtl:mr-1">({a.percentage}%)</span>}
+                        {a.percentage !== null && <span className="ml-1 text-xs text-ink-muted rtl:mr-1">({a.percentage}%)</span>}
                       </td>
                       <td className="px-3 py-2.5">
                         {a.passed === null ? (
-                          <span className="text-slate-500">—</span>
+                          <span className="text-ink-muted">—</span>
                         ) : a.passed ? (
                           <span className="inline-flex items-center gap-1 font-medium text-emerald-700">{t(locale, "assessment.resultPass")}</span>
                         ) : (
@@ -797,7 +797,7 @@ export default function ExamBuilderPage({ loaderData, actionData }: Route.Compon
                         )}
                       </td>
                       <td className="px-3 py-2.5 text-end">
-                        <Link to={`/admin/assessment/attempts/${a.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 px-3 text-xs font-medium text-slate-700 hover:border-brand-400 hover:text-brand-700">
+                        <Link to={`/admin/assessment/attempts/${a.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-xs font-medium text-ink hover:border-ink hover:text-ink">
                           {t(locale, "assessment.reviewAttempt")}
                         </Link>
                       </td>

@@ -95,7 +95,7 @@ function RowForm({ action, pageId, children, title }: { action: string; pageId: 
     <Form method="post" className="inline">
       <input type="hidden" name="_action" value={action} />
       <input type="hidden" name="pageId" value={pageId} />
-      <button type="submit" title={title} className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+      <button type="submit" title={title} className="inline-flex min-h-9 items-center rounded-lg border border-line bg-white px-2.5 text-xs font-medium text-ink-muted hover:bg-slate-50">
         {children}
       </button>
     </Form>
@@ -116,12 +116,12 @@ export default function AdminCmsPages({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">{L("cms.ui.pages")}</h1>
+        <h1 className="text-2xl font-bold text-ink">{L("cms.ui.pages")}</h1>
         <div className="flex gap-2">
-          <Link to="/admin/cms/templates" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">{L("cms.ui.templates")}</Link>
-          <Link to="/admin/cms/menus" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">{L("cms.ui.menus")}</Link>
-          <Link to="/admin/cms/forms" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">{L("cms.ui.forms")}</Link>
-          <Link to="/admin/appearance" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">{L("cms.ui.appearance")}</Link>
+          <Link to="/admin/cms/templates" className="inline-flex min-h-11 items-center rounded-lg border border-line bg-white px-4 text-sm font-medium text-ink hover:bg-slate-50">{L("cms.ui.templates")}</Link>
+          <Link to="/admin/cms/menus" className="inline-flex min-h-11 items-center rounded-lg border border-line bg-white px-4 text-sm font-medium text-ink hover:bg-slate-50">{L("cms.ui.menus")}</Link>
+          <Link to="/admin/cms/forms" className="inline-flex min-h-11 items-center rounded-lg border border-line bg-white px-4 text-sm font-medium text-ink hover:bg-slate-50">{L("cms.ui.forms")}</Link>
+          <Link to="/admin/appearance" className="inline-flex min-h-11 items-center rounded-lg border border-line bg-white px-4 text-sm font-medium text-ink hover:bg-slate-50">{L("cms.ui.appearance")}</Link>
         </div>
       </div>
 
@@ -146,21 +146,21 @@ export default function AdminCmsPages({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardBody>
           {loaderData.pages.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">{L("cms.ui.noPages")}</p>
+            <p className="py-6 text-center text-sm text-ink-muted">{L("cms.ui.noPages")}</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-slate-100">
+            <ul className="flex flex-col divide-y divide-line">
               {loaderData.pages.map((page) => {
                 const title = locale === "ar" ? page.titleAr || page.titleEn : page.titleEn || page.titleAr;
                 return (
                   <li key={page.id} className="flex flex-wrap items-center gap-2 py-2.5">
                     <Badge tone={STATUS_TONE[page.status as keyof typeof STATUS_TONE] ?? "neutral"}>{tt(STATUS_KEY[page.status as keyof typeof STATUS_KEY] ?? "content.statusDraft")}</Badge>
-                    <Link to={`/admin/cms/pages/${page.id}`} className="text-sm font-semibold text-slate-900 hover:underline">
+                    <Link to={`/admin/cms/pages/${page.id}`} className="text-sm font-semibold text-ink hover:underline">
                       {title}
                     </Link>
-                    <span className="text-xs text-slate-500" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
+                    <span className="text-xs text-ink-muted" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
                     <span className="ms-auto flex flex-wrap items-center gap-1.5">
                       {page.status === "published" && (
-                        <Link to={page.slug === "home" ? "/" : `/p/${page.slug}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                        <Link to={page.slug === "home" ? "/" : `/p/${page.slug}`} className="inline-flex min-h-9 items-center rounded-lg border border-line bg-white px-2.5 text-xs font-medium text-ink-muted hover:bg-slate-50">
                           {L("cms.ui.viewPage")}
                         </Link>
                       )}
@@ -174,7 +174,7 @@ export default function AdminCmsPages({ loaderData }: Route.ComponentProps) {
                         <RowForm action="unarchive" pageId={page.id}>{L("cms.ui.unarchive")}</RowForm>
                       )}
                       {page.status !== "published" && <RowForm action="delete" pageId={page.id}>{L("cms.ui.delete")}</RowForm>}
-                      <span className="hidden text-xs text-slate-500 lg:inline">{formatDateShort(locale, page.updatedAt)}</span>
+                      <span className="hidden text-xs text-ink-muted lg:inline">{formatDateShort(locale, page.updatedAt)}</span>
                     </span>
                   </li>
                 );

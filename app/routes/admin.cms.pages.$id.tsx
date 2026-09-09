@@ -211,7 +211,7 @@ function ToolButton({ label, disabled = false, danger = false }: { label: string
     <button
       type="submit"
       disabled={disabled}
-      className={`inline-flex min-h-9 items-center rounded-lg border px-2.5 text-xs font-medium disabled:opacity-40 max-sm:min-h-11 max-sm:px-3.5 max-sm:text-sm ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+      className={`inline-flex min-h-9 items-center rounded-lg border px-2.5 text-xs font-medium disabled:opacity-40 max-sm:min-h-11 max-sm:px-3.5 max-sm:text-sm ${danger ? "border-red-200 text-red-600 hover:bg-red-50" : "border-line bg-white text-ink-muted hover:bg-slate-50"}`}
     >
       {label}
     </button>
@@ -275,22 +275,22 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
     <div className="flex flex-col gap-6" key={`page-${page?.id}`}>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-slate-900"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
-        <h1 className="text-xl font-bold text-slate-900">{title}</h1>
+        <Link to="/admin/cms" className="inline-flex min-h-11 items-center text-sm text-ink-muted hover:text-ink"><span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {L("cms.ui.backToPages")}</Link>
+        <h1 className="text-xl font-bold text-ink">{title}</h1>
         <Badge tone={statusTone}>{page.status}</Badge>
-        <span className="text-xs text-slate-600" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
+        <span className="text-xs text-ink-muted" dir="ltr">/{page.slug === "home" ? "" : `p/${page.slug}`}</span>
         <Link to={`/admin/cms/preview/${page.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-medium text-amber-800 hover:bg-amber-100">
           {L("cms.ui.preview")}
         </Link>
         {page.status === "published" && (
-          <Link to={page.slug === "home" ? "/" : `/p/${page.slug}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-600 hover:bg-slate-50">
+          <Link to={page.slug === "home" ? "/" : `/p/${page.slug}`} className="inline-flex min-h-9 items-center rounded-lg border border-line bg-white px-3 text-xs font-medium text-ink-muted hover:bg-slate-50">
             {L("cms.ui.viewPage")}
           </Link>
         )}
         {perms.canPublish && (
           <Form method="post" className="ms-auto flex items-center gap-2">
             <input type="hidden" name="_action" value="publish" />
-            <input name="note" maxLength={300} placeholder={L("cms.ui.versionNote")} className="h-11 w-44 rounded-lg border border-slate-300 px-3 text-sm focus:border-brand-500 focus:outline-none" />
+            <input name="note" maxLength={300} placeholder={L("cms.ui.versionNote")} className="h-11 w-44 rounded-lg border border-line px-3 text-sm focus:border-brand-500 focus:outline-none" />
             <SubmitButton>{L("cms.ui.publish")}</SubmitButton>
           </Form>
         )}
@@ -311,21 +311,21 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* Sections column */}
         <div className="flex flex-col gap-4">
-          {tree.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">{L("cms.ui.noSections")}</p>}
+          {tree.length === 0 && <p className="rounded-lg border border-dashed border-line p-6 text-center text-sm text-ink-muted">{L("cms.ui.noSections")}</p>}
           {tree.map((section, sIdx) => {
             const sDef = BLOCKS[section.type];
             return (
               <Card key={section.id} className={section.visible ? "" : "opacity-60"}>
                 <CardBody className="flex flex-col gap-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-900">{L(sDef?.labelKey ?? "cms.blocks.section")} #{sIdx + 1}</span>
+                    <span className="text-sm font-semibold text-ink">{L(sDef?.labelKey ?? "cms.blocks.section")} #{sIdx + 1}</span>
                     {!section.visible && <Badge tone="neutral">{L("cms.ui.hide")}</Badge>}
                     <BlockControls blockId={section.id} visible={section.visible} canEdit={perms.canEdit} L={L} first={sIdx === 0} last={sIdx === tree.length - 1} />
                   </div>
 
                   {/* section settings */}
-                  <details className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                    <summary className="min-h-9 cursor-pointer text-sm font-medium text-slate-700">{L("cms.ui.sectionSettings")}</summary>
+                  <details className="rounded-lg border border-line bg-slate-50 px-3 py-2">
+                    <summary className="min-h-9 cursor-pointer text-sm font-medium text-ink">{L("cms.ui.sectionSettings")}</summary>
                     <Form method="post" className="mt-3 flex flex-col gap-4" key={`${section.id}-${section.updatedAt}`}>
                       <input type="hidden" name="_action" value="save-block" />
                       <input type="hidden" name="blockId" value={section.id} />
@@ -340,14 +340,14 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
                     {section.children.map((child, cIdx) => {
                       const def = BLOCKS[child.type];
                       return (
-                        <li key={child.id} className={`rounded-lg border border-slate-200 px-3 py-2 ${child.visible ? "bg-white" : "bg-slate-50 opacity-60"}`}>
+                        <li key={child.id} className={`rounded-lg border border-line px-3 py-2 ${child.visible ? "bg-white" : "bg-slate-50 opacity-60"}`}>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium text-slate-800">{def ? L(def.labelKey) : child.type}</span>
+                            <span className="text-sm font-medium text-ink">{def ? L(def.labelKey) : child.type}</span>
                             <BlockControls blockId={child.id} visible={child.visible} canEdit={perms.canEdit} L={L} first={cIdx === 0} last={cIdx === section.children.length - 1} />
                           </div>
                           {def && (
                             <details className="mt-1">
-                              <summary className="min-h-9 cursor-pointer text-xs font-medium text-brand-700">{L("cms.ui.blockSettings")}</summary>
+                              <summary className="min-h-9 cursor-pointer text-xs font-medium text-ink">{L("cms.ui.blockSettings")}</summary>
                               <Form method="post" className="mt-2 flex flex-col gap-4" key={`${child.id}-${child.updatedAt}`}>
                                 <input type="hidden" name="_action" value="save-block" />
                                 <input type="hidden" name="blockId" value={child.id} />
@@ -367,7 +367,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
                     <Form method="post" className="flex flex-wrap items-center gap-2">
                       <input type="hidden" name="_action" value="add-block" />
                       <input type="hidden" name="parentId" value={section.id} />
-                      <select name="blockType" required aria-label={L("cms.ui.pickBlock")} className="h-11 min-w-52 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                      <select name="blockType" required aria-label={L("cms.ui.pickBlock")} className="h-11 min-w-52 rounded-lg border border-line bg-white px-3 text-sm">
                         <option value="">{L("cms.ui.pickBlock")}…</option>
                         {groupedBlocks.map((g) => (
                           <optgroup key={g.group} label={L(`cms.group.${g.group}`)}>
@@ -414,7 +414,7 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
               <CardBody className="flex flex-col gap-4">
                 <Form method="post" className="flex flex-col gap-2">
                   <input type="hidden" name="_action" value="apply-template" />
-                  <select name="templateId" required aria-label={L("cms.ui.applyTemplate")} className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                  <select name="templateId" required aria-label={L("cms.ui.applyTemplate")} className="h-11 rounded-lg border border-line bg-white px-3 text-sm">
                     <option value="">{L("cms.ui.applyTemplate")}…</option>
                     {templates.map((tpl) => (
                       <option key={tpl.id} value={tpl.id}>
@@ -423,13 +423,13 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
                       </option>
                     ))}
                   </select>
-                  <label className="flex items-start gap-2 text-sm text-slate-600">
+                  <label className="flex items-start gap-2 text-sm text-ink-muted">
                     <input type="checkbox" name="confirm" className="mt-1 h-4 w-4" required />
                     <span>{L("cms.ui.confirmReplace")}</span>
                   </label>
                   <SubmitButton variant="secondary">{L("cms.ui.applyTemplate")}</SubmitButton>
                 </Form>
-                <Form method="post" className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+                <Form method="post" className="flex flex-col gap-2 border-t border-line pt-3">
                   <input type="hidden" name="_action" value="save-as-template" />
                   <Input label={L("cms.ui.titleAr")} name="titleAr" defaultValue={page.titleAr} dir="rtl" />
                   <Input label={L("cms.ui.titleEn")} name="titleEn" defaultValue={page.titleEn} dir="ltr" />
@@ -458,14 +458,14 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
             <CardHeader title={L("cms.ui.versions")} />
             <CardBody>
               {versions.length === 0 ? (
-                <p className="text-sm text-slate-500">{L("cms.ui.noVersions")}</p>
+                <p className="text-sm text-ink-muted">{L("cms.ui.noVersions")}</p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {versions.map((v) => (
-                    <li key={v.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
-                      <span className="text-sm font-semibold text-slate-800">v{v.versionNo}</span>
-                      <span className="text-xs text-slate-500">{formatDateTime(locale, v.createdAt)}</span>
-                      {v.note && <span className="w-full text-xs text-slate-500">{v.note}</span>}
+                    <li key={v.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2">
+                      <span className="text-sm font-semibold text-ink">v{v.versionNo}</span>
+                      <span className="text-xs text-ink-muted">{formatDateTime(locale, v.createdAt)}</span>
+                      {v.note && <span className="w-full text-xs text-ink-muted">{v.note}</span>}
                       {perms.canPublish && (
                         <MiniForm className="ms-auto">
                           <input type="hidden" name="_action" value="restore-version" />

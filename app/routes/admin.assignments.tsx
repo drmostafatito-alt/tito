@@ -15,8 +15,8 @@ import { Card, CardBody } from "~/components/ui/Card";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
-const inputCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "h-[42px] rounded-lg border border-line bg-white px-3 text-sm";
+const inputCls = "h-[42px] rounded-lg border border-line bg-white px-3 text-sm";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -94,7 +94,7 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold">{t(locale, "assignment.title")}</h1>
         {perms.create && (
-          <Link to="/admin/assignments/new" className="min-h-11 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+          <Link to="/admin/assignments/new" className="min-h-11 rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">
             + {t(locale, "assignment.newAssignment")}
           </Link>
         )}
@@ -107,7 +107,7 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
           <Link
             key={tb}
             to={buildQuery({}) === "?tab=grading" && tb === "grading" ? `?tab=grading` : tb === "assignments" ? "/admin/assignments" : "?tab=grading"}
-            className={`border-b-2 px-4 py-2 text-sm font-medium ${tab === tb ? "border-brand-600 text-brand-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}
+            className={`border-b-2 px-4 py-2 text-sm font-medium ${tab === tb ? "border-brand-600 text-ink" : "border-transparent text-ink-muted hover:text-ink"}`}
           >
             {tb === "assignments" ? t(locale, "assignment.listTitle") : t(locale, "assignment.gradingTitle")}
           </Link>
@@ -118,12 +118,12 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
         <Card>
           <CardBody>
             {grading.length === 0 ? (
-              <EmptyState title={t(locale, "assignment.noPendingGrading")} body={t(locale, "assignment.noPendingGradingBody")} icon="📋" />
+              <EmptyState title={t(locale, "assignment.noPendingGrading")} body={t(locale, "assignment.noPendingGradingBody")} icon="○" />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] border-collapse text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+                    <tr className="border-b border-line text-left text-xs text-ink-muted">
                       <th className="px-3 py-2 font-medium">{t(locale, "assignment.colAssignment")}</th>
                       <th className="px-3 py-2 font-medium">{t(locale, "assignment.colStudent")}</th>
                       <th className="px-3 py-2 font-medium">{t(locale, "assignment.colSubmitted")}</th>
@@ -133,13 +133,13 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
                   </thead>
                   <tbody>
                     {grading.map((s) => (
-                      <tr key={s.submissionId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
+                      <tr key={s.submissionId} className="border-b border-line last:border-0 hover:bg-slate-50/60">
                         <td className="px-3 py-2.5 font-medium">{locale === "ar" ? s.assignmentTitleAr : s.assignmentTitleEn}</td>
-                        <td className="px-3 py-2.5 text-slate-600">{s.studentName}</td>
-                        <td className="px-3 py-2.5 text-slate-500">{formatDate(locale, s.submittedAt)}</td>
-                        <td className="px-3 py-2.5 text-slate-500">{s.file ? t(locale, "assignment.yesFile") : "—"}</td>
+                        <td className="px-3 py-2.5 text-ink-muted">{s.studentName}</td>
+                        <td className="px-3 py-2.5 text-ink-muted">{formatDate(locale, s.submittedAt)}</td>
+                        <td className="px-3 py-2.5 text-ink-muted">{s.file ? t(locale, "assignment.yesFile") : "—"}</td>
                         <td className="px-3 py-2.5 text-end">
-                          <Link to={`/admin/assignments/${s.assignmentId}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 px-3 text-xs font-medium text-brand-700 hover:border-brand-400">
+                          <Link to={`/admin/assignments/${s.assignmentId}`} className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-xs font-medium text-ink hover:border-ink">
                             {t(locale, "assignment.colReview")}
                           </Link>
                         </td>
@@ -176,7 +176,7 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
                   </select>
                 </div>
                 <div className="lg:col-span-2 flex gap-2">
-                  <button type="submit" className="h-[42px] flex-1 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
+                  <button type="submit" className="h-[42px] flex-1 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800">
                     {t(locale, "assignment.filter")}
                   </button>
                 </div>
@@ -188,9 +188,9 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
             <EmptyState
               title={t(locale, "assignment.emptyList")}
               body={t(locale, "assignment.emptyListBody")}
-              icon="🗂️"
+              icon="○"
               action={perms.create ? (
-                <Link to="/admin/assignments/new" className="inline-flex min-h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
+                <Link to="/admin/assignments/new" className="inline-flex min-h-10 items-center rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800">
                   {t(locale, "assignment.emptyListCta")}
                 </Link>
               ) : undefined}
@@ -201,7 +201,7 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[820px] border-collapse text-sm">
                     <thead>
-                      <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+                      <tr className="border-b border-line text-left text-xs text-ink-muted">
                         <th className="px-4 py-3 font-medium">{t(locale, "assignment.colAssignment")}</th>
                         <th className="px-4 py-3 font-medium">{t(locale, "assignment.colStatus")}</th>
                         <th className="px-4 py-3 font-medium">{t(locale, "assignment.colDue")}</th>
@@ -211,16 +211,16 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
                     </thead>
                     <tbody>
                       {list.items.map((a) => (
-                        <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
+                        <tr key={a.id} className="border-b border-line last:border-0 hover:bg-slate-50/60">
                           <td className="px-4 py-3">
-                            <Link to={`/admin/assignments/${a.id}`} className="font-medium text-brand-700 hover:underline">
+                            <Link to={`/admin/assignments/${a.id}`} className="font-medium text-ink hover:underline">
                               {locale === "ar" ? a.titleAr : a.titleEn}
                             </Link>
                           </td>
                           <td className="px-4 py-3"><Badge tone={aStatusTone[a.status]}>{t(locale, `assignment.status_${a.status}`)}</Badge></td>
-                          <td className="px-4 py-3 text-slate-500">{a.dueAt ? formatDate(locale, a.dueAt) : "—"}</td>
-                          <td className="px-4 py-3 text-slate-600">{a.maxScore}</td>
-                          <td className="px-4 py-3 text-slate-600">
+                          <td className="px-4 py-3 text-ink-muted">{a.dueAt ? formatDate(locale, a.dueAt) : "—"}</td>
+                          <td className="px-4 py-3 text-ink-muted">{a.maxScore}</td>
+                          <td className="px-4 py-3 text-ink-muted">
                             {a.submittedCount} {t(locale, "assignment.submittedShort")} · {a.gradedCount} {t(locale, "assignment.gradedShort")}
                           </td>
                         </tr>
@@ -234,15 +234,15 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
 
           {list.total > list.limit && (
             <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-slate-500">{t(locale, "assignment.showing", { from: String(list.offset + 1), to: String(Math.min(list.offset + list.limit, list.total)), total: String(list.total) })}</span>
+              <span className="text-ink-muted">{t(locale, "assignment.showing", { from: String(list.offset + 1), to: String(Math.min(list.offset + list.limit, list.total)), total: String(list.total) })}</span>
               <div className="flex gap-2">
                 {list.offset > 0 && (
-                  <Link to={`/admin/assignments${buildQuery({ status, q, courseId, offset: String(Math.max(list.offset - list.limit, 0)) })}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  <Link to={`/admin/assignments${buildQuery({ status, q, courseId, offset: String(Math.max(list.offset - list.limit, 0)) })}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink hover:bg-slate-50">
                     {t(locale, "assignment.prev")}
                   </Link>
                 )}
                 {list.offset + list.limit < list.total && (
-                  <Link to={`/admin/assignments${buildQuery({ status, q, courseId, offset: String(list.offset + list.limit) })}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  <Link to={`/admin/assignments${buildQuery({ status, q, courseId, offset: String(list.offset + list.limit) })}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink hover:bg-slate-50">
                     {t(locale, "assignment.next")}
                   </Link>
                 )}
