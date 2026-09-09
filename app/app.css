@@ -171,6 +171,14 @@
   .sig-u:hover {
     background-size: 100% 2px;
   }
+  /* Faint Swiss-grid backdrop for hero bands (hairlines only, no color). */
+  .sig-grid {
+    background-image:
+      linear-gradient(var(--color-line, #e3e3e8) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-line, #e3e3e8) 1px, transparent 1px);
+    background-size: 54px 54px;
+    background-position: center top;
+  }
 }
 
 @layer components {
