@@ -175,6 +175,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
   const title = locale === "ar" ? course.titleAr : course.titleEn;
   const desc = locale === "ar" ? course.descriptionAr : course.descriptionEn;
   const gated = prereqLock.locked;
+  const hasMeta = Boolean(course.teacherName) || (verdict.allowed && (course.lessonCount > 0 || course.durationMinutes > 0));
   const lessonLockedFor = (lessonId: string) => {
     if (gated) return true;
     const lv = lessonVerdicts[lessonId];
@@ -182,39 +183,43 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
       {/* Breadcrumbs */}
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
+      <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-muted">
+        <Link to="/courses" className="font-semibold text-ink"><span className="sig-u">{t(locale, "content.catalogTitle")}</span></Link>
         {subject && (
           <>
-            <span className="mx-1.5" aria-hidden>›</span>
-            <Link to={`/subjects/${subject.slug}`} className="hover:text-brand-600">
-              {locale === "ar" ? subject.titleAr : subject.titleEn}
+            <span aria-hidden="true">›</span>
+            <Link to={`/subjects/${subject.slug}`} className="font-semibold text-ink">
+              <span className="sig-u">{locale === "ar" ? subject.titleAr : subject.titleEn}</span>
             </Link>
           </>
         )}
-        <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{title}</span>
+        <span aria-hidden="true">›</span>
+        <span className="font-medium">{title}</span>
       </nav>
 
-      {course.thumbnail && (
-        <img src={course.thumbnail} alt="" className="mb-4 h-40 w-full rounded-lg object-cover sm:h-52" />
-      )}
-
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span aria-hidden="true" className="inline-block h-3.5 w-3.5 bg-accent-500" />
         <Badge tone={course.accessLevel === "public" ? "success" : course.accessLevel === "authenticated" ? "brand" : "neutral"}>
           {t(locale, course.accessLevel === "public" ? "content.accessPublic" : course.accessLevel === "authenticated" ? "content.accessAuthenticated" : "content.accessEntitled")}
         </Badge>
         {!verdict.allowed && course.status !== "published" && (
-          <span className="text-sm text-slate-500">{t(locale, "content.notAvailable")}</span>
+          <span className="text-sm text-ink-muted">{t(locale, "content.notAvailable")}</span>
         )}
       </div>
-      <h1 className="text-2xl font-bold">{title}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      <h1 className="sig-display text-3xl text-ink sm:text-4xl">{title}</h1>
+      {desc && <p className="mt-3 max-w-2xl leading-relaxed text-ink-muted">{desc}</p>}
 
-      {/* Meta row: teacher · lessons · duration */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+      {course.thumbnail && (
+        <div className="mt-6 overflow-hidden rounded-[var(--radius-card)] border-2 border-brand-800 bg-white shadow-[6px_6px_0_0_var(--color-brand-800)]">
+          <img src={course.thumbnail} alt="" className="h-44 w-full object-cover sm:h-60" />
+        </div>
+      )}
+
+      {/* Meta row: teacher · lessons · duration (only when it has content) */}
+      {hasMeta && (
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-y-2 border-line py-3 text-sm text-ink-muted">
         {course.teacherName && (
           <span className="inline-flex items-center gap-1.5">
             <Icon name="user" className="h-4 w-4" aria-hidden />
@@ -235,32 +240,31 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           </span>
         )}
       </div>
+      )}
 
       {/* Student progress */}
       {progress && progress.course.total > 0 && (
-        <Card className="mt-4">
-          <CardBody>
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-medium text-slate-700">{t(locale, "progress.courseProgress")}</span>
-              <span className="tabular-nums text-slate-500">
-                {progress.course.completed}/{progress.course.total} · {progress.course.pct}%
-              </span>
-            </div>
-            <ProgressBar pct={progress.course.pct} label={t(locale, "progress.courseProgress")} />
-          </CardBody>
-        </Card>
+        <div className="mt-5">
+          <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+            <span className="font-bold text-ink">{t(locale, "progress.courseProgress")}</span>
+            <span className="font-bold tabular-nums text-accent-600" dir="ltr">
+              {progress.course.completed}/{progress.course.total} · {progress.course.pct}%
+            </span>
+          </div>
+          <ProgressBar pct={progress.course.pct} label={t(locale, "progress.courseProgress")} />
+        </div>
       )}
 
       {gated && prereqLock.missing.length > 0 && (
         <Card className="mt-4">
           <CardBody>
-            <p className="text-sm font-medium text-slate-700">{t(locale, "content.prereqRequired")}</p>
+            <p className="text-sm font-bold text-ink">{t(locale, "content.prereqRequired")}</p>
             <ul className="mt-2 space-y-1">
               {prereqLock.missing.map((m) => (
                 <li key={m.courseId}>
-                  <Link to={`/courses/${m.slug}`} className="text-sm text-blue-600 hover:underline">
+                  <Link to={`/courses/${m.slug}`} className="inline-flex min-h-9 items-center text-sm font-semibold text-ink"><span className="sig-u">
                     {locale === "ar" ? m.titleAr : m.titleEn}
-                  </Link>
+                  </span></Link>
                 </li>
               ))}
             </ul>
@@ -271,11 +275,9 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
       {!gated && !verdict.allowed && (
         <Card className="mt-4">
           <CardBody>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm leading-relaxed text-ink-muted">
               {verdict.reason === "anon" ? (
-                <Link to="/login" className="font-medium text-blue-600 hover:underline">
-                  {t(locale, "content.loginToContinue")}
-                </Link>
+                <Link to="/login" className="font-bold text-ink"><span className="sig-u">{t(locale, "content.loginToContinue")}</span></Link>
               ) : (
                 t(locale, "content.locked")
               )}
@@ -283,7 +285,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
             {buyOption && (
               <Link
                 to={`/products/${buyOption.productSlug}`}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                className="mt-3 inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-[var(--radius-btn)] bg-brand-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
                 data-testid="course-buy-cta"
               >
                 {t(locale, "commerce.buyCta")}
@@ -296,53 +298,55 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
         </Card>
       )}
 
-      <div className="mt-6 space-y-5">
+      <div className="mt-10">
         {units.map((unit, ui) => (
-          <Card key={unit.id}>
-            <CardBody>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-semibold">
-                  {ui + 1}. {locale === "ar" ? unit.titleAr : unit.titleEn}
-                </h2>
-                {!gated && verdict.allowed && (
-                  <Link to={`/courses/${course.slug}/units/${unit.id}`} className="text-sm text-blue-600 hover:underline">
-                    {t(locale, "content.openUnit")}
-                  </Link>
-                )}
-              </div>
-              <ol className="space-y-1.5">
-                {unit.lessons.map((lesson) => {
-                  const lessonLocked = lessonLockedFor(lesson.id);
-                  const lp = progress?.lesson[lesson.id];
-                  return (
-                    <li key={lesson.slug} className="flex items-center gap-2 text-sm">
-                      {lp?.status === "completed" && (
-                        <Icon name="check-circle" className="h-4 w-4 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
-                      )}
-                      {lp && lp.status !== "completed" && (
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400" aria-hidden />
-                      )}
-                      {!lp && !lessonLocked && <span className="h-2 w-2 shrink-0 rounded-full bg-slate-300" aria-hidden />}
-                      {lessonLocked ? (
-                        <span className="inline-flex items-center gap-1.5 text-slate-500">
-                          <Icon name="lock" className="h-4 w-4 shrink-0" aria-hidden />
-                          {locale === "ar" ? lesson.titleAr : lesson.titleEn}
-                        </span>
-                      ) : (
-                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="inline-flex min-h-6 items-center text-blue-700 hover:underline">
-                          {locale === "ar" ? lesson.titleAr : lesson.titleEn}
-                        </Link>
-                      )}
-                      {lesson.freePreview && <Badge tone="success">{t(locale, "content.freePreview")}</Badge>}
-                    </li>
-                  );
-                })}
-                {unit.lessons.length === 0 && <li className="text-sm text-slate-500">—</li>}
-              </ol>
-            </CardBody>
-          </Card>
+          <section key={unit.id} aria-label={`${ui + 1}. ${locale === "ar" ? unit.titleAr : unit.titleEn}`} className="border-t-2 border-brand-800 py-6 last:border-b-2">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="sig-display flex items-baseline gap-3 text-xl text-ink sm:text-2xl">
+                <span aria-hidden="true" className="text-base font-bold tabular-nums text-accent-500">{String(ui + 1).padStart(2, "0")}</span>
+                {locale === "ar" ? unit.titleAr : unit.titleEn}
+              </h2>
+              {!gated && verdict.allowed && (
+                <Link to={`/courses/${course.slug}/units/${unit.id}`} className="inline-flex min-h-9 items-center text-sm font-bold text-ink">
+                  <span className="sig-u">{t(locale, "content.openUnit")}</span>
+                  <span aria-hidden="true" className="ms-1 text-accent-600 rtl:rotate-180">→</span>
+                </Link>
+              )}
+            </div>
+            <ol>
+              {unit.lessons.map((lesson, li) => {
+                const lessonLocked = lessonLockedFor(lesson.id);
+                const lp = progress?.lesson[lesson.id];
+                return (
+                  <li key={lesson.slug} className="flex min-h-12 items-center gap-3 border-b border-line py-2.5 text-[15px] last:border-b-0">
+                    <span aria-hidden="true" className="w-7 shrink-0 text-sm font-bold tabular-nums text-slate-400">{ui + 1}.{li + 1}</span>
+                    {lp?.status === "completed" ? (
+                      <Icon name="check-circle" className="h-5 w-5 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
+                    ) : lp ? (
+                      <span className="h-2.5 w-2.5 shrink-0 bg-accent-500" aria-hidden="true" />
+                    ) : lessonLocked ? (
+                      <Icon name="lock" className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                    ) : (
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-slate-300" aria-hidden="true" />
+                    )}
+                    {lessonLocked ? (
+                      <span className="min-w-0 flex-1 truncate text-ink-muted">
+                        {locale === "ar" ? lesson.titleAr : lesson.titleEn}
+                      </span>
+                    ) : (
+                      <Link to={`/learn/${course.slug}/${lesson.slug}`} className="min-w-0 flex-1 truncate font-semibold text-ink">
+                        <span className="sig-u">{locale === "ar" ? lesson.titleAr : lesson.titleEn}</span>
+                      </Link>
+                    )}
+                    {lesson.freePreview && <Badge tone="success">{t(locale, "content.freePreview")}</Badge>}
+                  </li>
+                );
+              })}
+              {unit.lessons.length === 0 && <li className="py-2 text-sm text-ink-muted">—</li>}
+            </ol>
+          </section>
         ))}
-        {units.length === 0 && <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>}
+        {units.length === 0 && <p className="border-t-2 border-line py-6 text-sm text-ink-muted">{t(locale, "content.catalogEmpty")}</p>}
       </div>
     </div>
   );

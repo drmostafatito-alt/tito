@@ -7,7 +7,6 @@ import { chainForCourse, courseBySlug, lessonsForUnit, unitsForCourse } from "~s
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { lessonProgressMap } from "~server/progress/service.server";
 import { Badge } from "~/components/ui/Badge";
-import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
 
@@ -80,58 +79,61 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
   const { course, unit, lessons, courseAllowed } = loaderData;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-1 text-sm text-slate-500">
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
-        <span className="mx-1.5" aria-hidden>›</span>
-        <Link to={`/courses/${course.slug}`} className="hover:text-brand-600">
-          {locale === "ar" ? course.titleAr : course.titleEn}
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+      <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-muted">
+        <Link to="/courses" className="font-semibold text-ink"><span className="sig-u">{t(locale, "content.catalogTitle")}</span></Link>
+        <span aria-hidden="true">›</span>
+        <Link to={`/courses/${course.slug}`} className="font-semibold text-ink">
+          <span className="sig-u">{locale === "ar" ? course.titleAr : course.titleEn}</span>
         </Link>
-        <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
+        <span aria-hidden="true">›</span>
+        <span className="font-medium">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
       </nav>
-      <h1 className="mb-6 text-2xl font-bold">{locale === "ar" ? unit.titleAr : unit.titleEn}</h1>
-      <ol className="space-y-2">
+      <div className="mb-6 flex items-center gap-4">
+        <span aria-hidden="true" className="inline-block h-3.5 w-3.5 shrink-0 bg-accent-500" />
+        <h1 className="sig-display shrink-0 text-3xl text-ink">{locale === "ar" ? unit.titleAr : unit.titleEn}</h1>
+        <span aria-hidden="true" className="h-px flex-1 bg-brand-800/25" />
+        <span className="shrink-0 text-sm font-bold tabular-nums text-ink-muted">{lessons.length}</span>
+      </div>
+      <ol className="border-t-2 border-brand-800">
         {lessons.map((l, i) => (
-          <li key={l.slug}>
-            <Card>
-              <CardBody className="flex items-center justify-between gap-2">
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="text-sm text-slate-500">{i + 1}.</span>
-                  {l.progress?.status === "completed" && (
-                    <Icon name="check-circle" className="h-4 w-4 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
-                  )}
-                  {l.progress && l.progress.status !== "completed" && (
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400" aria-hidden />
-                  )}
-                  {l.allowed ? (
-                    <Link to={`/learn/${course.slug}/${l.slug}`} className="truncate font-medium text-blue-700 hover:underline">
-                      {locale === "ar" ? l.titleAr : l.titleEn}
-                    </Link>
-                  ) : (
-                    <span className="inline-flex min-w-0 items-center gap-1.5 text-slate-500">
-                      <Icon name="lock" className="h-4 w-4 shrink-0" aria-hidden />
-                      <span className="truncate">{locale === "ar" ? l.titleAr : l.titleEn}</span>
-                    </span>
-                  )}
-                  {l.freePreview && <Badge tone="success">{t(locale, "content.freePreview")}</Badge>}
+          <li key={l.slug} className="flex min-h-14 items-center justify-between gap-3 border-b-2 border-line py-3">
+            <span className="flex min-w-0 flex-1 items-center gap-3">
+              <span aria-hidden="true" className="w-6 shrink-0 text-sm font-bold tabular-nums text-slate-400">{i + 1}</span>
+              {l.progress?.status === "completed" ? (
+                <Icon name="check-circle" className="h-5 w-5 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
+              ) : l.progress ? (
+                <span className="h-2.5 w-2.5 shrink-0 bg-accent-500" aria-hidden="true" />
+              ) : !l.allowed ? (
+                <Icon name="lock" className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+              ) : (
+                <span className="h-2 w-2 shrink-0 rounded-full bg-slate-300" aria-hidden="true" />
+              )}
+              {l.allowed ? (
+                <Link to={`/learn/${course.slug}/${l.slug}`} className="min-w-0 flex-1 truncate font-semibold text-ink">
+                  <span className="sig-u">{locale === "ar" ? l.titleAr : l.titleEn}</span>
+                </Link>
+              ) : (
+                <span className="min-w-0 flex-1 truncate text-ink-muted">
+                  {locale === "ar" ? l.titleAr : l.titleEn}
                 </span>
-                {l.allowed && l.progress?.status !== "completed" && (
-                  <Link
-                    to={`/learn/${course.slug}/${l.slug}`}
-                    className="shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
-                  >
-                    {l.progress ? t(locale, "progress.resume") : t(locale, "content.openLesson")}
-                  </Link>
-                )}
-              </CardBody>
-            </Card>
+              )}
+              {l.freePreview && <Badge tone="success">{t(locale, "content.freePreview")}</Badge>}
+            </span>
+            {l.allowed && l.progress?.status !== "completed" && (
+              <Link
+                to={`/learn/${course.slug}/${l.slug}`}
+                className="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-btn)] bg-brand-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+              >
+                {l.progress ? t(locale, "progress.resume") : t(locale, "content.openLesson")}
+              </Link>
+            )}
           </li>
         ))}
-        {lessons.length === 0 && <p className="text-sm text-slate-500">—</p>}
+        {lessons.length === 0 && <li className="border-b-2 border-line py-4 text-sm text-ink-muted">—</li>}
       </ol>
       {!courseAllowed && (
-        <p className="mt-4 text-sm text-slate-500">{t(locale, "content.locked")}</p>
+        <p className="mt-4 text-sm text-ink-muted">{t(locale, "content.locked")}</p>
       )}
     </div>
   );
