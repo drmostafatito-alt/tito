@@ -31,28 +31,41 @@
 @theme {
   --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Brand: violet / indigo — premium educational */
-  --color-brand-50: #f5f3ff;
-  --color-brand-100: #ede9fe;
-  --color-brand-200: #ddd6fe;
-  --color-brand-300: #c4b5fd;
-  --color-brand-400: #a78bfa;
-  --color-brand-500: #8b5cf6;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-800: #5b21b6;
-  --color-brand-900: #4c1d95;
-  --color-brand-950: #2e1065;
+  /* Brand = ink scale (near-black). Primary buttons, headings-on-dark, links. */
+  --color-brand-50: #eaeaeb;
+  --color-brand-100: #d5d5d6;
+  --color-brand-200: #aaaaad;
+  --color-brand-300: #808085;
+  --color-brand-400: #55555c;
+  --color-brand-500: #2b2b33;
+  --color-brand-600: #26262d;
+  --color-brand-700: #17171d;
+  --color-brand-800: #111116;
+  --color-brand-900: #16161a;
+  --color-brand-950: #0e0e10;
 
-  /* Accent: indigo for CTAs and highlights */
-  --color-accent-50: #eef2ff;
-  --color-accent-100: #e0e7ff;
-  --color-accent-400: #818cf8;
-  --color-accent-500: #6366f1;
-  --color-accent-600: #4f46e5;
-  --color-accent-700: #4338ca;
+  /* Accent = signal (vivid red-orange). Progress, markers, active states. */
+  --color-accent-50: #fcedea;
+  --color-accent-100: #f9dcd5;
+  --color-accent-400: #e77155;
+  --color-accent-500: #e14e2b;
+  --color-accent-600: #c64526;
+  --color-accent-700: #ab3b21;
 
-  --radius-card: 1.25rem;
+  --color-accent-200: #f3b8aa;
+  --color-accent-300: #ed9580;
+  --color-accent-800: #8c301b;
+  --color-accent-900: #702716;
+
+  --color-page-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-ink: #141419;
+  --color-ink-muted: #5c5c68;
+  --color-line: #e3e3e8;
+
+  --radius-base: 8px;
+  --radius-btn: 8px;
+  --radius-card: 14px;
 }
 
 @layer base {
@@ -60,11 +73,17 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply font-sans text-slate-900 antialiased;
-    background-color: var(--color-page-bg, #faf8ff);
+    @apply font-sans antialiased;
+    background-color: var(--color-page-bg, #ffffff);
+    color: var(--color-ink, #141419);
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-brand-600;
+    outline: 2px solid var(--color-brand-700, #17171d);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-accent-700, #ab3b21);
+    color: #fff;
   }
   /* Forms: never smaller than 16px on iOS to avoid focus zoom */
   input,
@@ -81,18 +100,31 @@
   .cms-richtext h2 { font-size: 1.5rem; font-weight: 800; margin-block: 0 0.5em; }
   .cms-richtext h3 { font-size: 1.25rem; font-weight: 700; margin-block: 0 0.4em; }
   .cms-richtext ul, .cms-richtext ol { padding-inline-start: 1.25rem; margin-block: 0.5em; }
-  .cms-richtext a { color: var(--color-brand-700, #6d28d9); text-decoration: underline; }
-  .cms-richtext .rt-c-brand, .rt-c-brand { color: var(--color-brand-700, #6d28d9); }
-  .cms-richtext .rt-c-accent, .rt-c-accent { color: var(--color-accent-700, #4338ca); }
+  .cms-richtext a { color: var(--color-brand-700, #17171d); font-weight: 600; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .cms-richtext .rt-c-brand, .rt-c-brand { color: var(--color-brand-700, #17171d); }
+  .cms-richtext .rt-c-accent, .rt-c-accent { color: var(--color-accent-700, #ab3b21); }
   .cms-richtext .rt-c-success, .rt-c-success { color: var(--color-success, #059669); }
   .cms-richtext .rt-c-warning, .rt-c-warning { color: var(--color-warning, #d97706); }
   .cms-richtext .rt-c-error, .rt-c-error { color: var(--color-error, #e11d48); }
-  .cms-richtext .rt-c-ink, .rt-c-ink { color: var(--color-ink, #0f172a); }
+  .cms-richtext .rt-c-ink, .rt-c-ink { color: var(--color-ink, #141419); }
   .cms-richtext .rt-align-start { text-align: start; }
   .cms-richtext .rt-align-center { text-align: center; }
   .cms-richtext .rt-align-end { text-align: end; }
   .cms-richtext .rt-w-bold { font-weight: 700; }
   h1, h2, h3, h4 { font-family: var(--font-heading, "Cairo"), "IBM Plex Sans Arabic", ui-sans-serif, sans-serif; }
+  /* Display voice: Cairo ExtraBold at monumental sizes (Arabic-first; never letterspaced). */
+  .sig-display { font-family: var(--font-heading, "Cairo"), "IBM Plex Sans Arabic", ui-sans-serif, sans-serif; font-weight: 800; letter-spacing: 0; }
+  [dir="ltr"] .sig-kicker { letter-spacing: 0.14em; }
+}
+
+/* Reduced motion: stillness-first; kill all transitions/animations. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* iOS safe areas for fixed/sticky chrome (ARCHITECTURE §15) */
@@ -101,4 +133,51 @@
 }
 @utility pt-safe {
   padding-top: max(env(safe-area-inset-top), 0.25rem);
+}
+
+@utility sig-underline {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--color-accent-600, #c64526);
+}
+
+@utility sig-rail {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  padding-block-end: 0.5rem;
+}
+
+@utility sig-rail-item {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+@layer components {
+  .sig-u {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 2px;
+    background-repeat: no-repeat;
+    background-position: 0% 100%;
+    transition: background-size 180ms ease;
+    padding-block-end: 2px;
+  }
+  [dir="rtl"] .sig-u {
+    background-position: 100% 100%;
+  }
+  .sig-u:hover {
+    background-size: 100% 2px;
+  }
+}
+
+@layer components {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

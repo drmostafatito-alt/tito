@@ -85,9 +85,9 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+        className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-[var(--radius-card)] border-2 border-brand-800 bg-white p-6 shadow-xl"
       >
-        <h2 className="mb-3 text-lg font-semibold">{title}</h2>
+        <h2 className="sig-display mb-4 text-xl text-ink">{title}</h2>
         {children}
       </div>
     </div>

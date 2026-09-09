@@ -15,7 +15,7 @@ export function Alert({
   children: React.ReactNode;
 }) {
   return (
-    <div role={kind === "error" ? "alert" : "status"} className={`flex items-start gap-2.5 rounded-lg border px-4 py-3 text-sm ${kinds[kind].box}`}>
+    <div role={kind === "error" ? "alert" : "status"} className={`flex items-start gap-2.5 rounded-[var(--radius-base)] border-2 border-s-[6px] px-4 py-3 text-sm font-medium ${kinds[kind].box}`}>
       <span aria-hidden="true" className="mt-0.5 font-bold leading-none">
         {kinds[kind].icon}
       </span>

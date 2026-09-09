@@ -26,7 +26,7 @@ export function LanguageSwitcher({ locale, options }: { locale: Locale; options?
       <input type="hidden" name="next" value={location.pathname + location.search} />
       <button
         type="submit"
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-btn)] px-3 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-100"
         aria-label={next === "ar" ? t("ar", "common.arabic") : t("en", "common.english")}
         data-locale-next={next}
       >

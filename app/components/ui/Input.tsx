@@ -14,13 +14,13 @@ export function Input({ label, error, hint, className = "", id, ...rest }: Input
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
+      <label htmlFor={inputId} className="text-sm font-semibold text-ink">
         {label}
       </label>
       <input
         id={inputId}
-        className={`w-full rounded-lg border bg-white px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-          error ? "border-red-400" : "border-slate-300"
+        className={`w-full rounded-[var(--radius-btn)] border bg-white px-3.5 py-2.5 text-ink placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-700/30 ${
+          error ? "border-red-500" : "border-slate-300 focus:border-brand-700"
         }`}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : hint ? hintId : undefined}
