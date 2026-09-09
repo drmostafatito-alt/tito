@@ -10,6 +10,7 @@ import { subjects } from "~server/db/schema";
 import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
 import { Card, CardBody } from "~/components/ui/Card";
+import { EmptyState } from "~/components/ui/EmptyState";
 import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
@@ -84,24 +85,24 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
   const desc = locale === "ar" ? subject.descriptionAr : subject.descriptionEn;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+      <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-muted">
+        <Link to="/courses" className="font-semibold text-ink"><span className="sig-u">{t(locale, "content.catalogTitle")}</span></Link>
         {program.slug && program.titleAr && (
           <>
-            <span className="mx-1.5" aria-hidden>›</span>
-            <Link to={`/programs/${program.slug}`} className="hover:text-brand-600">{c(program)}</Link>
+            <span aria-hidden="true">›</span>
+            <Link to={`/programs/${program.slug}`} className="font-semibold text-ink"><span className="sig-u">{c(program)}</span></Link>
           </>
         )}
-        <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{c(subject)}</span>
+        <span aria-hidden="true">›</span>
+        <span className="font-medium">{c(subject)}</span>
       </nav>
-      <h1 className="text-2xl font-bold">{c(subject)}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      <h1 className="sig-display text-3xl text-ink sm:text-4xl">{c(subject)}</h1>
+      {desc && <p className="mt-3 max-w-2xl leading-relaxed text-ink-muted">{desc}</p>}
       {buyOption && (
         <Link
           to={`/products/${buyOption.productSlug}`}
-          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+          className="mt-5 inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-[var(--radius-btn)] bg-brand-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
           data-testid="subject-buy-cta"
         >
           {t(locale, "commerce.buyCta")}
@@ -112,28 +113,31 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {courses.length === 0 ? (
-        <p className="mt-6 text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+        <div className="mt-8">
+          <EmptyState title={t(locale, "content.catalogEmpty")} icon={<span aria-hidden="true">○</span>} />
+        </div>
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {courses.map((course) => {
+        <div className="mt-8 grid gap-5 sm:grid-cols-2">
+          {courses.map((course, ci) => {
             const meta: string[] = [];
             if (pres.showTeacher && course.teacherName) meta.push(course.teacherName);
             if (pres.showLessonCount) meta.push(t(locale, "content.lessonsCount", { n: course.lessonCount }));
             return (
-              <Card key={course.slug}>
+              <Card key={course.slug} className="group overflow-hidden transition-all hover:border-brand-800 hover:shadow-[6px_6px_0_0_var(--color-brand-800)]">
                 <CardBody className="p-0">
-                  <Link to={`/courses/${course.slug}`} className="group block">
+                  <Link to={`/courses/${course.slug}`} className="block">
                     {pres.showImage && course.imageUrl && (
-                      <img src={course.imageUrl} alt="" className="h-32 w-full rounded-t-xl object-cover" />
+                      <img src={course.imageUrl} alt="" className="aspect-video w-full object-cover" />
                     )}
-                    <div className="p-4">
-                      <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <h2 className="font-semibold text-slate-800 group-hover:text-brand-600">{c(course)}</h2>
+                    <div className="flex flex-col items-start gap-2 p-4">
+                      <div className="flex w-full items-start justify-between gap-3">
                         <Badge tone={course.accessLevel === "public" ? "success" : course.accessLevel === "authenticated" ? "brand" : "neutral"}>
                           {t(locale, course.accessLevel === "public" ? "content.accessPublic" : course.accessLevel === "authenticated" ? "content.accessAuthenticated" : "content.accessEntitled")}
                         </Badge>
+                        <span aria-hidden="true" className="sig-display text-xl tabular-nums text-slate-300 transition-colors group-hover:text-accent-600">{String(ci + 1).padStart(2, "0")}</span>
                       </div>
-                      {meta.length > 0 && <p className="text-sm text-slate-500">{meta.join(" · ")}</p>}
+                      <h2 className="text-lg font-bold text-ink"><span className="sig-u">{c(course)}</span></h2>
+                      {meta.length > 0 && <p className="text-sm text-ink-muted">{meta.join(" · ")}</p>}
                     </div>
                   </Link>
                 </CardBody>

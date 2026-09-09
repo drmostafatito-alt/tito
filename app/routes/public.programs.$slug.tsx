@@ -5,8 +5,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { catalogCourses } from "~server/content/service.server";
 import { programs, grades, subjects } from "~server/db/schema";
-import { Card, CardBody } from "~/components/ui/Card";
-import { Icon } from "~/cms/icons";
+import { EmptyState } from "~/components/ui/EmptyState";
 import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
@@ -95,40 +94,39 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
   const hasSubjects = grades.some((g) => g.subjects.length > 0);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/programs" className="hover:text-brand-600">{t(locale, "catalog.programs")}</Link>
-        <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{locale === "ar" ? program.titleAr : program.titleEn}</span>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+      <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-muted">
+        <Link to="/programs" className="font-semibold text-ink"><span className="sig-u">{t(locale, "catalog.programs")}</span></Link>
+        <span aria-hidden="true">›</span>
+        <span className="font-medium">{locale === "ar" ? program.titleAr : program.titleEn}</span>
       </nav>
-      <h1 className="text-2xl font-bold">{locale === "ar" ? program.titleAr : program.titleEn}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      <h1 className="sig-display text-3xl text-ink sm:text-4xl">{locale === "ar" ? program.titleAr : program.titleEn}</h1>
+      {desc && <p className="mt-3 max-w-2xl leading-relaxed text-ink-muted">{desc}</p>}
 
       {!hasSubjects ? (
-        <p className="mt-6 text-slate-500">{t(locale, "catalog.noSubjects")}</p>
+        <div className="mt-8">
+          <EmptyState title={t(locale, "catalog.noSubjects")} icon={<span aria-hidden="true">○</span>} />
+        </div>
       ) : (
-        <div className="mt-6 space-y-6">
-          {grades.map((g) =>
+        <div className="mt-10">
+          {grades.map((g, gi) =>
             g.subjects.length === 0 ? null : (
-              <section key={g.id}>
-                <h2 className="mb-3 text-lg font-semibold text-slate-700">{locale === "ar" ? g.titleAr : g.titleEn}</h2>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {g.subjects.map((s) => (
-                    <Card key={s.slug}>
-                      <CardBody>
-                        <Link to={`/subjects/${s.slug}`} className="group block">
-                          <h3 className="flex items-center gap-2 font-medium text-slate-800 group-hover:text-brand-600">
-                            <Icon name="book-open" className="h-4.5 w-4.5 shrink-0 text-brand-500" aria-hidden />
-                            {locale === "ar" ? s.titleAr : s.titleEn}
-                          </h3>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {t(locale, "content.coursesCount", { n: s.courseCount })}
-                          </p>
-                        </Link>
-                      </CardBody>
-                    </Card>
+              <section key={g.id} aria-label={`${gi + 1}. ${locale === "ar" ? g.titleAr : g.titleEn}`} className="border-t-2 border-brand-800 py-6 last:border-b-2">
+                <h2 className="sig-display mb-4 flex items-baseline gap-3 text-xl text-ink sm:text-2xl">
+                  <span aria-hidden="true" className="text-base font-bold tabular-nums text-accent-500">{String(gi + 1).padStart(2, "0")}</span>
+                  {locale === "ar" ? g.titleAr : g.titleEn}
+                </h2>
+                <ol>
+                  {g.subjects.map((sub, si) => (
+                    <li key={sub.slug} className="flex min-h-12 items-center gap-3 border-b border-line py-2.5 text-[15px] last:border-b-0">
+                      <span aria-hidden="true" className="w-7 shrink-0 text-sm font-bold tabular-nums text-slate-400">{gi + 1}.{si + 1}</span>
+                      <Link to={`/subjects/${sub.slug}`} className="min-w-0 flex-1 truncate font-semibold text-ink">
+                        <span className="sig-u">{locale === "ar" ? sub.titleAr : sub.titleEn}</span>
+                      </Link>
+                      <span className="shrink-0 text-sm tabular-nums text-ink-muted">{t(locale, "content.coursesCount", { n: sub.courseCount })}</span>
+                    </li>
                   ))}
-                </div>
+                </ol>
               </section>
             )
           )}

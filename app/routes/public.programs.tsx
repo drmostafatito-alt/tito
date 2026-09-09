@@ -5,6 +5,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { programs, grades, subjects } from "~server/db/schema";
 import { Card, CardBody } from "~/components/ui/Card";
+import { EmptyState } from "~/components/ui/EmptyState";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
@@ -73,25 +74,36 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
   const locale = root?.locale ?? "ar";
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">{t(locale, "catalog.programs")}</h1>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+      <div className="mb-8 flex items-center gap-4">
+        <span aria-hidden="true" className="inline-block h-3.5 w-3.5 shrink-0 bg-accent-500" />
+        <h1 className="sig-display shrink-0 text-3xl text-ink sm:text-4xl">{t(locale, "catalog.programs")}</h1>
+        <span aria-hidden="true" className="h-px flex-1 bg-brand-800/25" />
+        <span className="shrink-0 text-sm font-bold tabular-nums text-ink-muted">{loaderData.programs.length}</span>
+      </div>
       {loaderData.programs.length === 0 ? (
-        <p className="text-slate-500">{t(locale, "catalog.noPrograms")}</p>
+        <EmptyState title={t(locale, "catalog.noPrograms")} icon={<span aria-hidden="true">○</span>} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {loaderData.programs.map((p) => {
+        <div className="grid gap-5 sm:grid-cols-2">
+          {loaderData.programs.map((p, pi) => {
             const desc = locale === "ar" ? p.descriptionAr : p.descriptionEn;
             return (
-              <Card key={p.slug}>
+              <Card key={p.slug} className="group overflow-hidden transition-all hover:border-brand-800 hover:shadow-[6px_6px_0_0_var(--color-brand-800)]">
                 <CardBody>
-                  <Link to={`/programs/${p.slug}`} className="group block">
-                    <h2 className="flex items-center gap-2 font-semibold text-slate-800 group-hover:text-brand-600">
-                      <Icon name="graduation-cap" className="h-5 w-5 text-brand-500" aria-hidden />
-                      {locale === "ar" ? p.titleAr : p.titleEn}
+                  <Link to={`/programs/${p.slug}`} className="block">
+                    <div className="flex items-start justify-between gap-3">
+                      <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-btn)] bg-brand-800 text-white">
+                        <Icon name="graduation-cap" size="md" colorRole="invert" />
+                      </span>
+                      <span aria-hidden="true" className="sig-display text-xl tabular-nums text-slate-300 transition-colors group-hover:text-accent-600">{String(pi + 1).padStart(2, "0")}</span>
+                    </div>
+                    <h2 className="mt-3 text-lg font-bold text-ink">
+                      <span className="sig-u">{locale === "ar" ? p.titleAr : p.titleEn}</span>
                     </h2>
-                    {desc && <p className="mt-1.5 text-sm text-slate-600">{desc}</p>}
-                    <p className="mt-2 text-sm text-slate-500">
-                      {t(locale, "catalog.subjects")}: <span className="tabular-nums">{p.subjectCount}</span>
+                    {desc && <p className="mt-1 text-sm leading-relaxed text-ink-muted">{desc}</p>}
+                    <p className="mt-3 inline-flex min-h-9 items-center gap-1 text-sm font-bold text-ink">
+                      <span className="sig-u">{t(locale, "catalog.subjects")}: <span className="tabular-nums">{p.subjectCount}</span></span>
+                      <span aria-hidden="true" className="text-accent-600 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5">→</span>
                     </p>
                   </Link>
                 </CardBody>
