@@ -76,8 +76,8 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const close = () => setMobileOpen(false);
 
-  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100";
-  const activeLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700";
+  const navLinkCls = "relative inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap px-2.5 py-2 text-sm font-semibold text-ink-muted transition-colors hover:text-ink";
+  const activeLinkCls = "relative inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap px-2.5 py-2 text-sm font-bold text-ink after:absolute after:inset-x-2.5 after:bottom-0.5 after:h-0.5 after:bg-accent-500";
 
   const coreLinks: Array<{ to: string; label: string; end?: boolean; badge?: number }> = [
     { to: "/dashboard", label: t(locale, "common.dashboard") },
@@ -92,22 +92,22 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
   ];
 
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white pt-safe">
+    <div className="flex min-h-dvh flex-col bg-white">
+      <header className="sticky top-0 z-40 border-b-2 border-brand-800 bg-white/95 pt-safe backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-4">
-            <Link to="/" aria-label={appName} className="inline-flex min-h-11 items-center">
+            <Link to="/" aria-label={appName} className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap">
               <BrandMark name={appName} />
             </Link>
           </div>
 
           {/* Desktop navigation */}
-          <nav className="hidden items-center gap-1 md:flex" aria-label={t(locale, "common.navMain")}>
+          <nav className="hidden items-center gap-0.5 xl:flex" aria-label={t(locale, "common.navMain")}>
             {coreLinks.map((l) => (
               <RRNavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? activeLinkCls : navLinkCls)}>
                 {l.label}
                 {l.badge ? (
-                  <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white" dir="ltr" data-testid="nav-unread-badge">{l.badge}</span>
+                  <span className="rounded-full bg-accent-600 px-1.5 text-[11px] font-bold text-white" dir="ltr" data-testid="nav-unread-badge">{l.badge}</span>
                 ) : null}
               </RRNavLink>
             ))}
@@ -121,36 +121,36 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                     <span>{locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}</span>
                     <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
                   </summary>
-                  <div className="absolute top-full z-50 mt-1 min-w-44 rounded-[var(--radius-card)] border border-slate-200 bg-white p-1.5 shadow-lg ltr:left-0 rtl:right-0">
+                  <div className="absolute top-full z-50 mt-1 min-w-44 rounded-[var(--radius-card)] border border-line bg-white p-1.5 shadow-lg ltr:left-0 rtl:right-0">
                     {node.href && (
-                      <MenuLinkNode item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100" />
+                      <MenuLinkNode item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-ink hover:bg-slate-100" />
                     )}
                     {node.children.map((child) => (
-                      <MenuLinkNode key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100" />
+                      <MenuLinkNode key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-slate-100 hover:text-ink" />
                     ))}
                   </div>
                 </details>
               )
             )}
             {isAdmin && (
-              <Link to="/admin" className="rounded-lg px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">
-                {t(locale, "common.admin")}
+              <Link to="/admin" className="inline-flex min-h-11 items-center px-3 py-2 text-sm font-bold text-ink">
+                <span className="sig-u">{t(locale, "common.admin")}</span>
               </Link>
             )}
             <LanguageSwitcher locale={locale} options={localeOptions} />
             <Form method="post" action="/logout">
-              <button type="submit" className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
+              <button type="submit" className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap text-accent-600 hover:bg-red-50">
                 {t(locale, "common.logout")}
               </button>
             </Form>
           </nav>
 
           {/* Mobile: language + hamburger */}
-          <div className="flex items-center gap-1.5 md:hidden">
+          <div className="flex items-center gap-1.5 xl:hidden">
             <LanguageSwitcher locale={locale} options={localeOptions} />
             <button
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-slate-100"
               aria-expanded={mobileOpen}
               aria-controls="student-mobile-nav"
               aria-label={t(locale, "common.menu")}
@@ -163,13 +163,13 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
 
         {/* Mobile navigation panel */}
         {mobileOpen && (
-          <nav id="student-mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
+          <nav id="student-mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-line bg-white px-4 py-3 xl:hidden">
             <div className="flex flex-col gap-1">
               {coreLinks.map((l) => (
                 <RRNavLink key={l.to} to={l.to} onClick={close} className={({ isActive }) => (isActive ? activeLinkCls + " w-full" : navLinkCls + " w-full")}>
                   {l.label}
                   {l.badge ? (
-                    <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white" dir="ltr">{l.badge}</span>
+                    <span className="rounded-full bg-accent-600 px-1.5 text-[11px] font-bold text-white" dir="ltr">{l.badge}</span>
                   ) : null}
                 </RRNavLink>
               ))}
@@ -180,19 +180,19 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                     <MenuLinkNode key={child.id} item={child} locale={locale} className={navLinkCls + " w-full ltr:pl-7 rtl:pr-7"} onNavigate={close} />
                   ))}
                   {!node.href && node.children.length === 0 && (
-                    <span className={`${navLinkCls} w-full text-slate-500`}>
+                    <span className={`${navLinkCls} w-full`}>
                       {locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}
                     </span>
                   )}
                 </div>
               ))}
               {isAdmin && (
-                <Link to="/admin" onClick={close} className="rounded-lg px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 min-h-11 inline-flex items-center">
+                <Link to="/admin" onClick={close} className="min-h-11 inline-flex items-center rounded-lg px-3 py-2 text-sm font-bold text-ink">
                   {t(locale, "common.admin")}
                 </Link>
               )}
               <Form method="post" action="/logout">
-                <button type="submit" className="inline-flex min-h-11 w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
+                <button type="submit" className="inline-flex min-h-11 w-full items-center rounded-lg px-3 py-2 text-sm font-semibold text-accent-600 hover:bg-red-50">
                   {t(locale, "common.logout")}
                 </button>
               </Form>
@@ -205,8 +205,8 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-200 bg-white pb-safe">
-        <div className="mx-auto w-full max-w-6xl px-4 py-4 text-sm text-slate-500">
+      <footer className="mt-8 border-t border-line bg-white pb-safe">
+        <div className="mx-auto w-full max-w-6xl px-4 py-5 text-sm text-ink-muted">
           © {new Date().getFullYear()} {appName}
         </div>
       </footer>
