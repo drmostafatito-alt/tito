@@ -32,7 +32,10 @@ export default function VerifyEmailChange({ loaderData }: Route.ComponentProps) 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-16">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-3 text-2xl font-bold text-slate-900">{t(locale, "verifyEmail.title")}</h1>
+        <div className="mb-5 flex items-center gap-3 border-b-2 border-brand-800 pb-5">
+          <span aria-hidden="true" className="inline-block h-3.5 w-3.5 shrink-0 bg-accent-500" />
+          <h1 className="sig-display text-3xl text-ink">{t(locale, "verifyEmail.title")}</h1>
+        </div>
         {loaderData.ok ? (
           <Alert kind="success">
             <p className="font-medium">{t(locale, "verifyEmail.okTitle")}</p>
@@ -46,8 +49,8 @@ export default function VerifyEmailChange({ loaderData }: Route.ComponentProps) 
           </Alert>
         )}
         <div className="mt-5">
-          <Link to="/" className="font-medium text-brand-700 hover:underline">
-            {t(locale, "verifyEmail.goHome")}
+          <Link to="/" className="inline-flex min-h-9 items-center font-bold text-ink">
+            <span className="sig-u">{t(locale, "verifyEmail.goHome")}</span>
           </Link>
         </div>
       </Card>

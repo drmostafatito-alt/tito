@@ -25,8 +25,11 @@ export default function ForgotPassword() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-1 text-2xl font-bold text-slate-900">{t(locale, "auth.forgotTitle")}</h1>
-        <p className="mb-6 text-sm text-slate-500">{t(locale, "auth.forgotDesc")}</p>
+        <div className="mb-2 flex items-center gap-3">
+          <span aria-hidden="true" className="inline-block h-3.5 w-3.5 shrink-0 bg-accent-500" />
+          <h1 className="sig-display text-3xl text-ink">{t(locale, "auth.forgotTitle")}</h1>
+        </div>
+        <p className="mb-6 border-b-2 border-brand-800 pb-5 text-sm leading-relaxed text-ink-muted">{t(locale, "auth.forgotDesc")}</p>
 
         {actionData?.sent && (
           <div className="mb-4 flex flex-col gap-3">
@@ -34,7 +37,7 @@ export default function ForgotPassword() {
             {actionData.devToken && (
               <Alert kind="info">
                 <p className="mb-1 font-medium">{t(locale, "auth.forgotDevNote")}:</p>
-                <a className="break-all text-brand-700 underline" dir="ltr" href={`/reset-password?token=${actionData.devToken}`}>
+                <a className="break-all font-bold text-ink underline decoration-accent-500 decoration-2 underline-offset-4" dir="ltr" href={`/reset-password?token=${actionData.devToken}`}>
                   /reset-password?token={actionData.devToken.slice(0, 12)}…
                 </a>
               </Alert>

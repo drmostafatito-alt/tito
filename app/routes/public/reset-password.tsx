@@ -35,7 +35,10 @@ export default function ResetPassword() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-6 text-2xl font-bold text-slate-900">{t(locale, "auth.resetTitle")}</h1>
+        <div className="mb-6 flex items-center gap-3 border-b-2 border-brand-800 pb-5">
+          <span aria-hidden="true" className="inline-block h-3.5 w-3.5 shrink-0 bg-accent-500" />
+          <h1 className="sig-display text-3xl text-ink">{t(locale, "auth.resetTitle")}</h1>
+        </div>
 
         {invalidLink && (
           <Alert kind="error">{t(locale, "auth.resetInvalid")}</Alert>

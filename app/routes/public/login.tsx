@@ -59,8 +59,11 @@ export default function Login() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-1 text-2xl font-bold text-slate-900">{t(locale, "auth.loginTitle")}</h1>
-        <p className="mb-6 text-sm text-slate-500">{t(locale, "auth.loginSubtitle")}</p>
+        <div className="mb-2 flex items-center gap-3">
+          <span aria-hidden="true" className="inline-block h-3.5 w-3.5 shrink-0 bg-accent-500" />
+          <h1 className="sig-display text-3xl text-ink">{t(locale, "auth.loginTitle")}</h1>
+        </div>
+        <p className="mb-6 border-b-2 border-brand-800 pb-5 text-sm leading-relaxed text-ink-muted">{t(locale, "auth.loginSubtitle")}</p>
 
         {reset && (
           <div className="mb-4">
@@ -115,19 +118,19 @@ export default function Login() {
         </Form>
 
         <div className="mt-4 flex flex-col gap-2 text-sm">
-          <Link to="/forgot-password" className="text-brand-700 hover:underline">
-            {t(locale, "auth.forgotLink")}
+          <Link to="/forgot-password" className="inline-flex min-h-9 items-center font-bold text-ink">
+            <span className="sig-u">{t(locale, "auth.forgotLink")}</span>
           </Link>
-          <p className="text-slate-500">
+          <p className="text-ink-muted">
             {t(locale, "auth.noAccount")}{" "}
-            <Link to="/register" className="font-medium text-brand-700 hover:underline">
-              {t(locale, "common.register")}
+            <Link to="/register" className="inline-flex min-h-9 items-center font-bold text-ink">
+              <span className="sig-u">{t(locale, "common.register")}</span>
             </Link>
           </p>
         </div>
 
         {envDevNote(locale) && (
-          <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs leading-relaxed text-slate-500" dir="ltr">
+          <div className="mt-6 rounded-[var(--radius-btn)] border border-dashed border-line bg-slate-50 p-3 text-xs leading-relaxed text-ink-muted" dir="ltr">
             <p className="mb-1 font-semibold">{t(locale, "auth.demoAccounts")}</p>
             <p>admin@educore.local (local seed only — not a production identity)</p>
             <p>student@educore.local (local fixture)</p>
