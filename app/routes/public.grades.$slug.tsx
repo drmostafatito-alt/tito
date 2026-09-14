@@ -9,11 +9,12 @@ import { and, eq, isNull } from "drizzle-orm";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
-import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
+import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
 
 /**
- * Grade landing page (SEO Master Phase, batch 4).
+ * Grade landing page (SEO Master Phase, batch 4 + Lesson Phase).
  *
  * The canonical destination for the "grade" keyword cluster (الصف الثالث
  * الثانوي، تالتة ثانوي، …). Real content only: the grade is a published CMS row
@@ -23,6 +24,9 @@ import { t, type Locale } from "~/lib/i18n";
  * Hierarchy: program → grade → subject → course. This page links down to the
  * grade's subjects (which link to their courses) and up to its program —
  * grade ↔ subject cross-linking per the topical architecture.
+ *
+ * Lesson Phase enhancement: teaches/educationalLevel + DefinedTermSet for
+ * topical authority (مصطفى تيتو → المنصة → المادة → الصف → المفاهيم).
  */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
@@ -45,14 +49,16 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     .where(and(eq(subjects.gradeId, grade.id), eq(subjects.status, "published"), isNull(subjects.deletedAt)))
     .orderBy(subjects.sortOrder);
 
-  // Published-course count per subject from the same catalog query the
-  // catalog pages use (visibility/window/ancestor rules included).
   const catalog = await catalogCourses(db);
   const counts: Record<string, number> = {};
   for (const r of catalog) counts[r.subjectSlug] = (counts[r.subjectSlug] ?? 0) + 1;
 
   const settings = await getSettings(db);
   const siteName = { ar: settings.platform.nameAr, en: settings.platform.nameEn };
+
+  // Semantic keywords from real subject titles (no guessing)
+  const allSubjectTitles = subjectRows.map((s) => s.titleAr).join(" ");
+  const semanticKeywords = extractSemanticKeywords(allSubjectTitles, grade.titleAr, "");
 
   return {
     grade: { slug: grade.slug, titleAr: grade.titleAr, titleEn: grade.titleEn },
@@ -63,6 +69,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       titleEn: s.titleEn,
       courseCount: counts[s.slug] ?? 0,
     })),
+    semanticKeywords,
     siteName,
     url: request.url,
   };
@@ -72,7 +79,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
  * Deterministic meta for the grade cluster:
  * title `grade — brand`, description synthesized from the REAL subject titles
  * the page lists (no keyword stuffing). WebPage + BreadcrumbList structured
- * data mirror the visible trail.
+ * data mirror the visible trail. Lesson Phase: adds teaches, educationalLevel,
+ * DefinedTermSet.
  */
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
@@ -120,6 +128,19 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     crumbs.push({ name: locale === "ar" ? program.titleAr : program.titleEn, url: `/programs/${program.slug}` });
   }
   crumbs.push({ name: g });
+
+  const teaches = (loaderData.semanticKeywords as string[]) ?? [];
+  const extra: Array<Record<string, unknown>> = [];
+  if (teaches.length > 0) {
+    extra.push(
+      definedTermSetJsonLd({
+        name: locale === "ar" ? `مفاهيم ${g}` : `Concepts of ${g}`,
+        url: absUrl(origin, pathname),
+        terms: teaches,
+      })
+    );
+  }
+
   const description = (base as Array<Record<string, unknown>>).find((b) => b.name === "description")?.content as string | undefined;
   return [
     ...siteEntitiesMeta(matches),
@@ -131,8 +152,10 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
         description,
         isPartOf: absUrl(origin, "/"),
         additionalType: "https://schema.org/CollectionPage",
+        educationalLevel: g,
       }),
     },
+    ...extra.map((e) => ({ "script:ld+json": e })),
     { "script:ld+json": breadcrumbJsonLd({ items: crumbs, origin }) },
   ];
 }

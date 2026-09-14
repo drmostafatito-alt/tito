@@ -5,6 +5,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
 import { indexablePublicUrls, ROBOTS_PRIVATE_PATHS } from "~server/seo/inventory.server";
+import { CANONICAL_MAP, validateCanonicalUniqueness } from "~server/seo/canonicalMap.server";
 import { courses, grades, lessons, pages, programs, subjects, units } from "~server/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
@@ -14,7 +15,7 @@ import { formatDate, t, type Locale } from "~/lib/i18n";
 export type SeoIssue = "maintenance" | "noOwner" | "missingDesc" | "dupTitles" | "drafts" | "robotsOverlap";
 
 /**
- * Admin SEO dashboard (SEO Master Phase, batch 6).
+ * Admin SEO dashboard (SEO Master Phase, batch 6 + Lesson Phase).
  *
  * Factual crawl-readiness audit computed server-side from the database —
  * the same inventory function that feeds /sitemap.xml, the same content
@@ -26,6 +27,8 @@ export type SeoIssue = "maintenance" | "noOwner" | "missingDesc" | "dupTitles" |
  * Per-page SEO controls (title/description/canonical/OG/robots) already
  * live in the CMS page SEO tab and the content editors — this page is the
  * dashboard that tells the owner WHAT to fix, not another editor.
+ *
+ * Lesson Phase: adds canonical map + keyword cluster overview.
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
   await requireRole(context, request, 3);
@@ -51,7 +54,6 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     db.select({ id: lessons.id }).from(lessons).where(and(eq(lessons.status, "draft"), isNull(lessons.deletedAt))),
   ]);
 
-  // Factual findings — each names the rows behind it.
   const missingDesc: Array<{ type: "program" | "subject" | "course"; titleAr: string; titleEn: string }> = [];
   for (const [type, rows] of [
     ["program", programRows],
@@ -64,8 +66,6 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     }
   }
 
-  // Duplicate titles among published rows of the SAME type (the document
-  // title chain would then collide — a real cannibalization risk).
   const dupGroups: Array<{ type: "program" | "subject" | "course"; titleAr: string; titleEn: string; count: number }> = [];
   for (const [type, rows] of [
     ["program", programRows],
@@ -83,7 +83,6 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   }
 
   const urls = await indexablePublicUrls(db);
-  // Invariant: nothing private (robots-disallowed) may ever reach the sitemap.
   const robotsOverlap = urls.filter((u) => ROBOTS_PRIVATE_PATHS.some((p) => u.path === p || u.path.startsWith(p + "/")));
 
   const issues: SeoIssue[] = [];
@@ -93,6 +92,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   if (dupGroups.length) issues.push("dupTitles");
   if (draftPrograms.length + draftGrades.length + draftSubjects.length + draftCourses.length + draftUnits.length + draftLessons.length > 0) issues.push("drafts");
   if (robotsOverlap.length) issues.push("robotsOverlap");
+
+  const canonicalValidation = validateCanonicalUniqueness();
 
   return {
     issues,
@@ -112,13 +113,15 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       cmsPages: pageRows.length,
     },
     urls,
+    canonicalMap: CANONICAL_MAP,
+    canonicalValidation,
   };
 }
 
 export default function AdminSeo({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { issues, missingDesc, dupGroups, draftCount, counts, urls } = loaderData;
+  const { issues, missingDesc, dupGroups, draftCount, counts, urls, canonicalMap, canonicalValidation } = loaderData;
 
   const typeLabel: Record<string, string> = {
     program: t(locale, "seoAdmin.typeProgram"),
@@ -220,6 +223,41 @@ export default function AdminSeo({ loaderData }: Route.ComponentProps) {
                 <div className="text-xs text-slate-500">{t(locale, `seoAdmin.${key}`)}</div>
               </div>
             ))}
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Lesson Phase: Canonical Map */}
+      <Card>
+        <CardHeader title="خريطة Canonical (Intent → URL)" description={`${canonicalMap.length} intents — واحد قوي لكل Intent`} />
+        <CardBody>
+          <div className="mb-3 flex items-center gap-2 text-sm">
+            <Badge tone={canonicalValidation.ok ? "success" : "warning"}>{canonicalValidation.ok ? "✓ No duplicates" : `⚠ ${canonicalValidation.duplicates.length} duplicates`}</Badge>
+            <span className="text-slate-500">لا صفحة منفصلة لكل صيغة بحث؛ canonical واحد قوي لكل Intent</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-start text-xs text-slate-500">
+                  <th className="pb-2 text-start font-medium">Intent</th>
+                  <th className="pb-2 text-start font-medium">أمثلة Keywords</th>
+                  <th className="pb-2 text-start font-medium">Canonical Pattern</th>
+                  <th className="pb-2 text-start font-medium">مثال URL</th>
+                  <th className="pb-2 text-start font-medium">Index</th>
+                </tr>
+              </thead>
+              <tbody>
+                {canonicalMap.map((m) => (
+                  <tr key={m.intent} className="border-b border-slate-100 last:border-0">
+                    <td className="py-1.5 font-mono text-xs font-medium text-slate-800">{m.intent}</td>
+                    <td className="py-1.5 text-xs text-slate-600" dir="auto">{m.exampleKeywords.slice(0, 3).join("، ")}</td>
+                    <td className="py-1.5 font-mono text-xs text-slate-700" dir="ltr">{m.canonicalPattern}</td>
+                    <td className="py-1.5 font-mono text-xs text-brand-600" dir="ltr">{m.exampleUrl}</td>
+                    <td className="py-1.5 text-xs">{m.indexable ? "✓" : "noindex"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </CardBody>
       </Card>
