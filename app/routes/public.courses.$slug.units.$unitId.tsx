@@ -11,7 +11,10 @@ import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
-import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
+import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, learningResourceJsonLd, webPageJsonLd } from "~/cms/jsonld";
+import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
+import { eq } from "drizzle-orm";
+import { grades, programs, subjects } from "~server/db/schema";
 
 /** Unit page: lessons of one unit with real per-lesson access verdicts + progress. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -60,10 +63,50 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     progress = Object.fromEntries([...lmap.entries()].map(([k, v]) => [k, { status: v.status }]));
   }
 
+  // Fetch subject/grade/program for topical authority
+  let subjectRow: { slug: string; titleAr: string; titleEn: string; gradeId: string } | null = null;
+  let gradeRow: { slug: string; titleAr: string; titleEn: string; programId: string } | null = null;
+  let programRow: { slug: string; titleAr: string; titleEn: string } | null = null;
+  if (courseChain) {
+    const sRows = await db
+      .select({ slug: subjects.slug, titleAr: subjects.titleAr, titleEn: subjects.titleEn, gradeId: subjects.gradeId })
+      .from(subjects)
+      .where(eq(subjects.id, courseChain.subjectId))
+      .limit(1);
+    subjectRow = sRows[0] ?? null;
+    if (subjectRow) {
+      const gRows = await db
+        .select({ slug: grades.slug, titleAr: grades.titleAr, titleEn: grades.titleEn, programId: grades.programId })
+        .from(grades)
+        .where(eq(grades.id, subjectRow.gradeId))
+        .limit(1);
+      gradeRow = gRows[0] ?? null;
+      if (gradeRow) {
+        const pRows = await db
+          .select({ slug: programs.slug, titleAr: programs.titleAr, titleEn: programs.titleEn })
+          .from(programs)
+          .where(eq(programs.id, gradeRow.programId))
+          .limit(1);
+        programRow = pRows[0] ?? null;
+      }
+    }
+  }
+
+  // SEO Lesson Phase: semantic keywords from real lesson titles in this unit
+  const semanticKeywords = extractSemanticKeywords(
+    visible.map((l) => l.titleAr).join(" "),
+    unit.titleAr,
+    subjectRow?.titleAr ?? ""
+  );
+
   return {
     url: request.url,
     course: { slug: course.slug, titleAr: course.titleAr, titleEn: course.titleEn },
     unit: { id: unit.id, titleAr: unit.titleAr, titleEn: unit.titleEn },
+    subject: subjectRow,
+    grade: gradeRow,
+    program: programRow,
+    semanticKeywords,
     courseAllowed: courseVerdict.allowed,
     lessons: visible.map((l) => ({
       id: l.id,
@@ -83,6 +126,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
  * lesson titles), so it is indexable. Description is synthesized from real
  * page data (unit + course + published lesson count) when the unit has no
  * description of its own — no keyword stuffing.
+ *
+ * Lesson Phase: enhanced with LearningResource + DefinedTermSet for topical authority,
+ * and full breadcrumb chain program → grade → subject → course → unit.
  */
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [];
@@ -116,6 +162,74 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     return [...siteEntitiesMeta(matches), ...base];
   }
   const unitTitle = locale === "ar" ? loaderData.unit.titleAr : loaderData.unit.titleEn;
+  const courseUrl = absUrl(origin, `/courses/${loaderData.course.slug}`);
+
+  // Breadcrumb chain for topical authority
+  const crumbs: Array<{ name: string; url?: string | null }> = [
+    { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
+    { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+  ];
+  if (loaderData.program) {
+    crumbs.push({
+      name: locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn,
+      url: `/programs/${loaderData.program.slug}`,
+    });
+  }
+  if (loaderData.grade) {
+    crumbs.push({
+      name: locale === "ar" ? loaderData.grade.titleAr : loaderData.grade.titleEn,
+      url: `/grades/${loaderData.grade.slug}`,
+    });
+  }
+  if (loaderData.subject) {
+    crumbs.push({
+      name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn,
+      url: `/subjects/${loaderData.subject.slug}`,
+    });
+  }
+  crumbs.push({ name: locale === "ar" ? loaderData.course.titleAr : loaderData.course.titleEn, url: `/courses/${loaderData.course.slug}` });
+  crumbs.push({ name: unitTitle });
+
+  const teaches = (loaderData.semanticKeywords as string[]) ?? [];
+  const educationalLevel = loaderData.grade ? (locale === "ar" ? loaderData.grade.titleAr : loaderData.grade.titleEn) : null;
+
+  const extra: Array<Record<string, unknown>> = [];
+
+  // LearningResource for unit
+  extra.push(
+    learningResourceJsonLd({
+      name: unitTitle,
+      url: absUrl(origin, pathname),
+      description:
+        locale === "ar"
+          ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
+          : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
+      educationalLevel,
+      teaches: teaches.length > 0 ? teaches : undefined,
+      isPartOf: courseUrl,
+      learningResourceType: "Unit",
+    })
+  );
+
+  // DefinedTermSet for semantic keywords
+  if (teaches.length > 0) {
+    extra.push(
+      definedTermSetJsonLd({
+        name: locale === "ar" ? `مفاهيم ${unitTitle}` : `Concepts of ${unitTitle}`,
+        url: absUrl(origin, pathname),
+        terms: teaches,
+      })
+    );
+  }
+
+  // Also include hasPart for lessons (lesson titles are public, content gated)
+  const lessonParts = (loaderData.lessons as Array<{ titleAr: string; titleEn: string; slug: string }>).map((l) => ({
+    "@type": "LearningResource",
+    name: locale === "ar" ? l.titleAr : l.titleEn,
+    url: absUrl(origin, `/courses/${loaderData.course.slug}`), // canonical for lesson discovery is unit/course, not private learn
+    learningResourceType: "Lesson",
+  }));
+
   return [
     ...siteEntitiesMeta(matches),
     ...base,
@@ -129,16 +243,23 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
             : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
         isPartOf: absUrl(origin, "/"),
         additionalType: "https://schema.org/CollectionPage",
+        educationalLevel,
       }),
+    },
+    ...extra.map((e) => ({ "script:ld+json": e })),
+    // hasPart as separate Course-like structure for lessons
+    {
+      "script:ld+json": {
+        "@context": "https://schema.org",
+        "@type": "Course",
+        name: unitTitle,
+        url: absUrl(origin, pathname),
+        hasPart: lessonParts,
+      },
     },
     {
       "script:ld+json": breadcrumbJsonLd({
-        items: [
-          { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
-          { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
-          { name: course[locale], url: `/courses/${loaderData.course.slug}` },
-          { name: unitTitle },
-        ],
+        items: crumbs,
         origin,
       }),
     },

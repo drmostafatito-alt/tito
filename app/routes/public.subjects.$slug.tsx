@@ -12,14 +12,18 @@ import { formatMoney } from "~server/commerce/money";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
-import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
+import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
 
 /**
  * Subject page: the canonical target of BOTH the subject cluster
  * (`شرح الفلسفة`, `دروس علم النفس`…) and the grade+subject cluster
  * (`أولى ثانوي فلسفة`, `تالتة ثانوي علم نفس`…). The grade therefore lives in
  * the document title: `المادة — الصف — brand` (deterministic, deduplicated).
+ *
+ * Lesson Phase: enhanced with semantic keywords and topical authority
+ * (educationalLevel, teaches, DefinedTermSet).
  */
 
 /** Subject page: visible courses of one published subject (catalog hierarchy). */
@@ -54,6 +58,10 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     .limit(1);
   const grade = gradeRows[0] ?? null;
 
+  // Lesson Phase: semantic keywords for topical authority
+  const allCourseTitles = catalog.map((r) => r.course.titleAr).join(" ");
+  const semanticKeywords = extractSemanticKeywords(allCourseTitles, "", subject.titleAr);
+
   return {
     subject: {
       slug: subject.slug,
@@ -66,6 +74,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     program: { slug: catalog[0]?.programSlug ?? null, titleAr: catalog[0]?.programAr ?? null, titleEn: catalog[0]?.programEn ?? null },
     buyOption,
     pres,
+    semanticKeywords,
     courses: catalog.map((r) => ({
       slug: r.course.slug,
       titleAr: r.course.titleAr,
@@ -83,6 +92,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
  * SEO/social preview from the admin-edited subject row (Admin → Content), with
  * the subject's grade woven into the title (grade+subject cluster) and a
  * data-derived description when the owner hasn't written one.
+ *
+ * Lesson Phase: adds educationalLevel and DefinedTermSet for semantic keywords.
  */
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
@@ -127,6 +138,21 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     crumbs.push({ name: locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn, url: `/programs/${loaderData.program.slug}` });
   }
   crumbs.push({ name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn });
+
+  const teaches = (loaderData.semanticKeywords as string[]) ?? [];
+  const educationalLevel = loaderData.grade ? (locale === "ar" ? loaderData.grade.titleAr : loaderData.grade.titleEn) : null;
+
+  const extra: Array<Record<string, unknown>> = [];
+  if (teaches.length > 0) {
+    extra.push(
+      definedTermSetJsonLd({
+        name: locale === "ar" ? `مفاهيم ${loaderData.subject.titleAr}` : `Concepts of ${loaderData.subject.titleEn}`,
+        url: absUrl(origin, pathname),
+        terms: teaches,
+      })
+    );
+  }
+
   return [
     ...siteEntitiesMeta(matches),
     ...base,
@@ -137,8 +163,10 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
         description: locale === "ar" ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn,
         isPartOf: absUrl(origin, "/"),
         additionalType: "https://schema.org/CollectionPage",
+        educationalLevel,
       }),
     },
+    ...extra.map((e) => ({ "script:ld+json": e })),
     { "script:ld+json": breadcrumbJsonLd({ items: crumbs, origin }) },
   ];
 }
