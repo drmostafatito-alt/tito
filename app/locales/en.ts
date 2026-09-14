@@ -687,12 +687,13 @@ export const en: Dictionary = {
   },
   questionPlatform: {
     title: "Questions Platform",
-    description: "Go to your dedicated questions and exams platform — a standalone platform outside Tito.",
+    description: "Access your questions and exams on the external platform.",
     cta: "Open Questions Platform",
     ctaAria: "Open the Questions Platform — opens in a new tab",
     navLabel: "Questions Platform",
     navAria: "Questions and exams platform — opens in a new tab",
     externalTag: "Standalone external platform",
+    newTabHint: "Opens in a new tab",
   },
   questionPlatformAdmin: {
     title: "External Questions Platform",

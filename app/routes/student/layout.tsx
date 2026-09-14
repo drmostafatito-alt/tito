@@ -106,7 +106,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
           </div>
 
           {/* Desktop navigation */}
-          <nav className="hidden items-center gap-1 md:flex" aria-label={t(locale, "common.navMain")}>
+          <nav className="hidden items-center gap-1 xl:flex" aria-label={t(locale, "common.navMain")}>
             {coreLinks.map((l) => (
               <RRNavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? activeLinkCls : navLinkCls)}>
                 {l.label}
@@ -115,7 +115,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                 ) : null}
               </RRNavLink>
             ))}
-            <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} className={navLinkCls} testId="nav-question-platform-desktop" />
+            <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} testId="nav-question-platform-desktop" />
             {loaderData.menu.map((node) =>
               node.children.length === 0 ? (
                 <MenuLinkNode key={node.id} item={node} locale={locale} className={navLinkCls} />
@@ -151,7 +151,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
           </nav>
 
           {/* Mobile: language + hamburger */}
-          <div className="flex items-center gap-1.5 md:hidden">
+          <div className="flex items-center gap-1.5 xl:hidden">
             <LanguageSwitcher locale={locale} options={localeOptions} />
             <button
               type="button"
@@ -168,7 +168,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
 
         {/* Mobile navigation panel */}
         {mobileOpen && (
-          <nav id="student-mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
+          <nav id="student-mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-slate-200 bg-white px-4 py-3 xl:hidden">
             <div className="flex flex-col gap-1">
               {coreLinks.map((l) => (
                 <RRNavLink key={l.to} to={l.to} onClick={close} className={({ isActive }) => (isActive ? activeLinkCls + " w-full" : navLinkCls + " w-full")}>
@@ -178,7 +178,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                   ) : null}
                 </RRNavLink>
               ))}
-              <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} className={navLinkCls + " w-full"} onNavigate={close} testId="nav-question-platform-mobile" />
+              <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} block onNavigate={close} testId="nav-question-platform-mobile" />
               {loaderData.menu.map((node) => (
                 <div key={node.id} className="flex flex-col">
                   {node.href && <MenuLinkNode item={node} locale={locale} className={navLinkCls + " w-full"} onNavigate={close} />}
