@@ -21,6 +21,8 @@ export default [
   route("logout", "routes/logout.tsx"),
   route("theme.css", "routes/theme[.]css.tsx"),
   route("favicon.ico", "routes/favicon[.]ico.tsx"),
+  route("robots.txt", "routes/robots[.]txt.tsx"),
+  route("sitemap.xml", "routes/sitemap[.]xml.tsx"),
   route("learn/:courseSlug/:lessonSlug", "routes/learn.$courseSlug.$lessonSlug.tsx"),
   route("files/:id", "routes/files.$id.tsx"),
   route("api/playback/:videoId", "routes/api.playback.$videoId.tsx"),

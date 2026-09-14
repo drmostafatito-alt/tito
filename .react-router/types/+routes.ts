@@ -78,6 +78,12 @@ type Pages = {
   "/favicon.ico": {
     params: {};
   };
+  "/robots.txt": {
+    params: {};
+  };
+  "/sitemap.xml": {
+    params: {};
+  };
   "/learn/:courseSlug/:lessonSlug": {
     params: {
       "courseSlug": string;
@@ -252,7 +258,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/verify-email-change" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/webhooks/payments/:provider" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/assignments" | "/assignments/:id" | "/checkout/:productSlug" | "/orders" | "/orders/:orderNumber" | "/activate" | "/profile/security" | "/notifications" | "/admin" | "/admin/cms" | "/admin/cms/templates" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/search" | "/admin/users" | "/admin/teachers" | "/admin/users/:id" | "/admin/students/:id" | "/admin/analytics" | "/admin/audit" | "/admin/security" | "/admin/announcements" | "/admin/assignments" | "/admin/assignments/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
+    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/verify-email-change" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/robots.txt" | "/sitemap.xml" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/webhooks/payments/:provider" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/assignments" | "/assignments/:id" | "/checkout/:productSlug" | "/orders" | "/orders/:orderNumber" | "/activate" | "/profile/security" | "/notifications" | "/admin" | "/admin/cms" | "/admin/cms/templates" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/search" | "/admin/users" | "/admin/teachers" | "/admin/users/:id" | "/admin/students/:id" | "/admin/analytics" | "/admin/audit" | "/admin/security" | "/admin/announcements" | "/admin/assignments" | "/admin/assignments/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
   };
   "routes/public/layout.tsx": {
     id: "public";
@@ -329,6 +335,14 @@ type RouteFiles = {
   "routes/favicon[.]ico.tsx": {
     id: "routes/favicon[.]ico";
     page: "/favicon.ico";
+  };
+  "routes/robots[.]txt.tsx": {
+    id: "routes/robots[.]txt";
+    page: "/robots.txt";
+  };
+  "routes/sitemap[.]xml.tsx": {
+    id: "routes/sitemap[.]xml";
+    page: "/sitemap.xml";
   };
   "routes/learn.$courseSlug.$lessonSlug.tsx": {
     id: "routes/learn.$courseSlug.$lessonSlug";
@@ -537,6 +551,8 @@ type RouteModules = {
   "routes/logout": typeof import("./app/routes/logout.tsx");
   "routes/theme[.]css": typeof import("./app/routes/theme[.]css.tsx");
   "routes/favicon[.]ico": typeof import("./app/routes/favicon[.]ico.tsx");
+  "routes/robots[.]txt": typeof import("./app/routes/robots[.]txt.tsx");
+  "routes/sitemap[.]xml": typeof import("./app/routes/sitemap[.]xml.tsx");
   "routes/learn.$courseSlug.$lessonSlug": typeof import("./app/routes/learn.$courseSlug.$lessonSlug.tsx");
   "routes/files.$id": typeof import("./app/routes/files.$id.tsx");
   "routes/api.playback.$videoId": typeof import("./app/routes/api.playback.$videoId.tsx");

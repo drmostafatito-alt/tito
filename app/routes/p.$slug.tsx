@@ -1,5 +1,5 @@
 import type { Route } from "./+types/p.$slug";
-import { useActionData } from "react-router";
+import { redirect, useActionData } from "react-router";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
@@ -22,6 +22,11 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const env = getEnv(context);
   const db = getDb(env);
   const settings = await getSettings(db);
+  // Canonical duplicate elimination: the `home` CMS page is the SITE root and
+  // is served at `/`. `/p/home` is the same published snapshot — without this
+  // redirect it would be a second indexable copy of the homepage (duplicate
+  // content / split canonical). 301 (not 302) so crawlers consolidate.
+  if (params.slug === "home") throw redirect("/", { status: 301 });
   const page = await getPageBySlug(db, params.slug);
   const snapshot = page && page.status === "published" ? asSnapshot(page.publishedSnapshot) : null;
   if (!page || !snapshot) throw new Response("Not Found", { status: 404 });
