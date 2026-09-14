@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import type { MetaDescriptor } from "react-router";
-import { useActionData } from "react-router";
+import { Link, useActionData } from "react-router";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
@@ -8,6 +8,8 @@ import { getPageBySlug } from "~server/cms/service.server";
 import { renderSnapshot, resolvePublicImageUrls } from "~server/cms/render.server";
 import { handleCmsFormAction, requestLocale } from "~server/cms/page-render.server";
 import { resolveAuth } from "~server/auth/session.server";
+import { subjects, grades } from "~server/db/schema";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { asSnapshot, parseSeo, rootMetaFrom, seoMeta, siteEntitiesMeta } from "~/cms/seo";
 import { PageView } from "~/components/cms/blocks";
 import { WhatsAppFab } from "~/components/WhatsAppFab";
@@ -44,7 +46,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const snapshot = page && page.status === "published" ? asSnapshot(page.publishedSnapshot) : null;
   const platformTitle = { ar: settings.platform.nameAr, en: settings.platform.nameEn };
   if (!snapshot) {
-    return { sections: [], ctx: null, seo: null, ogImage: null, title: platformTitle, locale, empty: true as const, url: request.url, whatsappFab: fabFrom(settings.platform) };
+    return { sections: [], ctx: null, seo: null, ogImage: null, title: platformTitle, locale, empty: true as const, url: request.url, whatsappFab: fabFrom(settings.platform), discover: null };
   }
 
   const rendered = await renderSnapshot(db, snapshot, { settings, locale });
@@ -52,6 +54,23 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const ogImage = seo.ogImage
     ? ((await resolvePublicImageUrls(db, [seo.ogImage]))[seo.ogImage] ?? null)
     : null;
+
+  // Discovery (Phase I semantics + Phase O internal linking): the homepage
+  // links down to the REAL published subjects and grades — natural anchor
+  // text from the rows themselves. Absent entirely when there is no
+  // published content (empty-first platforms keep a clean shell).
+  const [subjectRows, gradeRows] = await Promise.all([
+    db
+      .select({ slug: subjects.slug, titleAr: subjects.titleAr, titleEn: subjects.titleEn })
+      .from(subjects)
+      .where(and(eq(subjects.status, "published"), isNull(subjects.deletedAt)))
+      .orderBy(asc(subjects.sortOrder)),
+    db
+      .select({ slug: grades.slug, titleAr: grades.titleAr, titleEn: grades.titleEn })
+      .from(grades)
+      .where(and(eq(grades.status, "published"), isNull(grades.deletedAt)))
+      .orderBy(asc(grades.sortOrder)),
+  ]);
 
   return {
     sections: rendered.sections,
@@ -63,6 +82,13 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     empty: false as const,
     url: request.url,
     whatsappFab: fabFrom(settings.platform),
+    discover:
+      subjectRows.length || gradeRows.length
+        ? {
+            subjects: subjectRows.map((s) => ({ slug: s.slug, titleAr: s.titleAr, titleEn: s.titleEn })),
+            grades: gradeRows.map((g) => ({ slug: g.slug, titleAr: g.titleAr, titleEn: g.titleEn })),
+          }
+        : null,
   };
 }
 
@@ -174,7 +200,69 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <>
       {/* CMS hero supplies the visible h1; public layout already provides <main> */}
       <PageView sections={loaderData.sections} ctx={ctx} main={false} />
+      <HomeDiscover discover={loaderData.discover} locale={loaderData.locale} />
       {fab}
     </>
+  );
+}
+
+/**
+ * Homepage discovery block (SEO Master Phase, batch 5). Rendered BELOW the
+ * owner's CMS content — additive, never replacing it. Lists the REAL
+ * published subjects and grades as contextual internal links (natural
+ * Arabic/English anchor text from the rows) plus a single link to the course
+ * catalog. Renders nothing when there is no published content.
+ */
+function HomeDiscover({
+  discover,
+  locale,
+}: {
+  discover: { subjects: Array<{ slug: string; titleAr: string; titleEn: string }>; grades: Array<{ slug: string; titleAr: string; titleEn: string }> } | null;
+  locale: Locale;
+}) {
+  if (!discover || (discover.subjects.length === 0 && discover.grades.length === 0)) return null;
+  const c = (row: { titleAr: string; titleEn: string }) => (locale === "ar" ? row.titleAr : row.titleEn);
+  return (
+    <section className="mx-auto w-full max-w-5xl px-4 pb-4" aria-labelledby="home-discover-title">
+      <h2 id="home-discover-title" className="mb-4 text-lg font-semibold text-slate-700">
+        {t(locale, "seo.explore")}
+      </h2>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {discover.subjects.length > 0 && (
+          <div className="rounded-xl border border-slate-200/70 bg-white/60 p-4">
+            <h3 className="mb-2 text-sm font-medium text-slate-500">{t(locale, "seo.exploreSubjects")}</h3>
+            <ul className="space-y-1">
+              {discover.subjects.map((s) => (
+                <li key={s.slug}>
+                  <Link to={`/subjects/${s.slug}`} className="text-sm text-slate-700 hover:text-brand-600">
+                    {c(s)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {discover.grades.length > 0 && (
+          <div className="rounded-xl border border-slate-200/70 bg-white/60 p-4">
+            <h3 className="mb-2 text-sm font-medium text-slate-500">{t(locale, "seo.exploreGrades")}</h3>
+            <ul className="space-y-1">
+              {discover.grades.map((g) => (
+                <li key={g.slug}>
+                  <Link to={`/grades/${g.slug}`} className="text-sm text-slate-700 hover:text-brand-600">
+                    {c(g)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="rounded-xl border border-slate-200/70 bg-white/60 p-4">
+          <h3 className="mb-2 text-sm font-medium text-slate-500">{t(locale, "seo.exploreCourses")}</h3>
+          <Link to="/courses" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+            {t(locale, "content.catalogTitle")}
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
