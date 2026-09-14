@@ -67,23 +67,46 @@ export function contentSeoMeta(
   },
   locale: Locale,
   requestUrl: string,
-  opts?: { ogImageUrl?: string | null; siteName?: { ar: string; en: string } | null }
+  opts?: {
+    ogImageUrl?: string | null;
+    siteName?: { ar: string; en: string } | null;
+    /**
+     * Intermediate context level between the content title and the site name —
+     * e.g. the grade for a subject page (`فلسفة — الصف الثالث الثانوي — brand`)
+     * or the course for a unit/lesson page. Each level is appended only when
+     * non-empty and not already contained in the level below it (no duplication).
+     */
+    intermediate?: { ar?: string | null; en?: string | null } | null;
+    /** Robots directive (private/gated pages pass `noindex,follow`). Default index,follow. */
+    robots?: "index,follow" | "noindex,follow" | "noindex,nofollow" | "index,nofollow";
+    /**
+     * When the content row has no description, synthesize one from real page
+     * data via this callback (deterministic, locale-aware) — never keyword
+     * stuffing, and never emitted when it returns empty.
+     */
+    fallbackDescription?: (locale: Locale) => string;
+  }
 ): MetaDescriptor[] {
   const base = { ar: content.title.ar ?? "", en: content.title.en ?? "" };
   const site = opts?.siteName ?? null;
-  const withSite = (v: string, suffix: string) =>
+  const mid = opts?.intermediate ?? null;
+  const withSuffix = (v: string, suffix: string) =>
     v && suffix && !v.includes(suffix) ? `${v} — ${suffix}` : v;
+  const titleFor = (l: "ar" | "en") => withSuffix(withSuffix(base[l], mid?.[l] ?? ""), site?.[l] ?? "");
   const seo: PageSeo = {
     ...parseSeo({}),
-    title: {
-      ar: withSite(base.ar, site?.ar ?? ""),
-      en: withSite(base.en, site?.en ?? ""),
-    },
+    title: { ar: titleFor("ar"), en: titleFor("en") },
     description: {
       ar: metaDescriptionText(content.description?.ar),
       en: metaDescriptionText(content.description?.en),
     },
+    ...(opts?.robots ? { robots: opts.robots } : {}),
   };
+  if (!seo.description.ar && !seo.description.en && opts?.fallbackDescription) {
+    const ar = metaDescriptionText(opts.fallbackDescription("ar"));
+    const en = metaDescriptionText(opts.fallbackDescription("en"));
+    if (ar || en) seo.description = { ar, en };
+  }
   return seoMeta(seo, seo.title, locale, requestUrl, opts?.ogImageUrl ?? null);
 }
 
@@ -104,6 +127,38 @@ export function asSnapshot(raw: unknown): PageSnapshot | null {
 export function parseSeo(raw: unknown): PageSeo {
   const parsed = seoSchema.safeParse(raw ?? {});
   return parsed.success ? parsed.data : seoSchema.parse({});
+}
+
+/**
+ * Meta for auth/utility pages (login, register, forgot/reset password, email
+ * verification): a unique branded title, NO meta description (no boilerplate to
+ * index), and `noindex,follow` — these pages must never rank or accumulate
+ * duplicate brand titles. The canonical + OG tags still render so a shared
+ * login URL previews correctly.
+ */
+export function authPageMeta(
+  label: { ar: string; en: string },
+  root: RootMetaSource,
+  requestUrl: string,
+  robots: "noindex,follow" | "noindex,nofollow" = "noindex,follow"
+): MetaDescriptor[] {
+  const title = withSiteTitle(label, root.siteName);
+  const seo: PageSeo = { ...parseSeo({}), title, robots };
+  return seoMeta(seo, title, root.locale, requestUrl, null);
+}
+
+/**
+ * Append the platform name to a document title (deduplicated) — the shared
+ * deterministic title rule for fallback titles across route types:
+ * `page title — brand` (never `brand — brand`).
+ */
+export function withSiteTitle(title: { ar: string; en: string }, site: { ar: string; en: string } | null): { ar: string; en: string } {
+  const append = (v: string, suffix: string) =>
+    v && suffix && !v.includes(suffix) ? `${v} — ${suffix}` : v;
+  return {
+    ar: append(title.ar, site?.ar ?? ""),
+    en: append(title.en, site?.en ?? ""),
+  };
 }
 
 /** Route `meta()` descriptors from validated page SEO (per-page title/desc/canonical/OG/robots). */

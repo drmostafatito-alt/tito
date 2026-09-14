@@ -1,4 +1,5 @@
 import type { Route } from "./+types/layout";
+import type { MetaDescriptor } from "react-router";
 import { Form, Link, NavLink as RRNavLink, Outlet, useRouteLoaderData } from "react-router";
 import { useState } from "react";
 import { requireUser } from "~server/auth/guards.server";
@@ -33,6 +34,16 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     unreadNotifications,
     questionPlatformUrl,
   };
+}
+
+/**
+ * The whole student area is per-user (progress, orders, assignments) — defense
+ * in depth: anon visitors are already redirected (requireUser), but a
+ * authenticated render must also carry noindex so a logged-in session can never
+ * leak personal data into the index.
+ */
+export function meta(): MetaDescriptor[] {
+  return [{ name: "robots", content: "noindex,follow" }];
 }
 
 interface RootLoaderData {

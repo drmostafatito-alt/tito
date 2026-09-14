@@ -7,7 +7,7 @@ import { getPageBySlug } from "~server/cms/service.server";
 import { renderSnapshot, resolvePublicImageUrls } from "~server/cms/render.server";
 import { handleCmsFormAction, requestLocale } from "~server/cms/page-render.server";
 import { resolveAuth } from "~server/auth/session.server";
-import { asSnapshot, parseSeo, seoMeta } from "~/cms/seo";
+import { asSnapshot, parseSeo, rootMetaFrom, seoMeta, withSiteTitle } from "~/cms/seo";
 import { PageView } from "~/components/cms/blocks";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { t } from "~/lib/i18n";
@@ -49,10 +49,14 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
+export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
+  const root = rootMetaFrom(matches);
+  // Owner-set CMS SEO title wins; otherwise `page title — brand` (deterministic,
+  // deduplicated) so every CMS page carries a unique branded document title.
+  const fallbackTitle = withSiteTitle(loaderData.title, root.siteName);
   const ogAbsolute = loaderData.ogImage ? new URL(loaderData.ogImage, loaderData.url).href : null;
-  return seoMeta(loaderData.seo, loaderData.title, loaderData.ctx.locale, loaderData.url, ogAbsolute);
+  return seoMeta(loaderData.seo, fallbackTitle, loaderData.ctx.locale, loaderData.url, ogAbsolute);
 }
 
 export async function action({ context, request }: Route.ActionArgs) {

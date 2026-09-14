@@ -10,6 +10,7 @@ import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
+import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 
 /** Unit page: lessons of one unit with real per-lesson access verdicts + progress. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -59,6 +60,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   }
 
   return {
+    url: request.url,
     course: { slug: course.slug, titleAr: course.titleAr, titleEn: course.titleEn },
     unit: { id: unit.id, titleAr: unit.titleAr, titleEn: unit.titleEn },
     courseAllowed: courseVerdict.allowed,
@@ -72,6 +74,36 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       progress: progress[l.id] ?? null,
     })),
   };
+}
+
+/**
+ * Unit page meta (previously inherited the bare brand title + no canonical).
+ * The unit is a real, stable, public page (it lists the unit's published
+ * lesson titles), so it is indexable. Description is synthesized from real
+ * page data (unit + course + published lesson count) when the unit has no
+ * description of its own — no keyword stuffing.
+ */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [];
+  const root = rootMetaFrom(matches);
+  const course = { ar: loaderData.course.titleAr, en: loaderData.course.titleEn };
+  const n = (loaderData.lessons as unknown[]).length;
+  return contentSeoMeta(
+    {
+      title: { ar: loaderData.unit.titleAr, en: loaderData.unit.titleEn },
+      description: null,
+    },
+    root.locale,
+    loaderData.url as string,
+    {
+      intermediate: course,
+      siteName: root.siteName,
+      fallbackDescription: (locale) =>
+        locale === "ar"
+          ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
+          : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
+    },
+  );
 }
 
 export default function UnitPage({ loaderData }: Route.ComponentProps) {

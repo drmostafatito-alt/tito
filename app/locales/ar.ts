@@ -1540,6 +1540,22 @@ export const ar = {
     granted: "ممنوح",
     notGranted: "غير ممنوح",
   },
+  seo: {
+    login: "تسجيل الدخول",
+    register: "إنشاء حساب",
+    forgotPassword: "استعادة كلمة المرور",
+    resetPassword: "تعيين كلمة مرور جديدة",
+    verifyEmail: "تأكيد تغيير البريد",
+    about: "من نحن",
+    grades: "الصفوف",
+    explore: "استكشف المنصة",
+    exploreSubjects: "تصفح حسب المادة",
+    exploreGrades: "تصفح حسب الصف",
+    exploreCourses: "تصفح الكورسات",
+    aboutBio: "المدرّس خلف منصة {name} — {tagline}.",
+    aboutSubjects: "المواد المتاحة",
+    aboutContact: "تواصل معنا",
+  },
 };
 
 export type Dictionary = typeof ar;

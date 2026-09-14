@@ -1,4 +1,5 @@
 import type { Route } from "./+types/home";
+import type { MetaDescriptor } from "react-router";
 import { useActionData } from "react-router";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
@@ -7,11 +8,11 @@ import { getPageBySlug } from "~server/cms/service.server";
 import { renderSnapshot, resolvePublicImageUrls } from "~server/cms/render.server";
 import { handleCmsFormAction, requestLocale } from "~server/cms/page-render.server";
 import { resolveAuth } from "~server/auth/session.server";
-import { asSnapshot, parseSeo, seoMeta } from "~/cms/seo";
+import { asSnapshot, parseSeo, rootMetaFrom, seoMeta } from "~/cms/seo";
 import { PageView } from "~/components/cms/blocks";
 import { WhatsAppFab } from "~/components/WhatsAppFab";
 import { EmptyState } from "~/components/ui/EmptyState";
-import { t } from "~/lib/i18n";
+import { t, type Locale } from "~/lib/i18n";
 
 /** The floating WhatsApp button is a homepage-only affordance (see WhatsAppFab). */
 function fabFrom(platform: {
@@ -65,13 +66,59 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData || loaderData.empty || !loaderData.seo || !loaderData.ctx) {
-    const fallback = loaderData ? (loaderData.locale === "ar" ? loaderData.title.ar : loaderData.title.en) : "";
-    return [{ title: fallback || (loaderData?.locale === "en" ? "Dr mostafa tito" : "د/ مصطفى تيتو") }];
+/**
+ * Brand-first document title for the homepage. Used ONLY when the owner has not
+ * set an SEO title in the CMS SEO tab: `الاسم | الشعار` (name | tagline) —
+ * both owner-editable in Appearance → System, nothing hardcoded beyond the
+ * empty-first platform-name fallback.
+ */
+function brandHomeTitle(locale: Locale, name?: { ar: string; en: string } | null, tagline?: { ar: string; en: string } | null) {
+  const pick = (v?: { ar: string; en: string } | null) => (v ? (locale === "ar" ? v.ar || v.en : v.en || v.ar) : "");
+  const n = pick(name);
+  const tl = pick(tagline);
+  return n && tl ? `${n} | ${tl}` : n || (locale === "ar" ? "د/ مصطفى تيتو" : "Dr mostafa tito");
+}
+
+/**
+ * Description for the homepage when the owner has not set one in the CMS SEO
+ * tab: a deterministic one-liner about what the platform IS, built only from
+ * owner-configured identity (no invented claims, no statistics).
+ */
+function brandHomeDescription(locale: Locale, name?: { ar: string; en: string } | null, tagline?: { ar: string; en: string } | null) {
+  const pick = (v?: { ar: string; en: string } | null) => (v ? (locale === "ar" ? v.ar || v.en : v.en || v.ar) : "");
+  const n = pick(name);
+  const tl = pick(tagline);
+  if (!n) return "";
+  if (locale === "ar") return tl ? `منصة ${n} الرسمية — ${tl}: كورسات ودروس ومراجعات ومصادر تعليمية.` : `منصة ${n} الرسمية: كورسات ودروس ومراجعات.`;
+  return tl ? `The official ${n} platform — ${tl}: courses, lessons, revision and study resources.` : `The official ${n} platform: courses, lessons and revision.`;
+}
+
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  const root = rootMetaFrom(matches);
+  const locale = (loaderData?.locale ?? root.locale) as Locale;
+  // Owner-set CMS SEO wins; the brand fallback only fills what is missing.
+  const seo = loaderData?.seo ? loaderData.seo : parseSeo({});
+  const fallbackTitle = {
+    ar: brandHomeTitle("ar", root.siteName, root.tagline),
+    en: brandHomeTitle("en", root.siteName, root.tagline),
+  };
+  const finalSeo = { ...seo };
+  if (!finalSeo.description.ar && !finalSeo.description.en) {
+    finalSeo.description = {
+      ar: brandHomeDescription("ar", root.siteName, root.tagline),
+      en: brandHomeDescription("en", root.siteName, root.tagline),
+    };
   }
-  const ogAbsolute = loaderData.ogImage ? new URL(loaderData.ogImage, loaderData.url).href : null;
-  return seoMeta(loaderData.seo, loaderData.title, loaderData.ctx.locale, loaderData.url, ogAbsolute);
+  if (loaderData && !loaderData.empty && loaderData.ctx) {
+    const ogAbsolute = loaderData.ogImage ? new URL(loaderData.ogImage, loaderData.url).href : null;
+    return seoMeta(finalSeo, fallbackTitle, locale, loaderData.url, ogAbsolute);
+  }
+  // empty-first (no published home page yet): brand title + description only
+  const meta: MetaDescriptor[] = [{ title: locale === "ar" ? fallbackTitle.ar : fallbackTitle.en }];
+  const d = locale === "ar" ? finalSeo.description.ar : finalSeo.description.en;
+  if (d) meta.push({ name: "description", content: d });
+  meta.push({ name: "robots", content: "index,follow" });
+  return meta;
 }
 
 export async function action({ context, request }: Route.ActionArgs) {

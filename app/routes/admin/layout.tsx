@@ -1,4 +1,5 @@
 import type { Route } from "./+types/layout";
+import type { MetaDescriptor } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, Outlet, useLocation, useRouteLoaderData } from "react-router";
 import { requireRole } from "~server/auth/guards.server";
@@ -29,6 +30,16 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       roleId: auth.user.roleId,
     },
   };
+}
+
+/**
+ * The whole admin panel is private (rank≥3). Defense in depth: anon visitors
+ * are already redirected (requireRole), but an authenticated admin render must
+ * carry noindex so internal tools, audit data and user PII are never eligible
+ * for indexing.
+ */
+export function meta(): MetaDescriptor[] {
+  return [{ name: "robots", content: "noindex,follow" }];
 }
 
 function Brand({ appName, locale }: { appName: string; locale: Locale }) {
