@@ -8,7 +8,7 @@ import { allLessonsForCourse, chainForCourse, courseBySlug, coursePrereqGate, un
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
 import { courseProgress, lessonProgressMap } from "~server/progress/service.server";
-import { videos, lessonItems, subjects } from "~server/db/schema";
+import { videos, lessonItems, subjects, grades, programs } from "~server/db/schema";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
 import { ProgressBar } from "~/components/ProgressBar";
@@ -16,8 +16,9 @@ import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
-import { absUrl, breadcrumbJsonLd, courseJsonLd } from "~/cms/jsonld";
+import { absUrl, breadcrumbJsonLd, courseJsonLd, definedTermSetJsonLd, learningResourceJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
 
 /** Course page: units + lessons with access-aware rendering, teacher/duration meta and student progress. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -46,11 +47,31 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     unitsForCourse(db, course.id),
     allLessonsForCourse(db, course.id),
     db
-      .select({ slug: subjects.slug, titleAr: subjects.titleAr, titleEn: subjects.titleEn })
+      .select({ slug: subjects.slug, titleAr: subjects.titleAr, titleEn: subjects.titleEn, gradeId: subjects.gradeId })
       .from(subjects)
       .where(eq(subjects.id, course.subjectId))
       .limit(1),
   ]);
+
+  // Fetch grade + program for topical authority (educationalLevel, breadcrumb)
+  let gradeRow: { slug: string; titleAr: string; titleEn: string; programId: string } | null = null;
+  let programRow: { slug: string; titleAr: string; titleEn: string } | null = null;
+  if (subjectRows[0]?.gradeId) {
+    const gRows = await db
+      .select({ slug: grades.slug, titleAr: grades.titleAr, titleEn: grades.titleEn, programId: grades.programId })
+      .from(grades)
+      .where(eq(grades.id, subjectRows[0].gradeId))
+      .limit(1);
+    gradeRow = gRows[0] ?? null;
+    if (gradeRow) {
+      const pRows = await db
+        .select({ slug: programs.slug, titleAr: programs.titleAr, titleEn: programs.titleEn })
+        .from(programs)
+        .where(eq(programs.id, gradeRow.programId))
+        .limit(1);
+      programRow = pRows[0] ?? null;
+    }
+  }
 
   // Phase 6: real commerce CTA when the course is locked and purchasable
   const buyOption = verdict.allowed
@@ -112,6 +133,10 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     };
   }
 
+  // SEO Lesson Phase: semantic keywords for topical authority (from real lesson titles)
+  const allLessonTitlesAr = visibleLessons.map((l) => l.titleAr).join(" ");
+  const semanticKeywords = extractSemanticKeywords(allLessonTitlesAr, visibleUnits.map((u) => u.titleAr).join(" "), subjectRows[0]?.titleAr ?? "");
+
   return {
     course: {
       slug: course.slug,
@@ -127,6 +152,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       lessonCount: visibleLessons.length,
     },
     subject: subjectRows[0] ?? null,
+    grade: gradeRow,
+    program: programRow,
+    semanticKeywords,
     verdict,
     prereqLock,
     buyOption,
@@ -154,6 +182,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
  * SEO/social preview for the course page. The owner controls every value here
  * from Admin → Content (title, description, thumbnail) — there is no separate
  * SEO form because the content row already IS the source of truth.
+ *
+ * Lesson Phase: enhanced with topical authority (hasPart for units, teaches for semantic keywords,
+ * educationalLevel for grade context).
  */
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
@@ -184,6 +215,18 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
     { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
   ];
+  if (loaderData.program) {
+    crumbs.push({
+      name: locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn,
+      url: `/programs/${loaderData.program.slug}`,
+    });
+  }
+  if (loaderData.grade) {
+    crumbs.push({
+      name: locale === "ar" ? loaderData.grade.titleAr : loaderData.grade.titleEn,
+      url: `/grades/${loaderData.grade.slug}`,
+    });
+  }
   if (loaderData.subject) {
     crumbs.push({
       name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn,
@@ -191,18 +234,45 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     });
   }
   crumbs.push({ name: locale === "ar" ? loaderData.course.titleAr : loaderData.course.titleEn });
+
+  // Topical authority: hasPart for units (real rows only)
+  const hasPart = (loaderData.units as Array<{ id: string; titleAr: string; titleEn: string }>).map((u) => ({
+    name: locale === "ar" ? u.titleAr : u.titleEn,
+    url: absUrl(origin, `/courses/${loaderData.course.slug}/units/${u.id}`),
+  }));
+
+  const educationalLevel = loaderData.grade ? (locale === "ar" ? loaderData.grade.titleAr : loaderData.grade.titleEn) : null;
+  const teaches = (loaderData.semanticKeywords as string[]) ?? [];
+
+  const ld: ReturnType<typeof courseJsonLd> = courseJsonLd({
+    name: locale === "ar" ? loaderData.course.titleAr : loaderData.course.titleEn,
+    url: absUrl(origin, pathname),
+    description: locale === "ar" ? loaderData.course.descriptionAr : loaderData.course.descriptionEn,
+    provider: { name: siteName, url: absUrl(origin, "/") },
+    numberOfItems: loaderData.course.lessonCount,
+    hasPart: hasPart.length > 0 ? hasPart : undefined,
+    educationalLevel,
+    teaches: teaches.length > 0 ? teaches : undefined,
+    inLanguage: locale,
+  });
+
+  const extra: Array<Record<string, unknown>> = [];
+  // LearningResource for course + DefinedTermSet for semantic keywords
+  if (teaches.length > 0) {
+    extra.push(
+      definedTermSetJsonLd({
+        name: locale === "ar" ? `مفاهيم ${loaderData.course.titleAr}` : `Concepts of ${loaderData.course.titleEn}`,
+        url: absUrl(origin, pathname),
+        terms: teaches,
+      })
+    );
+  }
+
   return [
     ...siteEntitiesMeta(matches),
     ...base,
-    {
-      "script:ld+json": courseJsonLd({
-        name: locale === "ar" ? loaderData.course.titleAr : loaderData.course.titleEn,
-        url: absUrl(origin, pathname),
-        description: locale === "ar" ? loaderData.course.descriptionAr : loaderData.course.descriptionEn,
-        provider: { name: siteName, url: absUrl(origin, "/") },
-        numberOfItems: loaderData.course.lessonCount,
-      }),
-    },
+    { "script:ld+json": ld },
+    ...extra.map((e) => ({ "script:ld+json": e })),
     { "script:ld+json": breadcrumbJsonLd({ items: crumbs, origin }) },
   ];
 }

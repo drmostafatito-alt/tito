@@ -19,7 +19,7 @@ import { loader as unitLoader, meta as unitMeta } from "~/routes/public.courses.
 import { loader as publicLayoutLoader, meta as publicLayoutMeta } from "~/routes/public/layout";
 
 /**
- * Structured-data (JSON-LD) regression — SEO Master Phase, batch 3.
+ * Structured-data (JSON-LD) regression — SEO Master Phase + Lesson Phase.
  *
  * Drives the REAL route loader + meta() pair against D1, then parses the
  * `script:ld+json` descriptors the way <head> would. The contract under test:
@@ -29,6 +29,10 @@ import { loader as publicLayoutLoader, meta as publicLayoutMeta } from "~/routes
  *     page actually shows — absolute URLs, real lesson counts, no price,
  *     no aggregateRating, no SearchAction;
  *   - sameAs/logo only from owner-configured identity data (https-only).
+ *
+ * Lesson Phase: Course and Unit breadcrumbs now include full topical hierarchy
+ * program → grade → subject → course → unit for Google to understand
+ * مصطفى تيتو → المنصة → المادة → الصف → الوحدة → الدرس → المفاهيم
  */
 
 const actor = { userId: "00000000-0000-4000-8000-0000000000a1", role: "super_admin" };
@@ -204,7 +208,7 @@ describe("public layout declares Organization + WebSite on every public page", (
 describe("course page: Course + BreadcrumbList", () => {
   it("describes the course honestly (no price, no ratings) and mirrors the visible trail", async () => {
     const db = getDb(env);
-    const { course, subject } = await seedCatalog();
+    const { course, subject, program, grade } = await seedCatalog();
     const unit = await createUnit(db, { courseId: course.id, titleAr: "و1", titleEn: "U1", status: "published", sortOrder: 0 }, actor);
     for (let i = 0; i < 2; i++) {
       await createLesson(
@@ -235,12 +239,15 @@ describe("course page: Course + BreadcrumbList", () => {
     const bc = findLd(meta, "BreadcrumbList");
     expect(bc).toBeDefined();
     const items = bc!.itemListElement as Array<Record<string, unknown>>;
-    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "الكورسات", "الفيزياء", "مراجعة شاملة"]);
+    // Lesson Phase: full topical hierarchy program → grade → subject → course
+    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "الكورسات", "الثانوية العامة", "الصف الثالث", "الفيزياء", "مراجعة شاملة"]);
     expect(items[0].item).toBe(`${BASE}/`);
     expect(items[1].item).toBe(`${BASE}/courses`);
-    expect(items[2].item).toBe(`${BASE}/subjects/${subject.slug}`);
-    expect(items[3].item).toBeUndefined(); // current page crumb carries no link
-    expect(items.map((i) => i.position)).toEqual([1, 2, 3, 4]);
+    expect(items[2].item).toBe(`${BASE}/programs/${program.slug}`);
+    expect(items[3].item).toBe(`${BASE}/grades/${grade.slug}`);
+    expect(items[4].item).toBe(`${BASE}/subjects/${subject.slug}`);
+    expect(items[5].item).toBeUndefined(); // current page crumb carries no link
+    expect(items.map((i) => i.position)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
   it("omits numberOfItems when no lessons are published yet", async () => {
@@ -328,9 +335,9 @@ describe("subject + program pages: WebPage + BreadcrumbList", () => {
 });
 
 describe("unit page: WebPage + BreadcrumbList", () => {
-  it("trail Home → Courses → Course → Unit, with a factual description", async () => {
+  it("trail Home → Courses → Program → Grade → Subject → Course → Unit, with a factual description", async () => {
     const db = getDb(env);
-    const { course } = await seedCatalog();
+    const { course, program, grade, subject } = await seedCatalog();
     const unit = await createUnit(db, { courseId: course.id, titleAr: "الوحدة الأولى", titleEn: "Unit One", status: "published", sortOrder: 0 }, actor);
     const data = await call(unitLoader, get(`/courses/${course.slug}/units/${unit.id}`), { slug: course.slug, unitId: unit.id });
     const meta = await metaOf(unitMeta, data, "ar");
@@ -343,9 +350,13 @@ describe("unit page: WebPage + BreadcrumbList", () => {
     expect(page!.description).toContain("مراجعة شاملة");
 
     const items = (findLd(meta, "BreadcrumbList")!.itemListElement as Array<Record<string, unknown>>);
-    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "الكورسات", "مراجعة شاملة", "الوحدة الأولى"]);
-    expect(items[2].item).toBe(`${BASE}/courses/${course.slug}`);
-    expect(items[3].item).toBeUndefined();
+    // Lesson Phase: full hierarchy
+    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "الكورسات", "الثانوية العامة", "الصف الثالث", "الفيزياء", "مراجعة شاملة", "الوحدة الأولى"]);
+    expect(items[2].item).toBe(`${BASE}/programs/${program.slug}`);
+    expect(items[3].item).toBe(`${BASE}/grades/${grade.slug}`);
+    expect(items[4].item).toBe(`${BASE}/subjects/${subject.slug}`);
+    expect(items[5].item).toBe(`${BASE}/courses/${course.slug}`);
+    expect(items[6].item).toBeUndefined();
     expectSiteEntities(meta);
   });
 });

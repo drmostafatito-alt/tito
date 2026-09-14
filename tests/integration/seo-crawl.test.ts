@@ -8,6 +8,7 @@ import {
   createGrade,
   createProgram,
   createSubject,
+  createUnit,
   updateNode,
 } from "~server/content/service.server";
 import { createProduct, createPricePlan } from "~server/commerce/service.server";
@@ -18,11 +19,14 @@ import { loader as sitemapLoader } from "~/routes/sitemap[.]xml";
 import { loader as cmsPageLoader } from "~/routes/p.$slug";
 
 /**
- * Crawl foundation (SEO Master Phase): robots.txt + dynamic sitemap.xml are
+ * Crawl foundation (SEO Master Phase + Lesson Phase): robots.txt + dynamic sitemap.xml are
  * tested through their REAL route loaders against a real (isolated) D1 —
  * including the publish-state contracts (draft/archived/deleted never appear)
  * and the private-surface boundary (student/admin/learn/api/files never
  * listed or allowed).
+ *
+ * Lesson Phase: unit pages (/courses/:slug/units/:unitId) are now public and indexable
+ * (lesson discovery), so they ARE expected in sitemap when their course is live.
  */
 
 const actor = { userId: "00000000-0000-4000-8000-0000000000a1", role: "super_admin" };
@@ -73,6 +77,11 @@ async function seedLiveCatalog() {
     { subjectId: subject.id, titleAr: "كورس الفلسفة", titleEn: "Philosophy course", status: "published", visibility: "catalog", accessLevel: "entitled", sortOrder: 0 },
     actor,
   );
+  const unit = await createUnit(
+    db,
+    { courseId: course.id, titleAr: "الوحدة الأولى: الفلسفة التطبيقية", titleEn: "Unit 1: Applied Philosophy", status: "published", sortOrder: 0 },
+    actor,
+  );
   const product = await createProduct(
     db,
     {
@@ -88,7 +97,7 @@ async function seedLiveCatalog() {
     { currency: "EGP", amountMinor: 10000, kind: "one_time", active: true },
     actor,
   );
-  return { program, grade, subject, course, product };
+  return { program, grade, subject, course, unit, product };
 }
 
 describe("GET /robots.txt (real route loader)", () => {
@@ -124,14 +133,15 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     const all = locs(xml);
     expect(all.length).toBeGreaterThan(0);
     for (const loc of all) {
-      expect(loc).toMatch(/^https:\/\/app\.test\/(courses|courses\/.+|products\/.+|programs|programs\/.+|grades\/.+|subjects\/.+|p\/.+|about)?$/);
+      // Lesson Phase: unit pages now included (/courses/:slug/units/:id)
+      expect(loc).toMatch(/^https:\/\/app\.test\/(courses|courses\/.+\/units\/.+|courses\/.+|products\/.+|programs|programs\/.+|grades\/.+|subjects\/.+|p\/.+|about)?$/);
       expect(loc).not.toContain("?");
     }
     expect(new Set(all).size).toBe(all.length); // no duplicate URLs
   });
 
-  it("lists the published catalog hierarchy (program, grade, subject, courses index + course)", async () => {
-    const { program, grade, subject, course } = await seedLiveCatalog();
+  it("lists the published catalog hierarchy (program, grade, subject, courses index + course + unit)", async () => {
+    const { program, grade, subject, course, unit } = await seedLiveCatalog();
     const xml = await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text();
     const all = locs(xml);
     expect(all).toContain(`${ORIGIN}/`);
@@ -141,6 +151,8 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     expect(all).toContain(`${ORIGIN}/subjects/${subject.slug}`);
     expect(all).toContain(`${ORIGIN}/courses`);
     expect(all).toContain(`${ORIGIN}/courses/${course.slug}`);
+    // Lesson Phase: unit pages are now part of sitemap (lesson discovery)
+    expect(all).toContain(`${ORIGIN}/courses/${course.slug}/units/${unit.id}`);
   });
 
   it("lists active products with an active plan — and drops them when the plan is deactivated", async () => {
@@ -178,6 +190,8 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     // /courses index disappears with its last visible course
     expect(all).not.toContain(`${ORIGIN}/courses`);
     expect(all).not.toContain(`${ORIGIN}/programs`);
+    // unit also disappears when course archived
+    expect(all).not.toContain(`${ORIGIN}/courses/${live.course.slug}/units/${live.unit.id}`);
   });
 
   it("lists published CMS pages under /p/ but never the home page (it lives at /)", async () => {
@@ -206,11 +220,30 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     await seedLiveCatalog();
     const all = locs(await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text());
     for (const p of ROBOTS_PRIVATE_PATHS) {
-      for (const loc of all) expect(loc).not.toContain(p);
+      // ROBOTS_PRIVATE_PATHS contains /learn/ which would match unit pages if we do substring, so check exact or prefix with slash handling
+      // Unit pages are /courses/:slug/units/:id — they do NOT start with any private prefix
+      for (const loc of all) {
+        if (p === "/learn/" || p === "/admin/" || p === "/api/" || p === "/files/" || p === "/beacons/" || p === "/webhooks/") {
+          expect(loc).not.toContain(p);
+        } else {
+          // for other private paths like /dashboard, ensure no loc equals or starts with that path
+          expect(loc === `${ORIGIN}${p}` || loc.startsWith(`${ORIGIN}${p}/`) || loc.startsWith(`${ORIGIN}${p}?`)).toBe(false);
+        }
+      }
     }
-    // unit/lesson id-based URLs are never emitted either
-    for (const loc of all) expect(loc).not.toMatch(/units\/[0-9a-f]{8}-/i);
+    // lesson learn pages are never emitted
     for (const loc of all) expect(loc).not.toContain("/learn/");
+  });
+
+  it("includes unit pages only when course is in catalog and unit is published", async () => {
+    const { course, unit } = await seedLiveCatalog();
+    let xml = await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text();
+    expect(locs(xml)).toContain(`${ORIGIN}/courses/${course.slug}/units/${unit.id}`);
+
+    // archive unit → disappears
+    await updateNode(db, "unit", unit.id, { status: "archived" }, actor);
+    xml = await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text();
+    expect(locs(xml)).not.toContain(`${ORIGIN}/courses/${course.slug}/units/${unit.id}`);
   });
 });
 

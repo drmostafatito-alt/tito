@@ -71,6 +71,13 @@
       "when": 1788898919603,
       "tag": "0009_lonely_glorian",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789420873999,
+      "tag": "0010_curriculum_content",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 /**
- * JSON-LD structured-data builders (SEO Master Phase).
+ * JSON-LD structured-data builders (SEO Master Phase + Lesson Phase).
  *
  * React Router 7 renders `{ "script:ld+json": ... }` meta descriptors as
  * `<script type="application/ld+json">` in <head> (SSR + hydration-safe).
@@ -13,6 +13,12 @@
  *     no dateModified from content we don't display.
  *   - pure + client-safe (meta() runs during SPA navigation) — no .server
  *     imports.
+ *
+ * Lesson Phase enhancements:
+ *   - Course with hasPart (units) for topical authority
+ *   - LearningResource for unit/lesson concepts
+ *   - DefinedTermSet for semantic keywords
+ *   - Educational context (educationalLevel, teaches)
  */
 
 export type LdObject = Record<string, unknown>;
@@ -86,12 +92,16 @@ export interface WebPageInput {
   description?: string | null;
   isPartOf?: string; // absolute website URL
   additionalType?: string | null; // e.g. https://schema.org/CollectionPage
+  /** For topical authority: breadcrumb of hierarchy */
+  breadcrumb?: string[]; // e.g. ["الثانوية العامة", "الصف الثالث", "الفلسفة"]
+  /** Educational context */
+  educationalLevel?: string | null;
 }
 
 /** WebPage (or the given additionalType) for a public landing page. */
 export function webPageJsonLd(i: WebPageInput): LdObject {
   const type = i.additionalType ? ["WebPage", i.additionalType] : "WebPage";
-  return clean({
+  const base: LdObject = {
     "@context": "https://schema.org",
     "@type": type,
     name: i.name,
@@ -100,7 +110,11 @@ export function webPageJsonLd(i: WebPageInput): LdObject {
     isPartOf: i.isPartOf
       ? { "@type": "WebSite", url: i.isPartOf }
       : undefined,
-  });
+  };
+  if (i.educationalLevel) {
+    (base as Record<string, unknown>).educationalLevel = i.educationalLevel;
+  }
+  return clean(base);
 }
 
 export interface BreadcrumbInput {
@@ -132,15 +146,25 @@ export interface CourseInput {
   description?: string | null;
   provider: { name: string; url: string }; // the platform (Organization)
   numberOfItems?: number | null; // ONLY the visible published lesson count
+  /** Topical authority: hasPart for units */
+  hasPart?: Array<{ name: string; url: string }>;
+  /** Educational context */
+  educationalLevel?: string | null;
+  /** What the course teaches (semantic keywords) */
+  teaches?: string[];
+  /** In language */
+  inLanguage?: string;
 }
 
 /**
  * Course — what the course page actually is. Deliberately NO price (prices
  * live on the product page and are server-evaluated promo-aware), NO
  * aggregateRating (no real ratings exist — faking them is forbidden).
+ *
+ * Enhanced with hasPart for units and teaches for topical authority.
  */
 export function courseJsonLd(i: CourseInput): LdObject {
-  return clean({
+  const base: LdObject = {
     "@context": "https://schema.org",
     "@type": "Course",
     name: i.name,
@@ -148,7 +172,26 @@ export function courseJsonLd(i: CourseInput): LdObject {
     description: i.description ?? undefined,
     provider: clean({ "@type": "Organization", name: i.provider.name, url: i.provider.url }),
     ...(i.numberOfItems && i.numberOfItems > 0 ? { numberOfItems: i.numberOfItems } : {}),
-  });
+  };
+  if (i.hasPart && i.hasPart.length > 0) {
+    (base as Record<string, unknown>).hasPart = i.hasPart.map((p) =>
+      clean({
+        "@type": "Course",
+        name: p.name,
+        url: p.url,
+      })
+    );
+  }
+  if (i.educationalLevel) {
+    (base as Record<string, unknown>).educationalLevel = i.educationalLevel;
+  }
+  if (i.teaches && i.teaches.length > 0) {
+    (base as Record<string, unknown>).teaches = i.teaches.slice(0, 8);
+  }
+  if (i.inLanguage) {
+    (base as Record<string, unknown>).inLanguage = i.inLanguage;
+  }
+  return clean(base);
 }
 
 export interface PersonInput {
@@ -158,11 +201,13 @@ export interface PersonInput {
   photo?: string | null; // ONLY the owner-configured photo file (https-only)
   sameAs?: Array<string | null | undefined>;
   worksFor?: { name: string; url: string } | null;
+  /** For topical authority: knowsAbout */
+  knowsAbout?: string[];
 }
 
 /** Person — the teacher entity. Every field optional; nothing invented. */
 export function personJsonLd(i: PersonInput): LdObject {
-  return clean({
+  const base: LdObject = {
     "@context": "https://schema.org",
     "@type": "Person",
     name: i.name,
@@ -171,13 +216,65 @@ export function personJsonLd(i: PersonInput): LdObject {
     photo: safeHttpsUrl(i.photo) ?? undefined,
     sameAs: (i.sameAs ?? []).map(safeHttpsUrl).filter((u): u is string => Boolean(u)),
     worksFor: i.worksFor ? clean({ "@type": "Organization", name: i.worksFor.name, url: i.worksFor.url }) : undefined,
-  });
+  };
+  if (i.knowsAbout && i.knowsAbout.length > 0) {
+    (base as Record<string, unknown>).knowsAbout = i.knowsAbout.slice(0, 12);
+  }
+  return clean(base);
 }
 
 export interface ItemListInput {
   name: string;
   url: string; // absolute
   items: Array<{ name: string; url: string }>;
+}
+
+export interface LearningResourceInput {
+  name: string;
+  url: string;
+  description?: string | null;
+  educationalLevel?: string | null;
+  teaches?: string[];
+  isPartOf?: string; // parent course URL
+  learningResourceType?: string; // e.g. "Lesson", "Unit"
+}
+
+/** LearningResource for units and lessons (topical authority) */
+export function learningResourceJsonLd(i: LearningResourceInput): LdObject {
+  return clean({
+    "@context": "https://schema.org",
+    "@type": "LearningResource",
+    name: i.name,
+    url: i.url,
+    description: i.description ?? undefined,
+    educationalLevel: i.educationalLevel ?? undefined,
+    teaches: i.teaches && i.teaches.length > 0 ? i.teaches.slice(0, 8) : undefined,
+    isPartOf: i.isPartOf ? { "@type": "Course", url: i.isPartOf } : undefined,
+    learningResourceType: i.learningResourceType ?? undefined,
+  });
+}
+
+export interface DefinedTermSetInput {
+  name: string;
+  url: string;
+  terms: string[]; // semantic keywords
+}
+
+/** DefinedTermSet for semantic keywords (topical authority) */
+export function definedTermSetJsonLd(i: DefinedTermSetInput): LdObject {
+  return clean({
+    "@context": "https://schema.org",
+    "@type": "DefinedTermSet",
+    name: i.name,
+    url: i.url,
+    hasDefinedTerm: i.terms.slice(0, 15).map((term) =>
+      clean({
+        "@type": "DefinedTerm",
+        name: term,
+        inDefinedTermSet: i.url,
+      })
+    ),
+  });
 }
 
 /** ItemList — e.g. the course catalog. */

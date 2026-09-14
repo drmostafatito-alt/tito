@@ -12,17 +12,22 @@ import { formatMoney } from "~server/commerce/money";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
-import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
+import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
+import { getRealLessonsForSubject, getLessonNamesForMeta, getSemanticForLessons } from "~server/seo/realLessonsMapping.server";
 
 /**
- * Subject page: the canonical target of BOTH the subject cluster
+ * Subject page: canonical target of BOTH the subject cluster
  * (`شرح الفلسفة`, `دروس علم النفس`…) and the grade+subject cluster
- * (`أولى ثانوي فلسفة`, `تالتة ثانوي علم نفس`…). The grade therefore lives in
- * the document title: `المادة — الصف — brand` (deterministic, deduplicated).
+ * (`أولى ثانوي فلسفة`, `تالتة ثانوي علم نفس`…).
+ *
+ * SEO Discovery enhancement (48 real lessons, no homepage visibility):
+ * - If subject matches real lessons subject (فلسفة ↔ فلسفة ومنطق, نفس ↔ علم النفس),
+ *   enrich meta description with up to 2 example lesson names and add their semantic to DefinedTermSet.
+ * - No UI change: students see only real courses from DB, no 48 lessons list.
  */
 
-/** Subject page: visible courses of one published subject (catalog hierarchy). */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
   const rows = await db.select().from(subjects).where(eq(subjects.slug, params.slug)).limit(1);
@@ -31,7 +36,6 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     throw new Response("Not Found", { status: 404 });
   }
 
-  // Phase 6: subject-level access product CTA (server-read price)
   const buyOption = await purchasableFor(db, { type: "subject", id: subject.id });
 
   const settings = await getSettings(db);
@@ -45,14 +49,20 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const thumbs = catalog.map((r) => r.course.thumbnailFileId).filter((x): x is string => Boolean(x));
   const images = pres.showImage ? await resolvePublicImageUrls(db, thumbs) : {};
 
-  // The subject's grade (real content row — used to target the grade+subject
-  // search cluster in the document title and description).
   const gradeRows = await db
     .select({ titleAr: grades.titleAr, titleEn: grades.titleEn, slug: grades.slug })
     .from(grades)
     .where(eq(grades.id, subject.gradeId))
     .limit(1);
   const grade = gradeRows[0] ?? null;
+
+  const allCourseTitles = catalog.map((r) => r.course.titleAr).join(" ");
+  const semanticKeywords = extractSemanticKeywords(allCourseTitles, "", subject.titleAr);
+
+  // SEO Discovery: matching real lessons for this subject (from CSV, no guessing)
+  const realLessonsForSubject = getRealLessonsForSubject(subject.titleAr);
+  const realLessonNames = getLessonNamesForMeta(realLessonsForSubject, 3);
+  const realLessonsSemantic = getSemanticForLessons(realLessonsForSubject, 12);
 
   return {
     subject: {
@@ -66,6 +76,10 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     program: { slug: catalog[0]?.programSlug ?? null, titleAr: catalog[0]?.programAr ?? null, titleEn: catalog[0]?.programEn ?? null },
     buyOption,
     pres,
+    semanticKeywords,
+    realLessonsForSubjectCount: realLessonsForSubject.length,
+    realLessonNames,
+    realLessonsSemantic,
     courses: catalog.map((r) => ({
       slug: r.course.slug,
       titleAr: r.course.titleAr,
@@ -79,18 +93,13 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   };
 }
 
-/**
- * SEO/social preview from the admin-edited subject row (Admin → Content), with
- * the subject's grade woven into the title (grade+subject cluster) and a
- * data-derived description when the owner hasn't written one.
- */
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
   const locale = root.locale;
-  const grade = loaderData.grade
-    ? { ar: loaderData.grade.titleAr, en: loaderData.grade.titleEn }
-    : null;
+  const grade = loaderData.grade ? { ar: loaderData.grade.titleAr, en: loaderData.grade.titleEn } : null;
+  const realLessonNames = (loaderData.realLessonNames as string[]) ?? [];
+  const realLessonsSemantic = (loaderData.realLessonsSemantic as string[]) ?? [];
   const base = contentSeoMeta(
     {
       title: { ar: loaderData.subject.titleAr, en: loaderData.subject.titleEn },
@@ -101,12 +110,25 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     {
       siteName: root.siteName,
       intermediate: grade,
-      fallbackDescription: (locale) => {
-        const s = locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn;
-        const g = grade ? (locale === "ar" ? grade.ar : grade.en) : "";
-        const site = root.siteName ? (locale === "ar" ? root.siteName.ar : root.siteName.en) : "";
-        if (locale === "ar") return g ? `${s} — ${g}: كورسات ودروس ومراجعات على منصة ${site}.` : `${s}: كورسات ودروس ومراجعات على منصة ${site}.`;
-        return g ? `${s} — ${g}: courses, lessons and revision on the ${site} platform.` : `${s}: courses, lessons and revision on the ${site} platform.`;
+      fallbackDescription: (l) => {
+        const s = l === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn;
+        const g = grade ? (l === "ar" ? grade.ar : grade.en) : "";
+        const site = root.siteName ? (l === "ar" ? root.siteName.ar : root.siteName.en) : "";
+        let baseDesc: string;
+        if (l === "ar") {
+          baseDesc = g ? `${s} — ${g}: كورسات ودروس ومراجعات على منصة ${site}.` : `${s}: كورسات ودروس ومراجعات على منصة ${site}.`;
+        } else {
+          baseDesc = g ? `${s} — ${g}: courses, lessons and revision on the ${site} platform.` : `${s}: courses, lessons and revision on the ${site} platform.`;
+        }
+        // SEO Discovery: add up to 2 example lesson names if subject matches real lessons
+        if (realLessonNames.length > 0 && l === "ar") {
+          const isRealSubject = s.includes("فلسفة") || s.includes("منطق") || s.includes("نفس") || s.includes("علم النفس");
+          if (isRealSubject) {
+            const examples = realLessonNames.slice(0, 2).join("، ");
+            baseDesc += ` تشمل دروس: ${examples}.`;
+          }
+        }
+        return baseDesc;
       },
     }
   );
@@ -127,6 +149,22 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     crumbs.push({ name: locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn, url: `/programs/${loaderData.program.slug}` });
   }
   crumbs.push({ name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn });
+
+  const teaches = (loaderData.semanticKeywords as string[]) ?? [];
+  const allTeaches = [...teaches, ...realLessonsSemantic].slice(0, 20);
+  const educationalLevel = loaderData.grade ? (locale === "ar" ? loaderData.grade.titleAr : loaderData.grade.titleEn) : null;
+
+  const extra: Array<Record<string, unknown>> = [];
+  if (allTeaches.length > 0) {
+    extra.push(
+      definedTermSetJsonLd({
+        name: locale === "ar" ? `مفاهيم ${loaderData.subject.titleAr}` : `Concepts of ${loaderData.subject.titleEn}`,
+        url: absUrl(origin, pathname),
+        terms: allTeaches,
+      })
+    );
+  }
+
   return [
     ...siteEntitiesMeta(matches),
     ...base,
@@ -137,8 +175,10 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
         description: locale === "ar" ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn,
         isPartOf: absUrl(origin, "/"),
         additionalType: "https://schema.org/CollectionPage",
+        educationalLevel,
       }),
     },
+    ...extra.map((e) => ({ "script:ld+json": e })),
     { "script:ld+json": breadcrumbJsonLd({ items: crumbs, origin }) },
   ];
 }
@@ -146,7 +186,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export default function SubjectPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { subject, program, grade, pres, courses, buyOption } = loaderData;
+  const { subject, program, grade, pres, courses, buyOption } = loaderData as any;
   const c = (row: { titleAr: string | null; titleEn: string | null }) => (locale === "ar" ? row.titleAr : row.titleEn);
   const desc = locale === "ar" ? subject.descriptionAr : subject.descriptionEn;
 
@@ -190,7 +230,7 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
         <p className="mt-6 text-slate-500">{t(locale, "content.catalogEmpty")}</p>
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {courses.map((course) => {
+          {courses.map((course: any) => {
             const meta: string[] = [];
             if (pres.showTeacher && course.teacherName) meta.push(course.teacherName);
             if (pres.showLessonCount) meta.push(t(locale, "content.lessonsCount", { n: course.lessonCount }));

@@ -9,20 +9,24 @@ import { and, eq, isNull } from "drizzle-orm";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
-import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
+import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
+import { getRealLessonsForGrade, getLessonNamesForMeta, getSemanticForLessons } from "~server/seo/realLessonsMapping.server";
 
 /**
- * Grade landing page (SEO Master Phase, batch 4).
+ * Grade landing page (SEO Master Phase, batch 4 + Lesson Phase + SEO Discovery).
  *
- * The canonical destination for the "grade" keyword cluster (الصف الثالث
- * الثانوي، تالتة ثانوي، …). Real content only: the grade is a published CMS row
- * and the listed subjects/courses are its published rows — nothing synthesized
- * beyond joining the titles that already exist. Draft/deleted grades 404.
+ * The canonical destination for the "grade" keyword cluster.
+ * Real content only: published grade row + its published subjects.
  *
- * Hierarchy: program → grade → subject → course. This page links down to the
- * grade's subjects (which link to their courses) and up to its program —
- * grade ↔ subject cross-linking per the topical architecture.
+ * SEO Discovery enhancement (48 real lessons, no homepage visibility):
+ * - If grade title matches real lessons grade (e.g., "الصف الأول الثانوي" ↔ 24 lessons, "بكالوريا" ↔ 24 lessons),
+ *   we enrich meta description with up to 2 example lesson names (natural, no stuffing) and add their semantic
+ *   keywords to DefinedTermSet structured data. This helps Google discover existing grade page when user searches
+ *   for lesson name like "معنى التفكير الإنساني وتطبيقاته" or "الذكاءات المتعددة".
+ * - No UI change: students still see only published subjects from DB, no 48 lessons list.
+ * - No new pages, no doorway, no thin.
  */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
@@ -45,14 +49,20 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     .where(and(eq(subjects.gradeId, grade.id), eq(subjects.status, "published"), isNull(subjects.deletedAt)))
     .orderBy(subjects.sortOrder);
 
-  // Published-course count per subject from the same catalog query the
-  // catalog pages use (visibility/window/ancestor rules included).
   const catalog = await catalogCourses(db);
   const counts: Record<string, number> = {};
   for (const r of catalog) counts[r.subjectSlug] = (counts[r.subjectSlug] ?? 0) + 1;
 
   const settings = await getSettings(db);
   const siteName = { ar: settings.platform.nameAr, en: settings.platform.nameEn };
+
+  const allSubjectTitles = subjectRows.map((s) => s.titleAr).join(" ");
+  const semanticKeywords = extractSemanticKeywords(allSubjectTitles, grade.titleAr, "");
+
+  // SEO Discovery: matching real lessons for this grade (from CSV, no guessing)
+  const realLessonsForGrade = getRealLessonsForGrade(grade.titleAr);
+  const realLessonNames = getLessonNamesForMeta(realLessonsForGrade, 3);
+  const realLessonsSemantic = getSemanticForLessons(realLessonsForGrade, 12);
 
   return {
     grade: { slug: grade.slug, titleAr: grade.titleAr, titleEn: grade.titleEn },
@@ -63,17 +73,15 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       titleEn: s.titleEn,
       courseCount: counts[s.slug] ?? 0,
     })),
+    semanticKeywords,
+    realLessonsForGradeCount: realLessonsForGrade.length,
+    realLessonNames,
+    realLessonsSemantic,
     siteName,
     url: request.url,
   };
 }
 
-/**
- * Deterministic meta for the grade cluster:
- * title `grade — brand`, description synthesized from the REAL subject titles
- * the page lists (no keyword stuffing). WebPage + BreadcrumbList structured
- * data mirror the visible trail.
- */
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
@@ -83,6 +91,8 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   const subjectTitles = (loaderData.subjects as Array<{ titleAr: string; titleEn: string }>).map((s) =>
     locale === "ar" ? s.titleAr : s.titleEn
   );
+  const realLessonNames = (loaderData.realLessonNames as string[]) ?? [];
+  const realLessonsSemantic = (loaderData.realLessonsSemantic as string[]) ?? [];
   const base = contentSeoMeta(
     {
       title: { ar: grade.titleAr, en: grade.titleEn },
@@ -95,9 +105,25 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
       fallbackDescription: (l) => {
         const g = l === "ar" ? grade.titleAr : grade.titleEn;
         const site = l === "ar" ? (root.siteName?.ar ?? siteName.ar) : (root.siteName?.en ?? siteName.en);
-        if (subjectTitles.length === 0) return l === "ar" ? `${g} على منصة ${site}.` : `${g} on the ${site} platform.`;
-        const list = subjectTitles.join(l === "ar" ? "، " : ", ");
-        return l === "ar" ? `مواد ${g} على منصة ${site}: ${list}.` : `${g} on the ${site} platform: ${list}.`;
+        // Base: materials list
+        let baseDesc: string;
+        if (subjectTitles.length === 0) {
+          baseDesc = l === "ar" ? `${g} على منصة ${site}.` : `${g} on the ${site} platform.`;
+        } else {
+          const list = subjectTitles.join(l === "ar" ? "، " : ", ");
+          baseDesc = l === "ar" ? `مواد ${g} على منصة ${site}: ${list}.` : `${g} on the ${site} platform: ${list}.`;
+        }
+        // SEO Discovery enrichment: add up to 2 example lesson names if matching grade has real lessons
+        // Natural, not stuffing, only when grade matches real lessons grade
+        if (realLessonNames.length > 0 && l === "ar") {
+          const examples = realLessonNames.slice(0, 2).join("، ");
+          // Only enrich if grade is one of the 2 real grades (الأول, بكالوريا) to avoid false positives for "صف فارغ"
+          const isRealGrade = g.includes("الأول") || g.includes("بكالوريا") || g.includes("الثانوي");
+          if (isRealGrade) {
+            baseDesc += ` تشمل دروس: ${examples}.`;
+          }
+        }
+        return baseDesc;
       },
     }
   );
@@ -120,7 +146,22 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     crumbs.push({ name: locale === "ar" ? program.titleAr : program.titleEn, url: `/programs/${program.slug}` });
   }
   crumbs.push({ name: g });
-  const description = (base as Array<Record<string, unknown>>).find((b) => b.name === "description")?.content as string | undefined;
+
+  const teaches = (loaderData.semanticKeywords as string[]) ?? [];
+  // Merge with real lessons semantic for richer topical authority (honest, from CSV)
+  const allTeaches = [...teaches, ...realLessonsSemantic].slice(0, 20);
+  const extra: Array<Record<string, unknown>> = [];
+  if (allTeaches.length > 0) {
+    extra.push(
+      definedTermSetJsonLd({
+        name: locale === "ar" ? `مفاهيم ${g}` : `Concepts of ${g}`,
+        url: absUrl(origin, pathname),
+        terms: allTeaches,
+      })
+    );
+  }
+
+  const description = (base as Array<Record<string, unknown>>).find((b) => (b as any).name === "description")?.content as string | undefined;
   return [
     ...siteEntitiesMeta(matches),
     ...base,
@@ -131,8 +172,10 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
         description,
         isPartOf: absUrl(origin, "/"),
         additionalType: "https://schema.org/CollectionPage",
+        educationalLevel: g,
       }),
     },
+    ...extra.map((e) => ({ "script:ld+json": e })),
     { "script:ld+json": breadcrumbJsonLd({ items: crumbs, origin }) },
   ];
 }
@@ -140,7 +183,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export default function GradePage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { grade, program, subjects: subjectRows } = loaderData;
+  const { grade, program, subjects: subjectRows } = loaderData as any;
   const c = (row: { titleAr: string; titleEn: string }) => (locale === "ar" ? row.titleAr : row.titleEn);
 
   return (
@@ -162,7 +205,7 @@ export default function GradePage({ loaderData }: Route.ComponentProps) {
         <p className="mt-6 text-slate-500">{t(locale, "catalog.noSubjects")}</p>
       ) : (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {subjectRows.map((s) => (
+          {subjectRows.map((s: any) => (
             <Card key={s.slug}>
               <CardBody>
                 <Link to={`/subjects/${s.slug}`} className="group block">

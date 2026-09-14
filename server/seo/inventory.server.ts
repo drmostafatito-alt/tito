@@ -1,6 +1,6 @@
-import { and, eq, isNull, not } from "drizzle-orm";
+import { and, eq, inArray, isNull, not } from "drizzle-orm";
 import type { DB } from "../db/client.server";
-import { grades, pages, programs, products, subjects } from "../db/schema";
+import { courses, grades, pages, programs, products, subjects, units } from "../db/schema";
 import { catalogCourses } from "../content/service.server";
 import { pricePlansForProduct } from "../commerce/service.server";
 import { getSettings } from "../settings/service.server";
@@ -21,6 +21,14 @@ import { getSettings } from "../settings/service.server";
  *   - private areas (student/admin/learn/api/files) are never listed;
  *   - the CMS `home` page is listed as `/` only (its `/p/home` twin is a
  *     duplicate — the route 301s it to `/`, see p.$slug.tsx).
+ *
+ * Enhanced in SEO Lesson Phase:
+ *   - unit pages (/courses/:slug/units/:unitId) are now included when their
+ *     course is in the public catalog (published, visible, ancestors published)
+ *     and the unit itself is published. This enables lesson discovery SEO:
+ *     each unit page lists its published lessons (public titles) and is the
+ *     canonical target for lesson_discovery intent.
+ *   - lesson pages (/learn/...) remain EXCLUDED (private, noindex, per-user progress)
  */
 export interface SitemapUrl {
   /** Absolute path (origin added by the sitemap route). */
@@ -87,6 +95,24 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
   if (catalog.length > 0) {
     out.push({ path: "/courses", lastmodMs: Math.max(...catalog.map((r) => r.course.updatedAt)) });
     for (const r of catalog) out.push({ path: `/courses/${r.course.slug}`, lastmodMs: r.course.updatedAt });
+  }
+
+  // --- unit pages: public, indexable, lesson discovery (SEO Lesson Phase) ---
+  // Only for courses that are in the public catalog (same gate as /courses)
+  // and units that are published, non-deleted.
+  if (catalog.length > 0) {
+    const catalogCourseIds = new Set(catalog.map((r) => r.course.id));
+    const catalogCourseSlugById = new Map(catalog.map((r) => [r.course.id, r.course.slug] as const));
+    const unitRows = await db
+      .select({ id: units.id, courseId: units.courseId, updatedAt: units.updatedAt })
+      .from(units)
+      .where(and(eq(units.status, "published"), isNull(units.deletedAt)));
+    for (const u of unitRows) {
+      if (!catalogCourseIds.has(u.courseId)) continue;
+      const slug = catalogCourseSlugById.get(u.courseId);
+      if (!slug) continue;
+      out.push({ path: `/courses/${slug}/units/${u.id}`, lastmodMs: u.updatedAt });
+    }
   }
 
   // --- storefront: active products with at least one active price plan ------
