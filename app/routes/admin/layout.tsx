@@ -7,6 +7,7 @@ import { AdminIcon } from "~/components/admin/nav";
 import { resolveNavItem } from "~/components/admin/nav";
 import { CollapseButton, SidebarContent } from "~/components/admin/AdminSidebar";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
+import { rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 const COLLAPSE_KEY = "admin.sidebar.collapsed.v1";
@@ -38,8 +39,11 @@ export async function loader({ context, request }: Route.LoaderArgs) {
  * carry noindex so internal tools, audit data and user PII are never eligible
  * for indexing.
  */
-export function meta(): MetaDescriptor[] {
-  return [{ name: "robots", content: "noindex,follow" }];
+export function meta({ matches }: Route.MetaArgs): MetaDescriptor[] {
+  const root = rootMetaFrom(matches);
+  const site = root.siteName?.[root.locale] ?? "";
+  const title = `${root.locale === "ar" ? t("ar", "nav.adminLabel") : t("en", "nav.adminLabel")}${site ? ` — ${site}` : ""}`;
+  return [{ title, name: "robots", content: "noindex,follow" }];
 }
 
 function Brand({ appName, locale }: { appName: string; locale: Locale }) {

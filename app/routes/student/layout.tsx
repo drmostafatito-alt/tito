@@ -11,6 +11,7 @@ import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { QuestionPlatformNavLink } from "~/components/QuestionPlatform";
 import { Icon } from "~/cms/icons";
+import { rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
 
@@ -42,8 +43,11 @@ export async function loader({ context, request }: Route.LoaderArgs) {
  * authenticated render must also carry noindex so a logged-in session can never
  * leak personal data into the index.
  */
-export function meta(): MetaDescriptor[] {
-  return [{ name: "robots", content: "noindex,follow" }];
+export function meta({ matches }: Route.MetaArgs): MetaDescriptor[] {
+  const root = rootMetaFrom(matches);
+  const site = root.siteName?.[root.locale] ?? "";
+  const label = root.locale === "ar" ? t("ar", "common.dashboard") : t("en", "common.dashboard");
+  return [{ title: `${label}${site ? ` — ${site}` : ""}`, name: "robots", content: "noindex,follow" }];
 }
 
 interface RootLoaderData {

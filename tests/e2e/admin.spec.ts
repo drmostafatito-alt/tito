@@ -42,4 +42,53 @@ test.describe("admin platform", () => {
       expect(res?.status(), `${path} should be 200`).toBe(200);
     }
   });
+
+  test("SEO dashboard is factual: findings named, inventory == /sitemap.xml", async ({ page }) => {
+    // nav destination exists under the Website section
+    await page.goto("/admin");
+    await expect(page.getByRole("link", { name: /SEO/i }).first()).toBeVisible({ timeout: 20_000 });
+
+    await page.goto("/admin/seo");
+    // quick links + sitemap inventory header
+    await expect(page.getByTestId("seo-sitemap-link")).toBeVisible();
+    await expect(page.getByTestId("seo-robots-link")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /SEO/i })).toBeVisible();
+
+    // the inventory table must list EXACTLY the URLs that /sitemap.xml serves
+    const res = await page.goto("/sitemap.xml");
+    expect(res?.status()).toBe(200);
+    const xml = await res!.text();
+    const sitemapLocs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    expect(sitemapLocs.length).toBeGreaterThan(5);
+
+    await page.goto("/admin/seo");
+    const rows = page.getByTestId(/^seo-url-/);
+    const rowCount = await rows.count();
+    expect(rowCount, "inventory rows == sitemap <url> count").toBe(sitemapLocs.length);
+
+    // every inventory path is clean: no query strings, no private prefixes
+    for (let i = 0; i < rowCount; i++) {
+      const pathText = await rows.nth(i).locator("td").first().innerText();
+      expect(pathText).not.toContain("?");
+      expect(pathText).not.toMatch(/^\/(admin|student|learn|login|register|files|api)\b/);
+    }
+
+    // no private data may appear anywhere on the page
+    const body = await page.locator("body").innerText();
+    expect(body).not.toContain("127.0.0.1");
+    expect(body).not.toContain("admin@educore.local");
+  });
+
+  test("unauthenticated visitors are redirected to login (non-reveal)", async ({ page, context }) => {
+    // same context, cookies wiped — no session, no admin access.
+    // page.goto follows the 302, so assert on the first response to /admin/seo.
+    await context.clearCookies();
+    const firstResponse = page.waitForResponse((r) => r.url().endsWith("/admin/seo"), { timeout: 20_000 });
+    await page.goto("/admin/seo");
+    const res = await firstResponse;
+    expect(res.status()).toBe(302);
+    expect(page.url()).toContain("/login");
+    // ?next= — the guard preserved the intended destination (URL-encoded)
+    expect(decodeURIComponent(page.url())).toContain("/admin/seo");
+  });
 });
