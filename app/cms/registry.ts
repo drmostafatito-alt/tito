@@ -781,6 +781,22 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   // field labels
   "cms.f.note": { ar: "ملاحظة صغيرة", en: "Note" },
   "cms.f.anchor": { ar: "معرّف القسم (رابط داخل الصفحة)", en: "Section anchor (in-page link)" },
+  // Admin → CMS: one-click recommended homepage layout (server/cms/home-preset.server.ts)
+  "cms.ui.applyHomePreset": { ar: "تطبيق تصميم الصفحة الرئيسية الموصى به", en: "Apply the recommended homepage layout" },
+  "cms.ui.applyHomePresetHint": {
+    ar: "ينشئ الصفحة الرئيسية بمجموعة أقسام جاهزة (واجهة، شرح، فيديوهات، كتب ومذكرات، امتحانات، اختيار الصف، رحلة الطالب، مزايا، بانر ختامي). كل قسم قابل للتعديل من المحرر. الأقسام المرتبطة بالبيانات تظهر فقط عند وجود محتوى منشور فعليًا.",
+    en: "Builds the homepage from a ready-made set of sections (hero, lessons, videos, books & notes, exams, grade picker, student journey, benefits, closing banner). Every section stays editable in the builder. Data-driven sections only appear when real published content exists.",
+  },
+  "cms.ui.applyHomePresetReplace": {
+    ar: "استبدال محتوى الصفحة الرئيسية الحالي (يُحفظ كنسخة يمكن الرجوع إليها)",
+    en: "Replace the current homepage content (kept as a restorable version)",
+  },
+  "cms.ui.applyHomePresetConflict": {
+    ar: "الصفحة الرئيسية تحتوي على محتوى بالفعل. علّم خيار الاستبدال للمتابعة — سيتم حفظ المحتوى الحالي كنسخة يمكن استعادتها من «النسخ».",
+    en: "The homepage already has content. Tick the replace option to continue — the current content is saved as a restorable version first.",
+  },
+  "cms.ui.applyHomePresetDone": { ar: "تم تطبيق التصميم ونشر الصفحة", en: "Layout applied and page published" },
+  "cms.ui.applyHomePresetCta": { ar: "تطبيق التصميم", en: "Apply layout" },
   "cms.f.step": { ar: "خطوة", en: "Step" },
   "cms.f.benefit": { ar: "ميزة", en: "Benefit" },
   "cms.f.heading": { ar: "العنوان", en: "Heading" },

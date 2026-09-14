@@ -479,82 +479,28 @@ if (!heroFileId && existsSync(heroPath)) {
   );
 }
 
-// --- homepage sections -----------------------------------------------------
-const heroSection = section(
-  sectionProps({ bg: "default", padding: "none", container: "full" }),
-  component("hero_showcase", {
-    eyebrow: L("الفلسفة وعلم النفس", "Philosophy & Psychology"),
-    heading: L("أهلاً بيكم في منصتكم!", "Welcome to your platform!"),
-    subtitle: L(
-      "<p>مع <strong>د/ مصطفى تيتو</strong> — منصة متكاملة لدراسة الفلسفة وعلم النفس: محاضرات وملخصات ومراجعات في مكان واحد.</p>",
-      "<p>With <strong>Dr mostafa tito</strong> — a complete platform for studying philosophy and psychology: lectures, notes and revision in one place.</p>"
-    ),
-    ctas: [
-      { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "primary", icon: "" },
-      { label: L("تسجيل الدخول", "Log in"), href: "/login", target: "_self", variant: "secondary", icon: "" },
-    ],
-    videoLabel: L("", ""),
-    videoId: "",
-    image: heroFileId ?? "",
-    imageAlt: L("تكوين بصري تجريدي للفلسفة وعلم النفس", "Abstract philosophy and psychology visual"),
-    badges: [
-      { icon: "book-open", title: L("كورسات الفلسفة", "Philosophy courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "bottom-start" },
-      { icon: "brain", title: L("كورسات علم النفس", "Psychology courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "top-end" },
-      { icon: "lightbulb", title: L("مراجعات وملخصات", "Revision & notes"), text: L("شرح وتدريب", "Lessons & practice"), position: "top-start" },
-    ],
-  })
-);
-
-// Trust bar: platform offerings (NOT fabricated counts — owner fills verified
-// numbers later). value/label/icon/link are all CMS-editable and sortable.
-const statsSection = section(
-  sectionProps({ padding: "md", container: "wide" }),
-  component("statistics", {
-    style: "bar",
-    items: [
-      { value: L("الفلسفة", "Philosophy"), label: L("كورسات ومراجعات", "Courses & revision"), icon: "book-open", href: "/courses" },
-      { value: L("علم النفس", "Psychology"), label: L("كورسات ومراجعات", "Courses & revision"), icon: "brain", href: "/courses" },
-      { value: L("ملفات ومذكرات", "Notes & files"), label: L("مراجعة سريعة", "Quick revision"), icon: "list", href: "/courses" },
-      { value: L("واجبات ومتابعة", "Assignments"), label: L("تسليم وتصحيح", "Submission & grading"), icon: "check-circle", href: "/assignments" },
-    ],
-  })
-);
-
-const featuresSection = section(
-  sectionProps({
-    heading: L("ماذا ستجد في المنصة؟", "What will you find on the platform?"),
-    subheading: L("كل ما تحتاجه لتحقيق التفوق في الفلسفة وعلم النفس في مكان واحد.", "Everything you need to excel in philosophy and psychology, in one place."),
-    bg: "default", padding: "lg", align: "center", container: "wide",
-  }),
-  component("feature_cards", {
-    items: [
-      { icon: "play-circle", title: L("محاضرات ودروس", "Lectures & lessons"), text: L("شروحات منظمة لكل دروس الفلسفة وعلم النفس.", "Organized lessons in philosophy and psychology."), ctaLabel: L("تصفح الكورسات", "Browse courses"), href: "/courses", tint: "error" },
-      { icon: "file-text", title: L("ملخصات ومذكرات", "Notes & summaries"), text: L("ملفات منظمة تساعدك على المراجعة السريعة.", "Organized files for quick revision."), ctaLabel: L("مكتبة المصادر", "Resource library"), href: "/p/resources", tint: "success" },
-      { icon: "layers", title: L("واجبات ومتابعة", "Assignments & follow-up"), text: L("مهام وتسليمات مع متابعة وتصحيح من المدرس.", "Tasks and submissions with teacher follow-up and grading."), ctaLabel: L("الواجبات", "Assignments"), href: "/assignments", tint: "warning" },
-      { icon: "file-text", title: L("مكتبة المصادر", "Resource library"), text: L("ملفات ومذكرات منظمة لكل المواد والوحدات.", "Organized files and notes for every subject and unit."), ctaLabel: L("استعراض", "Browse"), href: "/p/resources", tint: "brand" },
-      { icon: "chart", title: L("متابعة التقدم", "Progress tracking"), text: L("تابع مستواك وتعرف على نقاط القوة والضعف.", "Track your level and see where to focus next."), ctaLabel: L("لوحة الطالب", "Dashboard"), href: "/dashboard", tint: "muted" },
-    ],
-  })
-);
-
-const ctaSection = section(
-  sectionProps({ heading: L("ابدأ التعلم اليوم", "Start learning today"), subheading: L("أنشئ حسابك وابدأ رحلتك في الفلسفة وعلم النفس.", "Create your account and start your journey in philosophy and psychology."), padding: "xl", align: "center" }),
-  component("buttons", {
-    items: [
-      { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "primary", icon: "" },
-      { label: L("استكشف الكورسات", "Browse courses"), href: "/courses", target: "_self", variant: "secondary", icon: "" },
-    ],
-    align: "center",
-    stackMobile: true,
-  })
-);
+// --- homepage composition ---------------------------------------------------
+// The recommended layout lives in ONE place: server/cms/home-preset.json. The
+// same file backs the admin action "apply recommended homepage layout"
+// (server/cms/home-preset.server.ts), so a fresh install and an existing
+// database converge on the identical, fully CMS-editable composition.
+// Content-bearing sections (courses, videos, books, grades, exams) render REAL
+// published rows only and collapse while their tables are empty — the preset
+// itself contains copy and links, never invented content or numbers.
+const homePreset = JSON.parse(readFileSync("server/cms/home-preset.json", "utf8"));
+// The preset carries copy + layout only; the uploaded hero visual (identity
+// asset, not invented content) is injected here when the file exists.
+if (heroFileId) {
+  const presetHero = homePreset.sections.flatMap((s) => s.children ?? []).find((c) => c.type === "hero_showcase");
+  if (presetHero) presetHero.props.image = heroFileId;
+}
 
 await seedCmsPage({
-  slug: "home",
-  titleAr: "الرئيسية",
-  titleEn: "Home",
-  sections: [heroSection, statsSection, featuresSection, ctaSection],
-  note: "Homepage visual redesign (philosophy & psychology)",
+  slug: homePreset.page.slug,
+  titleAr: homePreset.page.titleAr,
+  titleEn: homePreset.page.titleEn,
+  sections: homePreset.sections,
+  note: "Recommended homepage layout (home-preset.json)",
   replace: true,
 });
 
@@ -589,7 +535,7 @@ if (!existingNav?.n) {
   const navItems = [
     ["الرئيسية", "Home", "/"],
     ["الكورسات", "Courses", "/courses"],
-    ["الواجبات", "Assignments", "/assignments"],
+    ["عن المنصة", "About", "/about"],
     ["مكتبة المصادر", "Resources", "/p/resources"],
     ["الأسئلة الشائعة", "FAQ", "/p/faq"],
     ["تواصل معنا", "Contact", "/p/contact"],

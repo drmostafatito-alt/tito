@@ -1207,11 +1207,33 @@ const SECTION_GAP: Record<string, string> = { none: "gap-0", sm: "gap-3", md: "g
 
 export interface RenderBlock { id: string; type: string; props: P; visible: boolean; children?: RenderBlock[] }
 
+/**
+ * Block types whose content is resolved from the database at render time (or
+ * from a platform setting). When such a block has nothing to show it renders
+ * NOTHING — and a section whose only visible children are all empty like this
+ * collapses completely (no orphan heading, no empty padded band). This is the
+ * empty-first rule applied to composition: the owner never gets a section that
+ * announces content the platform does not have yet.
+ */
+const DATA_DRIVEN_BLOCKS = new Set([
+  "course_cards", "subject_cards", "program_cards", "free_content",
+  "featured_content", "latest_lessons", "video_showcase", "product_cards", "grade_cards",
+]);
+
+function blockIsEmpty(type: string, blockId: string, ctx: CmsRenderCtx): boolean {
+  if (DATA_DRIVEN_BLOCKS.has(type)) return (ctx.dynamic[blockId] ?? []).length === 0;
+  // External exams entry: hidden while the platform is disabled/unconfigured.
+  if (type === "exam_platform") return !ctx.questionPlatformUrl;
+  return false;
+}
+
 export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRenderCtx }) {
   const p = section.props;
   const L = ctx.locale;
   if (!section.visible) return null;
   const children = (section.children ?? []).filter((c) => c.visible);
+  // Section collapse rule (see DATA_DRIVEN_BLOCKS above).
+  if (children.length > 0 && children.every((c) => blockIsEmpty(c.type, c.id, ctx))) return null;
   const heading = str(p, "heading", L);
   const subheading = str(p, "subheading", L);
   const bg = raw(p, "bg") || "default";

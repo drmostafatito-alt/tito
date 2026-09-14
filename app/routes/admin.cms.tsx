@@ -16,6 +16,11 @@ import {
   setPageStatus,
   type CmsPermission,
 } from "~server/cms/service.server";
+import {
+  HomePresetConflictError,
+  applyHomePreset,
+  homePresetSummary,
+} from "~server/cms/home-preset.server";
 import { Alert } from "~/components/ui/Alert";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
@@ -45,9 +50,9 @@ async function requireCms(context: unknown, request: Request, permission: CmsPer
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { db, allowed } = await requireCms(context, request, "cms.read");
-  if (!allowed) return { pages: [], denied: true as const };
+  if (!allowed) return { pages: [], preset: homePresetSummary(), denied: true as const };
   const pages = await listPages(db);
-  return { pages, denied: false as const };
+  return { pages, preset: homePresetSummary(), denied: false as const };
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -72,6 +77,10 @@ export async function action({ context, request }: Route.ActionArgs) {
       );
       return { ok: true as const, createdId: row.id };
     }
+    if (intent === "apply-home-preset") {
+      const report = await applyHomePreset(db, actor, { replace: form.get("replace") === "on" });
+      return { ok: true as const, preset: report };
+    }
     if (intent === "duplicate") { await duplicatePage(db, pageId, actor); return { ok: true as const }; }
     if (intent === "unpublish") { await setPageStatus(db, pageId, "draft", actor); return { ok: true as const }; }
     if (intent === "archive") { await setPageStatus(db, pageId, "archived", actor); return { ok: true as const }; }
@@ -82,6 +91,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     return { error: "generic" as const };
   } catch (err) {
     if (err instanceof CmsValidationError) return { error: "validation" as const, issues: err.issues.map((i) => `${i.path}: ${i.message}`) };
+    if (err instanceof HomePresetConflictError) return { error: "presetConflict" as const, issues: [] as string[] };
     if (err instanceof CmsReferenceError) return { error: "reference" as const, issues: [err.message] };
     throw err;
   }
@@ -126,9 +136,32 @@ export default function AdminCmsPages({ loaderData }: Route.ComponentProps) {
       </div>
 
       {actionData && "error" in actionData && actionData.error === "denied" && <Alert kind="error">{L("cms.ui.permissionDenied")}</Alert>}
-      {actionData && "issues" in actionData && actionData.issues && (
+      {actionData && "error" in actionData && actionData.error === "presetConflict" && (
+        <Alert kind="warning">{L("cms.ui.applyHomePresetConflict")}</Alert>
+      )}
+      {actionData && "issues" in actionData && actionData.issues && actionData.issues.length > 0 && (
         <Alert kind="error">{actionData.issues.join(" — ")}</Alert>
       )}
+      {actionData && "preset" in actionData && actionData.preset && (
+        <Alert kind="success">
+          {L("cms.ui.applyHomePresetDone")} — {actionData.preset.sections} · v{actionData.preset.versionNo}
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader title={L("cms.ui.applyHomePreset")} />
+        <CardBody>
+          <p className="mb-3 text-sm text-slate-600">{L("cms.ui.applyHomePresetHint")}</p>
+          <Form method="post" className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="_action" value="apply-home-preset" />
+            <label className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" name="replace" value="on" className="h-4 w-4" />
+              {L("cms.ui.applyHomePresetReplace")}
+            </label>
+            <SubmitButton>{L("cms.ui.applyHomePresetCta")}</SubmitButton>
+          </Form>
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader title={L("cms.ui.newPage")} />
