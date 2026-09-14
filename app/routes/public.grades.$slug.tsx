@@ -12,22 +12,9 @@ import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
 import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
+import { EXTERNAL_EXAMS_URL } from "~server/curriculum/constants";
+import { Badge } from "~/components/ui/Badge";
 
-/**
- * Grade landing page (SEO Master Phase, batch 4 + Lesson Phase).
- *
- * The canonical destination for the "grade" keyword cluster (الصف الثالث
- * الثانوي، تالتة ثانوي، …). Real content only: the grade is a published CMS row
- * and the listed subjects/courses are its published rows — nothing synthesized
- * beyond joining the titles that already exist. Draft/deleted grades 404.
- *
- * Hierarchy: program → grade → subject → course. This page links down to the
- * grade's subjects (which link to their courses) and up to its program —
- * grade ↔ subject cross-linking per the topical architecture.
- *
- * Lesson Phase enhancement: teaches/educationalLevel + DefinedTermSet for
- * topical authority (مصطفى تيتو → المنصة → المادة → الصف → المفاهيم).
- */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
   const rows = await db.select().from(grades).where(eq(grades.slug, params.slug)).limit(1);
@@ -56,9 +43,38 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const settings = await getSettings(db);
   const siteName = { ar: settings.platform.nameAr, en: settings.platform.nameEn };
 
-  // Semantic keywords from real subject titles (no guessing)
   const allSubjectTitles = subjectRows.map((s) => s.titleAr).join(" ");
   const semanticKeywords = extractSemanticKeywords(allSubjectTitles, grade.titleAr, "");
+
+  // Curriculum outline from 48 real lessons — dynamic import to keep client bundle clean
+  const { getCurriculumLessons } = await import("~server/curriculum/service.server");
+  const allCurriculum = getCurriculumLessons();
+  const gradeTitleLower = grade.titleAr.toLowerCase();
+  const curriculumForGrade = allCurriculum.filter((l: any) => {
+    const csvGradeLower = (l.grade as string).toLowerCase();
+    // Strict matching: grade must explicitly mention the same stage
+    // - "الأول" ↔ "الصف الأول الثانوي"
+    // - "بكالوريا" ↔ "مرحلة البكالوريا المصرية"
+    // - otherwise exact or substring both ways but only if meaningful length
+    if (gradeTitleLower.includes("بكالوريا") && csvGradeLower.includes("بكالوريا")) return true;
+    if (gradeTitleLower.includes("الأول") && csvGradeLower.includes("الأول")) return true;
+    // Avoid false positives for generic "صف فارغ" etc: require at least 4 chars overlap and not just "صف"
+    if (gradeTitleLower.length >= 4 && csvGradeLower.length >= 4) {
+      if (csvGradeLower.includes(gradeTitleLower) || gradeTitleLower.includes(csvGradeLower)) return true;
+    }
+    return false;
+  });
+
+  const bySubject = new Map<string, typeof curriculumForGrade>();
+  for (const lesson of curriculumForGrade) {
+    if (!bySubject.has(lesson.subject)) bySubject.set(lesson.subject, []);
+    bySubject.get(lesson.subject)!.push(lesson);
+  }
+  const curriculumBySubject = Array.from(bySubject.entries()).map(([subject, lessons]) => ({
+    subject,
+    lessons,
+    count: lessons.length,
+  }));
 
   return {
     grade: { slug: grade.slug, titleAr: grade.titleAr, titleEn: grade.titleEn },
@@ -70,18 +86,13 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       courseCount: counts[s.slug] ?? 0,
     })),
     semanticKeywords,
+    curriculumBySubject,
+    curriculumCount: curriculumForGrade.length,
     siteName,
     url: request.url,
   };
 }
 
-/**
- * Deterministic meta for the grade cluster:
- * title `grade — brand`, description synthesized from the REAL subject titles
- * the page lists (no keyword stuffing). WebPage + BreadcrumbList structured
- * data mirror the visible trail. Lesson Phase: adds teaches, educationalLevel,
- * DefinedTermSet.
- */
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
@@ -103,9 +114,10 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
       fallbackDescription: (l) => {
         const g = l === "ar" ? grade.titleAr : grade.titleEn;
         const site = l === "ar" ? (root.siteName?.ar ?? siteName.ar) : (root.siteName?.en ?? siteName.en);
-        if (subjectTitles.length === 0) return l === "ar" ? `${g} على منصة ${site}.` : `${g} on the ${site} platform.`;
+        const count = loaderData.curriculumCount ? (l === "ar" ? ` — ${loaderData.curriculumCount} درس حقيقي` : ` — ${loaderData.curriculumCount} real lessons`) : "";
+        if (subjectTitles.length === 0) return l === "ar" ? `${g}${count} على منصة ${site}.` : `${g}${count} on the ${site} platform.`;
         const list = subjectTitles.join(l === "ar" ? "، " : ", ");
-        return l === "ar" ? `مواد ${g} على منصة ${site}: ${list}.` : `${g} on the ${site} platform: ${list}.`;
+        return l === "ar" ? `مواد ${g}${count} على منصة ${site}: ${list}.` : `${g}${count} on the ${site} platform: ${list}.`;
       },
     }
   );
@@ -141,7 +153,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     );
   }
 
-  const description = (base as Array<Record<string, unknown>>).find((b) => b.name === "description")?.content as string | undefined;
+  const description = (base as Array<Record<string, unknown>>).find((b) => (b as any).name === "description")?.content as string | undefined;
   return [
     ...siteEntitiesMeta(matches),
     ...base,
@@ -163,7 +175,8 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export default function GradePage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { grade, program, subjects: subjectRows } = loaderData;
+  const { grade, program, subjects: subjectRows, curriculumBySubject, curriculumCount } = loaderData as any;
+
   const c = (row: { titleAr: string; titleEn: string }) => (locale === "ar" ? row.titleAr : row.titleEn);
 
   return (
@@ -185,7 +198,7 @@ export default function GradePage({ loaderData }: Route.ComponentProps) {
         <p className="mt-6 text-slate-500">{t(locale, "catalog.noSubjects")}</p>
       ) : (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {subjectRows.map((s) => (
+          {subjectRows.map((s: any) => (
             <Card key={s.slug}>
               <CardBody>
                 <Link to={`/subjects/${s.slug}`} className="group block">
@@ -200,6 +213,44 @@ export default function GradePage({ loaderData }: Route.ComponentProps) {
               </CardBody>
             </Card>
           ))}
+        </div>
+      )}
+
+      {curriculumCount > 0 && (
+        <div className="mt-10">
+          <h2 className="mb-2 text-xl font-bold">
+            {locale === "ar" ? `المنهج الحقيقي — ${curriculumCount} درس` : `Real Curriculum — ${curriculumCount} lessons`}
+          </h2>
+          <p className="mb-4 text-sm text-slate-500">
+            {locale === "ar" ? "دروس من ملفات الـ Keyword Universe الحقيقية، مربوطة بصفحات Tito العامة." : "Lessons from real Keyword Universe files, linked to Tito public pages."}
+          </p>
+          <div className="space-y-6">
+            {(curriculumBySubject as any[]).map((group: any) => (
+              <Card key={group.subject}>
+                <CardBody>
+                  <h3 className="flex items-center gap-2 font-semibold">
+                    <Badge tone="brand">{group.count}</Badge>
+                    <span>{group.subject}</span>
+                  </h3>
+                  <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {group.lessons.map((lesson: any) => (
+                      <li key={lesson.slug}>
+                        <Link to={`/curriculum/${lesson.slug}`} className="group flex items-start gap-2 rounded-lg border border-slate-200/70 p-3 hover:border-brand-300 hover:bg-brand-50/50">
+                          <span className="mt-0.5 text-brand-500">•</span>
+                          <span className="text-sm font-medium text-slate-800 group-hover:text-brand-700">{lesson.lesson}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+          <div className="mt-4 flex gap-3 text-sm">
+            <Link to="/curriculum" className="text-brand-600 hover:underline">{locale === "ar" ? "عرض كل المنهج" : "View full curriculum"}</Link>
+            <span className="text-slate-300">·</span>
+            <a href={EXTERNAL_EXAMS_URL} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">{locale === "ar" ? "منصة الأسئلة" : "Questions platform"} ↗</a>
+          </div>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 /**
  * Real Keyword Universe — 48 lessons from uploaded scientific content
  * Source: tito_seo_keyword_universe.csv (user-provided, not guessed)
- * Generated: do not edit manually, regenerate via python script
+ * Generated: do not edit manually, regenerate via: node scripts/import-curriculum.mjs --json
  * Each lesson = Keyword Cluster خاص به
  */
 export interface RealLesson {

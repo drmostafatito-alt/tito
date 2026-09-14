@@ -134,7 +134,8 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     expect(all.length).toBeGreaterThan(0);
     for (const loc of all) {
       // Lesson Phase: unit pages now included (/courses/:slug/units/:id)
-      expect(loc).toMatch(/^https:\/\/app\.test\/(courses|courses\/.+\/units\/.+|courses\/.+|products\/.+|programs|programs\/.+|grades\/.+|subjects\/.+|p\/.+|about)?$/);
+      // Content Architecture Phase: curriculum index + lesson hubs (/curriculum, /curriculum/:slug)
+      expect(loc).toMatch(/^https:\/\/app\.test\/(courses|courses\/.+\/units\/.+|courses\/.+|products\/.+|programs|programs\/.+|grades\/.+|subjects\/.+|p\/.+|about|curriculum|curriculum\/.+)?$/);
       expect(loc).not.toContain("?");
     }
     expect(new Set(all).size).toBe(all.length); // no duplicate URLs
@@ -244,6 +245,17 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     await updateNode(db, "unit", unit.id, { status: "archived" }, actor);
     xml = await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text();
     expect(locs(xml)).not.toContain(`${ORIGIN}/courses/${course.slug}/units/${unit.id}`);
+  });
+
+  it("includes curriculum index and 48 real lesson hubs (Content Architecture Phase)", async () => {
+    const xml = await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text();
+    const all = locs(xml);
+    expect(all).toContain(`${ORIGIN}/curriculum`);
+    // At least one lesson hub should be present (48 total from static realLessons)
+    const curriculumHubs = all.filter((l) => l.includes("/curriculum/") && l !== `${ORIGIN}/curriculum`);
+    expect(curriculumHubs.length).toBe(48);
+    // Check a known lesson slug from real CSV
+    expect(all.some((l) => l.includes("معنى-التفكير-الإنساني") || l.includes("من-الفلسفة-إلى-المعمل"))).toBe(true);
   });
 });
 
