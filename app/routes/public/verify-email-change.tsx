@@ -6,7 +6,7 @@ import { completeEmailChange } from "~server/users/emailchange.server";
 import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
-import { authPageMeta, rootMetaFrom } from "~/cms/seo";
+import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 
 /**
  * Public landing for the out-of-band email-change verification link. GET-only.
@@ -34,12 +34,12 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [];
   const root = rootMetaFrom(matches);
-  return authPageMeta(
+  return [...siteEntitiesMeta(matches), ...authPageMeta(
     { ar: t("ar", "seo.verifyEmail"), en: t("en", "seo.verifyEmail") },
     root,
     loaderData.url as string,
     "noindex,nofollow",
-  );
+  )];
 }
 
 export default function VerifyEmailChange({ loaderData }: Route.ComponentProps) {

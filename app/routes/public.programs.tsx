@@ -6,7 +6,7 @@ import { getEnv } from "~server/cf.server";
 import { programs, grades, subjects } from "~server/db/schema";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Programs index: published programs with subject counts (catalog hierarchy root). */
@@ -57,15 +57,18 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
-  return contentSeoMeta(
-    {
-      title: { ar: t("ar", "catalog.programs"), en: t("en", "catalog.programs") },
-      description: root.tagline ?? {},
-    },
-    root.locale,
-    loaderData.url,
-    { siteName: root.siteName }
-  );
+  return [
+    ...siteEntitiesMeta(matches),
+    ...contentSeoMeta(
+      {
+        title: { ar: t("ar", "catalog.programs"), en: t("en", "catalog.programs") },
+        description: root.tagline ?? {},
+      },
+      root.locale,
+      loaderData.url,
+      { siteName: root.siteName }
+    ),
+  ];
 }
 
 export default function ProgramsPage({ loaderData }: Route.ComponentProps) {

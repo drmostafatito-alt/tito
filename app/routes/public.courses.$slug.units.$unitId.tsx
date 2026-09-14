@@ -10,7 +10,8 @@ import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
 
 /** Unit page: lessons of one unit with real per-lesson access verdicts + progress. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -86,9 +87,10 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [];
   const root = rootMetaFrom(matches);
+  const locale = root.locale;
   const course = { ar: loaderData.course.titleAr, en: loaderData.course.titleEn };
   const n = (loaderData.lessons as unknown[]).length;
-  return contentSeoMeta(
+  const base = contentSeoMeta(
     {
       title: { ar: loaderData.unit.titleAr, en: loaderData.unit.titleEn },
       description: null,
@@ -98,12 +100,49 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     {
       intermediate: course,
       siteName: root.siteName,
-      fallbackDescription: (locale) =>
-        locale === "ar"
+      fallbackDescription: (loc) =>
+        loc === "ar"
           ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
           : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
     },
   );
+  let origin = "";
+  let pathname = "";
+  try {
+    const u = new URL(loaderData.url as string);
+    origin = u.origin;
+    pathname = u.pathname;
+  } catch {
+    return [...siteEntitiesMeta(matches), ...base];
+  }
+  const unitTitle = locale === "ar" ? loaderData.unit.titleAr : loaderData.unit.titleEn;
+  return [
+    ...siteEntitiesMeta(matches),
+    ...base,
+    {
+      "script:ld+json": webPageJsonLd({
+        name: unitTitle,
+        url: absUrl(origin, pathname),
+        description:
+          locale === "ar"
+            ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
+            : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
+        isPartOf: absUrl(origin, "/"),
+        additionalType: "https://schema.org/CollectionPage",
+      }),
+    },
+    {
+      "script:ld+json": breadcrumbJsonLd({
+        items: [
+          { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
+          { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+          { name: course[locale], url: `/courses/${loaderData.course.slug}` },
+          { name: unitTitle },
+        ],
+        origin,
+      }),
+    },
+  ];
 }
 
 export default function UnitPage({ loaderData }: Route.ComponentProps) {

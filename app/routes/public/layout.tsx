@@ -10,6 +10,7 @@ import { resolvePublicImageUrls } from "~server/cms/render.server";
 import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { Icon } from "~/cms/icons";
+import { siteEntitiesMeta } from "~/cms/seo";
 import { resolveSocialLinks, socialsFor, socialIconName } from "~/cms/social";
 import { t, type Locale } from "~/lib/i18n";
 
@@ -48,9 +49,11 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
   return {
     maintenance,
+    url: request.url,
     user: auth ? { fullName: auth.user.fullName, rank: auth.user.rank, roleId: auth.user.roleId } : null,
     header: tree(header.topLevel.filter((i) => i.visible).map(toItem), header.items),
     footer: tree(footer.topLevel.filter((i) => i.visible).map(toItem), footer.items),
+    socialUrls: socialAll.map((s) => s.url),
     identity: {
       platformName: { ar: settings.platform.nameAr, en: settings.platform.nameEn },
       tagline: { ar: settings.platform.taglineAr, en: settings.platform.taglineEn },
@@ -63,6 +66,18 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       socialsFooter: socialsFor(socialAll, "footer").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: s.labelAr, labelEn: s.labelEn })),
     },
   };
+}
+
+/**
+ * Site-wide structured data fallback: React Router 7 renders only the LEAF
+ * route's meta into <head>, and every public route currently includes the
+ * Organization + WebSite entities itself (see siteEntitiesMeta in ~/cms/seo).
+ * This covers public routes that have no meta of their own (they inherit this
+ * copy instead of the root's) — same data, same honesty rules.
+ */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData || loaderData.maintenance) return [];
+  return siteEntitiesMeta(matches);
 }
 
 interface RootLoaderData {

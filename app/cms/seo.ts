@@ -1,6 +1,7 @@
 import type { MetaDescriptor } from "react-router";
 import type { Locale } from "~/lib/i18n";
 import { seoSchema, type PageSeo, type PageSnapshot } from "~/cms/seo-schema";
+import { absUrl, organizationJsonLd, websiteJsonLd } from "~/cms/jsonld";
 
 /** Root-loader data that `meta()` needs but must not re-resolve (single source of truth). */
 export interface RootMetaSource {
@@ -39,6 +40,58 @@ export function rootMetaFrom(matches: unknown): RootMetaSource {
   for (const m of list) if (m?.id === "root") { const r = pick(m); if (r) return r; }
   for (const m of list) { const r = pick(m); if (r) return r; }
   return { locale: "ar", siteName: null, tagline: null };
+}
+
+/**
+ * Site-wide structured data: the Organization (platform) + WebSite entities.
+ *
+ * React Router 7 renders ONLY the LEAF route's `meta()` output into `<head>`
+ * (it does not merge meta across the match chain — a layout's meta is visible
+ * only when a child has none). So every public route must include the site
+ * entities in its OWN meta. The identity data (platform name, logo, official
+ * social profiles) comes from the PUBLIC LAYOUT's loader via `matches` — the
+ * child loaders do not re-fetch settings. Honesty rules live in `~/cms/jsonld`
+ * (absolute URLs, https-only sameAs/logo, no invented fields).
+ *
+ * Returns [] when the layout data is unavailable (e.g. the SPA navigates to a
+ * route whose matches were trimmed) — structured data must never crash meta.
+ */
+/** Shape of the public layout's loader data relevant to site structured data. */
+type PublicLayoutMetaData = {
+  identity?: { platformName?: { ar: string; en: string }; logoUrl?: string | null };
+  socialUrls?: string[];
+  url?: string;
+};
+
+export function siteEntitiesMeta(matches: unknown): MetaDescriptor[] {
+  const list = Array.isArray(matches) ? (matches as Array<Record<string, unknown>>) : [];
+  let layout: PublicLayoutMetaData | null = null;
+  for (const m of list) {
+    if (m?.id === "public" && m.data && typeof m.data === "object") {
+      layout = m.data as PublicLayoutMetaData;
+      break;
+    }
+  }
+  const root = rootMetaFrom(matches);
+  if (!layout?.url) return [];
+  let origin = "";
+  try {
+    origin = new URL(layout.url).origin;
+  } catch {
+    return [];
+  }
+  const locale = root.locale;
+  const name =
+    locale === "ar"
+      ? (layout.identity?.platformName?.ar || root.siteName?.ar || "")
+      : (layout.identity?.platformName?.en || root.siteName?.en || "");
+  if (!name) return [];
+  const siteUrl = absUrl(origin, "/");
+  const logo = layout.identity?.logoUrl ? absUrl(origin, layout.identity.logoUrl) : null;
+  return [
+    { "script:ld+json": organizationJsonLd({ name, url: siteUrl, logo, sameAs: layout.socialUrls ?? [] }) },
+    { "script:ld+json": websiteJsonLd({ name, url: siteUrl }) },
+  ];
 }
 
 /** Collapse whitespace and cap at the seoSchema's 300-char description limit. */

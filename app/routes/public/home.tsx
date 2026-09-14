@@ -8,7 +8,7 @@ import { getPageBySlug } from "~server/cms/service.server";
 import { renderSnapshot, resolvePublicImageUrls } from "~server/cms/render.server";
 import { handleCmsFormAction, requestLocale } from "~server/cms/page-render.server";
 import { resolveAuth } from "~server/auth/session.server";
-import { asSnapshot, parseSeo, rootMetaFrom, seoMeta } from "~/cms/seo";
+import { asSnapshot, parseSeo, rootMetaFrom, seoMeta, siteEntitiesMeta } from "~/cms/seo";
 import { PageView } from "~/components/cms/blocks";
 import { WhatsAppFab } from "~/components/WhatsAppFab";
 import { EmptyState } from "~/components/ui/EmptyState";
@@ -111,14 +111,14 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   }
   if (loaderData && !loaderData.empty && loaderData.ctx) {
     const ogAbsolute = loaderData.ogImage ? new URL(loaderData.ogImage, loaderData.url).href : null;
-    return seoMeta(finalSeo, fallbackTitle, locale, loaderData.url, ogAbsolute);
+    return [...siteEntitiesMeta(matches), ...seoMeta(finalSeo, fallbackTitle, locale, loaderData.url, ogAbsolute)];
   }
   // empty-first (no published home page yet): brand title + description only
   const meta: MetaDescriptor[] = [{ title: locale === "ar" ? fallbackTitle.ar : fallbackTitle.en }];
   const d = locale === "ar" ? finalSeo.description.ar : finalSeo.description.en;
   if (d) meta.push({ name: "description", content: d });
   meta.push({ name: "robots", content: "index,follow" });
-  return meta;
+  return [...siteEntitiesMeta(matches), ...meta];
 }
 
 export async function action({ context, request }: Route.ActionArgs) {

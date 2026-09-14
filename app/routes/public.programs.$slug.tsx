@@ -7,7 +7,8 @@ import { catalogCourses } from "~server/content/service.server";
 import { programs, grades, subjects } from "~server/db/schema";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Program page: published grades → subjects with visible-course counts. */
@@ -76,7 +77,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
-  return contentSeoMeta(
+  const locale = root.locale;
+  const base = contentSeoMeta(
     {
       title: { ar: loaderData.program.titleAr, en: loaderData.program.titleEn },
       description: { ar: loaderData.program.descriptionAr, en: loaderData.program.descriptionEn },
@@ -85,6 +87,39 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     loaderData.url,
     { siteName: root.siteName }
   );
+  let origin = "";
+  let pathname = "";
+  try {
+    const u = new URL(loaderData.url);
+    origin = u.origin;
+    pathname = u.pathname;
+  } catch {
+    return [...siteEntitiesMeta(matches), ...base];
+  }
+  const title = locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn;
+  return [
+    ...siteEntitiesMeta(matches),
+    ...base,
+    {
+      "script:ld+json": webPageJsonLd({
+        name: title,
+        url: absUrl(origin, pathname),
+        description: locale === "ar" ? loaderData.program.descriptionAr : loaderData.program.descriptionEn,
+        isPartOf: absUrl(origin, "/"),
+        additionalType: "https://schema.org/CollectionPage",
+      }),
+    },
+    {
+      "script:ld+json": breadcrumbJsonLd({
+        items: [
+          { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
+          { name: locale === "ar" ? "البرامج" : "Programs", url: "/programs" },
+          { name: title },
+        ],
+        origin,
+      }),
+    },
+  ];
 }
 
 export default function ProgramPage({ loaderData }: Route.ComponentProps) {

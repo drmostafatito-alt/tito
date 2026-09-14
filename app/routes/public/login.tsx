@@ -9,7 +9,7 @@ import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
 import { Card } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
-import { authPageMeta, rootMetaFrom } from "~/cms/seo";
+import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
 
 /** Only same-app paths (no open redirects). */
@@ -26,11 +26,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [];
   const root = rootMetaFrom(matches);
-  return authPageMeta(
+  return [...siteEntitiesMeta(matches), ...authPageMeta(
     { ar: t("ar", "seo.login"), en: t("en", "seo.login") },
     root,
     loaderData.url as string,
-  );
+  )];
 }
 
 export async function action({ context, request }: Route.ActionArgs) {

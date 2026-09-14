@@ -11,7 +11,8 @@ import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -86,10 +87,11 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
+  const locale = root.locale;
   const grade = loaderData.grade
     ? { ar: loaderData.grade.titleAr, en: loaderData.grade.titleEn }
     : null;
-  return contentSeoMeta(
+  const base = contentSeoMeta(
     {
       title: { ar: loaderData.subject.titleAr, en: loaderData.subject.titleEn },
       description: { ar: loaderData.subject.descriptionAr, en: loaderData.subject.descriptionEn },
@@ -108,6 +110,37 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
       },
     }
   );
+  let origin = "";
+  let pathname = "";
+  try {
+    const u = new URL(loaderData.url);
+    origin = u.origin;
+    pathname = u.pathname;
+  } catch {
+    return [...siteEntitiesMeta(matches), ...base];
+  }
+  const crumbs: Array<{ name: string; url?: string | null }> = [
+    { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
+    { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+  ];
+  if (loaderData.program.slug && loaderData.program.titleAr) {
+    crumbs.push({ name: locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn, url: `/programs/${loaderData.program.slug}` });
+  }
+  crumbs.push({ name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn });
+  return [
+    ...siteEntitiesMeta(matches),
+    ...base,
+    {
+      "script:ld+json": webPageJsonLd({
+        name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn,
+        url: absUrl(origin, pathname),
+        description: locale === "ar" ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn,
+        isPartOf: absUrl(origin, "/"),
+        additionalType: "https://schema.org/CollectionPage",
+      }),
+    },
+    { "script:ld+json": breadcrumbJsonLd({ items: crumbs, origin }) },
+  ];
 }
 
 export default function SubjectPage({ loaderData }: Route.ComponentProps) {
