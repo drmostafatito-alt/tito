@@ -215,3 +215,61 @@ describe("readPropsFromForm (descriptor-driven form reader)", () => {
     expect(zodForBlock("course_cards")!.safeParse(cc).success).toBe(true);
   });
 });
+
+/**
+ * Identity-surface blocks (homepage phase): the four premium sections the owner
+ * brief requires — lesson videos, books/notes (products), grade picker and the
+ * EXTERNAL exams entry — are data-driven blocks whose props can never carry
+ * invented content. These tests pin that contract.
+ */
+describe("identity-surface blocks (videos / products / grades / exams / journey)", () => {
+  it("registers the new blocks with bilingual labels and the right data source", () => {
+    const expected: Record<string, string | undefined> = {
+      video_showcase: "videos",
+      product_cards: "products",
+      grade_cards: "grades",
+      exam_platform: undefined,
+      journey_steps: undefined,
+      benefit_list: undefined,
+      cta_banner: undefined,
+    };
+    for (const [type, dynamic] of Object.entries(expected)) {
+      const def = BLOCKS[type];
+      expect(def, type).toBeDefined();
+      expect(def.dynamic).toBe(dynamic);
+      expect(CMS_LABELS[def.labelKey]).toBeDefined();
+    }
+  });
+
+  it("data blocks default to empty, bounded props (no fake rows, no unbounded queries)", () => {
+    for (const type of ["video_showcase", "product_cards", "grade_cards"]) {
+      const props = defaultPropsFor(type) as Record<string, unknown>;
+      expect(props.heading).toEqual({ ar: "", en: "" });
+      expect(props.limit).toBeGreaterThanOrEqual(1);
+      expect(props.limit).toBeLessThanOrEqual(12);
+    }
+  });
+
+  it("exam_platform carries copy only — never a URL (the URL is server-resolved from settings)", () => {
+    const schema = zodForBlock("exam_platform")!;
+    const parsed = schema.parse({ heading: { ar: "امتحانات", en: "Exams" }, text: { ar: "", en: "" }, ctaLabel: { ar: "ابدأ", en: "Start" }, note: { ar: "", en: "" } });
+    expect(Object.keys(parsed)).not.toContain("href");
+    expect(Object.keys(parsed)).not.toContain("url");
+  });
+
+  it("sections accept a strictly-patterned in-page anchor (for #section links)", () => {
+    const schema = zodForBlock("section")!;
+    expect(schema.parse({ anchor: "videos" }).anchor).toBe("videos");
+    const props = defaultPropsFor("section");
+    expect(props.anchor).toBe("");
+  });
+
+  it("safeHref allows same-document fragments but nothing executable", () => {
+    expect(safeHref("#videos")).toBe(true);
+    expect(safeHref("#books")).toBe(true);
+    expect(safeHref("#a_b-1")).toBe(true);
+    expect(safeHref("#javascript:alert(1)")).toBe(false);
+    expect(safeHref("#a b")).toBe(false);
+    expect(safeHref("#")).toBe(false);
+  });
+});
