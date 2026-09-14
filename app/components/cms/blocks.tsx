@@ -387,7 +387,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
         </div>
       ));
       return (
-        <div className="relative isolate overflow-hidden bg-gradient-to-b from-brand-50/80 via-[#faf8ff] to-transparent">
+        <div className="relative isolate overflow-hidden bg-gradient-to-b from-navy-50 via-[var(--color-page-bg,#f7f9fc)] to-transparent">
           <div aria-hidden="true" className="pointer-events-none absolute -end-16 top-8 -z-10 h-64 w-64 rounded-full bg-emerald-200/50 blur-3xl" />
           <div aria-hidden="true" className="pointer-events-none absolute -start-20 bottom-0 -z-10 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
           <div aria-hidden="true" className="pointer-events-none absolute end-1/4 top-0 -z-10 h-40 w-40 rounded-full bg-amber-100/60 blur-3xl" />

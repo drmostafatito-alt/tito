@@ -95,14 +95,17 @@ for (const [key, value] of Object.entries(defaults)) {
   await exec(sql, [key, JSON.stringify(value), now]);
 }
 
+// Identity palette: Navy / White / Gold (owner brief §1). Owner-editable in
+// Appearance → Theme; the stable --color-navy-* / --color-gold-* tokens used by
+// the homepage + curriculum identity surfaces are not overridden by this ramp.
 const themeSettings = {
-  primary: "#7c3aed",
-  secondary: "#4f46e5",
-  accent: "#6366f1",
-  background: "#faf8ff",
+  primary: "#2b518f",
+  secondary: "#1f3f72",
+  accent: "#c9932a",
+  background: "#f7f9fc",
   surface: "#ffffff",
   text: "#0f172a",
-  mutedText: "#64748b",
+  mutedText: "#5b6b80",
   border: "#e2e8f0",
   success: "#059669",
   warning: "#d97706",

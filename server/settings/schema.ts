@@ -164,13 +164,13 @@ export type IdentitySettings = z.infer<typeof identitySettingsSchema>;
 const hex = (fallback: string) => z.string().regex(/^#[0-9a-fA-F]{6}$/, "must be #rrggbb").default(fallback);
 
 export const themeSettingsSchema = z.object({
-  primary: hex("#7c3aed"),
-  secondary: hex("#4f46e5"),
-  accent: hex("#6366f1"),
-  background: hex("#faf8ff"),
+  primary: hex("#2b518f"),
+  secondary: hex("#1f3f72"),
+  accent: hex("#c9932a"),
+  background: hex("#f7f9fc"),
   surface: hex("#ffffff"),
   text: hex("#0f172a"),
-  mutedText: hex("#64748b"),
+  mutedText: hex("#5b6b80"),
   border: hex("#e2e8f0"),
   success: hex("#059669"),
   warning: hex("#d97706"),
