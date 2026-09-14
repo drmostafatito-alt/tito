@@ -12,6 +12,7 @@ import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { Icon } from "~/cms/icons";
 import { siteEntitiesMeta } from "~/cms/seo";
 import { resolveSocialLinks, socialsFor, socialIconName } from "~/cms/social";
+import { DecorHairline } from "~/components/visuals/PhilosophyDecor";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -132,12 +133,14 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const idn = loaderData.identity;
   const hasContact = Boolean(idn.contactPhone || idn.contactEmail || idn.contactAddress.ar || idn.contactAddress.en);
   const copyrightText = locale === "ar" ? idn.copyright.ar || idn.copyright.en : idn.copyright.en || idn.copyright.ar;
-  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900";
-  const navActiveCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand-50 px-3.5 py-2 text-sm font-semibold text-brand-700";
+  // Premium chrome: neutral slate is replaced by the identity palette (navy
+  // text/surfaces, gold underline for the current page). Every target stays >=44px.
+  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900";
+  const navActiveCls = "inline-flex min-h-11 items-center gap-1.5 rounded-full bg-navy-50 px-3.5 py-2 text-sm font-semibold text-navy-900 shadow-[inset_0_-2px_0_0_var(--color-gold-500)]";
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden">
-      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 pt-safe backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-navy-100 bg-white/85 pt-safe backdrop-blur-md">
         <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 px-4">
           <Link to="/" aria-label={appName} className="inline-flex min-h-11 shrink-0 items-center">
             {idn.logoUrl ? (
@@ -160,7 +163,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                       <span>{locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}</span>
                       <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
                     </summary>
-                    <div className="absolute top-full z-50 mt-1 min-w-44 rounded-[var(--radius-card)] border border-slate-200 bg-white p-1.5 shadow-lg ltr:left-0 rtl:right-0">
+                    <div className="absolute top-full z-50 mt-1 min-w-44 rounded-[var(--radius-card)] border border-navy-100 bg-white p-1.5 shadow-lg ltr:left-0 rtl:right-0">
                       {node.href && (
                         <NavLink item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100" />
                       )}
@@ -184,7 +187,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                     aria-label={locale === "ar" ? s.labelAr || s.network : s.labelEn || s.network}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full text-navy-600 transition-colors hover:bg-navy-50 hover:text-navy-900"
                   >
                     <Icon name={s.network} size="sm" colorRole="default" className="text-current" />
                   </a>
@@ -199,7 +202,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 </Link>
                 <Link
                   to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
-                  className="inline-flex min-h-11 items-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+                  className="inline-flex min-h-11 items-center rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-900"
                 >
                   {loaderData.user.rank >= 3 ? t(locale, "common.admin") : t(locale, "common.dashboard")}
                 </Link>
@@ -208,14 +211,14 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               <>
                 <Link
                   to="/login"
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-800 shadow-sm transition-colors hover:border-gold-300 hover:bg-navy-50"
                 >
                   <Icon name="user" size="sm" colorRole="default" className="text-current" />
                   {t(locale, "common.login")}
                 </Link>
                 <Link
                   to="/register"
-                  className="hidden min-h-11 items-center gap-1.5 rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 sm:inline-flex"
+                  className="hidden min-h-11 items-center gap-1.5 rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500 sm:inline-flex"
                 >
                   <Icon name="user" size="sm" colorRole="invert" className="text-white" />
                   {t(locale, "common.register")}
@@ -225,7 +228,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             {(loaderData.header.length > 0 || !loaderData.user) && (
               <button
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100 lg:hidden"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-navy-800 transition-colors hover:bg-navy-50 lg:hidden"
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-nav"
                 aria-label={t(locale, "common.menu")}
@@ -239,14 +242,14 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
 
         {/* Mobile navigation panel */}
         {mobileOpen && (
-          <nav id="mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-slate-200 bg-white px-4 py-2 lg:hidden">
+          <nav id="mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-navy-100 bg-white px-4 py-2 lg:hidden">
             <ul className="flex flex-col">
               {loaderData.header.map((node) => (
                 <li key={node.id}>
                   <NavLink
                     item={node}
                     locale={locale}
-                    className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2.5 text-base font-medium text-slate-800 hover:bg-slate-100"
+                    className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2.5 text-base font-medium text-navy-900 transition-colors hover:bg-navy-50"
                     onNavigate={() => setMobileOpen(false)}
                   />
                   {node.children.length > 0 && (
@@ -256,7 +259,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                           <NavLink
                             item={child}
                             locale={locale}
-                            className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-600 hover:bg-slate-100"
+                            className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-navy-700 transition-colors hover:bg-navy-50"
                             onNavigate={() => setMobileOpen(false)}
                           />
                         </li>
@@ -266,10 +269,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 </li>
               ))}
               {!loaderData.user && (
-                <li className="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:hidden">
+                <li className="mt-2 flex flex-col gap-2 border-t border-navy-100 pt-3 sm:hidden">
                   <Link
                     to="/register"
-                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900"
                     onClick={() => setMobileOpen(false)}
                   >
                     {t(locale, "common.register")}
@@ -285,14 +288,15 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-200 bg-white pb-safe">
+      <footer className="relative border-t border-navy-900 bg-navy-950 pb-safe text-navy-100">
+        <DecorHairline className="mx-auto max-w-7xl px-4 text-gold-500 opacity-60" />
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
           <div className="flex flex-col gap-3">
             <Link to="/" aria-label={appName} className="inline-flex items-center">
               {idn.logoUrl ? <img src={idn.logoUrl} alt={appName} className="h-9 w-auto object-contain" /> : <BrandMark name={appName} />}
             </Link>
-            {tagline && <p className="text-sm text-slate-500">{tagline}</p>}
+            {tagline && <p className="text-sm text-navy-200">{tagline}</p>}
             {idn.socialsFooter.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {idn.socialsFooter.map((s) => (
@@ -302,9 +306,9 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                     aria-label={s.network}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-navy-100 transition-colors hover:border-gold-400 hover:text-gold-300"
                   >
-                    <Icon name={s.network} size="md" colorRole="default" className="text-current" />
+                    <Icon name={s.network} size="md" colorRole="invert" className="text-current" />
                   </a>
                 ))}
               </div>
@@ -316,16 +320,16 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             <nav key={node.id} aria-label={locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr} className="flex flex-col gap-1">
               {node.children.length > 0 ? (
                 <>
-                  <p className="mb-1 text-sm font-semibold text-slate-900">
+                  <p className="mb-1 text-sm font-semibold text-white">
                     {locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}
                   </p>
-                  {node.href && <NavLink item={node} locale={locale} className="inline-flex min-h-9 items-center text-sm text-slate-600 hover:text-slate-900" />}
+                  {node.href && <NavLink item={node} locale={locale} className="inline-flex min-h-11 items-center text-sm text-navy-200 transition-colors hover:text-gold-300" />}
                   {node.children.map((child) => (
-                    <NavLink key={child.id} item={child} locale={locale} className="inline-flex min-h-9 items-center text-sm text-slate-600 hover:text-slate-900" />
+                    <NavLink key={child.id} item={child} locale={locale} className="inline-flex min-h-11 items-center text-sm text-navy-200 transition-colors hover:text-gold-300" />
                   ))}
                 </>
               ) : (
-                <NavLink item={node} locale={locale} className="inline-flex min-h-9 w-fit items-center text-sm text-slate-600 hover:text-slate-900" />
+                <NavLink item={node} locale={locale} className="inline-flex min-h-11 w-fit items-center text-sm text-navy-200 transition-colors hover:text-gold-300" />
               )}
             </nav>
           ))}
@@ -333,20 +337,20 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           {/* Contact column — only when configured (empty-first) */}
           {hasContact && (
             <div className="flex flex-col gap-2">
-              <p className="mb-1 text-sm font-semibold text-slate-900">{t(locale, "footer.contact")}</p>
+              <p className="mb-1 text-sm font-semibold text-white">{t(locale, "footer.contact")}</p>
               {idn.contactPhone && (
-                <a href={`tel:${idn.contactPhone}`} className="inline-flex min-h-9 items-center gap-2 text-sm text-slate-600 hover:text-slate-900" dir="ltr">
-                  <Icon name="phone" size="sm" colorRole="muted" /> {idn.contactPhone}
+                <a href={`tel:${idn.contactPhone}`} className="inline-flex min-h-11 items-center gap-2 text-sm text-navy-200 transition-colors hover:text-gold-300" dir="ltr">
+                  <Icon name="phone" size="sm" colorRole="accent" /> {idn.contactPhone}
                 </a>
               )}
               {idn.contactEmail && (
-                <a href={`mailto:${idn.contactEmail}`} className="inline-flex min-h-9 items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
-                  <Icon name="mail" size="sm" colorRole="muted" /> {idn.contactEmail}
+                <a href={`mailto:${idn.contactEmail}`} className="inline-flex min-h-11 items-center gap-2 text-sm text-navy-200 transition-colors hover:text-gold-300">
+                  <Icon name="mail" size="sm" colorRole="accent" /> {idn.contactEmail}
                 </a>
               )}
               {(idn.contactAddress.ar || idn.contactAddress.en) && (
-                <p className="flex items-start gap-2 text-sm text-slate-600">
-                  <Icon name="map-pin" size="sm" colorRole="muted" className="mt-0.5" />
+                <p className="flex items-start gap-2 text-sm text-navy-200">
+                  <Icon name="map-pin" size="sm" colorRole="accent" className="mt-0.5" />
                   <span>{locale === "ar" ? idn.contactAddress.ar || idn.contactAddress.en : idn.contactAddress.en || idn.contactAddress.ar}</span>
                 </p>
               )}
@@ -354,8 +358,8 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           )}
         </div>
 
-        <div className="border-t border-slate-100">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-sm text-slate-500 sm:flex-row">
+        <div className="border-t border-white/10">
+          <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-sm text-navy-300 sm:flex-row">
             <span>
               {copyrightText || `© ${new Date().getFullYear()} ${appName} — ${t(locale, "footer.rights")}`}
             </span>
