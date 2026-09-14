@@ -1,12 +1,8 @@
 import type { Route } from "./+types/layout";
 import { useEffect, useRef, useState } from "react";
-import { Form, Link, Outlet, redirect, useLocation, useRouteLoaderData } from "react-router";
+import { Form, Link, Outlet, useLocation, useRouteLoaderData } from "react-router";
 import { requireRole } from "~server/auth/guards.server";
-import { getDb } from "~server/db/client.server";
-import { getEnv } from "~server/cf.server";
-import { logSecurityEvent } from "~server/security/events.server";
-import { canAssessment } from "~server/assessment/service.server";
-import { AdminIcon, TEACHER_NAV_SECTIONS } from "~/components/admin/nav";
+import { AdminIcon } from "~/components/admin/nav";
 import { resolveNavItem } from "~/components/admin/nav";
 import { CollapseButton, SidebarContent } from "~/components/admin/AdminSidebar";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
@@ -21,40 +17,18 @@ const COLLAPSE_KEY = "admin.sidebar.collapsed.v1";
  * layout — every admin module keeps its own loader/action/business logic.
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
-  // Admins (rank 3+) see the full panel. A teacher (rank 2) may be admitted
-  // into the question-bank authoring area ONLY when they hold assessment.read —
-  // the sidebar is then filtered to the assessment hub and every other admin
-  // module independently re-checks requireRole(3)/its permission.
-  const { auth } = await requireRole(context, request, 2);
-  const teacherMode = auth.user.rank < 3;
-  if (teacherMode) {
-    const db = getDb(getEnv(context));
-    const canRead = await canAssessment(db, auth, "assessment.read");
-    if (!canRead) {
-      const url = new URL(request.url);
-      await logSecurityEvent(db, {
-        userId: auth.user.id,
-        type: "permission_denied",
-        metadata: { path: url.pathname, rank: auth.user.rank, required: 3, reason: "teacher_no_authoring" },
-      });
-      throw redirect("/dashboard?error=forbidden");
-    }
-    // Teachers always land in the question-bank hub, never the admin dashboard.
-    if (urlPathIsHome(request.url)) throw redirect("/admin/assessment");
-  }
+  // The admin panel is for admins (rank 3+) only. Teachers (rank 2) used to be
+  // admitted into the now-retired internal question-bank authoring area; with
+  // the move to the standalone external Questions Platform that authoring area
+  // no longer exists, so the panel is rank-gated as every other admin module is.
+  const { auth } = await requireRole(context, request, 3);
   return {
     admin: {
       email: auth.user.email,
       fullName: auth.user.fullName,
       roleId: auth.user.roleId,
     },
-    teacherMode,
   };
-}
-
-function urlPathIsHome(raw: string): boolean {
-  const { pathname } = new URL(raw);
-  return pathname === "/admin" || pathname === "/admin/";
 }
 
 function Brand({ appName, locale }: { appName: string; locale: Locale }) {
@@ -191,7 +165,6 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   }, [location.pathname, location.search]);
 
   const { email, fullName } = loaderData.admin;
-  const navSections = loaderData.teacherMode ? TEACHER_NAV_SECTIONS : undefined;
 
   return (
     <div className="flex min-h-dvh bg-slate-100">
@@ -212,7 +185,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <CollapseButton collapsed={collapsed} locale={locale} onToggle={() => setCollapsed((v) => !v)} />
         </div>
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
-          <SidebarContent locale={locale} collapsed={collapsed} sections={navSections} />
+          <SidebarContent locale={locale} collapsed={collapsed} />
         </div>
       </aside>
 
@@ -311,7 +284,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                 </svg>
               </button>
             </div>
-            <SidebarContent locale={locale} onNavigate={() => setMobileOpen(false)} sections={navSections} />
+            <SidebarContent locale={locale} onNavigate={() => setMobileOpen(false)} />
             <div className="mt-4 flex items-center gap-2 border-t border-slate-800 pt-3 sm:hidden">
               <LanguageSwitcher locale={locale} options={localeOptions} />
             </div>

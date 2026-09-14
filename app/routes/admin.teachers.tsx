@@ -8,8 +8,6 @@ import { listUsers, setUserStatus } from "~server/users/service.server";
 import {
   canManageTeachers,
   canViewTeachers,
-  setTeacherPermission,
-  teacherPermissionMatrix,
 } from "~server/teachers/service.server";
 import { Card, CardBody } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
@@ -21,9 +19,7 @@ import { t, formatDate, type Locale } from "~/lib/i18n";
 const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
 const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
 
-type ActionData =
-  | { status?: { id: string; ok: boolean; error?: string } }
-  | { perm?: { ok: boolean; code?: string } };
+type ActionData = { status?: { id: string; ok: boolean; error?: string } };
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -38,11 +34,9 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     status: status === "active" || status === "suspended" ? status : null,
     page,
   });
-  const matrix = await teacherPermissionMatrix(db);
   return {
     canManage: await canManageTeachers(db, auth.user),
     teachers,
-    matrix,
     q: url.searchParams.get("q") ?? "",
     status: status ?? "",
   };
@@ -64,27 +58,18 @@ export async function action({ context, request }: Route.ActionArgs) {
     return { status: { id, ok: out.ok, error: out.ok ? undefined : out.error } };
   }
 
-  if (intent === "perm") {
-    if (!(await canManageTeachers(db, auth.user))) return { perm: { ok: false, code: "denied" } };
-    const permission = String(form.get("permission") ?? "");
-    const granted = form.get("granted") === "1";
-    const out = await setTeacherPermission(db, { ...actor, roleId: actor.role, ipHash: null }, permission, granted);
-    return { perm: { ok: out.ok, code: out.ok ? undefined : out.code } };
-  }
-
-  return { perm: { ok: false, code: "bad_request" } };
+  return { status: { id: "", ok: false, error: "bad_request" } };
 }
 
 export default function AdminTeachers({ loaderData, actionData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { teachers, matrix, canManage } = loaderData;
+  const { teachers, canManage } = loaderData;
   const data = actionData as ActionData | undefined;
   const [suspendId, setSuspendId] = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(teachers.total / teachers.pageSize));
   const actStatus = data && "status" in data ? data.status : undefined;
-  const actPerm = data && "perm" in data ? data.perm : undefined;
 
   const withPage = (p: number) => {
     const sp = new URLSearchParams();
@@ -110,14 +95,6 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
               : t(locale, "teachers.opFailed")}
         </Alert>
       )}
-      {actPerm && !actPerm.ok && (
-        <Alert kind="error">
-          {actPerm.code === "denied"
-            ? t(locale, "teachers.noManagePerm")
-            : t(locale, "teachers.opFailed")}
-        </Alert>
-      )}
-
       <Card>
         <CardBody className="space-y-3">
           <Form method="get" className="flex flex-wrap items-center gap-2">
@@ -180,39 +157,6 @@ export default function AdminTeachers({ loaderData, actionData }: Route.Componen
               ) : <span />}
             </div>
           )}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardBody className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">{t(locale, "teachers.matrixTitle")}</h2>
-              <p className="mt-1 text-xs text-slate-500">{t(locale, "teachers.matrixHint")}</p>
-            </div>
-            {!canManage && <span className="text-xs text-slate-400">{t(locale, "teachers.matrixReadOnly")}</span>}
-          </div>
-
-          {matrix.map((m) => (
-            <div key={m.permission} className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid={`matrix-${m.permission}`}>
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate">{locale === "ar" ? m.labelAr : m.labelEn}</span>
-                {!m.authoring && <Badge tone="warning">{t(locale, "teachers.privileged")}</Badge>}
-              </div>
-              {canManage ? (
-                <Form method="post">
-                  <input type="hidden" name="_action" value="perm" />
-                  <input type="hidden" name="permission" value={m.permission} />
-                  <input type="hidden" name="granted" value={m.granted ? "0" : "1"} />
-                  <SubmitButton variant={m.granted ? "secondary" : "primary"} size="sm">
-                    {m.granted ? t(locale, "teachers.revoke") : t(locale, "teachers.grant")}
-                  </SubmitButton>
-                </Form>
-              ) : (
-                <Badge tone={m.granted ? "success" : "neutral"}>{m.granted ? t(locale, "teachers.granted") : t(locale, "teachers.notGranted")}</Badge>
-              )}
-            </div>
-          ))}
         </CardBody>
       </Card>
 

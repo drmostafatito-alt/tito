@@ -8,7 +8,7 @@ import { createCourse, createGrade, createLesson, createProgram, createSubject, 
 import { grantEntitlement } from "~server/entitlements/grant.server";
 import { student360 } from "~server/students/service.server";
 import {
-  searchAssignments, searchCourses, searchExams, searchLessons, searchStudents,
+  searchAssignments, searchCourses, searchLessons, searchStudents,
 } from "~server/search/service.server";
 import {
   assignmentSubmissions, assignments, examAttempts, exams, lessonProgress,
@@ -199,7 +199,7 @@ describe("Student 360 service aggregation", () => {
 });
 
 describe("Global admin search", () => {
-  it("searches students (ar name + email), courses (ar + en), assignments, exams, lessons", async () => {
+  it("searches students (ar name + email), courses (ar + en), assignments, lessons", async () => {
     // a second distinct course/assignment/exam/lesson to keep matching deterministic
     const c2 = await makeCourse("فيزياء", "Physics 101");
 
@@ -221,11 +221,6 @@ describe("Global admin search", () => {
     expect(ahw.some((a) => a.id === aId)).toBe(true);
     const ahwAr = await searchAssignments(db, "تركيبي");
     expect(ahwAr.some((a) => a.id === aId)).toBe(true);
-
-    // exams
-    await db.insert(exams).values({ id: "ex-s", slug: `ex-${crypto.randomUUID().slice(0, 6)}`, titleAr: "اختبار نهاية الفصل", titleEn: "Final Term", config: {}, status: "published", createdBy: superA.id, createdAt: now(), updatedAt: now() });
-    const ex = await searchExams(db, "Final");
-    expect(ex.some((e) => e.id === "ex-s")).toBe(true);
 
     // lessons
     const le = await searchLessons(db, "درس");

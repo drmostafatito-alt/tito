@@ -271,9 +271,9 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
             {detail.recentAttempts.length === 0 && <p className="text-sm text-slate-500">{t(locale, "adminUsers.noRows")}</p>}
             {detail.recentAttempts.map((a) => (
               <div key={a.id} className="flex items-center justify-between gap-2 text-sm" data-testid="user-attempt-row">
-                <Link to={`/admin/assessment/attempts/${a.id}`} className="truncate text-slate-700 hover:text-brand-700 hover:underline">
+                <span className="truncate text-slate-700">
                   {locale === "ar" ? a.examTitleAr || a.examTitleEn : a.examTitleEn || a.examTitleAr}
-                </Link>
+                </span>
                 <span className="flex items-center gap-2">
                   {a.status === "graded" && a.score != null && a.maxScore != null && (
                     <span className="text-xs font-semibold" dir="ltr">{a.score}/{a.maxScore}{a.passed != null ? (a.passed ? " ✓" : " ✗") : ""}</span>

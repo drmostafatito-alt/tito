@@ -79,4 +79,26 @@ describe("settings schemas (ADR-012)", () => {
     expect(next.maxPerStudent).toBe(3);
     expect(next.onLimit).toBe("block");
   });
+
+  it("external questions platform: disabled+empty by default, accepts only https-or-empty", () => {
+    const d = platformSettingsSchema.parse({});
+    expect(d.questionPlatformEnabled).toBe(false);
+    expect(d.questionPlatformUrl).toBe("");
+
+    expect(platformSettingsSchema.safeParse({ questionPlatformEnabled: true, questionPlatformUrl: "https://q.example.com" }).success).toBe(true);
+    // enabled flag without a URL still parses; rendering hides the entry
+    expect(platformSettingsSchema.safeParse({ questionPlatformEnabled: true, questionPlatformUrl: "" }).success).toBe(true);
+
+    // fail closed on unsafe schemes / malformed links
+    for (const bad of [
+      "javascript:alert(1)",
+      "data:text/html,x",
+      "http://q.example.com",
+      "//q.example.com",
+      "q.example.com",
+      "not a url",
+    ]) {
+      expect(platformSettingsSchema.safeParse({ questionPlatformUrl: bad }).success, bad).toBe(false);
+    }
+  });
 });

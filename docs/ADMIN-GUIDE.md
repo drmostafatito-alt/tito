@@ -16,7 +16,7 @@
 - The tree page shows the full hierarchy (programs → grades → subjects → courses → units → lessons) with slug + status per node; create buttons spawn each level; archived/draft nodes stay visible to admins but never surface in the public catalog.
 - The node editor (`/admin/content/:type/:id`) edits titles (ar/en), description, status (draft/published/archived), and — per type — visibility, access level (public/authenticated/entitled), publish/expiry windows, thumbnail (from uploaded image files), free-preview flag (lessons). Slug is generated on create (Arabic-aware) and unique.
 - Ordering: `move up` / `move down` per sibling (positions normalize to 0..n-1; moving past the boundary is a safe no-op).
-- Lessons attach items (video / file / exam-later) with a required flag; attaching a non-existent reference is rejected with a validation error (ADR-017 app-layer integrity).
+- Lessons attach items (video / file / external Google-form link) with a required flag; attaching a non-existent reference is rejected with a validation error (ADR-017 app-layer integrity). Legacy internal-exam items are retained in the database but no longer rendered or created (see §6).
 - Every mutation writes an audit-log row (actor, action, entity, before/after).
 
 ## 4. Files & videos (live — Phase 2, `/admin/files`, `/admin/videos`)
@@ -27,11 +27,15 @@
 ## 5. Entitlement grants (live — Phase 2, `/admin/entitlements`)
 - Grant by student email + resource (subject / course / lesson) + duration in days (blank = permanent) + note; revoke per row. Grants take effect immediately server-side: the student's lesson pages flip from locked to signed-URL/file/playback access on next request (verified in smoke §10). Source type is `admin_grant`; all grants/revokes are audited.
 
-## 6. Question bank & exams (live — Phase 5, `/admin/assessment`)
-- Hub: question bank (status/type/text filters) + exam list with attempt counters. Gated by `assessment.read/create`.
-- Question editor: bilingual stems/explanations, choices with correct toggles + per-choice feedback, difficulty, points, topic links, tags (inline create), status workflow draft→in_review→published→archived, duplicate, delete-with-confirm (refused while attached to an exam).
-- Exam builder: basics + lesson/course attachment, full policy form (duration, pass %, attempts cap, cooldown, randomization, partial credit, results/review visibility, availability window), attached-questions manager (reorder/points/remove), publish gate is fail-closed (needs ≥1 attached published objective question, or a resolvable pool).
-- Platform-level attempt visibility ships in Phase 7 (§9/§11): recent attempts + per-student attempt history are on the user detail page and the assessment hub — the answer key never leaves the server before submission.
+## 6. Questions & exams (external standalone platform)
+- The **internal** question bank, question authoring and exam engine (`/admin/assessment`, teacher question-authoring) were **retired**: questions and exams now live on a separate, standalone Questions & Exams Platform. Tito keeps only a clearly-labelled external entry point to it — there is no in-platform question authoring anymore.
+- **Admin control — Appearance → System → "External Questions Platform":**
+  - **Show the Questions Platform entry to students** checkbox.
+  - **Questions Platform URL** — must be a valid secure `https://` link (or empty). `javascript:`, `data:`, `vbscript:`, protocol-relative and malformed URLs are rejected on save (fail-closed), and the render layer re-validates before rendering any link.
+  - The card/nav entry is shown **only** when the toggle is on AND a valid URL is configured; clearing the URL or disabling the toggle hides it everywhere.
+- **Where students see it:** a prominent card at the top of the student dashboard and an item in the student top navigation / mobile menu. It opens the external platform in a **new tab** (`rel="noopener noreferrer"`), with an external-link glyph and Arabic + English labels making clear it is a separate platform.
+- **Data safety:** the old `questions`, `question_choices`, `question_tags`, `tags`, `exams`, `exam_questions`, `exam_attempts`, `exam_answers` tables and all migrations are **retained** (historical data and analytics/360 views). They are simply no longer reachable from the UI; no data was dropped and no migration removed.
+- Historical exam/attempt aggregates still appear in Analytics and on student/user detail pages (read-only, based on retained data).
 
 ## 7. Orders, payments, subscriptions, codes (live — Phase 6, `/admin/commerce`)
 - Hub with 6 tabs: products, orders (search/status filter + totals), payments (review queue: evidence, exact-amount approve, reject with reason), subscriptions (renew/pause/resume/cancel), codes (batch generation — plaintext shown ONCE; batch list), discounts.

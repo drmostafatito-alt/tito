@@ -3,6 +3,20 @@ import { z } from "zod";
 export const localeCodeSchema = z.enum(["ar", "en"]);
 export type LocaleCode = z.infer<typeof localeCodeSchema>;
 
+/**
+ * External platform URL field. Empty string = "not configured" (the entry is
+ * hidden). Any non-empty value MUST be a well-formed https URL — this is the
+ * write-side validation for admin-pasted external links; rendering code also
+ * re-validates (see app/lib/question-platform.ts) so a malformed value can never
+ * become a clickable href. javascript:/data:/vbscript:/protocol-relative values
+ * are rejected here, fail-closed.
+ */
+export const externalHttpsUrlOrEmpty = z
+  .string()
+  .max(500)
+  .refine((s) => s === "" || /^https:\/\/[^\s/$.?#].[^\s]*$/i.test(s), "must be an https URL")
+  .default("");
+
 export const platformSettingsSchema = z.object({
   nameAr: z.string().min(1).max(120).default("د/ مصطفى تيتو"),
   nameEn: z.string().min(1).max(120).default("Dr mostafa tito"),
@@ -20,6 +34,14 @@ export const platformSettingsSchema = z.object({
   whatsappFloating: z.boolean().default(false),
   /** Optional pre-filled first message for the floating button's wa.me link. */
   whatsappMessage: z.string().max(300).default(""),
+  /**
+   * EXTERNAL Questions & Exams Platform (the internal question bank/exams were
+   * retired in favour of a standalone platform). When enabled AND the URL is a
+   * valid https link, students see a clearly-labelled external entry point;
+   * when disabled or unconfigured the entry is hidden entirely.
+   */
+  questionPlatformEnabled: z.boolean().default(false),
+  questionPlatformUrl: externalHttpsUrlOrEmpty,
 });
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
 

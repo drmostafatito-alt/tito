@@ -23,12 +23,12 @@ test.describe("lesson, video & progress (entitled student)", () => {
     expect(src).toContain("/api/mock-stream/");
   });
 
-  test("entitled lesson shows the attached PDF and the required exam item", async ({ page }) => {
+  test("entitled lesson shows the attached PDF and never links to the retired internal exams", async ({ page }) => {
     await page.goto(`/learn/${FIXTURES.courseSlug}/${FIXTURES.lesson2Slug}`);
     await expect(page.locator("body")).toContainText("Coulomb's Law");
     await expect(page.locator("body")).toContainText("physics-revision.pdf");
-    // the required exam on lesson 2 is surfaced as an item with a start link
-    await expect(page.locator(`a[href="/exams/${FIXTURES.examSlug}"]`)).toBeVisible();
+    // the internal exam engine was retired: no /exams links may appear on a lesson
+    expect(await page.locator('a[href^="/exams"]').count()).toBe(0);
   });
 
   test("mark-complete is a real server mutation that flips the label", async ({ page }) => {

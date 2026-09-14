@@ -4,12 +4,10 @@ import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { canPlatform } from "~server/auth/permissions.server";
-import { canAssessment } from "~server/assessment/service.server";
 import { canAssignment } from "~server/assignments/service.server";
 import {
   searchAssignments,
   searchCourses,
-  searchExams,
   searchLessons,
   searchStudents,
 } from "~server/search/service.server";
@@ -27,7 +25,6 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     students: await canPlatform(db, auth, "users.read"),
     courses: true,
     lessons: true,
-    exams: await canAssessment(db, auth, "assessment.read"),
     assignments: await canAssignment(db, auth, "assignment.read"),
   };
 
@@ -35,23 +32,22 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     return {
       q, perms,
       groups: {
-        students: [], courses: [], lessons: [], exams: [], assignments: [],
+        students: [], courses: [], lessons: [], assignments: [],
       } as Record<string, unknown[]>,
     };
   }
 
-  const [students, courses, lessons, exams, assignments] = await Promise.all([
+  const [students, courses, lessons, assignments] = await Promise.all([
     perms.students ? searchStudents(db, q) : Promise.resolve([]),
     perms.courses ? searchCourses(db, q) : Promise.resolve([]),
     perms.lessons ? searchLessons(db, q) : Promise.resolve([]),
-    perms.exams ? searchExams(db, q) : Promise.resolve([]),
     perms.assignments ? searchAssignments(db, q) : Promise.resolve([]),
   ]);
 
   return {
     q,
     perms,
-    groups: { students, courses, lessons, exams, assignments } as unknown as Record<string, unknown[]>,
+    groups: { students, courses, lessons, assignments } as unknown as Record<string, unknown[]>,
   };
 }
 
@@ -68,7 +64,6 @@ export default function AdminSearchPage({ loaderData }: Route.ComponentProps) {
     { key: "students", label: L("search.group_students"), empty: !perms.students },
     { key: "courses", label: L("search.group_courses"), empty: false },
     { key: "lessons", label: L("search.group_lessons"), empty: false },
-    { key: "exams", label: L("search.group_exams"), empty: !perms.exams },
     { key: "assignments", label: L("search.group_assignments"), empty: !perms.assignments },
   ];
 
@@ -134,7 +129,6 @@ function Row({ kind, row, locale }: { kind: string; row: Record<string, unknown>
       case "students": return `/admin/students/${id}`;
       case "courses": return `/admin/content/course/${id}`;
       case "lessons": return `/admin/content/lesson/${id}`;
-      case "exams": return `/admin/assessment/exams/${id}`;
       case "assignments": return `/admin/assignments/${id}`;
       default: return "#";
     }

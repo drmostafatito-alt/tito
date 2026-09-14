@@ -54,8 +54,8 @@ test("Chromium click: AR → EN full document locale switch", async ({ page, con
   expect(cookiesEn.find((c) => c.name === "edu_locale")?.value).toBe("en");
   const enText = await page.locator("body").innerText();
   expect(enText).toContain("Courses & revision");
-  expect(enText).toContain("Question banks");
-  expect(enText).toContain("Online tests");
+  expect(enText).toContain("Notes & files");
+  expect(enText).toContain("Assignments");
   expect(enText).toMatch(/Welcome to your platform/i);
   expect(enText).toMatch(/^Home$/m);
   expect(enText).toMatch(/Log in/i);

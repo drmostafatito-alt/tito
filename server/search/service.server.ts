@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, or, like } from "drizzle-orm";
 import type { DB } from "~server/db/client.server";
-import { assignments, courses, exams, lessons, users } from "~server/db/schema";
+import { assignments, courses, lessons, users } from "~server/db/schema";
 
 /**
  * Global admin search — bounded, server-side, D1-only (no external engine).
@@ -93,21 +93,3 @@ export async function searchAssignments(db: DB, raw: string, limit = SEARCH_CATE
     .limit(limit);
 }
 
-export interface ExamHit {
-  id: string;
-  titleAr: string;
-  titleEn: string;
-  status: string;
-}
-
-export async function searchExams(db: DB, raw: string, limit = SEARCH_CATEGORY_LIMIT): Promise<ExamHit[]> {
-  const q = safeTerm(raw);
-  if (!q) return [];
-  const pattern = `%${q}%`;
-  return db
-    .select({ id: exams.id, titleAr: exams.titleAr, titleEn: exams.titleEn, status: exams.status })
-    .from(exams)
-    .where(or(like(exams.titleAr, pattern), like(exams.titleEn, pattern))!)
-    .orderBy(desc(exams.updatedAt))
-    .limit(limit);
-}

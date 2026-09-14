@@ -18,8 +18,7 @@ export const FIXTURES = {
   courseSlug: "physics-3s-full",
   freeCourseSlug: "study-skills",
   lesson1Slug: "electrostatics-intro", // free preview; holds the MOCK VIDEO
-  lesson2Slug: "coulomb-law", // entitled; holds the PDF + required exam
-  examSlug: "electrostatics-check",
+  lesson2Slug: "coulomb-law", // entitled; holds the PDF
   productSlug: "physics-3s-full-access",
 };
 

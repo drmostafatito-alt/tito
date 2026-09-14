@@ -193,7 +193,7 @@ export default function AdminStudent360({ loaderData }: Route.ComponentProps) {
                   {data.attempts.map((a) => (
                     <tr key={a.id} className="border-b border-slate-100 last:border-0">
                       <td className="px-4 py-3">
-                        <Link to={`/admin/assessment/attempts/${a.id}`} className="font-medium text-brand-700 hover:underline">{titleOf(a.examTitleAr, a.examTitleEn)}</Link>
+                        <span className="font-medium text-slate-700">{titleOf(a.examTitleAr, a.examTitleEn)}</span>
                       </td>
                       <td className="px-4 py-3 text-slate-500">{formatDate(locale, a.submittedAt ?? a.startedAt)}</td>
                       <td className="px-4 py-3">

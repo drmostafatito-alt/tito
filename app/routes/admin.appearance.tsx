@@ -73,12 +73,26 @@ export async function action({ context, request }: Route.ActionArgs) {
     if (group === "system") {
       // platform identity (name/tagline/support/maintenance) + — super_admin only — video provider policy.
       const nullable = (k: string) => { const v = str(k); return v === "" ? null : v; };
+      // External Questions Platform: https-only or empty (empty + disabled hides the entry)
+      const questionPlatformUrl = str("questionPlatformUrl").trim();
+      if (questionPlatformUrl !== "") {
+        let urlOk = false;
+        try {
+          const u = new URL(questionPlatformUrl);
+          urlOk = u.protocol === "https:" && Boolean(u.hostname) && !u.hostname.includes("\\");
+        } catch { urlOk = false; }
+        if (!urlOk) {
+          return { error: "validation" as const, issues: [t("ar", "questionPlatformAdmin.invalidUrl"), t("en", "questionPlatformAdmin.invalidUrl")] };
+        }
+      }
       await updateSettingsGroup(db, "platform", {
         nameAr: str("nameAr"), nameEn: str("nameEn"),
         taglineAr: str("taglineAr"), taglineEn: str("taglineEn"),
         supportEmail: nullable("supportEmail"), supportPhone: nullable("supportPhone"),
         whatsapp: nullable("whatsapp"), maintenance: on("maintenance"),
         whatsappFloating: on("whatsappFloating"), whatsappMessage: str("whatsappMessage"),
+        questionPlatformEnabled: on("questionPlatformEnabled"),
+        questionPlatformUrl,
       }, actor);
       // Language presentation: which languages visitors are offered, and which
       // one a fresh visitor (no cookie) gets. localeSettingsSchema rejects a
@@ -554,6 +568,12 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                   <Input label={L("cms.f.whatsappMessage")} name="whatsappMessage" defaultValue={plat.whatsappMessage} dir="rtl" />
                 </div>
                 <Check name="maintenance" checked={plat.maintenance} label={L("cms.f.maintenance")} />
+              </fieldset>
+              <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4" data-testid="question-platform-settings">
+                <legend className="px-1 text-sm font-semibold text-slate-700">{t(locale, "questionPlatformAdmin.title")}</legend>
+                <p className="text-xs text-slate-500">{t(locale, "questionPlatformAdmin.hint")}</p>
+                <Check name="questionPlatformEnabled" checked={plat.questionPlatformEnabled} label={t(locale, "questionPlatformAdmin.enabled")} />
+                <Input label={t(locale, "questionPlatformAdmin.urlLabel")} name="questionPlatformUrl" defaultValue={plat.questionPlatformUrl ?? ""} dir="ltr" placeholder="https://questions.example.com" />
               </fieldset>
               <fieldset className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4" data-testid="language-settings">
                 <legend className="px-1 text-sm font-semibold text-slate-700">{L("cms.ui.systemLanguage")}</legend>

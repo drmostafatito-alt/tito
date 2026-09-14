@@ -100,7 +100,7 @@ test.describe("floating WhatsApp button", () => {
     const mustNotHave: { ctx: BrowserContext; path: string }[] = [
       { ctx: anon.ctx, path: "/courses" },
       { ctx: anon.ctx, path: `/courses/${FIXTURES.courseSlug}` },
-      { ctx: anon.ctx, path: "/exams" },
+      { ctx: anon.ctx, path: "/assignments" },
       { ctx: anon.ctx, path: "/p/contact" },
       { ctx: anon.ctx, path: "/login" },
       { ctx: student, path: "/dashboard" },

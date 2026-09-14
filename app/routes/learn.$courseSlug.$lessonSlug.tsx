@@ -18,7 +18,6 @@ import {
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { courseProgress, lessonProgressMap, setLessonCompleted, videoProgressMap } from "~server/progress/service.server";
 import { getSettings } from "~server/settings/service.server";
-import { getExam } from "~server/assessment/service.server";
 import { signFileUrl } from "~server/files/storage.server";
 import { VideoPlayer } from "~/components/player/VideoPlayer";
 import { Badge } from "~/components/ui/Badge";
@@ -63,7 +62,12 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const unitRows = await unitsForCourse(db, course.id);
   const unit = unitRows.find((u) => u.id === lesson.unitId);
   const settings = await getSettings(db);
-  const items = await itemsForLesson(db, lesson.id);
+  const lessonItemsAll = await itemsForLesson(db, lesson.id);
+  // Legacy internal-exam items were retired together with the question bank
+  // (exams live on a standalone external platform now). Their rows are retained
+  // in the DB, but they are never rendered, so a lesson cannot link to a dead
+  // /exams route. Video/file/link items are unaffected.
+  const items = lessonItemsAll.filter((i) => i.itemType !== "exam");
 
   // sibling navigation (previous/next within course order)
   const idx = courseLessons.findIndex((l) => l.id === lesson.id);
@@ -72,15 +76,10 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 
   const videoRows = await videosByIds(db, items.filter((i) => i.itemType === "video" && i.videoId).map((i) => i.videoId!));
   const fileRows = await filesByIds(db, items.filter((i) => i.itemType === "file" && i.fileId).map((i) => i.fileId!));
-  // Phase 5: exam items resolve to their Assessment-domain exam (CMS only links)
-  const examMap = new Map<string, { slug: string; titleAr: string; titleEn: string; status: string }>();
-  for (const eid of new Set(items.filter((i) => i.itemType === "exam" && i.examId).map((i) => i.examId!))) {
-    const e = await getExam(db, eid);
-    if (e) examMap.set(eid, { slug: e.slug, titleAr: e.titleAr, titleEn: e.titleEn, status: e.status });
-  }
 
-  const renderedItems = await Promise.all(
-    items.map(async (item) => {
+  const renderedItems = (
+    await Promise.all(
+      items.map(async (item) => {
       if (item.itemType === "video" && item.videoId) {
         const v = videoRows.get(item.videoId);
         return {
@@ -129,19 +128,10 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
           descriptionEn: item.descriptionEn,
         };
       }
-      const e = item.examId ? examMap.get(item.examId) : null;
-      return {
-        key: item.id,
-        kind: "exam" as const,
-        required: item.required,
-        examId: item.examId,
-        slug: e?.slug ?? null,
-        titleAr: e?.titleAr ?? null,
-        titleEn: e?.titleEn ?? null,
-        status: e?.status ?? null,
-      };
-    })
-  );
+        return null;
+      })
+    )
+  ).filter((r): r is NonNullable<typeof r> => r !== null);
 
   // Phase 4: progress (server is the source of truth) — only for signed-in viewers with access
   let progress: {
@@ -345,33 +335,9 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 </Card>
               );
             }
-            if (item.status === "published" && item.slug) {
-              return (
-                <Card key={item.key}>
-                  <CardBody className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="font-medium">📝 {locale === "ar" ? item.titleAr : item.titleEn}</p>
-                      <p className="text-xs text-slate-500">
-                        {t(locale, "content.examItem")} · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
-                      </p>
-                    </div>
-                    <Link
-                      to={`/exams/${item.slug}`}
-                      className="min-h-11 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 sm:min-h-0 sm:py-2"
-                    >
-                      {t(locale, "exam.start")}
-                    </Link>
-                  </CardBody>
-                </Card>
-              );
-            }
-            return (
-              <Card key={item.key}>
-                <CardBody className="text-sm text-slate-500">
-                  {t(locale, "content.examItem")} — {t(locale, "content.examNotReady")}
-                </CardBody>
-              </Card>
-            );
+            // Legacy internal-exam items are filtered out server-side (the
+            // questions/exams platform is now an external standalone product).
+            return null;
           })}
           {items.length === 0 && <p className="text-sm text-slate-500">—</p>}
           <Form method="post" className="pt-2" data-lesson-id={lessonId}>

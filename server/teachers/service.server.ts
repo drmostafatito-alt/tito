@@ -3,26 +3,31 @@ import type { DB } from "../db/client.server";
 import { rolePermissions } from "../db/schema";
 import { logAudit } from "../audit/log.server";
 import { canPlatform } from "../auth/permissions.server";
-import { ASSESSMENT_PERMISSIONS, type AssessmentPermission } from "../assessment/service.server";
 
 /**
- * Teacher-role administration (FEATURE-SPEC §1 roles / §12 Teachers · §5
- * question-bank "teachers author, admins publish").
+ * The only permissions that may ever be granted to the teacher role.
  *
- * A teacher (rank 2) is only allowed to author inside the question bank /
- * exams when the platform operator grants the *teacher role* the relevant
- * assessment.* permission through the `role_permissions` table. That grant is
- * deliberately role-scoped (not per-user) and restricted here to a hard-coded
- * authoring allowlist so a grant can NEVER escalate a teacher into
- * billing/payment, user-administration, security or system permissions.
+ * HISTORICAL NOTE: the internal question bank / assessment engine was retired in
+ * favour of a standalone external Questions Platform, so teachers no longer get
+ * an in-app authoring area. The allowlist + the `role_permissions` RBAC table are
+ * retained so historical assessment.* grants stay valid data and the teacher
+ * roster/status administration keeps working — the hard-coded allowlist also
+ * ensures a grant can NEVER escalate a teacher into billing/payment,
+ * user-administration, security or system permissions.
  */
+export const TEACHER_PERMISSIONS = [
+  "assessment.read",
+  "assessment.create",
+  "assessment.edit",
+  "assessment.publish",
+  "assessment.delete",
+  "assessment.grade",
+] as const;
+export type TeacherPermission = (typeof TEACHER_PERMISSIONS)[number];
 
-/** The only permissions that may ever be granted to the teacher role. */
-export const TEACHER_PERMISSIONS: readonly AssessmentPermission[] = [...ASSESSMENT_PERMISSIONS];
-
-/** Human-facing metadata for the permission matrix (used by the admin UI). */
+/** Human-facing metadata for retained permission rows (no longer surfaced in the admin UI). */
 export interface TeacherPermissionDescriptor {
-  permission: AssessmentPermission;
+  permission: TeacherPermission;
   labelEn: string;
   labelAr: string;
   /** Authoring actions granted by default when enabling "teacher authoring". */
@@ -73,7 +78,7 @@ export async function canManageTeachers(
 }
 
 /** Whether the given permission string is grantable to the teacher role. */
-export function isTeacherGrantable(permission: string): permission is AssessmentPermission {
+export function isTeacherGrantable(permission: string): permission is TeacherPermission {
   return (TEACHER_PERMISSIONS as readonly string[]).includes(permission);
 }
 
@@ -92,7 +97,7 @@ export async function teacherPermissionMatrix(db: DB): Promise<MatrixRow[]> {
 }
 
 export type SetTeacherPermissionResult =
-  | { ok: true; permission: AssessmentPermission; granted: boolean }
+  | { ok: true; permission: TeacherPermission; granted: boolean }
   | { ok: false; code: "denied" | "bad_permission" };
 
 export interface TeacherActor {

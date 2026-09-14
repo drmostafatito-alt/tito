@@ -67,7 +67,7 @@ test.describe("homepage public chrome", () => {
     const cookies = await page.context().cookies(BASE);
     expect(cookies.find((c) => c.name === "edu_locale")?.value).toBe("en");
     await expect(page.locator("body")).toContainText(/Courses & revision/);
-    await expect(page.locator("body")).toContainText(/Question banks/);
+    await expect(page.locator("body")).toContainText(/Notes & files/);
     await expect(page.locator("body")).not.toContainText("كورسات ومراجعات");
     await expect(page.getByRole("button", { name: /عربي|arabic/i })).toBeVisible();
   });

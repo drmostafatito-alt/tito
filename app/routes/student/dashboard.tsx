@@ -11,7 +11,9 @@ import { continueLearning, courseProgressBatch, progressStats } from "~server/pr
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
 import { ProgressBar } from "~/components/ProgressBar";
+import { QuestionPlatformCard } from "~/components/QuestionPlatform";
 import { t, formatDate, type Locale } from "~/lib/i18n";
+import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
 
 /**
  * Student dashboard (Phase 3 stage 5): modular, admin-configured. Which
@@ -25,6 +27,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
   const dash = settings.dashboard;
   const enabled = new Map(dash.modules.map((m) => [m.id, m.enabled]));
+  // External Questions & Exams Platform entry (admin-configured; null = hidden)
+  const questionPlatformUrl = resolveQuestionPlatformUrl(settings.platform);
 
   const [deviceRows, sessionCount, recent] = await Promise.all([
     db.select().from(devices).where(and(eq(devices.userId, auth.user.id), eq(devices.status, "active"))),
@@ -102,6 +106,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
   return {
     user: { fullName: auth.user.fullName, roleId: auth.user.roleId },
+    questionPlatformUrl,
     session: { expiresAt: auth.session.expiresAt },
     device: auth.device,
     activeDevices: deviceRows.length,
@@ -157,6 +162,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           {t(locale, "dashboard.role")}: {roleLabel[loaderData.user.roleId] ?? loaderData.user.roleId}
         </Badge>
       </div>
+
+      {/* External Questions & Exams Platform entry (replaces the retired internal question bank) */}
+      <QuestionPlatformCard url={loaderData.questionPlatformUrl} locale={locale} />
 
       {/* Admin-configured modules */}
       {loaderData.dash.modules.continue && (

@@ -72,7 +72,7 @@ const LANDING: StarterTemplate = {
           style: "bar",
           items: [
             { value: L("", ""), label: L("كورسات منظمة", "Structured courses"), icon: "book-open", href: "/courses" },
-            { value: L("", ""), label: L("اختبارات", "Exams"), icon: "check-circle", href: "/exams" },
+            { value: L("", ""), label: L("شروحات مرئية", "Video lessons"), icon: "play-circle", href: "/courses" },
             { value: L("", ""), label: L("شروحات واضحة", "Clear lessons"), icon: "lightbulb", href: "/courses" },
             { value: L("", ""), label: L("متابعة التقدم", "Progress tracking"), icon: "chart", href: "/register" },
           ],

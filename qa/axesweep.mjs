@@ -14,9 +14,6 @@ const ADMIN_LIST_PAGES = [
   "/admin/content?type=course",
   "/admin/content?type=unit",
   "/admin/content?type=lesson",
-  "/admin/assessment?tab=questions",
-  "/admin/assessment?tab=exams",
-  "/admin/assessment?tab=attempts",
   "/admin/commerce?tab=products",
   "/admin/commerce?tab=orders",
   "/admin/commerce?tab=payments",
@@ -40,17 +37,14 @@ const ADMIN_LIST_PAGES = [
 const STUDENT_LIST_PAGES = [
   "/dashboard",
   "/courses",
-  "/exams",
   "/orders",
   "/activate",
   "/notifications",
   "/profile",
-  "/results",
 ];
 
 const STUDENT_DETAIL_TRY = [
   "/courses/physics-3s-full",
-  "/exams/electrostatics-check",
   "/learn/physics-3s-full",
 ];
 
@@ -59,7 +53,6 @@ const PUBLIC_PAGES = ["/", "/courses", "/p/faq", "/p/contact", "/p/resources", "
 const DETAIL_PATTERNS = [
   /^\/admin\/users\/[0-9a-f-]{8,}/,
   /^\/admin\/content\/(subject|course|unit|lesson)\/[0-9a-f-]{8,}/,
-  /^\/admin\/assessment\/(questions|exams|attempts)\/[0-9a-f-]{8,}/,
   /^\/admin\/commerce\/(products|orders|batches)\/[0-9a-f-]{8,}/,
   /^\/admin\/cms\/pages\/[0-9a-f-]{8,}/,
 ];
@@ -168,7 +161,7 @@ async function run() {
       const hrefs = await sp.$$eval("a[href]", (as) => as.map((a) => a.getAttribute("href")));
       for (const h of hrefs) {
         if (
-          /^\/(courses|exams|learn|orders|results|products)\//.test(h) &&
+          /^\/(courses|learn|orders|products)\//.test(h) &&
           !h.includes("?") &&
           !studentExtra.has(h)
         )

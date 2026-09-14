@@ -15,7 +15,6 @@ import {
 } from "~server/teachers/service.server";
 import { listUsers } from "~server/users/service.server";
 import { loader as layoutLoader } from "~/routes/admin/layout";
-import { loader as assessmentHubLoader } from "~/routes/admin.assessment";
 
 /**
  * Teacher role + permission matrix (Batch 3).
@@ -173,7 +172,7 @@ describe("teacher permission matrix & enforcement", () => {
     expect(await canAssessment(db, subject, "assessment.delete")).toBe(false);
   });
 
-  it("reused admin route: a granted teacher reaches the question-bank hub; un-granted teacher & students are refused", async () => {
+  it("admin layout: teachers (even with legacy authoring grants) and students are refused; admins admitted", async () => {
     const routeCtx = { cloudflare: { env, ctx: { waitUntil() {}, passThroughOnException() {} } } };
     const get = (path: string, cookie: string) =>
       new Request(`https://app.test${path}`, { method: "GET", headers: { cookie, "user-agent": UA } });
@@ -189,30 +188,17 @@ describe("teacher permission matrix & enforcement", () => {
       }
     }
 
-    // Un-granted teacher: the admin layout refuses entry (3xx redirect).
-    expect((await resOf(run(layoutLoader, get("/admin/assessment", teacherT.cookie)))).status).toBeGreaterThanOrEqual(300);
-
-    // A student (rank 1) is also refused by the layout.
-    expect((await resOf(run(layoutLoader, get("/admin/assessment", studentS.cookie)))).status).toBeGreaterThanOrEqual(300);
-
-    // Grant authoring (read/create/edit) on the teacher role.
-    for (const p of ["assessment.read", "assessment.create", "assessment.edit"]) {
-      const out = await setTeacherPermission(db, sup(), p, true);
+    // The internal question-bank authoring area was retired: even a teacher who
+    // still holds legacy assessment.* grants can no longer enter the admin panel.
+    for (const perm of ["assessment.read", "assessment.create", "assessment.edit"]) {
+      const out = await setTeacherPermission(db, sup(), perm, true);
       expect(out.ok).toBe(true);
     }
+    expect((await resOf(run(layoutLoader, get("/admin", teacherT.cookie)))).status).toBeGreaterThanOrEqual(300);
+    expect((await resOf(run(layoutLoader, get("/admin", studentS.cookie)))).status).toBeGreaterThanOrEqual(300);
 
-    // Now the layout admits the teacher in teacherMode, and the hub loader returns authoring data.
-    const laid = (await run(layoutLoader, get("/admin/assessment", teacherT.cookie))) as { teacherMode: boolean; admin: { roleId: string } };
-    expect(laid.teacherMode).toBe(true);
-    expect(laid.admin.roleId).toBe("teacher");
-
-    const hub = (await run(assessmentHubLoader, get("/admin/assessment?tab=questions", teacherT.cookie))) as {
-      perms: { read: boolean; create: boolean; grade: boolean };
-      tab: string;
-    };
-    expect(hub.perms.read).toBe(true);
-    expect(hub.perms.create).toBe(true);
-    expect(hub.perms.grade).toBe(false);
-    expect(hub.tab).toBe("questions");
+    // rank 3+ admins keep full access to the panel.
+    const laid = (await run(layoutLoader, get("/admin", adminB.cookie))) as { admin: { roleId: string } };
+    expect(laid.admin.roleId).toBe("admin");
   });
 });

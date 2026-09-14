@@ -97,24 +97,13 @@ if (feature === "content-search") {
   await pub.waitForLoadState("networkidle");
   ok("public course page loads", pub.url().includes("/courses/physics-3s-full"));
   ok("public page shows the course title", /Physics/i.test(await pub.locator("h1").first().textContent()));
-} else if (feature === "assessment-filters") {
-  await page.goto(`${BASE}/admin/assessment?tab=questions`, { waitUntil: "networkidle" });
-  const baseRows = await page.locator("a[href*='/admin/assessment/questions/']").count();
-  ok("question list renders", baseRows >= 1);
-  await page.locator('select[name="difficulty"]').selectOption("medium");
-  await page.getByRole("button", { name: "Search" }).click();
-  await page.waitForURL(/difficulty=medium/, { timeout: 15000 });
-  await page.waitForLoadState("networkidle");
-  const mediumRows = await page.locator("a[href*='/admin/assessment/questions/']").count();
-  ok("difficulty filter applied (url param)", page.url().includes("difficulty=medium"));
-  ok("difficulty filter returns rows", mediumRows >= 1);
-  await page.locator('select[name="difficulty"]').selectOption("");
-  await page.locator('select[name="type"]').selectOption("mcq");
-  await page.getByRole("button", { name: "Search" }).click();
-  await page.waitForURL(/type=mcq/, { timeout: 15000 });
-  await page.waitForLoadState("networkidle");
-  ok("type filter applied", page.url().includes("type=mcq"));
-  ok("rows still render with type filter", (await page.locator("a[href*='/admin/assessment/questions/']").count()) >= 1);
+} else if (feature === "question-platform-settings") {
+  await page.goto(`${BASE}/admin/appearance?tab=system`, { waitUntil: "networkidle" });
+  const fieldset = page.locator('[data-testid="question-platform-settings"]');
+  await fieldset.waitFor({ timeout: 15000 });
+  ok("external Questions Platform settings render", await fieldset.count() === 1);
+  ok("enable toggle exists", await fieldset.locator('input[name="questionPlatformEnabled"]').count() === 1);
+  ok("URL field exists", await fieldset.locator('input[name="questionPlatformUrl"]').count() === 1);
 } else {
   console.error("unknown feature:", feature);
   process.exit(2);

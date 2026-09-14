@@ -65,10 +65,21 @@ if (lesson) {
   );
 }
 
-// 4) synthetic exam attempt + answer (use the seeded demo exam via its slug)
-const exam = (await db.prepare("SELECT id FROM exams WHERE slug = ?").bind("electrostatics-check").first())
-  ?? (await db.prepare("SELECT id FROM exams LIMIT 1").first());
-if (exam) {
+// 4) synthetic exam attempt + answer. The internal exam UI was retired, but the
+// assessment tables/data are retained, so the backup rehearsal still covers
+// them. Self-provision a synthetic exam (the seed no longer creates one).
+const W5_EXAM_SLUG = "w5-synthetic-exam";
+let exam = await db.prepare("SELECT id FROM exams WHERE slug = ?").bind(W5_EXAM_SLUG).first();
+if (!exam) {
+  const examId = crypto.randomUUID();
+  await exec(
+    `INSERT INTO exams (id, slug, title_ar, title_en, config, status, created_at, updated_at)
+     VALUES (?, ?, 'امتحان W5', 'W5 Synthetic Exam', '{}', 'published', ?, ?)`,
+    [examId, W5_EXAM_SLUG, now, now]
+  );
+  exam = { id: examId };
+}
+{
   const attemptId = crypto.randomUUID();
   await exec(
     `INSERT OR IGNORE INTO exam_attempts (id, exam_id, student_id, attempt_number, status, started_at, deadline_at, submitted_at, time_used_seconds, score, max_score, passed, grading_status, random_seed, metadata)

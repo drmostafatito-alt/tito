@@ -13,7 +13,7 @@ import { STUDENT_STATE, ADMIN_STATE, FIXTURES } from "./helpers";
  *   - directional arrow glyphs are wrapped in `rtl:rotate-180` (RTL-flip)
  *   - LTR-only tokens (email/phone/order numbers) carry `dir="ltr"`
  *   - the admin/student mobile navigation toggle exists with correct ARIA
- *   - exam prev/next controls expose accessible names (Arabic + English)
+ *   - lesson prev/next controls expose accessible names and flip in RTL
  */
 
 const BASE = "http://127.0.0.1:5173";
@@ -56,12 +56,6 @@ test.describe("student surfaces (RTL)", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("exam back link uses an RTL-flipped arrow", async ({ page }) => {
-    await setLocale(page, "ar");
-    await page.goto(`/exams/${FIXTURES.examSlug}`);
-    await expect(page.locator('a[href="/exams"] span[class*="rtl:rotate-180"]').first()).toBeAttached();
-  });
-
   test("lesson prev/next use RTL-flipped arrows", async ({ page }) => {
     await setLocale(page, "ar");
     await page.goto(`/learn/${FIXTURES.courseSlug}/${FIXTURES.lesson2Slug}`);
@@ -72,14 +66,6 @@ test.describe("student surfaces (RTL)", () => {
     await expect(prevNextNav.locator('span[class*="rtl:rotate-180"]').first()).toBeAttached();
   });
 
-  test("exam prev/next controls are named in Arabic", async ({ page }) => {
-    await setLocale(page, "ar");
-    await page.goto(`/exams/${FIXTURES.examSlug}`);
-    await page.getByRole("button", { name: /start|ابدأ/i }).first().click();
-    await page.waitForURL(/\/attempt/, { timeout: 20_000 });
-    await expect(page.getByRole("button", { name: /السؤال السابق/i })).toBeAttached();
-    await expect(page.getByRole("button", { name: /السؤال التالي/i })).toBeAttached();
-  });
 });
 
 test.describe("admin surfaces (RTL + mobile)", () => {

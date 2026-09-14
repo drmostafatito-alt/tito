@@ -9,7 +9,7 @@
  *     admin@educore.local is a LOCAL placeholder, not a production identity.
  *
  * Demo/fixture catalog (LMS feature coverage for e2e/smoke — NOT site identity):
- *   - subject physics-3s, course physics-3s-full, exam electrostatics-check
+ *   - subject physics-3s, course physics-3s-full (with a PDF lesson item)
  *   - product physics-3s-full-access, student@educore.local
  *   Production-readiness gate rejects all of the above.
  *
@@ -324,76 +324,11 @@ if (!existingPdfItem) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 5 demo assessment (idempotent: exam keyed by slug, questions by stem_en)
+// Questions & exams: RETIRED from Tito. The internal question bank / exam engine
+// was replaced by a standalone external Questions Platform (its entry URL is
+// admin-controlled under Appearance -> System; no demo exam/question rows are
+// seeded). Lesson 2 keeps its PDF item only.
 // ---------------------------------------------------------------------------
-const examConfig = {
-  duration_minutes: 10,
-  availability: { starts_at: null, ends_at: null },
-  selection: { mode: "manual", pools: [], max_questions: null, randomize_questions: false, randomize_choices: false },
-  attempts: { max: 30, cooldown_minutes: 0, manual_extra_allowed: false },
-  scoring: { pass_percent: 50, partial_credit_multiselect: true, essay_points: 0 },
-  results: { show: "immediate", show_answers: true, show_explanations: true, review_mode: true },
-};
-
-async function ensureQuestion(stemEn, cols, choices) {
-  const found = await DB.prepare("SELECT id FROM questions WHERE stem_en = ? AND deleted_at IS NULL").bind(stemEn).first();
-  if (found) return found.id;
-  const id = detId("question:" + stemEn);
-  await exec(
-    `INSERT INTO questions (id, type, stem_ar, stem_en, explanation_ar, explanation_en, difficulty, points_default, subject_id, course_id, unit_id, lesson_id, status, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'published', ?, ?)`,
-    [id, cols.type, cols.stemAr, stemEn, cols.explanationAr ?? null, cols.explanationEn ?? null, cols.difficulty ?? "medium", cols.points, subjectId, courseId, unitId, cols.lessonId ?? null, now, now]
-  );
-  for (let i = 0; i < choices.length; i++) {
-    await exec(
-      `INSERT INTO question_choices (id, question_id, content_ar, content_en, is_correct, sort_order, feedback) VALUES (?,?,?,?,?,?,?)`,
-      [crypto.randomUUID(), id, choices[i].ar, choices[i].en, choices[i].correct ? 1 : 0, i, null]
-    );
-  }
-  return id;
-}
-
-const q1Id = await ensureQuestion("Coulomb force is proportional to…", {
-  type: "mcq", stemAr: "قوة كولوم تتناسب طرديًا مع…", points: 2, lessonId: lesson2Id,
-  explanationAr: "قانون كولوم: القوة تتناسب مع حاصل ضرب الشحنتين وعكس مربع المسافة.",
-  explanationEn: "Coulomb's law: force is proportional to the product of charges over distance squared.",
-}, [
-  { ar: "حاصل ضرب الشحنتين", en: "the product of the two charges", correct: true },
-  { ar: "مجموع الشحنتين", en: "the sum of the two charges", correct: false },
-  { ar: "المسافة بين الشحنتين", en: "the distance between charges", correct: false },
-]);
-const q2Id = await ensureQuestion("The unit of electric charge is the coulomb.", {
-  type: "true_false", stemAr: "وحدة قياس الشحنة الكهربائية هي الكولوم.", points: 1, lessonId: lesson2Id,
-  explanationAr: "نعم — الكولوم هو وحدة الشحنة في النظام الدولي.",
-  explanationEn: "True — the coulomb is the SI unit of charge.",
-}, [
-  { ar: "صواب", en: "True", correct: true },
-  { ar: "خطأ", en: "False", correct: false },
-]);
-
-const existingExam = await DB.prepare("SELECT id FROM exams WHERE slug = ?").bind("electrostatics-check").first();
-let demoExamId;
-if (!existingExam) {
-  demoExamId = detId("exam:electrostatics-check");
-  await exec(
-    `INSERT INTO exams (id, slug, title_ar, title_en, description_ar, description_en, course_id, lesson_id, config, status, created_at, updated_at)
-     VALUES (?, 'electrostatics-check', ?, ?, ?, ?, NULL, ?, ?, 'published', ?, ?)`,
-    [demoExamId, "قياس: الكهرباء الساكنة", "Check: Electrostatics", "اختبار قصير بعد درس قانون كولوم.", "A short check after the Coulomb's law lesson.", lesson2Id, JSON.stringify(examConfig), now, now]
-  );
-  await exec(`INSERT INTO exam_questions (exam_id, question_id, sort_order, points) VALUES (?,?,?,?)`, [demoExamId, q1Id, 0, 2]);
-  await exec(`INSERT INTO exam_questions (exam_id, question_id, sort_order, points) VALUES (?,?,?,?)`, [demoExamId, q2Id, 1, 1]);
-} else {
-  demoExamId = existingExam.id;
-}
-
-// lesson item: REQUIRED exam on lesson 2 (graded submission completes the lesson)
-const existingExamItem = await DB.prepare("SELECT id FROM lesson_items WHERE lesson_id = ? AND exam_id = ?").bind(lesson2Id, demoExamId).first();
-if (!existingExamItem) {
-  await exec(`INSERT INTO lesson_items (id, lesson_id, item_type, exam_id, sort_order, required, created_at) VALUES (?,?,?,?,?,?,?)`, [
-    crypto.randomUUID(), lesson2Id, "exam", demoExamId, 1, 1, now,
-  ]);
-}
-
 // ---------------------------------------------------------------------------
 // Phase 6 demo commerce (idempotent: keyed by fixed slug). The readiness gate
 // flags these rows — dev/demo only, never production.
@@ -415,8 +350,8 @@ const demoProductId = await ensureContent("products", "physics-3s-full-access", 
   slug: "physics-3s-full-access",
   name_ar: "فيزياء ٣ث — وصول كامل للدورة",
   name_en: "Physics 3S — Full Course Access",
-  description_ar: "افتح كل دروس دورة الفيزياء: الشرح والملفات والامتحانات.",
-  description_en: "Unlock every physics lesson: videos, files and exams.",
+  description_ar: "افتح كل دروس دورة الفيزياء: الشرح والملفات والواجبات.",
+  description_en: "Unlock every physics lesson: videos, files and assignments.",
   active: 1,
   sort_order: 0,
   created_at: now,
@@ -548,8 +483,8 @@ const heroSection = section(
     eyebrow: L("الفلسفة وعلم النفس", "Philosophy & Psychology"),
     heading: L("أهلاً بيكم في منصتكم!", "Welcome to your platform!"),
     subtitle: L(
-      "<p>مع <strong>د/ مصطفى تيتو</strong> — منصة متكاملة لدراسة الفلسفة وعلم النفس: محاضرات، ملخصات، بنوك أسئلة واختبارات في مكان واحد.</p>",
-      "<p>With <strong>Dr mostafa tito</strong> — a complete platform for studying philosophy and psychology: lectures, notes, question banks and tests in one place.</p>"
+      "<p>مع <strong>د/ مصطفى تيتو</strong> — منصة متكاملة لدراسة الفلسفة وعلم النفس: محاضرات وملخصات ومراجعات في مكان واحد.</p>",
+      "<p>With <strong>Dr mostafa tito</strong> — a complete platform for studying philosophy and psychology: lectures, notes and revision in one place.</p>"
     ),
     ctas: [
       { label: L("إنشاء حساب", "Create account"), href: "/register", target: "_self", variant: "primary", icon: "" },
@@ -562,7 +497,7 @@ const heroSection = section(
     badges: [
       { icon: "book-open", title: L("كورسات الفلسفة", "Philosophy courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "bottom-start" },
       { icon: "brain", title: L("كورسات علم النفس", "Psychology courses"), text: L("شرح ومراجعة", "Lessons & revision"), position: "top-end" },
-      { icon: "lightbulb", title: L("بنوك أسئلة", "Question banks"), text: L("تدريب وتقييم", "Practice & assessment"), position: "top-start" },
+      { icon: "lightbulb", title: L("مراجعات وملخصات", "Revision & notes"), text: L("شرح وتدريب", "Lessons & practice"), position: "top-start" },
     ],
   })
 );
@@ -576,8 +511,8 @@ const statsSection = section(
     items: [
       { value: L("الفلسفة", "Philosophy"), label: L("كورسات ومراجعات", "Courses & revision"), icon: "book-open", href: "/courses" },
       { value: L("علم النفس", "Psychology"), label: L("كورسات ومراجعات", "Courses & revision"), icon: "brain", href: "/courses" },
-      { value: L("بنوك أسئلة", "Question banks"), label: L("تدريبات", "Practice"), icon: "list", href: "/exams" },
-      { value: L("اختبارات إلكترونية", "Online tests"), label: L("تقييم ومتابعة", "Assessment"), icon: "chart", href: "/exams" },
+      { value: L("ملفات ومذكرات", "Notes & files"), label: L("مراجعة سريعة", "Quick revision"), icon: "list", href: "/courses" },
+      { value: L("واجبات ومتابعة", "Assignments"), label: L("تسليم وتصحيح", "Submission & grading"), icon: "check-circle", href: "/assignments" },
     ],
   })
 );
@@ -592,8 +527,8 @@ const featuresSection = section(
     items: [
       { icon: "play-circle", title: L("محاضرات ودروس", "Lectures & lessons"), text: L("شروحات منظمة لكل دروس الفلسفة وعلم النفس.", "Organized lessons in philosophy and psychology."), ctaLabel: L("تصفح الكورسات", "Browse courses"), href: "/courses", tint: "error" },
       { icon: "file-text", title: L("ملخصات ومذكرات", "Notes & summaries"), text: L("ملفات منظمة تساعدك على المراجعة السريعة.", "Organized files for quick revision."), ctaLabel: L("مكتبة المصادر", "Resource library"), href: "/p/resources", tint: "success" },
-      { icon: "layers", title: L("بنوك أسئلة", "Question banks"), text: L("تدرّب على الأسئلة المصنفة حسب كل وحدة ودرس.", "Practice questions grouped by unit and lesson."), ctaLabel: L("الاختبارات", "Exams"), href: "/exams", tint: "warning" },
-      { icon: "check-circle", title: L("اختبارات وتقييمات", "Tests & assessments"), text: L("قيّم مستواك بتصحيح فوري داخل المنصة.", "Check your level with instant in-platform grading."), ctaLabel: L("الاختبارات", "Exams"), href: "/exams", tint: "brand" },
+      { icon: "layers", title: L("واجبات ومتابعة", "Assignments & follow-up"), text: L("مهام وتسليمات مع متابعة وتصحيح من المدرس.", "Tasks and submissions with teacher follow-up and grading."), ctaLabel: L("الواجبات", "Assignments"), href: "/assignments", tint: "warning" },
+      { icon: "file-text", title: L("مكتبة المصادر", "Resource library"), text: L("ملفات ومذكرات منظمة لكل المواد والوحدات.", "Organized files and notes for every subject and unit."), ctaLabel: L("استعراض", "Browse"), href: "/p/resources", tint: "brand" },
       { icon: "chart", title: L("متابعة التقدم", "Progress tracking"), text: L("تابع مستواك وتعرف على نقاط القوة والضعف.", "Track your level and see where to focus next."), ctaLabel: L("لوحة الطالب", "Dashboard"), href: "/dashboard", tint: "muted" },
     ],
   })
@@ -651,7 +586,7 @@ if (!existingNav?.n) {
   const navItems = [
     ["الرئيسية", "Home", "/"],
     ["الكورسات", "Courses", "/courses"],
-    ["الاختبارات", "Exams", "/exams"],
+    ["الواجبات", "Assignments", "/assignments"],
     ["مكتبة المصادر", "Resources", "/p/resources"],
     ["الأسئلة الشائعة", "FAQ", "/p/faq"],
     ["تواصل معنا", "Contact", "/p/contact"],
@@ -668,7 +603,7 @@ console.log("Seed complete.");
 console.log(`  super admin email : ${adminEmail} (source: ADMIN_BOOTSTRAP_EMAIL; local placeholder if unset in development)`);
 console.log("  password          : not printed — change via Profile → Security or the reset flow");
 console.log("  demo student      : student@educore.local (LOCAL fixture, blocked in production readiness)");
-console.log("  demo catalog      : physics-3s-full / electrostatics-check (LMS fixtures, not site identity)");
+console.log("  demo catalog      : physics-3s-full (LMS fixture, not site identity)");
 console.log("  production identity: د/ مصطفى تيتو / Philosophy & Psychology (CMS homepage)");
 
 await proxy.dispose();

@@ -28,7 +28,7 @@ const JOURNEYS: { name: string; state?: string; path: string; extra?: (p: Page) 
       await expect(p.locator("video")).toBeVisible({ timeout: 20_000 });
     },
   },
-  { name: "exam intro", state: STUDENT_STATE, path: `/exams/${FIXTURES.examSlug}` },
+  { name: "assignments", state: STUDENT_STATE, path: "/assignments" },
   { name: "checkout", state: STUDENT_STATE, path: `/checkout/${FIXTURES.productSlug}` },
   { name: "admin dashboard", state: ADMIN_STATE, path: "/admin" },
 ];

@@ -102,8 +102,6 @@ function Section({ title, cols, children }: { title: string; cols?: string; chil
 }
 
 const QUICK = [
-  { to: "/admin/assessment/questions/new", key: "dash.qQuestion", tone: "bg-violet-600 text-white" },
-  { to: "/admin/assessment/exams/new", key: "dash.qExam", tone: "bg-indigo-600 text-white" },
   { to: "/admin/files", key: "dash.qMedia", tone: "bg-slate-700 text-white" },
   { to: "/admin/content", key: "dash.qContent", tone: "bg-brand-600 text-white" },
   { to: "/admin/announcements?new=1", key: "dash.qAnnounce", tone: "bg-slate-600 text-white" },
@@ -135,7 +133,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
       {/* Quick actions */}
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">{t(locale, "dash.quickTitle")}</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" data-testid="quick-actions">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="quick-actions">
           {QUICK.map((qa) => (
             <Link
               key={qa.to}
@@ -203,10 +201,6 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
             <Link to="/admin/assignments" className="flex flex-col items-start justify-between gap-1 rounded-xl border border-slate-200 p-3 text-right hover:border-brand-300 hover:bg-slate-50">
               <span className="text-sm text-slate-600">{t(locale, "admin.mPendingAssignGrading")}</span>
               <span className="text-2xl font-bold text-slate-900" dir="ltr" data-testid="home-metric-pending-assignments">{loaderData.ops!.pendingAssignmentGrading}</span>
-            </Link>
-            <Link to="/admin/assessment" className="flex flex-col items-start justify-between gap-1 rounded-xl border border-slate-200 p-3 text-right hover:border-brand-300 hover:bg-slate-50">
-              <span className="text-sm text-slate-600">{t(locale, "admin.mPendingEssayGrading")}</span>
-              <span className="text-2xl font-bold text-slate-900" dir="ltr" data-testid="home-metric-pending-essays">{loaderData.ops!.pendingEssayGrading}</span>
             </Link>
           </Section>
         </>

@@ -108,9 +108,9 @@ export default function AdminAnalytics({ loaderData }: Route.ComponentProps) {
           {detail.examPerformance.length === 0 && <p className="text-sm text-slate-500">{t(locale, "analyticsAdmin.empty")}</p>}
           {detail.examPerformance.map((e) => (
             <div key={e.examId} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-1.5 text-sm last:border-0" data-testid="exam-perf-row">
-              <Link to={`/admin/assessment/exams/${e.examId}`} className="truncate font-medium text-blue-700 hover:underline">
+              <span className="truncate font-medium text-slate-700">
                 {locale === "ar" ? e.titleAr || e.titleEn : e.titleEn || e.titleAr}
-              </Link>
+              </span>
               <span className="flex items-center gap-3 text-xs text-slate-500" dir="ltr">
                 <span>{t(locale, "analyticsAdmin.colAttempts")}: {e.attempts}</span>
                 <span>{t(locale, "analyticsAdmin.colPassed")}: {e.passed}/{e.graded}</span>

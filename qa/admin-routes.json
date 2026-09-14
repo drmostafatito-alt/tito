@@ -3,7 +3,6 @@
   { "path": "/admin/content" },
   { "path": "/admin/videos" },
   { "path": "/admin/files" },
-  { "path": "/admin/assessment" },
   { "path": "/admin/users" },
   { "path": "/admin/entitlements" },
   { "path": "/admin/commerce" },

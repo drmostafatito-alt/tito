@@ -8,11 +8,13 @@ import { menuItemsFor } from "~server/cms/service.server";
 import { unreadAnnouncementsCount } from "~server/announcements/service.server";
 import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
+import { QuestionPlatformNavLink } from "~/components/QuestionPlatform";
 import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
+import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
-  const { auth } = await requireUser(context, request);
+  const { auth, settings } = await requireUser(context, request);
   const db = getDb(getEnv(context));
   const studentMenu = await menuItemsFor(db, "student");
   const toItem = (i: { id: string; parentId: string | null; labelAr: string; labelEn: string; href: string; external: boolean; icon: string | null; visible: boolean }) => ({
@@ -23,10 +25,13 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     children: studentMenu.items.filter((c) => c.parentId === i.id && c.visible).map(toItem),
   }));
   const unreadNotifications = await unreadAnnouncementsCount(db, { id: auth.user.id, roleId: auth.user.roleId });
+  // External Questions & Exams Platform entry (admin-configured; null = hidden)
+  const questionPlatformUrl = resolveQuestionPlatformUrl(settings.platform);
   return {
     user: { fullName: auth.user.fullName, roleId: auth.user.roleId, rank: auth.user.rank },
     menu,
     unreadNotifications,
+    questionPlatformUrl,
   };
 }
 
@@ -83,7 +88,6 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
     { to: "/dashboard", label: t(locale, "common.dashboard") },
     { to: "/courses", label: t(locale, "content.catalogTitle") },
     { to: "/programs", label: t(locale, "catalog.programs") },
-    { to: "/exams", label: t(locale, "exam.listTitle") },
     { to: "/assignments", label: t(locale, "assignment.myAssignments") },
     { to: "/orders", label: t(locale, "commerce.myOrders") },
     { to: "/notifications", label: t(locale, "notifications.navLabel"), badge: loaderData.unreadNotifications },
@@ -111,6 +115,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                 ) : null}
               </RRNavLink>
             ))}
+            <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} className={navLinkCls} testId="nav-question-platform-desktop" />
             {loaderData.menu.map((node) =>
               node.children.length === 0 ? (
                 <MenuLinkNode key={node.id} item={node} locale={locale} className={navLinkCls} />
@@ -173,6 +178,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                   ) : null}
                 </RRNavLink>
               ))}
+              <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} className={navLinkCls + " w-full"} onNavigate={close} testId="nav-question-platform-mobile" />
               {loaderData.menu.map((node) => (
                 <div key={node.id} className="flex flex-col">
                   {node.href && <MenuLinkNode item={node} locale={locale} className={navLinkCls + " w-full"} onNavigate={close} />}

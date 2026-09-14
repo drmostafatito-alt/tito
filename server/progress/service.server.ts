@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { DB } from "~server/db/client.server";
 import { events, lessonProgress, videoProgress, videoWatchSessions } from "~server/db/schema";
-import { courses, examAttempts, lessons, units, videos } from "~server/db/schema";
+import { courses, lessons, units, videos } from "~server/db/schema";
 import { itemsForLesson } from "~server/content/service.server";
 
 /**
@@ -274,19 +274,21 @@ async function touchLesson(db: DB, studentId: string, lessonId: string, ts: numb
 
 /**
  * FEATURE-SPEC §4 rule: lesson completes when its REQUIRED items are complete.
- * Phase 5: required EXAM items now have a completion signal — a graded attempt
- * (submission counts, never mere opening; pass/fail is scoring, not completion).
- * Required FILE items still have no signal — lessons containing them auto-complete
- * only via the student's explicit mark (ADR-021/022).
+ *
+ * The internal exam engine was retired in favour of a standalone external
+ * Questions Platform, so legacy lesson_items rows of type "exam" are ignored
+ * here — they can never receive an in-platform attempt and must not block
+ * completion. Only required VIDEO items carry an automatic completion signal.
+ * Required FILE/LINK items have no signal — lessons containing them
+ * auto-complete only via the student's explicit mark (ADR-021/022).
  */
 export async function maybeAutoCompleteLesson(db: DB, studentId: string, lessonId: string, thresholdPct: number): Promise<boolean> {
-  const items = await itemsForLesson(db, lessonId);
-  const required = items.filter((i) => i.required);
+  const allItems = await itemsForLesson(db, lessonId);
+  const required = allItems.filter((i) => i.required && i.itemType === "video");
   if (required.length === 0) return false;
-  if (required.some((i) => (i.itemType === "video" ? !i.videoId : i.itemType === "exam" ? !i.examId : true))) return false;
+  if (required.some((i) => !i.videoId)) return false;
 
-  const videoIds = required.filter((i) => i.itemType === "video").map((i) => i.videoId!);
-  const examIds = required.filter((i) => i.itemType === "exam").map((i) => i.examId!);
+  const videoIds = required.map((i) => i.videoId!);
 
   const videoRows = videoIds.length
     ? await db
@@ -294,26 +296,9 @@ export async function maybeAutoCompleteLesson(db: DB, studentId: string, lessonI
         .from(videoProgress)
         .where(and(eq(videoProgress.studentId, studentId), inArray(videoProgress.videoId, videoIds)))
     : [];
-  const examRows = examIds.length
-    ? await db
-        .select({ examId: examAttempts.examId })
-        .from(examAttempts)
-        .where(
-          and(
-            eq(examAttempts.studentId, studentId),
-            inArray(examAttempts.examId, examIds),
-            inArray(examAttempts.status, ["graded", "submitted"])
-          )
-        )
-    : [];
 
-  const videosDone = required
-    .filter((i) => i.itemType === "video")
-    .every((i) => videoRows.some((r) => r.videoId === i.videoId && r.completed));
-  const examsDone = required
-    .filter((i) => i.itemType === "exam")
-    .every((i) => examRows.some((r) => r.examId === i.examId));
-  if (!videosDone || !examsDone) return false;
+  const videosDone = required.every((i) => videoRows.some((r) => r.videoId === i.videoId && r.completed));
+  if (!videosDone) return false;
   return setLessonCompleted(db, studentId, lessonId, true);
 }
 

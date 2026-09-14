@@ -27,13 +27,14 @@ test.describe("admin platform", () => {
     await expect(page.getByTestId("admin-user-row").first()).toContainText(STUDENT_EMAIL, { timeout: 15_000 });
   });
 
-  test("analytics, security, audit, announcements, assessment, commerce surfaces all load", async ({ page }) => {
+  test("analytics, security, audit, announcements, assignments, appearance, commerce surfaces all load", async ({ page }) => {
     const surfaces = [
       "/admin/analytics",
       "/admin/security",
       "/admin/audit",
       "/admin/announcements",
-      "/admin/assessment",
+      "/admin/assignments",
+      "/admin/appearance?tab=system",
       "/admin/commerce",
     ];
     for (const path of surfaces) {

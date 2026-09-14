@@ -14,7 +14,6 @@ export type AdminIconName =
   | "content"
   | "video"
   | "media"
-  | "assessment"
   | "assignment"
   | "search"
   | "users"
@@ -61,12 +60,6 @@ const PATHS: Record<AdminIconName, ReactNode> = {
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <circle cx="8.5" cy="8.5" r="1.5" />
       <path d="m21 15-5-5L5 21" />
-    </>
-  ),
-  assessment: (
-    <>
-      <path d="M9 11l3 3L22 4" />
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
     </>
   ),
   users: (
@@ -199,13 +192,6 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       { to: "/admin/content", labelKey: "nav.content", icon: "content" },
       { to: "/admin/videos", labelKey: "nav.videos", icon: "video" },
       { to: "/admin/files", labelKey: "nav.media", icon: "media" },
-    ],
-  },
-  {
-    id: "assessment",
-    labelKey: "nav.section_assessment",
-    items: [
-      { to: "/admin/assessment", labelKey: "nav.assessment", icon: "assessment" },
       { to: "/admin/assignments", labelKey: "nav.assignments", icon: "assignment" },
     ],
   },
@@ -253,24 +239,10 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-/**
- * Minimal authoring-only navigation shown to a teacher (rank 2) admitted into
- * the question-bank area. A teacher holding assessment.* authoring permissions
- * only ever sees the question bank & exams hub — never users/sales/CMS/etc.
- */
-export const TEACHER_NAV_SECTIONS: NavSection[] = [
-  {
-    id: "assessment",
-    labelKey: "nav.section_assessment",
-    items: [{ to: "/admin/assessment", labelKey: "nav.assessment", icon: "assessment" }],
-  },
-];
-
 /** Pathname prefixes that share a nav destination with a hub route. */
 const DETAIL_PREFIX: Array<{ prefix: string; hub: string }> = [
   { prefix: "/admin/content/", hub: "/admin/content" },
   { prefix: "/admin/cms/", hub: "/admin/cms" },
-  { prefix: "/admin/assessment/", hub: "/admin/assessment" },
   { prefix: "/admin/assignments/", hub: "/admin/assignments" },
   { prefix: "/admin/students/", hub: "/admin/users" },
   { prefix: "/admin/users/", hub: "/admin/users" },

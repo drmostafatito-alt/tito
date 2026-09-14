@@ -685,6 +685,23 @@ export const en: Dictionary = {
     invalidBody: "This confirmation link is invalid or has expired. Request a new one from your profile.",
     goHome: "Go to home",
   },
+  questionPlatform: {
+    title: "Questions Platform",
+    description: "Go to your dedicated questions and exams platform — a standalone platform outside Tito.",
+    cta: "Open Questions Platform",
+    ctaAria: "Open the Questions Platform — opens in a new tab",
+    navLabel: "Questions Platform",
+    navAria: "Questions and exams platform — opens in a new tab",
+    externalTag: "Standalone external platform",
+  },
+  questionPlatformAdmin: {
+    title: "External Questions Platform",
+    hint: "The internal question bank is replaced by a standalone platform. When enabled with a valid https URL, students see a clear entry on their dashboard and navigation, opening in a new tab. Unsafe links (e.g. javascript:) are rejected.",
+    enabled: "Show the Questions Platform entry to students",
+    urlLabel: "Questions Platform URL",
+    urlPlaceholder: "https://questions.example.com",
+    invalidUrl: "Invalid URL — only secure https links are allowed, or leave it empty to hide the entry.",
+  },
   exam: {
     listTitle: "Exams",
     empty: "No exams available right now.",
