@@ -15,7 +15,18 @@ import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
 import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
-import { EXTERNAL_EXAMS_URL } from "~server/curriculum/constants";
+import { getRealLessonsForSubject, getLessonNamesForMeta, getSemanticForLessons } from "~server/seo/realLessonsMapping.server";
+
+/**
+ * Subject page: canonical target of BOTH the subject cluster
+ * (`شرح الفلسفة`, `دروس علم النفس`…) and the grade+subject cluster
+ * (`أولى ثانوي فلسفة`, `تالتة ثانوي علم نفس`…).
+ *
+ * SEO Discovery enhancement (48 real lessons, no homepage visibility):
+ * - If subject matches real lessons subject (فلسفة ↔ فلسفة ومنطق, نفس ↔ علم النفس),
+ *   enrich meta description with up to 2 example lesson names and add their semantic to DefinedTermSet.
+ * - No UI change: students see only real courses from DB, no 48 lessons list.
+ */
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
@@ -48,43 +59,10 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const allCourseTitles = catalog.map((r) => r.course.titleAr).join(" ");
   const semanticKeywords = extractSemanticKeywords(allCourseTitles, "", subject.titleAr);
 
-  const { getCurriculumLessons } = await import("~server/curriculum/service.server");
-  const allCurriculum = getCurriculumLessons();
-  const subjectTitleLower = subject.titleAr.toLowerCase();
-  const curriculumForSubject = allCurriculum.filter((l: any) => {
-    const csvSubjectLower = (l.subject as string).toLowerCase();
-    if (subjectTitleLower.includes("فلسفة") && subjectTitleLower.includes("منطق")) {
-      return csvSubjectLower.includes("فلسفة") || csvSubjectLower.includes("منطق");
-    }
-    if (subjectTitleLower.includes("فلسفة")) return csvSubjectLower.includes("فلسفة");
-    if (subjectTitleLower.includes("منطق")) return csvSubjectLower.includes("منطق") || csvSubjectLower.includes("فلسفة");
-    if (subjectTitleLower.includes("نفس")) return csvSubjectLower.includes("نفس") || csvSubjectLower.includes("علم النفس");
-    return csvSubjectLower.includes(subjectTitleLower) || subjectTitleLower.includes(csvSubjectLower);
-  });
-
-  const curriculumGroups = new Map<string, { term: string; units: Map<string, { unit: string; chapters: Map<string, any[]> }> }>();
-  for (const lesson of curriculumForSubject) {
-    if (!curriculumGroups.has(lesson.term)) {
-      curriculumGroups.set(lesson.term, { term: lesson.term, units: new Map() });
-    }
-    const termGroup = curriculumGroups.get(lesson.term)!;
-    if (!termGroup.units.has(lesson.unit)) {
-      termGroup.units.set(lesson.unit, { unit: lesson.unit, chapters: new Map() });
-    }
-    const unitGroup = termGroup.units.get(lesson.unit)!;
-    if (!unitGroup.chapters.has(lesson.chapter)) {
-      unitGroup.chapters.set(lesson.chapter, []);
-    }
-    unitGroup.chapters.get(lesson.chapter)!.push(lesson);
-  }
-
-  const curriculumOutline = Array.from(curriculumGroups.values()).map((tg) => ({
-    term: tg.term,
-    units: Array.from(tg.units.values()).map((ug) => ({
-      unit: ug.unit,
-      chapters: Array.from(ug.chapters.entries()).map(([chapter, lessons]) => ({ chapter, lessons })),
-    })),
-  }));
+  // SEO Discovery: matching real lessons for this subject (from CSV, no guessing)
+  const realLessonsForSubject = getRealLessonsForSubject(subject.titleAr);
+  const realLessonNames = getLessonNamesForMeta(realLessonsForSubject, 3);
+  const realLessonsSemantic = getSemanticForLessons(realLessonsForSubject, 12);
 
   return {
     subject: {
@@ -99,8 +77,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     buyOption,
     pres,
     semanticKeywords,
-    curriculumOutline,
-    curriculumCount: curriculumForSubject.length,
+    realLessonsForSubjectCount: realLessonsForSubject.length,
+    realLessonNames,
+    realLessonsSemantic,
     courses: catalog.map((r) => ({
       slug: r.course.slug,
       titleAr: r.course.titleAr,
@@ -119,6 +98,8 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   const root = rootMetaFrom(matches);
   const locale = root.locale;
   const grade = loaderData.grade ? { ar: loaderData.grade.titleAr, en: loaderData.grade.titleEn } : null;
+  const realLessonNames = (loaderData.realLessonNames as string[]) ?? [];
+  const realLessonsSemantic = (loaderData.realLessonsSemantic as string[]) ?? [];
   const base = contentSeoMeta(
     {
       title: { ar: loaderData.subject.titleAr, en: loaderData.subject.titleEn },
@@ -133,9 +114,21 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
         const s = l === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn;
         const g = grade ? (l === "ar" ? grade.ar : grade.en) : "";
         const site = root.siteName ? (l === "ar" ? root.siteName.ar : root.siteName.en) : "";
-        const count = loaderData.curriculumCount ? ` — ${loaderData.curriculumCount} درس حقيقي من المنهج` : "";
-        if (l === "ar") return g ? `${s} — ${g}${count}: كورسات ودروس ومراجعات على منصة ${site}.` : `${s}${count}: كورسات ودروس ومراجعات على منصة ${site}.`;
-        return g ? `${s} — ${g}: courses, lessons and revision on the ${site} platform.` : `${s}: courses, lessons and revision on the ${site} platform.`;
+        let baseDesc: string;
+        if (l === "ar") {
+          baseDesc = g ? `${s} — ${g}: كورسات ودروس ومراجعات على منصة ${site}.` : `${s}: كورسات ودروس ومراجعات على منصة ${site}.`;
+        } else {
+          baseDesc = g ? `${s} — ${g}: courses, lessons and revision on the ${site} platform.` : `${s}: courses, lessons and revision on the ${site} platform.`;
+        }
+        // SEO Discovery: add up to 2 example lesson names if subject matches real lessons
+        if (realLessonNames.length > 0 && l === "ar") {
+          const isRealSubject = s.includes("فلسفة") || s.includes("منطق") || s.includes("نفس") || s.includes("علم النفس");
+          if (isRealSubject) {
+            const examples = realLessonNames.slice(0, 2).join("، ");
+            baseDesc += ` تشمل دروس: ${examples}.`;
+          }
+        }
+        return baseDesc;
       },
     }
   );
@@ -158,15 +151,16 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   crumbs.push({ name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn });
 
   const teaches = (loaderData.semanticKeywords as string[]) ?? [];
+  const allTeaches = [...teaches, ...realLessonsSemantic].slice(0, 20);
   const educationalLevel = loaderData.grade ? (locale === "ar" ? loaderData.grade.titleAr : loaderData.grade.titleEn) : null;
 
   const extra: Array<Record<string, unknown>> = [];
-  if (teaches.length > 0) {
+  if (allTeaches.length > 0) {
     extra.push(
       definedTermSetJsonLd({
         name: locale === "ar" ? `مفاهيم ${loaderData.subject.titleAr}` : `Concepts of ${loaderData.subject.titleEn}`,
         url: absUrl(origin, pathname),
-        terms: teaches,
+        terms: allTeaches,
       })
     );
   }
@@ -192,7 +186,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export default function SubjectPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { subject, program, grade, pres, courses, buyOption, curriculumOutline, curriculumCount } = loaderData as any;
+  const { subject, program, grade, pres, courses, buyOption } = loaderData as any;
   const c = (row: { titleAr: string | null; titleEn: string | null }) => (locale === "ar" ? row.titleAr : row.titleEn);
   const desc = locale === "ar" ? subject.descriptionAr : subject.descriptionEn;
 
@@ -261,60 +255,6 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
               </Card>
             );
           })}
-        </div>
-      )}
-
-      {curriculumCount > 0 && (
-        <div className="mt-10">
-          <h2 className="mb-2 text-xl font-bold">
-            {locale === "ar" ? `المنهج الحقيقي — ${curriculumCount} درس` : `Real Curriculum — ${curriculumCount} lessons`}
-          </h2>
-          <p className="mb-4 text-sm text-slate-500">
-            {locale === "ar"
-              ? "الدروس الحقيقية من ملفات Keyword Universe (لا تخمين)، كل درس له صفحة hub قوية تخدم شرح، ملخص، مراجعة، فيديو، PDF."
-              : "Real lessons from Keyword Universe files (no guessing), each has a strong hub page."}
-          </p>
-          <div className="space-y-6">
-            {(curriculumOutline as any[]).map((termGroup: any) => (
-              <div key={termGroup.term}>
-                <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                  <Badge tone="brand">{termGroup.term}</Badge>
-                  <span>{termGroup.term}</span>
-                </h3>
-                <div className="space-y-4">
-                  {termGroup.units.map((unitGroup: any) => (
-                    <Card key={unitGroup.unit}>
-                      <CardBody>
-                        <h4 className="font-medium text-slate-800">{unitGroup.unit}</h4>
-                        <div className="mt-3 space-y-3">
-                          {unitGroup.chapters.map((chapterGroup: any) => (
-                            <div key={chapterGroup.chapter}>
-                              <h5 className="text-sm font-medium text-slate-600">{chapterGroup.chapter}</h5>
-                              <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-                                {chapterGroup.lessons.map((lesson: any) => (
-                                  <li key={lesson.slug}>
-                                    <Link to={`/curriculum/${lesson.slug}`} className="group flex items-start gap-2 rounded-lg border border-slate-200/70 p-3 hover:border-brand-300 hover:bg-brand-50/50">
-                                      <span className="mt-0.5 text-brand-500">•</span>
-                                      <span className="text-sm font-medium text-slate-800 group-hover:text-brand-700">{lesson.lesson}</span>
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
-                        </div>
-                      </CardBody>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex gap-3 text-sm">
-            <Link to="/curriculum" className="text-brand-600 hover:underline">{locale === "ar" ? "عرض كل المنهج" : "View full curriculum"}</Link>
-            <span className="text-slate-300">·</span>
-            <a href={EXTERNAL_EXAMS_URL} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">{locale === "ar" ? "منصة الأسئلة" : "Questions platform"} ↗</a>
-          </div>
         </div>
       )}
     </div>

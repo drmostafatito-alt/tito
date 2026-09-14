@@ -4,7 +4,6 @@ import { courses, grades, pages, programs, products, subjects, units } from "../
 import { catalogCourses } from "../content/service.server";
 import { pricePlansForProduct } from "../commerce/service.server";
 import { getSettings } from "../settings/service.server";
-import { getCurriculumLessons } from "../curriculum/service.server";
 
 /**
  * SEO crawl inventory — the SINGLE SOURCE OF TRUTH for "which public URLs are
@@ -30,19 +29,11 @@ import { getCurriculumLessons } from "../curriculum/service.server";
  *     each unit page lists its published lessons (public titles) and is the
  *     canonical target for lesson_discovery intent.
  *   - lesson pages (/learn/...) remain EXCLUDED (private, noindex, per-user progress)
- *
- * Enhanced in Content Architecture Phase:
- *   - curriculum index (/curriculum) — 48 real lessons grouped, not thin
- *   - curriculum lesson hubs (/curriculum/:lessonSlug) — one strong page per
- *     real lesson (48 pages), each with official name, hierarchy, semantic,
- *     related lessons, internal links, external exams link. Serves all intents
- *     (شرح+ملخص+مراجعة+فيديو+PDF) as one canonical, questions → external platform.
- *   - These are static curriculum pages (from CSV, no guessing), not doorway,
- *     with rich internal linking and educational context.
  */
-
 export interface SitemapUrl {
+  /** Absolute path (origin added by the sitemap route). */
   path: string;
+  /** Epoch ms of the most recent content change (null = unknown/always). */
   lastmodMs: number | null;
 }
 
@@ -50,9 +41,12 @@ const publishedProgramsWhere = and(eq(programs.status, "published"), isNull(prog
 const publishedGradesWhere = and(eq(grades.status, "published"), isNull(grades.deletedAt));
 const publishedSubjectsWhere = and(eq(subjects.status, "published"), isNull(subjects.deletedAt));
 
+/** Indexable public URLs derived from live, published content state. */
 export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
   const out: SitemapUrl[] = [];
 
+  // Home: the brand root always exists (empty-first rendering is still a real
+  // branded page). lastmod = the published home page's publish time, if any.
   const homeRow = await db
     .select({ publishedAt: pages.publishedAt, updatedAt: pages.updatedAt })
     .from(pages)
@@ -60,6 +54,7 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
     .limit(1);
   out.push({ path: "/", lastmodMs: homeRow[0]?.publishedAt ?? homeRow[0]?.updatedAt ?? null });
 
+  // --- catalog hierarchy (published ancestors enforced per row) -------------
   const progs = await db
     .select({ id: programs.id, slug: programs.slug, updatedAt: programs.updatedAt })
     .from(programs)
@@ -77,10 +72,12 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
     .where(publishedGradesWhere);
   const liveProgramIds = new Set(progs.map((p) => p.id));
   for (const g of gradesRows) {
-    if (!liveProgramIds.has(g.programId)) continue;
+    if (!liveProgramIds.has(g.programId)) continue; // parent program must be live
     out.push({ path: `/grades/${g.slug}`, lastmodMs: g.updatedAt });
   }
 
+  // Catalog (published + catalog/featured + publish window + published
+  // ancestors — the exact public visibility rule used by /courses).
   const catalog = await catalogCourses(db);
   const subjectCourseCount: Record<string, number> = {};
   for (const r of catalog) subjectCourseCount[r.subjectSlug] = (subjectCourseCount[r.subjectSlug] ?? 0) + 1;
@@ -90,6 +87,8 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
     .from(subjects)
     .where(publishedSubjectsWhere);
   for (const s of subjectsRows) {
+    // Anti-thin: a subject page is listed only when it has visible catalog
+    // courses (a subject with zero courses renders an empty state).
     if ((subjectCourseCount[s.slug] ?? 0) > 0) out.push({ path: `/subjects/${s.slug}`, lastmodMs: s.updatedAt });
   }
 
@@ -98,6 +97,9 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
     for (const r of catalog) out.push({ path: `/courses/${r.course.slug}`, lastmodMs: r.course.updatedAt });
   }
 
+  // --- unit pages: public, indexable, lesson discovery (SEO Lesson Phase) ---
+  // Only for courses that are in the public catalog (same gate as /courses)
+  // and units that are published, non-deleted.
   if (catalog.length > 0) {
     const catalogCourseIds = new Set(catalog.map((r) => r.course.id));
     const catalogCourseSlugById = new Map(catalog.map((r) => [r.course.id, r.course.slug] as const));
@@ -113,16 +115,7 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
     }
   }
 
-  // --- curriculum: 48 real lessons (Content Architecture Phase) ---
-  // Curriculum index is always indexable (has 48 lessons grouped, not thin)
-  out.push({ path: "/curriculum", lastmodMs: null });
-  // Each lesson hub is indexable (one strong page per real lesson, with hierarchy, semantic, related, internal links)
-  // These are static pages from CSV (no guessing), not doorway, with rich context
-  const curriculumLessons = getCurriculumLessons();
-  for (const lesson of curriculumLessons) {
-    out.push({ path: `/curriculum/${lesson.slug}`, lastmodMs: null });
-  }
-
+  // --- storefront: active products with at least one active price plan ------
   const productRows = await db
     .select({ slug: products.slug, id: products.id, updatedAt: products.updatedAt })
     .from(products)
@@ -132,32 +125,42 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
     if (plans.length > 0) out.push({ path: `/products/${p.slug}`, lastmodMs: p.updatedAt });
   }
 
+  // --- published CMS pages (`home` is excluded — it lives at /) -------------
   const pageRows = await db
     .select({ slug: pages.slug, updatedAt: pages.updatedAt })
     .from(pages)
     .where(and(eq(pages.status, "published"), isNull(pages.deletedAt), not(eq(pages.slug, "home"))));
   for (const p of pageRows) out.push({ path: `/p/${p.slug}`, lastmodMs: p.updatedAt });
 
+  // --- /about: only when the owner identity actually exists -----------------
   const settings = await getSettings(db);
   if (settings.identity.ownerNameAr.trim() !== "" || settings.identity.ownerNameEn.trim() !== "") {
     out.push({ path: "/about", lastmodMs: null });
   }
 
+  // Deterministic order (stable sitemap diffs): home first, then by path.
   return out.sort((a, b) => (a.path === "/" ? -1 : b.path === "/" ? 1 : a.path.localeCompare(b.path)));
 }
 
+/** Render the inventory as sitemap XML (sitemap 0.9). Caller owns the Response. */
 export function sitemapXml(urls: SitemapUrl[], origin: string): string {
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const base = origin.replace(/\/$/, "");
   const rows = urls
     .map((u) => {
-      const lastmod = u.lastmodMs != null ? `<lastmod>${new Date(u.lastmodMs).toISOString().slice(0, 10)}</lastmod>` : "";
+      const lastmod =
+        u.lastmodMs != null ? `<lastmod>${new Date(u.lastmodMs).toISOString().slice(0, 10)}</lastmod>` : "";
       return `  <url><loc>${esc(`${base}${u.path}`)}</loc>${lastmod}</url>`;
     })
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows}\n</urlset>\n`;
 }
 
+/**
+ * robots.txt body. Keep the allow/deny list in ONE place: the sitemap route
+ * and the Admin → SEO dashboard both read these rules so a change can never
+ * silently desync what we ask Google to crawl from what we index.
+ */
 export const ROBOTS_PRIVATE_PATHS: string[] = [
   "/admin/",
   "/dashboard",
