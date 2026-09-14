@@ -69,8 +69,15 @@ describe("block registry", () => {
 
   it("slugs: reserved system paths are rejected, charset enforced", () => {
     expect(RESERVED_SLUGS.has("admin")).toBe(true);
-    expect(validPageSlug("about")).toBe(true);
+    // top-level app routes are reserved (SEO Master Phase batch 4) so a CMS
+    // page can never shadow/dupe the real system page
+    expect(validPageSlug("about")).toBe(false);
+    expect(validPageSlug("grades")).toBe(false);
+    expect(validPageSlug("programs")).toBe(false);
+    expect(validPageSlug("products")).toBe(false);
+    expect(validPageSlug("subjects")).toBe(false);
     expect(validPageSlug("admin")).toBe(false);
+    expect(validPageSlug("contact")).toBe(true);
     expect(validPageSlug("Hello World")).toBe(false);
     expect(PAGE_SLUG_RE.test("a-b-1")).toBe(true);
   });

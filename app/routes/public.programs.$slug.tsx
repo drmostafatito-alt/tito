@@ -58,6 +58,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     },
     grades: gradeRows.map((g) => ({
       id: g.id,
+      slug: g.slug,
       titleAr: g.titleAr,
       titleEn: g.titleEn,
       subjects: subjectRows
@@ -146,7 +147,9 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
           {grades.map((g) =>
             g.subjects.length === 0 ? null : (
               <section key={g.id}>
-                <h2 className="mb-3 text-lg font-semibold text-slate-700">{locale === "ar" ? g.titleAr : g.titleEn}</h2>
+                <h2 className="mb-3 text-lg font-semibold text-slate-700">
+                  <Link to={`/grades/${g.slug}`} className="hover:text-brand-600">{locale === "ar" ? g.titleAr : g.titleEn}</Link>
+                </h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {g.subjects.map((s) => (
                     <Card key={s.slug}>

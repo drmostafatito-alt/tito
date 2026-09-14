@@ -146,7 +146,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export default function SubjectPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { subject, program, pres, courses, buyOption } = loaderData;
+  const { subject, program, grade, pres, courses, buyOption } = loaderData;
   const c = (row: { titleAr: string | null; titleEn: string | null }) => (locale === "ar" ? row.titleAr : row.titleEn);
   const desc = locale === "ar" ? subject.descriptionAr : subject.descriptionEn;
 
@@ -165,6 +165,14 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
       </nav>
       <h1 className="text-2xl font-bold">{c(subject)}</h1>
       {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      {grade && (
+        <Link
+          to={`/grades/${grade.slug}`}
+          className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-300 hover:text-brand-600"
+        >
+          {c(grade)}
+        </Link>
+      )}
       {buyOption && (
         <Link
           to={`/products/${buyOption.productSlug}`}

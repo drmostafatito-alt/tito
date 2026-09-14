@@ -4,8 +4,10 @@ export default [
   layout("routes/public/layout.tsx", { id: "public" }, [
     index("routes/public/home.tsx"),
     route("p/:slug", "routes/p.$slug.tsx"),
+    route("about", "routes/public/about.tsx"),
     route("programs", "routes/public.programs.tsx"),
     route("programs/:slug", "routes/public.programs.$slug.tsx"),
+    route("grades/:slug", "routes/public.grades.$slug.tsx"),
     route("subjects/:slug", "routes/public.subjects.$slug.tsx"),
     route("courses", "routes/public.courses.tsx"),
     route("courses/:slug", "routes/public.courses.$slug.tsx"),

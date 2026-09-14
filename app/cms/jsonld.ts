@@ -155,6 +155,7 @@ export interface PersonInput {
   name: string;
   url: string; // absolute
   jobTitle?: string | null; // ONLY the owner-configured official title
+  photo?: string | null; // ONLY the owner-configured photo file (https-only)
   sameAs?: Array<string | null | undefined>;
   worksFor?: { name: string; url: string } | null;
 }
@@ -167,6 +168,7 @@ export function personJsonLd(i: PersonInput): LdObject {
     name: i.name,
     url: i.url,
     jobTitle: i.jobTitle ?? undefined,
+    photo: safeHttpsUrl(i.photo) ?? undefined,
     sameAs: (i.sameAs ?? []).map(safeHttpsUrl).filter((u): u is string => Boolean(u)),
     worksFor: i.worksFor ? clean({ "@type": "Organization", name: i.worksFor.name, url: i.worksFor.url }) : undefined,
   });
