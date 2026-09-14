@@ -6,6 +6,8 @@ import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
 import { indexablePublicUrls, ROBOTS_PRIVATE_PATHS } from "~server/seo/inventory.server";
 import { CANONICAL_MAP, validateCanonicalUniqueness } from "~server/seo/canonicalMap.server";
+import { getRealKeywordStats } from "~server/seo/realKeywordClusters.server";
+import { REAL_LESSON_COUNT } from "~server/seo/realLessons.server";
 import { courses, grades, lessons, pages, programs, subjects, units } from "~server/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
@@ -15,20 +17,7 @@ import { formatDate, t, type Locale } from "~/lib/i18n";
 export type SeoIssue = "maintenance" | "noOwner" | "missingDesc" | "dupTitles" | "drafts" | "robotsOverlap";
 
 /**
- * Admin SEO dashboard (SEO Master Phase, batch 6 + Lesson Phase).
- *
- * Factual crawl-readiness audit computed server-side from the database —
- * the same inventory function that feeds /sitemap.xml, the same content
- * rows that feed the public pages. NO invented scores, no heuristics
- * dressed up as a health percentage: every number on this page is a count
- * the owner can verify in Admin → Content, and every finding names the
- * rows behind it.
- *
- * Per-page SEO controls (title/description/canonical/OG/robots) already
- * live in the CMS page SEO tab and the content editors — this page is the
- * dashboard that tells the owner WHAT to fix, not another editor.
- *
- * Lesson Phase: adds canonical map + keyword cluster overview.
+ * Admin SEO dashboard (SEO Master Phase, batch 6 + Lesson Phase + Real 48 lessons).
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
   await requireRole(context, request, 3);
@@ -94,6 +83,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   if (robotsOverlap.length) issues.push("robotsOverlap");
 
   const canonicalValidation = validateCanonicalUniqueness();
+  const realStats = getRealKeywordStats();
 
   return {
     issues,
@@ -115,13 +105,15 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     urls,
     canonicalMap: CANONICAL_MAP,
     canonicalValidation,
+    realStats,
+    realLessonCount: REAL_LESSON_COUNT,
   };
 }
 
 export default function AdminSeo({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { issues, missingDesc, dupGroups, draftCount, counts, urls, canonicalMap, canonicalValidation } = loaderData;
+  const { issues, missingDesc, dupGroups, draftCount, counts, urls, canonicalMap, canonicalValidation, realStats, realLessonCount } = loaderData;
 
   const typeLabel: Record<string, string> = {
     program: t(locale, "seoAdmin.typeProgram"),
@@ -224,6 +216,37 @@ export default function AdminSeo({ loaderData }: Route.ComponentProps) {
               </div>
             ))}
           </div>
+        </CardBody>
+      </Card>
+
+      {/* Real 48 lessons stats */}
+      <Card>
+        <CardHeader title={`الـ Keyword Universe الحقيقي — ${realLessonCount} درس`} description={`${realStats.lessonClusters} lesson clusters + ${realStats.subjectClusters} subject + ${realStats.gradeClusters} grade = ${realStats.totalClusters} total`} />
+        <CardBody>
+          <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-lg border border-slate-200/70 p-3 text-center">
+              <div className="text-lg font-bold text-slate-800">{realLessonCount}</div>
+              <div className="text-xs text-slate-500">درس حقيقي من CSV</div>
+            </div>
+            <div className="rounded-lg border border-slate-200/70 p-3 text-center">
+              <div className="text-lg font-bold text-slate-800">{realStats.lessonClusters}</div>
+              <div className="text-xs text-slate-500">lesson clusters (8 per lesson)</div>
+            </div>
+            <div className="rounded-lg border border-slate-200/70 p-3 text-center">
+              <div className="text-lg font-bold text-slate-800">{realStats.subjectClusters}</div>
+              <div className="text-xs text-slate-500">subject clusters</div>
+            </div>
+            <div className="rounded-lg border border-slate-200/70 p-3 text-center">
+              <div className="text-lg font-bold text-slate-800">{realStats.gradeClusters}</div>
+              <div className="text-xs text-slate-500">grade clusters</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {realStats.searchFormulasCovered.map((f) => (
+              <Badge key={f} tone="neutral">{f}</Badge>
+            ))}
+          </div>
+          <p className="mt-3 text-sm text-slate-500">Intents: {realStats.intentsCovered.join("، ")} — كل درس = Keyword Cluster خاص به، لا تخمين، canonical واحد قوي لكل Intent</p>
         </CardBody>
       </Card>
 
