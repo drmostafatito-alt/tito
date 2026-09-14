@@ -134,7 +134,7 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     expect(all.length).toBeGreaterThan(0);
     for (const loc of all) {
       // Lesson Phase: unit pages now included (/courses/:slug/units/:id)
-      expect(loc).toMatch(/^https:\/\/app\.test\/(courses|courses\/.+\/units\/.+|courses\/.+|products\/.+|programs|programs\/.+|grades\/.+|subjects\/.+|p\/.+|about)?$/);
+      expect(loc).toMatch(/^https:\/\/app\.test\/(courses|courses\/.+\/units\/.+|courses\/.+|products\/.+|programs|programs\/.+|grades\/.+|subjects\/.+|p\/.+|about|curriculum\/.+)?$/);
       expect(loc).not.toContain("?");
     }
     expect(new Set(all).size).toBe(all.length); // no duplicate URLs

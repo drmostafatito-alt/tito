@@ -1612,4 +1612,17 @@ export const en: Dictionary = {
     dupList: "Duplicate title groups",
     none: "None",
   },
+  curriculum: {
+    overviewEyebrow: "Philosophy & psychology curriculum",
+    overviewTitle: "Curriculum overview",
+    coursesCrumb: "Courses",
+    outlineTitle: "Units and chapters",
+    lessonsCount: "{n} lessons",
+    availableTitle: "Available on the platform",
+    courseLinkHint: "Open the course to watch the published lessons.",
+    exploreCta: "Explore lessons",
+    homeCta: "Home",
+    honestyNote:
+      "This overview lists the curriculum structure exactly as recorded in the platform's curriculum source: unit and chapter names with the number of lessons in each. The site adds no science text of its own, and lessons appear here only once they are actually published in a course.",
+  },
 };
