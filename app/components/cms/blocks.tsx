@@ -417,7 +417,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               <img
                 data-hero-visual="true"
                 src={visualSrc}
-                alt={imageAlt}
+                // Owner-provided image → real alt (owner alt or the heading).
+                // The platform's DEFAULT illustration (no owner image) is
+                // decorative: empty alt + aria-hidden so assistive tech and
+                // image search never see a generic asset presented as content.
+                alt={cmsSrc ? imageAlt : ""}
+                aria-hidden={cmsSrc ? undefined : "true"}
                 width={900}
                 height={1205}
                 decoding="async"

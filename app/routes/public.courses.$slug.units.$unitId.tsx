@@ -10,6 +10,8 @@ import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
 
 /** Unit page: lessons of one unit with real per-lesson access verdicts + progress. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -59,6 +61,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   }
 
   return {
+    url: request.url,
     course: { slug: course.slug, titleAr: course.titleAr, titleEn: course.titleEn },
     unit: { id: unit.id, titleAr: unit.titleAr, titleEn: unit.titleEn },
     courseAllowed: courseVerdict.allowed,
@@ -72,6 +75,74 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       progress: progress[l.id] ?? null,
     })),
   };
+}
+
+/**
+ * Unit page meta (previously inherited the bare brand title + no canonical).
+ * The unit is a real, stable, public page (it lists the unit's published
+ * lesson titles), so it is indexable. Description is synthesized from real
+ * page data (unit + course + published lesson count) when the unit has no
+ * description of its own — no keyword stuffing.
+ */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [];
+  const root = rootMetaFrom(matches);
+  const locale = root.locale;
+  const course = { ar: loaderData.course.titleAr, en: loaderData.course.titleEn };
+  const n = (loaderData.lessons as unknown[]).length;
+  const base = contentSeoMeta(
+    {
+      title: { ar: loaderData.unit.titleAr, en: loaderData.unit.titleEn },
+      description: null,
+    },
+    root.locale,
+    loaderData.url as string,
+    {
+      intermediate: course,
+      siteName: root.siteName,
+      fallbackDescription: (loc) =>
+        loc === "ar"
+          ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
+          : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
+    },
+  );
+  let origin = "";
+  let pathname = "";
+  try {
+    const u = new URL(loaderData.url as string);
+    origin = u.origin;
+    pathname = u.pathname;
+  } catch {
+    return [...siteEntitiesMeta(matches), ...base];
+  }
+  const unitTitle = locale === "ar" ? loaderData.unit.titleAr : loaderData.unit.titleEn;
+  return [
+    ...siteEntitiesMeta(matches),
+    ...base,
+    {
+      "script:ld+json": webPageJsonLd({
+        name: unitTitle,
+        url: absUrl(origin, pathname),
+        description:
+          locale === "ar"
+            ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
+            : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
+        isPartOf: absUrl(origin, "/"),
+        additionalType: "https://schema.org/CollectionPage",
+      }),
+    },
+    {
+      "script:ld+json": breadcrumbJsonLd({
+        items: [
+          { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
+          { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+          { name: course[locale], url: `/courses/${loaderData.course.slug}` },
+          { name: unitTitle },
+        ],
+        origin,
+      }),
+    },
+  ];
 }
 
 export default function UnitPage({ loaderData }: Route.ComponentProps) {

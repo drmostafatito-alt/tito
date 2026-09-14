@@ -1,4 +1,5 @@
 import type { Route } from "./+types/layout";
+import type { MetaDescriptor } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, Outlet, useLocation, useRouteLoaderData } from "react-router";
 import { requireRole } from "~server/auth/guards.server";
@@ -6,6 +7,7 @@ import { AdminIcon } from "~/components/admin/nav";
 import { resolveNavItem } from "~/components/admin/nav";
 import { CollapseButton, SidebarContent } from "~/components/admin/AdminSidebar";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
+import { rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 const COLLAPSE_KEY = "admin.sidebar.collapsed.v1";
@@ -29,6 +31,19 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       roleId: auth.user.roleId,
     },
   };
+}
+
+/**
+ * The whole admin panel is private (rank≥3). Defense in depth: anon visitors
+ * are already redirected (requireRole), but an authenticated admin render must
+ * carry noindex so internal tools, audit data and user PII are never eligible
+ * for indexing.
+ */
+export function meta({ matches }: Route.MetaArgs): MetaDescriptor[] {
+  const root = rootMetaFrom(matches);
+  const site = root.siteName?.[root.locale] ?? "";
+  const title = `${root.locale === "ar" ? t("ar", "nav.adminLabel") : t("en", "nav.adminLabel")}${site ? ` — ${site}` : ""}`;
+  return [{ title, name: "robots", content: "noindex,follow" }];
 }
 
 function Brand({ appName, locale }: { appName: string; locale: Locale }) {

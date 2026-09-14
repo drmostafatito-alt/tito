@@ -19,10 +19,18 @@ type Pages = {
       "slug": string;
     };
   };
+  "/about": {
+    params: {};
+  };
   "/programs": {
     params: {};
   };
   "/programs/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
+  "/grades/:slug": {
     params: {
       "slug": string;
     };
@@ -76,6 +84,12 @@ type Pages = {
     params: {};
   };
   "/favicon.ico": {
+    params: {};
+  };
+  "/robots.txt": {
+    params: {};
+  };
+  "/sitemap.xml": {
     params: {};
   };
   "/learn/:courseSlug/:lessonSlug": {
@@ -172,6 +186,9 @@ type Pages = {
   "/admin/appearance": {
     params: {};
   };
+  "/admin/seo": {
+    params: {};
+  };
   "/admin/content": {
     params: {};
   };
@@ -252,11 +269,11 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/verify-email-change" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/webhooks/payments/:provider" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/assignments" | "/assignments/:id" | "/checkout/:productSlug" | "/orders" | "/orders/:orderNumber" | "/activate" | "/profile/security" | "/notifications" | "/admin" | "/admin/cms" | "/admin/cms/templates" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/search" | "/admin/users" | "/admin/teachers" | "/admin/users/:id" | "/admin/students/:id" | "/admin/analytics" | "/admin/audit" | "/admin/security" | "/admin/announcements" | "/admin/assignments" | "/admin/assignments/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
+    page: "/" | "/p/:slug" | "/about" | "/programs" | "/programs/:slug" | "/grades/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/verify-email-change" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/robots.txt" | "/sitemap.xml" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/webhooks/payments/:provider" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/assignments" | "/assignments/:id" | "/checkout/:productSlug" | "/orders" | "/orders/:orderNumber" | "/activate" | "/profile/security" | "/notifications" | "/admin" | "/admin/cms" | "/admin/cms/templates" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/seo" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/search" | "/admin/users" | "/admin/teachers" | "/admin/users/:id" | "/admin/students/:id" | "/admin/analytics" | "/admin/audit" | "/admin/security" | "/admin/announcements" | "/admin/assignments" | "/admin/assignments/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
   };
   "routes/public/layout.tsx": {
     id: "public";
-    page: "/" | "/p/:slug" | "/programs" | "/programs/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/verify-email-change" | "/set-locale";
+    page: "/" | "/p/:slug" | "/about" | "/programs" | "/programs/:slug" | "/grades/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/verify-email-change" | "/set-locale";
   };
   "routes/public/home.tsx": {
     id: "routes/public/home";
@@ -266,6 +283,10 @@ type RouteFiles = {
     id: "routes/p.$slug";
     page: "/p/:slug";
   };
+  "routes/public/about.tsx": {
+    id: "routes/public/about";
+    page: "/about";
+  };
   "routes/public.programs.tsx": {
     id: "routes/public.programs";
     page: "/programs";
@@ -273,6 +294,10 @@ type RouteFiles = {
   "routes/public.programs.$slug.tsx": {
     id: "routes/public.programs.$slug";
     page: "/programs/:slug";
+  };
+  "routes/public.grades.$slug.tsx": {
+    id: "routes/public.grades.$slug";
+    page: "/grades/:slug";
   };
   "routes/public.subjects.$slug.tsx": {
     id: "routes/public.subjects.$slug";
@@ -329,6 +354,14 @@ type RouteFiles = {
   "routes/favicon[.]ico.tsx": {
     id: "routes/favicon[.]ico";
     page: "/favicon.ico";
+  };
+  "routes/robots[.]txt.tsx": {
+    id: "routes/robots[.]txt";
+    page: "/robots.txt";
+  };
+  "routes/sitemap[.]xml.tsx": {
+    id: "routes/sitemap[.]xml";
+    page: "/sitemap.xml";
   };
   "routes/learn.$courseSlug.$lessonSlug.tsx": {
     id: "routes/learn.$courseSlug.$lessonSlug";
@@ -400,7 +433,7 @@ type RouteFiles = {
   };
   "routes/admin/layout.tsx": {
     id: "admin-root";
-    page: "/admin" | "/admin/cms" | "/admin/cms/templates" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/search" | "/admin/users" | "/admin/teachers" | "/admin/users/:id" | "/admin/students/:id" | "/admin/analytics" | "/admin/audit" | "/admin/security" | "/admin/announcements" | "/admin/assignments" | "/admin/assignments/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
+    page: "/admin" | "/admin/cms" | "/admin/cms/templates" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/seo" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/search" | "/admin/users" | "/admin/teachers" | "/admin/users/:id" | "/admin/students/:id" | "/admin/analytics" | "/admin/audit" | "/admin/security" | "/admin/announcements" | "/admin/assignments" | "/admin/assignments/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
   };
   "routes/admin/home.tsx": {
     id: "routes/admin/home";
@@ -433,6 +466,10 @@ type RouteFiles = {
   "routes/admin.appearance.tsx": {
     id: "routes/admin.appearance";
     page: "/admin/appearance";
+  };
+  "routes/admin.seo.tsx": {
+    id: "routes/admin.seo";
+    page: "/admin/seo";
   };
   "routes/admin.content.tsx": {
     id: "routes/admin.content";
@@ -521,8 +558,10 @@ type RouteModules = {
   "public": typeof import("./app/routes/public/layout.tsx");
   "routes/public/home": typeof import("./app/routes/public/home.tsx");
   "routes/p.$slug": typeof import("./app/routes/p.$slug.tsx");
+  "routes/public/about": typeof import("./app/routes/public/about.tsx");
   "routes/public.programs": typeof import("./app/routes/public.programs.tsx");
   "routes/public.programs.$slug": typeof import("./app/routes/public.programs.$slug.tsx");
+  "routes/public.grades.$slug": typeof import("./app/routes/public.grades.$slug.tsx");
   "routes/public.subjects.$slug": typeof import("./app/routes/public.subjects.$slug.tsx");
   "routes/public.courses": typeof import("./app/routes/public.courses.tsx");
   "routes/public.courses.$slug": typeof import("./app/routes/public.courses.$slug.tsx");
@@ -537,6 +576,8 @@ type RouteModules = {
   "routes/logout": typeof import("./app/routes/logout.tsx");
   "routes/theme[.]css": typeof import("./app/routes/theme[.]css.tsx");
   "routes/favicon[.]ico": typeof import("./app/routes/favicon[.]ico.tsx");
+  "routes/robots[.]txt": typeof import("./app/routes/robots[.]txt.tsx");
+  "routes/sitemap[.]xml": typeof import("./app/routes/sitemap[.]xml.tsx");
   "routes/learn.$courseSlug.$lessonSlug": typeof import("./app/routes/learn.$courseSlug.$lessonSlug.tsx");
   "routes/files.$id": typeof import("./app/routes/files.$id.tsx");
   "routes/api.playback.$videoId": typeof import("./app/routes/api.playback.$videoId.tsx");
@@ -563,6 +604,7 @@ type RouteModules = {
   "routes/admin.cms.menus": typeof import("./app/routes/admin.cms.menus.tsx");
   "routes/admin.cms.forms": typeof import("./app/routes/admin.cms.forms.tsx");
   "routes/admin.appearance": typeof import("./app/routes/admin.appearance.tsx");
+  "routes/admin.seo": typeof import("./app/routes/admin.seo.tsx");
   "routes/admin.content": typeof import("./app/routes/admin.content.tsx");
   "routes/admin.content.$type.$id": typeof import("./app/routes/admin.content.$type.$id.tsx");
   "routes/admin.files": typeof import("./app/routes/admin.files.tsx");

@@ -7,7 +7,8 @@ import { catalogCourses } from "~server/content/service.server";
 import { programs, grades, subjects } from "~server/db/schema";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Program page: published grades → subjects with visible-course counts. */
@@ -57,6 +58,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     },
     grades: gradeRows.map((g) => ({
       id: g.id,
+      slug: g.slug,
       titleAr: g.titleAr,
       titleEn: g.titleEn,
       subjects: subjectRows
@@ -76,7 +78,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
-  return contentSeoMeta(
+  const locale = root.locale;
+  const base = contentSeoMeta(
     {
       title: { ar: loaderData.program.titleAr, en: loaderData.program.titleEn },
       description: { ar: loaderData.program.descriptionAr, en: loaderData.program.descriptionEn },
@@ -85,6 +88,39 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     loaderData.url,
     { siteName: root.siteName }
   );
+  let origin = "";
+  let pathname = "";
+  try {
+    const u = new URL(loaderData.url);
+    origin = u.origin;
+    pathname = u.pathname;
+  } catch {
+    return [...siteEntitiesMeta(matches), ...base];
+  }
+  const title = locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn;
+  return [
+    ...siteEntitiesMeta(matches),
+    ...base,
+    {
+      "script:ld+json": webPageJsonLd({
+        name: title,
+        url: absUrl(origin, pathname),
+        description: locale === "ar" ? loaderData.program.descriptionAr : loaderData.program.descriptionEn,
+        isPartOf: absUrl(origin, "/"),
+        additionalType: "https://schema.org/CollectionPage",
+      }),
+    },
+    {
+      "script:ld+json": breadcrumbJsonLd({
+        items: [
+          { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
+          { name: locale === "ar" ? "البرامج" : "Programs", url: "/programs" },
+          { name: title },
+        ],
+        origin,
+      }),
+    },
+  ];
 }
 
 export default function ProgramPage({ loaderData }: Route.ComponentProps) {
@@ -111,7 +147,9 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
           {grades.map((g) =>
             g.subjects.length === 0 ? null : (
               <section key={g.id}>
-                <h2 className="mb-3 text-lg font-semibold text-slate-700">{locale === "ar" ? g.titleAr : g.titleEn}</h2>
+                <h2 className="mb-3 text-lg font-semibold text-slate-700">
+                  <Link to={`/grades/${g.slug}`} className="hover:text-brand-600">{locale === "ar" ? g.titleAr : g.titleEn}</Link>
+                </h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {g.subjects.map((s) => (
                     <Card key={s.slug}>

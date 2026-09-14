@@ -9,12 +9,28 @@ import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
 import { Card } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
+import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
 
 /** Only same-app paths (no open redirects). */
 function safeNext(raw: string | null): string | null {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
   return raw;
+}
+
+/** Auth pages never index: unique branded title + noindex (no duplicate brand titles). */
+export async function loader({ request }: Route.LoaderArgs) {
+  return { url: request.url };
+}
+
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [];
+  const root = rootMetaFrom(matches);
+  return [...siteEntitiesMeta(matches), ...authPageMeta(
+    { ar: t("ar", "seo.login"), en: t("en", "seo.login") },
+    root,
+    loaderData.url as string,
+  )];
 }
 
 export async function action({ context, request }: Route.ActionArgs) {

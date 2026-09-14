@@ -1,6 +1,7 @@
 import type { MetaDescriptor } from "react-router";
 import type { Locale } from "~/lib/i18n";
 import { seoSchema, type PageSeo, type PageSnapshot } from "~/cms/seo-schema";
+import { absUrl, organizationJsonLd, websiteJsonLd } from "~/cms/jsonld";
 
 /** Root-loader data that `meta()` needs but must not re-resolve (single source of truth). */
 export interface RootMetaSource {
@@ -41,6 +42,58 @@ export function rootMetaFrom(matches: unknown): RootMetaSource {
   return { locale: "ar", siteName: null, tagline: null };
 }
 
+/**
+ * Site-wide structured data: the Organization (platform) + WebSite entities.
+ *
+ * React Router 7 renders ONLY the LEAF route's `meta()` output into `<head>`
+ * (it does not merge meta across the match chain — a layout's meta is visible
+ * only when a child has none). So every public route must include the site
+ * entities in its OWN meta. The identity data (platform name, logo, official
+ * social profiles) comes from the PUBLIC LAYOUT's loader via `matches` — the
+ * child loaders do not re-fetch settings. Honesty rules live in `~/cms/jsonld`
+ * (absolute URLs, https-only sameAs/logo, no invented fields).
+ *
+ * Returns [] when the layout data is unavailable (e.g. the SPA navigates to a
+ * route whose matches were trimmed) — structured data must never crash meta.
+ */
+/** Shape of the public layout's loader data relevant to site structured data. */
+type PublicLayoutMetaData = {
+  identity?: { platformName?: { ar: string; en: string }; logoUrl?: string | null };
+  socialUrls?: string[];
+  url?: string;
+};
+
+export function siteEntitiesMeta(matches: unknown): MetaDescriptor[] {
+  const list = Array.isArray(matches) ? (matches as Array<Record<string, unknown>>) : [];
+  let layout: PublicLayoutMetaData | null = null;
+  for (const m of list) {
+    if (m?.id === "public" && m.data && typeof m.data === "object") {
+      layout = m.data as PublicLayoutMetaData;
+      break;
+    }
+  }
+  const root = rootMetaFrom(matches);
+  if (!layout?.url) return [];
+  let origin = "";
+  try {
+    origin = new URL(layout.url).origin;
+  } catch {
+    return [];
+  }
+  const locale = root.locale;
+  const name =
+    locale === "ar"
+      ? (layout.identity?.platformName?.ar || root.siteName?.ar || "")
+      : (layout.identity?.platformName?.en || root.siteName?.en || "");
+  if (!name) return [];
+  const siteUrl = absUrl(origin, "/");
+  const logo = layout.identity?.logoUrl ? absUrl(origin, layout.identity.logoUrl) : null;
+  return [
+    { "script:ld+json": organizationJsonLd({ name, url: siteUrl, logo, sameAs: layout.socialUrls ?? [] }) },
+    { "script:ld+json": websiteJsonLd({ name, url: siteUrl }) },
+  ];
+}
+
 /** Collapse whitespace and cap at the seoSchema's 300-char description limit. */
 function metaDescriptionText(raw: unknown): string {
   return (typeof raw === "string" ? raw : "").replace(/\s+/g, " ").trim().slice(0, 300);
@@ -67,23 +120,46 @@ export function contentSeoMeta(
   },
   locale: Locale,
   requestUrl: string,
-  opts?: { ogImageUrl?: string | null; siteName?: { ar: string; en: string } | null }
+  opts?: {
+    ogImageUrl?: string | null;
+    siteName?: { ar: string; en: string } | null;
+    /**
+     * Intermediate context level between the content title and the site name —
+     * e.g. the grade for a subject page (`فلسفة — الصف الثالث الثانوي — brand`)
+     * or the course for a unit/lesson page. Each level is appended only when
+     * non-empty and not already contained in the level below it (no duplication).
+     */
+    intermediate?: { ar?: string | null; en?: string | null } | null;
+    /** Robots directive (private/gated pages pass `noindex,follow`). Default index,follow. */
+    robots?: "index,follow" | "noindex,follow" | "noindex,nofollow" | "index,nofollow";
+    /**
+     * When the content row has no description, synthesize one from real page
+     * data via this callback (deterministic, locale-aware) — never keyword
+     * stuffing, and never emitted when it returns empty.
+     */
+    fallbackDescription?: (locale: Locale) => string;
+  }
 ): MetaDescriptor[] {
   const base = { ar: content.title.ar ?? "", en: content.title.en ?? "" };
   const site = opts?.siteName ?? null;
-  const withSite = (v: string, suffix: string) =>
+  const mid = opts?.intermediate ?? null;
+  const withSuffix = (v: string, suffix: string) =>
     v && suffix && !v.includes(suffix) ? `${v} — ${suffix}` : v;
+  const titleFor = (l: "ar" | "en") => withSuffix(withSuffix(base[l], mid?.[l] ?? ""), site?.[l] ?? "");
   const seo: PageSeo = {
     ...parseSeo({}),
-    title: {
-      ar: withSite(base.ar, site?.ar ?? ""),
-      en: withSite(base.en, site?.en ?? ""),
-    },
+    title: { ar: titleFor("ar"), en: titleFor("en") },
     description: {
       ar: metaDescriptionText(content.description?.ar),
       en: metaDescriptionText(content.description?.en),
     },
+    ...(opts?.robots ? { robots: opts.robots } : {}),
   };
+  if (!seo.description.ar && !seo.description.en && opts?.fallbackDescription) {
+    const ar = metaDescriptionText(opts.fallbackDescription("ar"));
+    const en = metaDescriptionText(opts.fallbackDescription("en"));
+    if (ar || en) seo.description = { ar, en };
+  }
   return seoMeta(seo, seo.title, locale, requestUrl, opts?.ogImageUrl ?? null);
 }
 
@@ -104,6 +180,38 @@ export function asSnapshot(raw: unknown): PageSnapshot | null {
 export function parseSeo(raw: unknown): PageSeo {
   const parsed = seoSchema.safeParse(raw ?? {});
   return parsed.success ? parsed.data : seoSchema.parse({});
+}
+
+/**
+ * Meta for auth/utility pages (login, register, forgot/reset password, email
+ * verification): a unique branded title, NO meta description (no boilerplate to
+ * index), and `noindex,follow` — these pages must never rank or accumulate
+ * duplicate brand titles. The canonical + OG tags still render so a shared
+ * login URL previews correctly.
+ */
+export function authPageMeta(
+  label: { ar: string; en: string },
+  root: RootMetaSource,
+  requestUrl: string,
+  robots: "noindex,follow" | "noindex,nofollow" = "noindex,follow"
+): MetaDescriptor[] {
+  const title = withSiteTitle(label, root.siteName);
+  const seo: PageSeo = { ...parseSeo({}), title, robots };
+  return seoMeta(seo, title, root.locale, requestUrl, null);
+}
+
+/**
+ * Append the platform name to a document title (deduplicated) — the shared
+ * deterministic title rule for fallback titles across route types:
+ * `page title — brand` (never `brand — brand`).
+ */
+export function withSiteTitle(title: { ar: string; en: string }, site: { ar: string; en: string } | null): { ar: string; en: string } {
+  const append = (v: string, suffix: string) =>
+    v && suffix && !v.includes(suffix) ? `${v} — ${suffix}` : v;
+  return {
+    ar: append(title.ar, site?.ar ?? ""),
+    en: append(title.en, site?.en ?? ""),
+  };
 }
 
 /** Route `meta()` descriptors from validated page SEO (per-page title/desc/canonical/OG/robots). */

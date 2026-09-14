@@ -6,6 +6,7 @@ import { completeEmailChange } from "~server/users/emailchange.server";
 import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
+import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 
 /**
  * Public landing for the out-of-band email-change verification link. GET-only.
@@ -18,11 +19,27 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const db = getDb(env);
   const url = new URL(request.url);
   const token = url.searchParams.get("token") ?? "";
-  if (!token) return { ok: false as const, reason: "invalid" as const };
+  if (!token) return { ok: false as const, reason: "invalid" as const, url: request.url };
 
   const result = await completeEmailChange(env, db, token);
-  if (!result.ok) return { ok: false as const, reason: "invalid" as const };
-  return { ok: true as const, email: result.email };
+  if (!result.ok) return { ok: false as const, reason: "invalid" as const, url: request.url };
+  return { ok: true as const, email: result.email, url: request.url };
+}
+
+/**
+ * Token pages must never be indexed AND never pass link equity (noindex,
+ * nofollow) — a token URL in an index would be both useless and a security
+ * surface. Unique branded title for UX.
+ */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [];
+  const root = rootMetaFrom(matches);
+  return [...siteEntitiesMeta(matches), ...authPageMeta(
+    { ar: t("ar", "seo.verifyEmail"), en: t("en", "seo.verifyEmail") },
+    root,
+    loaderData.url as string,
+    "noindex,nofollow",
+  )];
 }
 
 export default function VerifyEmailChange({ loaderData }: Route.ComponentProps) {

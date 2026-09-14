@@ -620,6 +620,9 @@ export const RESERVED_SLUGS = new Set([
   "logout", "my", "p", "preview", "profile", "register", "forgot-password", "reset-password",
   "set-locale", "security", "student", "theme", "favicon", "cart", "checkout", "orders",
   "results", "devices", "notifications", "webhooks", "beacons", "f",
+  // top-level app routes (SEO Master Phase batch 4): a CMS page may never take
+  // one of these slugs — it would shadow/dupe the real system page.
+  "about", "grades", "programs", "products", "subjects",
 ]);
 
 export const PAGE_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$/;

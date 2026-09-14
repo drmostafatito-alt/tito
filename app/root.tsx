@@ -66,7 +66,10 @@ export function meta({ loaderData }: Route.MetaArgs): MetaDescriptor[] {
   const locale = (loaderData?.locale ?? "ar") as Locale;
   const platform = loaderData?.platform;
   const name = locale === "ar" ? (platform?.nameAr ?? "") : (platform?.nameEn ?? "");
-  return [{ title: name || (locale === "ar" ? "منصة تعليمية" : "Learning Platform") }];
+  // Fallback (error/404 context, where loader data may be absent) uses the
+  // platform's OFFICIAL identity rather than a generic "Learning Platform" —
+  // consistent with the settings default and the brand the owner confirmed.
+  return [{ title: name || (locale === "ar" ? "د/ مصطفى تيتو" : "Dr mostafa tito") }];
 }
 
 /** Global middleware: CSRF origin check on mutations + security headers (SECURITY.md §5/§6). */

@@ -8,7 +8,7 @@ import { resolvePublicImageUrls } from "~server/cms/render.server";
 import { formatMoney } from "~server/commerce/money";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -72,15 +72,18 @@ const PERIOD_KEY: Record<string, string> = {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
-  return contentSeoMeta(
-    {
-      title: { ar: loaderData.product.nameAr, en: loaderData.product.nameEn },
-      description: { ar: loaderData.product.descriptionAr, en: loaderData.product.descriptionEn },
-    },
-    root.locale,
-    loaderData.url,
-    { ogImageUrl: loaderData.imageUrl, siteName: root.siteName }
-  );
+  return [
+    ...siteEntitiesMeta(matches),
+    ...contentSeoMeta(
+      {
+        title: { ar: loaderData.product.nameAr, en: loaderData.product.nameEn },
+        description: { ar: loaderData.product.descriptionAr, en: loaderData.product.descriptionEn },
+      },
+      root.locale,
+      loaderData.url,
+      { ogImageUrl: loaderData.imageUrl, siteName: root.siteName }
+    ),
+  ];
 }
 
 export default function ProductPage({ loaderData }: Route.ComponentProps) {

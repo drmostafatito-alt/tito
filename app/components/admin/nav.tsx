@@ -212,7 +212,10 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
   {
     id: "website",
     labelKey: "nav.section_website",
-    items: [{ to: "/admin/cms", labelKey: "nav.pages", icon: "pages" }],
+    items: [
+      { to: "/admin/cms", labelKey: "nav.pages", icon: "pages" },
+      { to: "/admin/seo", labelKey: "nav.seo", icon: "search" },
+    ],
   },
   {
     id: "communication",

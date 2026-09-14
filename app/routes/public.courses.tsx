@@ -7,7 +7,8 @@ import { catalogCourses } from "~server/content/service.server";
 import { lessonCounts, resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { absUrl, itemListJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -59,7 +60,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
-  return contentSeoMeta(
+  const locale = root.locale;
+  const base = contentSeoMeta(
     {
       title: { ar: t("ar", "content.catalogTitle"), en: t("en", "content.catalogTitle") },
       description: root.tagline ?? {},
@@ -68,6 +70,32 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     loaderData.url,
     { siteName: root.siteName }
   );
+  let origin = "";
+  try {
+    origin = new URL(loaderData.url).origin;
+  } catch {
+    return [...siteEntitiesMeta(matches), ...base];
+  }
+  // ItemList over the published courses actually shown on this page.
+  const courses = loaderData.courses as Array<{
+    slug: string;
+    titleAr: string;
+    titleEn: string;
+  }>;
+  return [
+    ...siteEntitiesMeta(matches),
+    ...base,
+    {
+      "script:ld+json": itemListJsonLd({
+        name: locale === "ar" ? t("ar", "content.catalogTitle") : t("en", "content.catalogTitle"),
+        url: absUrl(origin, "/courses"),
+        items: courses.map((c) => ({
+          name: locale === "ar" ? c.titleAr : c.titleEn,
+          url: absUrl(origin, `/courses/${c.slug}`),
+        })),
+      }),
+    },
+  ];
 }
 
 const LAYOUT_GRID = {

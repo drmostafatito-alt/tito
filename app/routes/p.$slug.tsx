@@ -1,5 +1,5 @@
 import type { Route } from "./+types/p.$slug";
-import { useActionData } from "react-router";
+import { redirect, useActionData } from "react-router";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
@@ -7,7 +7,7 @@ import { getPageBySlug } from "~server/cms/service.server";
 import { renderSnapshot, resolvePublicImageUrls } from "~server/cms/render.server";
 import { handleCmsFormAction, requestLocale } from "~server/cms/page-render.server";
 import { resolveAuth } from "~server/auth/session.server";
-import { asSnapshot, parseSeo, seoMeta } from "~/cms/seo";
+import { asSnapshot, parseSeo, rootMetaFrom, seoMeta, siteEntitiesMeta, withSiteTitle } from "~/cms/seo";
 import { PageView } from "~/components/cms/blocks";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { t } from "~/lib/i18n";
@@ -22,6 +22,11 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const env = getEnv(context);
   const db = getDb(env);
   const settings = await getSettings(db);
+  // Canonical duplicate elimination: the `home` CMS page is the SITE root and
+  // is served at `/`. `/p/home` is the same published snapshot — without this
+  // redirect it would be a second indexable copy of the homepage (duplicate
+  // content / split canonical). 301 (not 302) so crawlers consolidate.
+  if (params.slug === "home") throw redirect("/", { status: 301 });
   const page = await getPageBySlug(db, params.slug);
   const snapshot = page && page.status === "published" ? asSnapshot(page.publishedSnapshot) : null;
   if (!page || !snapshot) throw new Response("Not Found", { status: 404 });
@@ -44,10 +49,14 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
+export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
+  const root = rootMetaFrom(matches);
+  // Owner-set CMS SEO title wins; otherwise `page title — brand` (deterministic,
+  // deduplicated) so every CMS page carries a unique branded document title.
+  const fallbackTitle = withSiteTitle(loaderData.title, root.siteName);
   const ogAbsolute = loaderData.ogImage ? new URL(loaderData.ogImage, loaderData.url).href : null;
-  return seoMeta(loaderData.seo, loaderData.title, loaderData.ctx.locale, loaderData.url, ogAbsolute);
+  return [...siteEntitiesMeta(matches), ...seoMeta(loaderData.seo, fallbackTitle, loaderData.ctx.locale, loaderData.url, ogAbsolute)];
 }
 
 export async function action({ context, request }: Route.ActionArgs) {

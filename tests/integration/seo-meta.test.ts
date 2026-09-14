@@ -2,7 +2,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:test";
 import { getDb } from "~server/db/client.server";
-import { createCourse, createGrade, createProgram, createSubject, updateNode } from "~server/content/service.server";
+import { createCourse, createGrade, createLesson, createProgram, createSubject, createUnit, updateNode } from "~server/content/service.server";
+import { loader as unitLoader, meta as unitMeta } from "~/routes/public.courses.$slug.units.$unitId";
+import { meta as learnMeta } from "~/routes/learn.$courseSlug.$lessonSlug";
 import { getSettings, updateSettingsGroup } from "~server/settings/service.server";
 import { files as filesTable } from "~server/db/schema";
 import { loader as courseLoader, meta as courseMeta } from "~/routes/public.courses.$slug";
@@ -209,11 +211,30 @@ describe("catalog index SEO uses owner-editable settings, not hardcoded copy", (
 });
 
 describe("subject & program pages expose the same admin-driven metadata", () => {
-  it("subject page meta comes from the subject row", async () => {
+  it("subject page meta comes from the subject row, with its grade in the title (grade+subject cluster)", async () => {
     const { subject } = await seedCatalog(null);
     const meta = await metaOf(subjectMeta, await call(subjectLoader, get(`/subjects/${subject.slug}`), { slug: subject.slug }), "ar");
-    expect(titleOf(meta)).toBe("الفيزياء — د/ مصطفى تيتو");
+    // Deterministic title system: `المادة — الصف — brand` (the grade row is real
+    // content, never invented) — targets both the subject and grade+subject clusters.
+    expect(titleOf(meta)).toBe("الفيزياء — الصف الثالث — د/ مصطفى تيتو");
     expect(descOf(meta)).toBe("وصف المادة");
+  });
+
+  it("subject page synthesizes a data-derived description when the owner wrote none", async () => {
+    const db = getDb(env);
+    const { subject } = await seedCatalog(null);
+    await updateNode(db, "subject", subject.id, { descriptionAr: null, descriptionEn: null }, actor);
+    const meta = await metaOf(subjectMeta, await call(subjectLoader, get(`/subjects/${subject.slug}`), { slug: subject.slug }), "ar");
+    const d = descOf(meta);
+    expect(d).toBeTruthy();
+    expect(d).toContain("الفيزياء");
+    expect(d).toContain("الصف الثالث");
+    expect(d).toContain("د/ مصطفى تيتو");
+    const enMeta = await metaOf(subjectMeta, await call(subjectLoader, get(`/subjects/${subject.slug}`), { slug: subject.slug }), "en");
+    const de = descOf(enMeta);
+    expect(de).toBeTruthy();
+    expect(de).toContain("Physics");
+    expect(de).not.toContain("الفيزياء");
   });
 
   it("program page meta comes from the program row", async () => {
@@ -221,5 +242,52 @@ describe("subject & program pages expose the same admin-driven metadata", () => 
     const meta = await metaOf(programMeta, await call(programLoader, get(`/programs/${program.slug}`), { slug: program.slug }), "en");
     expect(titleOf(meta)).toBe("General Secondary — Dr mostafa tito");
     expect(descOf(meta)).toBe("Program description");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Indexability boundary + unit/lesson meta (SEO Master Phase)
+// ---------------------------------------------------------------------------
+
+const robotsOf = (m: Meta) => (findMeta(m, "robots")?.content as string) ?? null;
+const findMeta = (m: Meta, name: string) => m.find((x) => (x as Record<string, unknown>).name === name) as { content?: string } | undefined;
+
+describe("unit + lesson pages carry deterministic meta and the correct index directive", () => {
+  it("unit page: indexable, title `unit — course — brand`, data-derived description", async () => {
+    const db = getDb(env);
+    const { course } = await seedCatalog(null);
+    const unit = await createUnit(db, { courseId: course.id, titleAr: "الوحدة الأولى", titleEn: "Unit One", status: "published", sortOrder: 0 }, actor);
+    const data = await call(unitLoader, get(`/courses/${course.slug}/units/${unit.id}`), { slug: course.slug, unitId: unit.id });
+    const meta = await metaOf(unitMeta, data, "ar");
+    expect(titleOf(meta)).toBe("الوحدة الأولى — مراجعة شاملة — د/ مصطفى تيتو");
+    expect(robotsOf(meta)).toBe("index,follow");
+    expect(canonicalOf(meta)).toBe(`https://app.test/courses/${course.slug}/units/${unit.id}`);
+    expect(canonicalTagName(meta)).toBe("link");
+    const d = descOf(meta);
+    expect(d).toContain("الوحدة الأولى");
+    expect(d).toContain("مراجعة شاملة");
+  });
+
+  it("lesson page: NOINDEX (gated + per-user) but unique branded title + canonical", async () => {
+    const db = getDb(env);
+    const { course } = await seedCatalog(null);
+    const unit = await createUnit(db, { courseId: course.id, titleAr: "و", titleEn: "U", status: "published", sortOrder: 0 }, actor);
+    const lesson = await createLesson(
+      db,
+      { unitId: unit.id, titleAr: "درس الشحنة", titleEn: "Charge lesson", descriptionAr: "شرح مبسط", descriptionEn: "A simple explainer", accessLevel: "entitled", freePreview: false, status: "published", sortOrder: 0 },
+      actor,
+    );
+    // meta() contract: build the loaderData shape the loader returns (the loader
+    // itself is access-gated; meta is a pure function of that data).
+    const loaderData = {
+      url: `https://app.test/learn/${course.slug}/${lesson.slug}`,
+      course: { slug: course.slug, titleAr: "مراجعة شاملة", titleEn: "Full Revision" },
+      lesson: { titleAr: lesson.titleAr, titleEn: lesson.titleEn, descriptionAr: lesson.descriptionAr, descriptionEn: lesson.descriptionEn },
+    };
+    const meta = await metaOf(learnMeta, loaderData, "ar");
+    expect(robotsOf(meta)).toBe("noindex,follow");
+    expect(titleOf(meta)).toBe("درس الشحنة — مراجعة شاملة — د/ مصطفى تيتو");
+    expect(descOf(meta)).toBe("شرح مبسط");
+    expect(canonicalOf(meta)).toBe(`https://app.test/learn/${course.slug}/${lesson.slug}`);
   });
 });

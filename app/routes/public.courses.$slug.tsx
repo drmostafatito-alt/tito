@@ -15,7 +15,8 @@ import { ProgressBar } from "~/components/ProgressBar";
 import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
 import { Icon } from "~/cms/icons";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { absUrl, breadcrumbJsonLd, courseJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
 
 /** Course page: units + lessons with access-aware rendering, teacher/duration meta and student progress. */
@@ -157,7 +158,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
-  return contentSeoMeta(
+  const locale = root.locale;
+  const base = contentSeoMeta(
     {
       title: { ar: loaderData.course.titleAr, en: loaderData.course.titleEn },
       description: { ar: loaderData.course.descriptionAr, en: loaderData.course.descriptionEn },
@@ -166,6 +168,43 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     loaderData.url,
     { ogImageUrl: loaderData.course.thumbnail, siteName: root.siteName }
   );
+  // Structured data: Course (honest shape — no price, no invented ratings) +
+  // BreadcrumbList mirroring the visible trail.
+  let origin = "";
+  let pathname = "";
+  try {
+    const u = new URL(loaderData.url);
+    origin = u.origin;
+    pathname = u.pathname;
+  } catch {
+    return [...siteEntitiesMeta(matches), ...base];
+  }
+  const siteName = locale === "ar" ? root.siteName?.ar ?? "" : root.siteName?.en ?? "";
+  const crumbs: Array<{ name: string; url?: string | null }> = [
+    { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
+    { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+  ];
+  if (loaderData.subject) {
+    crumbs.push({
+      name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn,
+      url: `/subjects/${loaderData.subject.slug}`,
+    });
+  }
+  crumbs.push({ name: locale === "ar" ? loaderData.course.titleAr : loaderData.course.titleEn });
+  return [
+    ...siteEntitiesMeta(matches),
+    ...base,
+    {
+      "script:ld+json": courseJsonLd({
+        name: locale === "ar" ? loaderData.course.titleAr : loaderData.course.titleEn,
+        url: absUrl(origin, pathname),
+        description: locale === "ar" ? loaderData.course.descriptionAr : loaderData.course.descriptionEn,
+        provider: { name: siteName, url: absUrl(origin, "/") },
+        numberOfItems: loaderData.course.lessonCount,
+      }),
+    },
+    { "script:ld+json": breadcrumbJsonLd({ items: crumbs, origin }) },
+  ];
 }
 
 export default function CoursePage({ loaderData }: Route.ComponentProps) {

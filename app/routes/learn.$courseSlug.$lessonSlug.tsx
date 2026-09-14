@@ -25,6 +25,7 @@ import { SubmitButton } from "~/components/ui/Button";
 import { ProgressBar } from "~/components/ProgressBar";
 import { Card, CardBody } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
+import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 
 /**
  * Lesson page: ordered items, access-aware rendering. The resolver verdict
@@ -157,6 +158,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   return {
     progress,
     lessonId: lesson.id,
+    url: request.url,
     course: { slug: course.slug, titleAr: course.titleAr, titleEn: course.titleEn },
     unit: unit ? { titleAr: unit.titleAr, titleEn: unit.titleEn } : null,
     lesson: {
@@ -194,6 +196,31 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   const completed = String(form.get("completed") ?? "") === "1";
   await setLessonCompleted(db, auth.user.id, lesson.id, completed);
   return { ok: true as const, completed };
+}
+
+/**
+ * Lesson pages are gated + per-user (progress badges, resume points, signed
+ * media URLs) ⇒ NOINDEX. A unique branded title + canonical still render so a
+ * shared lesson URL previews well and never accumulates a duplicate brand title.
+ * The public "lesson discovery" surface is the course page (which lists lessons
+ * and IS indexable).
+ */
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (!loaderData) return [];
+  const root = rootMetaFrom(matches);
+  return contentSeoMeta(
+    {
+      title: { ar: loaderData.lesson.titleAr, en: loaderData.lesson.titleEn },
+      description: { ar: loaderData.lesson.descriptionAr, en: loaderData.lesson.descriptionEn },
+    },
+    root.locale,
+    loaderData.url as string,
+    {
+      intermediate: { ar: loaderData.course.titleAr, en: loaderData.course.titleEn },
+      siteName: root.siteName,
+      robots: "noindex,follow",
+    },
+  );
 }
 
 export default function LessonPage({ loaderData }: Route.ComponentProps) {

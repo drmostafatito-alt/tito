@@ -1,4 +1,5 @@
 import type { Route } from "./+types/layout";
+import type { MetaDescriptor } from "react-router";
 import { Form, Link, NavLink as RRNavLink, Outlet, useRouteLoaderData } from "react-router";
 import { useState } from "react";
 import { requireUser } from "~server/auth/guards.server";
@@ -10,6 +11,7 @@ import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { QuestionPlatformNavLink } from "~/components/QuestionPlatform";
 import { Icon } from "~/cms/icons";
+import { rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
 
@@ -33,6 +35,19 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     unreadNotifications,
     questionPlatformUrl,
   };
+}
+
+/**
+ * The whole student area is per-user (progress, orders, assignments) — defense
+ * in depth: anon visitors are already redirected (requireUser), but a
+ * authenticated render must also carry noindex so a logged-in session can never
+ * leak personal data into the index.
+ */
+export function meta({ matches }: Route.MetaArgs): MetaDescriptor[] {
+  const root = rootMetaFrom(matches);
+  const site = root.siteName?.[root.locale] ?? "";
+  const label = root.locale === "ar" ? t("ar", "common.dashboard") : t("en", "common.dashboard");
+  return [{ title: `${label}${site ? ` — ${site}` : ""}`, name: "robots", content: "noindex,follow" }];
 }
 
 interface RootLoaderData {

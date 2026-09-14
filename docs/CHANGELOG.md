@@ -2,6 +2,27 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.11.0] — 2026-09-14 (branch `arena/01a0a125-tito`)
+
+### Added — SEO Master Phase (audit → design → implementation → QA → documentation)
+
+Autonomous SEO program on branch `arena/01a0a125-tito`, 8 commits from base `a624948` to `fe1cb0f` (+ report). Full details: `docs/reports/seo-master-phase-report.md`; audit baseline + keyword universe: `docs/reports/seo-forensic-audit.md`.
+
+- **Batch 0 — forensic audit baseline (`a039d58`).** Full route inventory (22 route families), keyword universe (brand/subject/psychology/logic/grade/grade+subject/intent/year/variants — Egyptian Arabic), one-canonical-target-per-cluster map, 14 baseline technical findings. Live-sweep tool `scripts/seo-audit.mjs`.
+- **Batch 1 — crawl foundation (`98b25b2`).** Dynamic `/robots.txt` (origin-aware Sitemap line, private-path Disallow list) + `/sitemap.xml` (DB-driven, published-only, no query strings, `lastmod`) from a single inventory source `server/seo/inventory.server.ts`; `/p/home` duplicate-URL dedup.
+- **Batch 2 — deterministic metadata system (`2b861cf`).** `app/cms/seo.ts` title/description resolution (owner fields → localized fallbacks → brand suffix; **no `<meta keywords>`**), absolute `<link rel="canonical">` on every public route (query strings stripped, CMS override preserved), noindex on auth/student/admin routes, 404 brand fallback, CMS per-page SEO validation.
+- **Batch 3 — honest structured data (`5865738`).** `app/cms/jsonld.ts` reusable server helpers: Organization, Person/ProfilePage (real identity fields only), WebSite, WebPage, Course (no fake rating/price), VideoObject (https-only), BreadcrumbList, ItemList. Zero invented entities.
+- **Batch 4 — entity + grade pages (`bd883e2`).** `/about` (identity-gated; no invented credentials/stats), `/grades/:slug` (empty-first), reserved-slug protection, grade in subject title/description chain, breadcrumbs + grade context, image-alt fixes.
+- **Batch 5 — homepage SEO (`9b415be`).** Discovery section (published subjects/grades/courses, null-safe) + hero image alt semantics (owner image keeps alt; platform illustration decorative).
+- **Batch 6 — admin SEO dashboard (`501c664`).** `/admin/seo` (rank≥3, read-only): factual findings naming rows (missing descriptions, duplicate titles, maintenance, missing owner identity, drafts), content counts, sitemap inventory rendered from the SAME function as `/sitemap.xml` (lockstep + robots-overlap invariant), GSC owner steps, `seoAdmin.*` i18n ar+en, nav item.
+- **Batch 7 — browser QA (`fe1cb0f`).** E2E coverage for `/admin/seo` (inventory == `/sitemap.xml` count in a real browser, leak-free, non-reveal redirect). **Fixed a batch-2 regression**: RR7 leaf-meta semantics had silently dropped document titles from all admin/student pages (axe `document-title` gate) — layout meta now carries a localized title.
+
+### Verification
+- `tsc --noEmit` clean. Unit **291/291** (27 files), integration **285/285** (26 files, real D1), e2e **80/80** (20 specs, real headless Chromium, AR/EN, desktop + mobile viewports, axe, RTL, security IDOR).
+- Live SSR spot-checks: `/admin/seo` 200 AR+EN with 13-row inventory == sitemap; unauthenticated → `302 /login?next=`.
+- Scope: no visual redesign; auth/payments/activation/receipt-proof/WhatsApp/question-platform untouched; no invented content, year pages, meta keywords, or fake structured data.
+- Owner/external (not claimed): GSC verification + sitemap submission, domain, real content/identity, deployment.
+
 ## [0.10.1] — 2026-09-08 (branch `arena/01a07d8c-tito`)
 
 ### Added — auth hardening + teacher role + question-bank operations

@@ -6,13 +6,21 @@ import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
 import { catalogCourses } from "~server/content/service.server";
 import { lessonCounts, resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
-import { subjects } from "~server/db/schema";
+import { grades, subjects } from "~server/db/schema";
 import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
 import { Card, CardBody } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
-import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
+import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+
+/**
+ * Subject page: the canonical target of BOTH the subject cluster
+ * (`شرح الفلسفة`, `دروس علم النفس`…) and the grade+subject cluster
+ * (`أولى ثانوي فلسفة`, `تالتة ثانوي علم نفس`…). The grade therefore lives in
+ * the document title: `المادة — الصف — brand` (deterministic, deduplicated).
+ */
 
 /** Subject page: visible courses of one published subject (catalog hierarchy). */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -37,6 +45,15 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const thumbs = catalog.map((r) => r.course.thumbnailFileId).filter((x): x is string => Boolean(x));
   const images = pres.showImage ? await resolvePublicImageUrls(db, thumbs) : {};
 
+  // The subject's grade (real content row — used to target the grade+subject
+  // search cluster in the document title and description).
+  const gradeRows = await db
+    .select({ titleAr: grades.titleAr, titleEn: grades.titleEn, slug: grades.slug })
+    .from(grades)
+    .where(eq(grades.id, subject.gradeId))
+    .limit(1);
+  const grade = gradeRows[0] ?? null;
+
   return {
     subject: {
       slug: subject.slug,
@@ -45,6 +62,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       descriptionAr: subject.descriptionAr,
       descriptionEn: subject.descriptionEn,
     },
+    grade: grade ? { slug: grade.slug, titleAr: grade.titleAr, titleEn: grade.titleEn } : null,
     program: { slug: catalog[0]?.programSlug ?? null, titleAr: catalog[0]?.programAr ?? null, titleEn: catalog[0]?.programEn ?? null },
     buyOption,
     pres,
@@ -61,25 +79,74 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   };
 }
 
-/** SEO/social preview from the admin-edited subject row (Admin → Content). */
+/**
+ * SEO/social preview from the admin-edited subject row (Admin → Content), with
+ * the subject's grade woven into the title (grade+subject cluster) and a
+ * data-derived description when the owner hasn't written one.
+ */
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Not Found" }];
   const root = rootMetaFrom(matches);
-  return contentSeoMeta(
+  const locale = root.locale;
+  const grade = loaderData.grade
+    ? { ar: loaderData.grade.titleAr, en: loaderData.grade.titleEn }
+    : null;
+  const base = contentSeoMeta(
     {
       title: { ar: loaderData.subject.titleAr, en: loaderData.subject.titleEn },
       description: { ar: loaderData.subject.descriptionAr, en: loaderData.subject.descriptionEn },
     },
     root.locale,
     loaderData.url,
-    { siteName: root.siteName }
+    {
+      siteName: root.siteName,
+      intermediate: grade,
+      fallbackDescription: (locale) => {
+        const s = locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn;
+        const g = grade ? (locale === "ar" ? grade.ar : grade.en) : "";
+        const site = root.siteName ? (locale === "ar" ? root.siteName.ar : root.siteName.en) : "";
+        if (locale === "ar") return g ? `${s} — ${g}: كورسات ودروس ومراجعات على منصة ${site}.` : `${s}: كورسات ودروس ومراجعات على منصة ${site}.`;
+        return g ? `${s} — ${g}: courses, lessons and revision on the ${site} platform.` : `${s}: courses, lessons and revision on the ${site} platform.`;
+      },
+    }
   );
+  let origin = "";
+  let pathname = "";
+  try {
+    const u = new URL(loaderData.url);
+    origin = u.origin;
+    pathname = u.pathname;
+  } catch {
+    return [...siteEntitiesMeta(matches), ...base];
+  }
+  const crumbs: Array<{ name: string; url?: string | null }> = [
+    { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
+    { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+  ];
+  if (loaderData.program.slug && loaderData.program.titleAr) {
+    crumbs.push({ name: locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn, url: `/programs/${loaderData.program.slug}` });
+  }
+  crumbs.push({ name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn });
+  return [
+    ...siteEntitiesMeta(matches),
+    ...base,
+    {
+      "script:ld+json": webPageJsonLd({
+        name: locale === "ar" ? loaderData.subject.titleAr : loaderData.subject.titleEn,
+        url: absUrl(origin, pathname),
+        description: locale === "ar" ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn,
+        isPartOf: absUrl(origin, "/"),
+        additionalType: "https://schema.org/CollectionPage",
+      }),
+    },
+    { "script:ld+json": breadcrumbJsonLd({ items: crumbs, origin }) },
+  ];
 }
 
 export default function SubjectPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { subject, program, pres, courses, buyOption } = loaderData;
+  const { subject, program, grade, pres, courses, buyOption } = loaderData;
   const c = (row: { titleAr: string | null; titleEn: string | null }) => (locale === "ar" ? row.titleAr : row.titleEn);
   const desc = locale === "ar" ? subject.descriptionAr : subject.descriptionEn;
 
@@ -98,6 +165,14 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
       </nav>
       <h1 className="text-2xl font-bold">{c(subject)}</h1>
       {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      {grade && (
+        <Link
+          to={`/grades/${grade.slug}`}
+          className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-300 hover:text-brand-600"
+        >
+          {c(grade)}
+        </Link>
+      )}
       {buyOption && (
         <Link
           to={`/products/${buyOption.productSlug}`}
