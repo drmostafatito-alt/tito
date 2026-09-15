@@ -192,7 +192,7 @@ E2E composition (86): rtl-mobile 9 · homepage 7 · security 6 · lesson-video 6
 - Audited code commit: `d218dc4` — "fix(ui,security): narrow-viewport overflow on four admin screens + 404 on unconfigured mock stream".
 - Previous audit commit: `9d423ae` — secret-audit tool, reset-token unit tests, `/__test/` robots entry, sitemap docstring fix.
 - Remote branch SHA: `d218dc4` on `origin/arena/01a0a65f-tito` (this report is the next commit on the same branch).
-- Working tree before this report commit: clean (no untracked or ignored build artifacts added; `git status --short --branch` empty apart from the branch line).
+- Working tree: clean — `git status --short --branch` prints only the branch line. Only gitignored local artifacts exist on disk (`build/` 4.6 MB, `.wrangler/` local D1+R2 state 52 MB, `.e2e/` scratch tooling); nothing untracked or secret is staged, and the tracked tree is 16 MB (544 files).
 - Baseline `main` untouched: `origin/main` still `1a0de72f1c2ea0bada977dc7492ce9259bae4e10`. No force push, no history rewrite, no PR, no merge, **no deploy**.
 
 **Remaining blockers (all owner-side; none are code defects).**
