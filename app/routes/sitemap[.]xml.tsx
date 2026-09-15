@@ -10,12 +10,13 @@ import { indexablePublicUrls, sitemapXml } from "~server/seo/inventory.server";
  * → SEO dashboard audits):
  *
  *   - homepage, program/grade/subject/course pages with visible content
+ *   - published unit pages (/courses/:slug/units/:unitId) — intentional lesson
+ *     discovery; see inventory.server.ts
  *   - active storefront products, published CMS pages, /about (identity set)
  *
- * Draft/archived/deleted content, private student/admin/learn surfaces, query
- * variants and unit/lesson id-URLs are NEVER listed. When the owner archives a
- * course, its URL disappears on the next fetch — no manual upkeep, no stale
- * URLs.
+ * Draft/archived/deleted content, private student/admin/learn surfaces and query
+ * variants are NEVER listed. When the owner archives a course, its URL
+ * disappears on the next fetch — no manual upkeep, no stale URLs.
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
   const env = getEnv(context);
