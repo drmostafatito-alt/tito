@@ -248,14 +248,30 @@ Measured in the sandbox against the local worker (cold, no CDN) with Playwright 
 
 ## 19. Commit SHA
 
-`9cea46af45246e488579540cdf161f42cdffbc69` (this report)
-`056371ad20d116585cb1b0aa6a4886b784ff0ca4` (feature head — app/server/tests)
-(phase history: `d77c16c` audit · `6cbca778` tokens+decor · `674d76c` premium blocks · `7076f25`
-recommended homepage · `ef91c54` curriculum pages · `6cf5b67` navy/gold chrome · `bc10ba1` E2E
-hardening · `056371a` modern-browser a11y/perf fixes · `9cea46a` this report)
+Feature head (app + server + tests + QA shots): **`056371ad20d116585cb1b0aa6a4886b784ff0ca4`**
+
+Full phase history on `arena/01a0a1f8-tito`, each committed and pushed separately:
+
+```
+9cea46a  docs(report): final 20-item phase report (homepage + curriculum pages)
+056371a  fix(quality): modern-browser E2E + accessibility/contrast + font preload
+bc10ba1  test(e2e): make the CMS builder specs order- and hydration-proof
+6cf5b67  feat(chrome): navy/gold premium header + footer (identity chrome)
+ef91c54  feat(seo): public curriculum-overview pages (/curriculum/:slug)
+7076f25  feat(homepage): one recommended layout — seed + admin apply (reversible publish)
+674d76c  feat(cms): premium identity-surface blocks (videos, books, grades, exams, journey, benefits, CTA)
+6cbca778 feat(design-system): navy/white/gold identity tokens + academic decorative system
+d77c16c  docs(audit): homepage UI/UX + public SEO curriculum phase — repo forensic baseline
+e4a121d  (baseline: merged main)
+```
+
+This report is itself part of the branch, so each documentation edit advances the branch tip by one
+commit — the tip is therefore always the commit carrying this file
+(`git log -1 -- docs/reports/homepage-curriculum-phase-report.md`).
 
 ## 20. Remote SHA
 
-`9cea46af45246e488579540cdf161f42cdffbc69` — `refs/heads/arena/01a0a1f8-tito`
-(verified with `git ls-remote origin refs/heads/arena/01a0a1f8-tito`; local `HEAD` matches; no force
-push, no history rewrite, no PR, `main` untouched at `e4a121d`).
+`refs/heads/arena/01a0a1f8-tito` was verified with `git ls-remote origin refs/heads/arena/01a0a1f8-tito`
+after **every** push and matched the local `HEAD` at that moment (delivery tip recorded in the
+hand-off message). `main` is untouched at `e4a121d`; no force push, no reset, no history rewrite, no
+PR, no other branch was created or pushed.
