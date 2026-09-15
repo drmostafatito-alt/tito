@@ -1,7 +1,7 @@
 # Phase report — Premium homepage + public SEO curriculum pages
 
 **Branch** `arena/01a0a1f8-tito` · **Baseline** `e4a121d` (merged `main`) ·
-**Delivered head** `056371a` · **Remote** `056371ad20d116585cb1b0aa6a4886b784ff0ca4`
+**Delivered head** `9cea46a` (report commit; feature head `056371a`) · **Remote** `9cea46af45246e488579540cdf161f42cdffbc69`
 **Companion document** `docs/reports/homepage-curriculum-phase-audit.md` (audit A1–A12)
 
 مراجعة سريعة بالعربي: تم رفع واجهة الصفحة الرئيسية إلى مستوى Premium بهوية الكحلي/الذهب، وإضافة صفحات نبذة عن المنهج (فلسفة ومنطق + علم النفس) للفهرسة في جوجل بروابط مباشرة فقط — بدون أي ظهور في الرئيسية أو القوائم، وبدون أي محتوى مُختلق، وبدون المساس بأي وظيفة قائمة (الطلاب، الإدارة، الكورسات، الفيديوهات، الكتب، المدفوعات، منصة الامتحانات الخارجية).
@@ -248,13 +248,14 @@ Measured in the sandbox against the local worker (cold, no CDN) with Playwright 
 
 ## 19. Commit SHA
 
-`056371ad20d116585cb1b0aa6a4886b784ff0ca4`
+`9cea46af45246e488579540cdf161f42cdffbc69` (this report)
+`056371ad20d116585cb1b0aa6a4886b784ff0ca4` (feature head — app/server/tests)
 (phase history: `d77c16c` audit · `6cbca778` tokens+decor · `674d76c` premium blocks · `7076f25`
 recommended homepage · `ef91c54` curriculum pages · `6cf5b67` navy/gold chrome · `bc10ba1` E2E
-hardening · `056371a` modern-browser a11y/perf fixes)
+hardening · `056371a` modern-browser a11y/perf fixes · `9cea46a` this report)
 
 ## 20. Remote SHA
 
-`056371ad20d116585cb1b0aa6a4886b784ff0ca4` — `refs/heads/arena/01a0a1f8-tito`
+`9cea46af45246e488579540cdf161f42cdffbc69` — `refs/heads/arena/01a0a1f8-tito`
 (verified with `git ls-remote origin refs/heads/arena/01a0a1f8-tito`; local `HEAD` matches; no force
 push, no history rewrite, no PR, `main` untouched at `e4a121d`).
