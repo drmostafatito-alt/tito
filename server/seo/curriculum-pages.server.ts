@@ -156,4 +156,6 @@ export function curriculumPagePath(slug: string): string {
   return `${CURRICULUM_PAGE_PATH_PREFIX}${slug}`;
 }
 
-export { curriculumSummaryText } from "~/lib/curriculum-format";
+// NOTE: the human-readable نبذة builder lives in `~/lib/curriculum-format`
+// (client-safe: the route component renders it too). Server code must not
+// import app code, so this module deliberately does not re-export it.

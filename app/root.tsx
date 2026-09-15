@@ -25,6 +25,12 @@ export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.ico", sizes: "any" },
   // admin-controlled design tokens (validated; same-origin → CSP-safe)
   { rel: "stylesheet", href: "/theme.css" },
+  // Preload the two Arabic faces that cover body (400) and headings/bold (700)
+  // copy. Both are small (~14 KB, woff2, arabic subset) and every route renders
+  // Arabic-first copy, so warming them removes the font swap without pulling a
+  // family's worth of bytes. `crossorigin` is required for font preloads.
+  { rel: "preload", as: "font", type: "font/woff2", href: "/fonts/cairo/cairo-ar-400.woff2", crossOrigin: "anonymous" },
+  { rel: "preload", as: "font", type: "font/woff2", href: "/fonts/cairo/cairo-ar-700.woff2", crossOrigin: "anonymous" },
 ];
 
 export async function loader({ context, request }: Route.LoaderArgs) {

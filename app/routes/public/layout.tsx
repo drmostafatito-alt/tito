@@ -294,7 +294,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           {/* Brand column */}
           <div className="flex flex-col gap-3">
             <Link to="/" aria-label={appName} className="inline-flex items-center">
-              {idn.logoUrl ? <img src={idn.logoUrl} alt={appName} className="h-9 w-auto object-contain" /> : <BrandMark name={appName} />}
+              {idn.logoUrl ? <img src={idn.logoUrl} alt={appName} className="h-9 w-auto object-contain" /> : <BrandMark name={appName} tone="onDark" />}
             </Link>
             {tagline && <p className="text-sm text-navy-200">{tagline}</p>}
             {idn.socialsFooter.length > 0 && (
