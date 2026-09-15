@@ -189,6 +189,9 @@ export const ROBOTS_PRIVATE_PATHS: string[] = [
   "/api/",
   "/beacons/",
   "/webhooks/",
+  // Strictly test-gated email inbox (404 unless ENVIRONMENT=test + capture
+  // transport + synthetic secret). Crawl hygiene only — the gate is server-side.
+  "/__test/",
 ];
 
 export function robotsTxtBody(sitemapUrl: string): string {

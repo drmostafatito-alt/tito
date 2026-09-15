@@ -24,6 +24,7 @@
     "check:production-readiness:remote": "node scripts/check-production-readiness.mjs --remote",
     "lint": "npm run lint:imports",
     "audit:dependencies": "npm audit --audit-level=moderate",
+    "audit:secrets": "node scripts/audit-secrets.mjs",
     "check:deploy-config": "node scripts/check-deploy-config.mjs"
   },
   "dependencies": {
