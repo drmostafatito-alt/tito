@@ -126,7 +126,7 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
-  const input = "rounded-lg border border-slate-300 px-3 py-2";
+  const input = "w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2";
   const statusKey = (s: string) => (s === "ready" ? "videosAdmin.statusReady" : s === "preparing" ? "videosAdmin.statusPreparing" : s === "errored" ? "videosAdmin.statusErrored" : "videosAdmin.statusPending");
 
   return (
@@ -138,11 +138,11 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
           {loaderData.allowMock && (
             <Form method="post" className="grid gap-3 sm:grid-cols-3">
               <input type="hidden" name="_action" value="register-mock" />
-              <label className="grid gap-1 text-sm">
+              <label className="grid min-w-0 gap-1 text-sm">
                 <span>{t(locale, "videosAdmin.registerMock")}</span>
                 <input name="title" dir="auto" className={input} />
               </label>
-              <label className="grid gap-1 text-sm">
+              <label className="grid min-w-0 gap-1 text-sm">
                 <span>⏱ (s)</span>
                 <input name="duration" type="number" min={10} max={7200} defaultValue={60} className={input} />
               </label>
@@ -153,11 +153,11 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
           )}
           <Form method="post" encType="multipart/form-data" className="grid gap-3 sm:grid-cols-3">
             <input type="hidden" name="_action" value="ingest" />
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "videosAdmin.ingestMaster")}</span>
               <input type="file" name="file" accept="video/mp4,video/quicktime" required className={input} />
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>Title</span>
               <input name="title" dir="auto" className={input} />
             </label>
@@ -171,7 +171,7 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
               <h2 className="text-sm font-semibold text-slate-700">{t(locale, "videosAdmin.youtubeHeading")}</h2>
               <p className="text-xs text-slate-500">{t(locale, "videosAdmin.youtubeHeadingHint")}</p>
             </div>
-            <label className="grid gap-1 text-sm sm:col-span-3">
+            <label className="grid min-w-0 gap-1 text-sm sm:col-span-3">
               <span>{t(locale, "videosAdmin.youtubeUrl")}</span>
               <input
                 name="url"
@@ -184,19 +184,19 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
               />
               <span className="text-xs text-slate-400">{t(locale, "videosAdmin.youtubeUrlHint")}</span>
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "videosAdmin.titleAr")}</span>
               <input name="titleAr" dir="rtl" className={input} />
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "videosAdmin.titleEn")}</span>
               <input name="titleEn" dir="ltr" className={input} />
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "videosAdmin.descAr")}</span>
               <textarea name="descriptionAr" dir="rtl" rows={2} className={input} />
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "videosAdmin.descEn")}</span>
               <textarea name="descriptionEn" dir="ltr" rows={2} className={input} />
             </label>

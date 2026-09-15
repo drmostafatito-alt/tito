@@ -119,7 +119,7 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
-  const input = "rounded-lg border border-slate-300 px-3 py-2";
+  const input = "w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2";
   const busy = nav.state !== "idle";
   const { grants, catalog } = loaderData;
 
@@ -136,11 +136,11 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
         <CardBody>
           <Form method="post" className="grid gap-3 sm:grid-cols-2">
             <input type="hidden" name="_action" value="grant" />
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "entAdmin.studentEmail")}</span>
               <input name="email" type="email" required dir="ltr" className={input} />
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "entAdmin.resource")}</span>
               <select name="resource" required className={input} defaultValue="">
                 <option value="" disabled>
@@ -158,11 +158,11 @@ export default function AdminEntitlements({ loaderData }: Route.ComponentProps) 
                 ))}
               </select>
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "entAdmin.days")}</span>
               <input name="days" type="number" min={1} max={3650} className={input} />
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span>{t(locale, "entAdmin.reason")}</span>
               <input name="note" dir="auto" className={input} />
             </label>

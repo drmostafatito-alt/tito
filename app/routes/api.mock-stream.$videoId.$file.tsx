@@ -26,6 +26,11 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const now = Date.now();
   if (exp <= now || exp - now > 86_400_000) return new Response("Not Found", { status: 404 });
 
+  // Production never binds MOCK_VIDEO_SECRET (the mock provider is test-only),
+  // so this public URL must stay a plain 404 there instead of throwing inside
+  // `mockTokenSecret` and surfacing an unhandled 500.
+  if (!env.MOCK_VIDEO_SECRET) return new Response("Not Found", { status: 404 });
+
   const secret = mockTokenSecret(env);
   const expected = await signMockToken(secret, {
     videoId: params.videoId,

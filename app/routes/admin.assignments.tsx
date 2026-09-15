@@ -15,8 +15,8 @@ import { Card, CardBody } from "~/components/ui/Card";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
-const inputCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "h-[42px] w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const inputCls = "h-[42px] w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -156,10 +156,10 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
           <Card>
             <CardBody className="space-y-3">
               <form method="get" className="grid gap-3 lg:grid-cols-12" role="search">
-                <div className="lg:col-span-4">
+                <div className="min-w-0 lg:col-span-4">
                   <input name="q" defaultValue={q} placeholder={t(locale, "assignment.searchPlaceholder")} className={inputCls} />
                 </div>
-                <div className="lg:col-span-3">
+                <div className="min-w-0 lg:col-span-3">
                   <select name="status" defaultValue={status} className={selectCls}>
                     <option value="">{t(locale, "assignment.allStatuses")}</option>
                     <option value="draft">{t(locale, "assignment.status_draft")}</option>
@@ -167,7 +167,7 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
                     <option value="archived">{t(locale, "assignment.status_archived")}</option>
                   </select>
                 </div>
-                <div className="lg:col-span-3">
+                <div className="min-w-0 lg:col-span-3">
                   <select name="courseId" defaultValue={courseId} className={selectCls}>
                     <option value="">{t(locale, "assignment.allCourses")}</option>
                     {courses.map((c) => (
@@ -175,7 +175,7 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
                     ))}
                   </select>
                 </div>
-                <div className="lg:col-span-2 flex gap-2">
+                <div className="flex min-w-0 gap-2 lg:col-span-2">
                   <button type="submit" className="h-[42px] flex-1 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
                     {t(locale, "assignment.filter")}
                   </button>
