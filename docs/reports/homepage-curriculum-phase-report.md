@@ -170,10 +170,13 @@ touched; the external exams integration is unchanged.
 
 E2E hardening in this phase (all real flake, not cosmetic):
 - the CMS builder specs now probe section order through **exact heading text inside `<main>`** (whole-body
-  and body-`indexOf` probes were unsound — the hero CTA contains the word "الكورسات"), pick the pair
-  from the public page and locate it in the builder by heading, and **verify the draft before
-  publishing** (save → reload → assert) so a lost save or a publish racing the save can never look
-  like a broken visitor page;
+  and body-`indexOf` probes were unsound — the hero CTA contains the word "الكورسات"), and **verify the
+  draft before publishing** (save/reorder → reload → assert the draft really changed) so a lost write or
+  a publish racing the save can never look like a broken visitor page;
+- the reorder spec now swaps an **adjacent, publicly-visible pair chosen from the builder order**.
+  Earlier it moved whatever section Public showed first, which can be the neighbour of an invisible
+  (data-driven, empty-database) section: the swap then really happens in the database while the public
+  page correctly shows no change, i.e. a green feature reported as red.
 - the WhatsApp FAB collision spec scrolls instantly to the computed offset on a 390×844 phone
   viewport (a `mouse.wheel` animation could leave the form short of the reserved corner, and at
   1440px the centred column and the `end-4` button can never overlap).

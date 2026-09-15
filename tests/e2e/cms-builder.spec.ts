@@ -136,6 +136,28 @@ async function visitor(browser: import("@playwright/test").Browser, locale?: "ar
  * TEXT so chrome (nav labels, card CTAs) can never be mistaken for the section.
  * Returns -1 when the heading is not rendered at all.
  */
+/**
+ * The page's sections in BUILDER order: `{ id, heading }` for every section
+ * wrapper (a `save-block` form carrying the section-only `f.bg` field).
+ * Section wrappers with an empty heading are layout containers whose copy lives
+ * in their children — they are returned too, since the caller needs the real
+ * order, not a filtered one.
+ */
+async function sectionRows(page: Page): Promise<Array<{ id: string; heading: string }>> {
+  const forms = blockForms(page);
+  const n = await forms.count();
+  const rows: Array<{ id: string; heading: string }> = [];
+  for (let i = 0; i < n; i++) {
+    const f = forms.nth(i);
+    if (!(await f.locator('select[name="f.bg"]').count())) continue; // section wrappers only
+    rows.push({
+      id: await f.locator('input[name="blockId"]').first().inputValue(),
+      heading: (await f.locator('input[name="f.heading.ar"]').first().inputValue()).trim(),
+    });
+  }
+  return rows;
+}
+
 async function headingIndex(page: import("@playwright/test").Page, heading: string): Promise<number> {
   return await page.evaluate((h) => {
     const headings = Array.from(document.querySelectorAll("main h2, main h3"));
@@ -230,61 +252,70 @@ test.describe("CMS page builder (owner -> public)", () => {
   });
 
   test("reordering sections changes the public rendering order", async ({ page, browser }) => {
-    // Pick the pair to probe from the PUBLIC page (the headings a visitor
-    // reads, in document order) and then locate the matching section inside the
-    // builder by its Arabic heading. Deriving both ends from the same source
-    // keeps the test independent of builder DOM order, of chrome text that
-    // repeats a section title (nav labels / card CTAs), and of which sections
-    // happen to have content in the seeded fixtures.
+    // A swap is only observable in public when BOTH sections render a heading
+    // there. Sections whose content is data-driven (statistics, videos, books…)
+    // stay invisible with an empty database, so swapping with one of them
+    // correctly changes nothing a visitor can see. The pair is therefore chosen
+    // from the BUILDER's adjacent order — the units that actually get swapped —
+    // and then checked to be publicly visible before anything is touched.
     const read = await visitor(browser);
     const publicHeadings = await read.page.evaluate(() =>
-      Array.from(document.querySelectorAll("main h2")).map((el) => (el.textContent ?? "").trim()).filter(Boolean)
+      Array.from(document.querySelectorAll("main h2, main h3")).map((el) => (el.textContent ?? "").trim())
     );
     await read.ctx.close();
-    const unique = publicHeadings.filter((h) => publicHeadings.indexOf(h) === publicHeadings.lastIndexOf(h));
-    expect(unique.length, "need two distinct section headings to prove ordering").toBeGreaterThanOrEqual(2);
-    const [firstHeading, secondHeading] = unique;
 
     await openHomeEditor(page);
-    const forms = blockForms(page);
-    const count = await forms.count();
-    let sectionId = "";
-    for (let i = 0; i < count; i++) {
-      const f = forms.nth(i);
-      if (!(await f.locator('select[name="f.bg"]').count())) continue; // section wrappers only
-      const heading = (await f.locator('input[name="f.heading.ar"]').first().inputValue()).trim();
-      if (heading === firstHeading) {
-        sectionId = await f.locator('input[name="blockId"]').first().inputValue();
+    const rows = await sectionRows(page);
+    let a: { id: string; heading: string } | undefined;
+    let b: { id: string; heading: string } | undefined;
+    for (let i = 0; i + 1 < rows.length; i++) {
+      const [first, second] = [rows[i], rows[i + 1]];
+      if (!first.heading || !second.heading) continue;
+      const idxA = publicHeadings.indexOf(first.heading);
+      const idxB = publicHeadings.indexOf(second.heading);
+      if (idxA >= 0 && idxB >= 0 && idxA < idxB) {
+        a = first;
+        b = second;
         break;
       }
     }
-    expect(sectionId, `no builder section carries the heading "${firstHeading}"`).not.toBe("");
+    expect(
+      Boolean(a && b),
+      `need two adjacent, publicly-visible sections; builder order = ${JSON.stringify(rows.map((r) => r.heading))}`
+    ).toBe(true);
+    const firstSection = a!;
+    const secondSection = b!;
 
-    let before = true; // by construction: firstHeading precedes secondHeading in <main>
     try {
-      await toolForm(page, "move-block", sectionId, "down").locator("button").click();
+      await toolForm(page, "move-block", firstSection.id, "down").locator("button").click();
       await page.waitForLoadState("networkidle");
+      // Proving the DRAFT moved keeps a lost save from masquerading as a
+      // rendering bug once the publish is checked below.
+      await openHomeEditor(page);
+      const moved = await sectionRows(page);
+      const posA = moved.findIndex((r) => r.id === firstSection.id);
+      const posB = moved.findIndex((r) => r.id === secondSection.id);
+      expect(posA, "moving down must reorder the draft").toBeGreaterThan(posB);
       await publish(page);
 
       const after = await visitor(browser);
-      const idxAfterA = await headingIndex(after.page, firstHeading);
-      const idxAfterB = await headingIndex(after.page, secondHeading);
+      const idxAfterA = await headingIndex(after.page, firstSection.heading);
+      const idxAfterB = await headingIndex(after.page, secondSection.heading);
       await after.ctx.close();
       expect(idxAfterA, "moved section heading must still be rendered").toBeGreaterThanOrEqual(0);
       expect(idxAfterB, "the section it swapped with must still be rendered").toBeGreaterThanOrEqual(0);
-      expect(idxAfterA < idxAfterB, "the public section order must flip").toBe(!before);
+      expect(idxAfterA, "the public section order must flip").toBeGreaterThan(idxAfterB);
     } finally {
       await openHomeEditor(page);
-      await toolForm(page, "move-block", sectionId, "up").locator("button").click();
+      await toolForm(page, "move-block", firstSection.id, "up").locator("button").click();
       await page.waitForLoadState("networkidle");
+      await openHomeEditor(page);
+      const restored = await sectionRows(page);
+      const posA = restored.findIndex((r) => r.id === firstSection.id);
+      const posB = restored.findIndex((r) => r.id === secondSection.id);
+      expect(posA, "the restore must put the original order back").toBeLessThan(posB);
       await publish(page);
     }
-
-    const restored = await visitor(browser);
-    const idxRestoredA = await headingIndex(restored.page, firstHeading);
-    const idxRestoredB = await headingIndex(restored.page, secondHeading);
-    await restored.ctx.close();
-    expect(idxRestoredA < idxRestoredB, "the restore must put the original order back").toBe(before);
   });
 
   test("a page can be saved as a reusable template", async ({ page }) => {
