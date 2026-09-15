@@ -426,6 +426,21 @@ export const ar = {
     unreadLabel: "جديد",
     expiresAt: "يظهر حتى",
   },
+  home: {
+    chipSubjects: "{n} مواد",
+    chipCourses: "{n} دورة",
+    chipVideos: "{n} فيديو",
+    chipBooks: "كتب ومذكرات",
+    chipExams: "تدريبات وامتحانات",
+    gradeCta: "استعرض الصف",
+    videoBadge: "فيديو شرح",
+    videoCta: "شاهد الدرس",
+    productCta: "اعرض التفاصيل",
+    productKindBundle: "حزمة تعليمية",
+    productKindSubscription: "اشتراك",
+    examCta: "ابدأ الاختبار",
+    externalTag: "منصة خارجية",
+  },
   content: {
     catalogTitle: "الدورات التدريبية",
     catalogEmpty: "لا توجد دورات منشورة بعد.",
@@ -1596,6 +1611,19 @@ export const ar = {
     missingDescList: "العناصر المنشورة بدون وصف",
     dupList: "مجموعات العناوين المكررة",
     none: "لا شيء",
+  },
+  curriculum: {
+    overviewEyebrow: "منهج الفلسفة وعلم النفس",
+    overviewTitle: "نبذة عن محتوى المنهج",
+    coursesCrumb: "الكورسات",
+    outlineTitle: "وحدات المنهج وفصوله",
+    lessonsCount: "{n} درسًا",
+    availableTitle: "المتاح على المنصة",
+    courseLinkHint: "افتح الكورس لمشاهدة الدروس المنشورة.",
+    exploreCta: "استكشف الدروس",
+    homeCta: "الصفحة الرئيسية",
+    honestyNote:
+      "يعرض هذا الملخص هيكل المنهج كما هو مسجَّل في مصدر المنهج المعتمد على المنصة: أسماء الوحدات والفصول وعدد الدروس في كل منها. لا يضيف الموقع شرحًا علميًا من عنده، والدروس المتاحة للمشاهدة تظهر عند نشرها فعليًا في الكورسات.",
   },
 };
 

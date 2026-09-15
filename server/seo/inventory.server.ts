@@ -4,6 +4,7 @@ import { courses, grades, pages, programs, products, subjects, units } from "../
 import { catalogCourses } from "../content/service.server";
 import { pricePlansForProduct } from "../commerce/service.server";
 import { getSettings } from "../settings/service.server";
+import { CURRICULUM_PAGES, curriculumPagePath } from "./curriculum-pages.server";
 
 /**
  * SEO crawl inventory — the SINGLE SOURCE OF TRUTH for "which public URLs are
@@ -137,6 +138,12 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
   if (settings.identity.ownerNameAr.trim() !== "" || settings.identity.ownerNameEn.trim() !== "") {
     out.push({ path: "/about", lastmodMs: null });
   }
+
+  // --- public curriculum-overview pages -------------------------------------
+  // Derived from the owner-provided curriculum source (not from catalog rows),
+  // so these are real pages on day one. Reachable by direct link and Google
+  // only — never from the homepage or the navigation.
+  for (const cp of CURRICULUM_PAGES) out.push({ path: curriculumPagePath(cp.slug), lastmodMs: null });
 
   // Deterministic order (stable sitemap diffs): home first, then by path.
   return out.sort((a, b) => (a.path === "/" ? -1 : b.path === "/" ? 1 : a.path.localeCompare(b.path)));

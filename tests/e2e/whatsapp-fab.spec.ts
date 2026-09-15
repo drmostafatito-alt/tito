@@ -189,7 +189,11 @@ test.describe("floating WhatsApp button", () => {
     await page.waitForLoadState("networkidle");
 
     // ---- now verify the collision behaviour as a visitor -----------------
-    const v = await visit(browser, "en");
+    // Phone viewport on purpose: the button is anchored `bottom-4 end-4` while
+    // the CMS column is centred, so at 1440px the two never meet — the corner
+    // the button reserves only sits *inside* the content column at phone
+    // widths, which is exactly where a fixed overlay does real damage.
+    const v = await visit(browser, "en", { width: 390, height: 844 });
     const fab = v.page.getByTestId("whatsapp-fab");
     await expect(fab).toBeVisible({ timeout: 20_000 });
     await expect(fab).toHaveAttribute("data-dodging", "false");
@@ -199,19 +203,26 @@ test.describe("floating WhatsApp button", () => {
     await formOnPage.scrollIntoViewIfNeeded();
 
     const vh = await v.page.evaluate(() => window.innerHeight);
-    // Land the form inside the corner the button reserves (bottom band, full
-    // width is already covered because the form spans the content column).
+    // Land the form inside the corner the button reserves (the bottom band; the
+    // horizontal overlap comes from the phone-width content column above).
+    //
+    // Scrolling is done with `window.scrollTo(..., behavior: "instant")` rather
+    // than `mouse.wheel`: a wheel gesture is animated, so the measured position
+    // could still be mid-flight and the loop would stop short of the corner —
+    // which would turn this into a scroll-timing test instead of a layout test.
     const wantedTop = vh - (FAB_INSET + FAB_SIZE / 2);
-    let lastTop = Number.NaN;
-    for (let i = 0; i < 10; i++) {
-      const tb = (await formOnPage.boundingBox())!;
-      const delta = tb.y - wantedTop;
-      if (Math.abs(delta) < 3) break;
-      if (tb.y === lastTop) break; // scroll clamped at a page edge
-      lastTop = tb.y;
-      await v.page.mouse.wheel(0, delta);
-      await v.page.waitForTimeout(120);
+    for (let i = 0; i < 12; i++) {
+      const done = await formOnPage.evaluate((el, top) => {
+        const delta = (el as HTMLElement).getBoundingClientRect().top - top;
+        if (Math.abs(delta) < 2) return true; // aligned with the reserved corner
+        const before = window.scrollY;
+        window.scrollTo({ top: before + delta, behavior: "instant" as ScrollBehavior });
+        return window.scrollY === before; // clamped at a page edge
+      }, wantedTop);
+      if (done) break;
+      await v.page.waitForTimeout(60);
     }
+    await v.page.waitForTimeout(120); // let the button's rAF recompute run
 
     await expect(fab).toHaveAttribute("data-dodging", "true", { timeout: 10_000 });
     // while dodging it is not interactive and is hidden from assistive tech
@@ -219,7 +230,7 @@ test.describe("floating WhatsApp button", () => {
     expect(await fab.getAttribute("tabindex")).toBe("-1");
 
     // scroll away by more than a screen: the form leaves the reserved corner
-    await v.page.mouse.wheel(0, -(vh + 200));
+    await v.page.evaluate((d) => window.scrollTo({ top: Math.max(0, window.scrollY - d), behavior: "instant" as ScrollBehavior }), vh + 200);
     await v.page.waitForTimeout(200);
     await expect(fab).toHaveAttribute("data-dodging", "false", { timeout: 10_000 });
     expect(await fab.getAttribute("aria-hidden")).toBeNull();

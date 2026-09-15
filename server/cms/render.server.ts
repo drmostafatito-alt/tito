@@ -6,12 +6,20 @@ import {
   formFields,
   forms,
   grades,
+  lessonItems,
   lessons,
+  pricePlans,
+  productItems,
+  products,
   programs,
   subjects,
   units,
   users,
+  videos,
 } from "../db/schema";
+import { effectivePriceMinor } from "../commerce/service.server";
+import { formatMoney } from "../commerce/money";
+import { resolveQuestionPlatformUrl } from "../../app/lib/question-platform";
 import { t } from "../../app/lib/i18n";
 import { BLOCKS, type LStr, type PageSnapshot, zodForBlock } from "../../app/cms/registry";
 import type {
@@ -153,11 +161,15 @@ export async function resolveDynamicBlocks(
   db: DB,
   reqs: DynRequest[],
   settings: Settings
-): Promise<{ rows: Record<string, CardView[]>; imageIds: string[] }> {
+): Promise<{ rows: Record<string, CardView[]>; imageIds: string[]; questionPlatformUrl: string | null }> {
   const pres = settings.presentation;
+  const nowMs = Date.now();
+  // The EXTERNAL questions/exams platform gate (enable + https-only) — resolved
+  // once here so blocks, chips and resolvers all share the same answer.
+  const questionPlatformUrl = resolveQuestionPlatformUrl(settings.platform);
   const out: Record<string, CardView[]> = {};
   const imageIds: string[] = [];
-  if (!reqs.length) return { rows: out, imageIds };
+  if (!reqs.length) return { rows: out, imageIds, questionPlatformUrl };
 
   const needsCourses = reqs.some((r) => r.kind === "courses" || r.kind === "featured" || r.kind === "free_content" || r.kind === "latest_lessons");
   const needsSubjects = reqs.some((r) => r.kind === "subjects" || r.kind === "featured");
@@ -345,14 +357,269 @@ export async function resolveDynamicBlocks(
         out[req.blockId] = await resolveLessonCards(db, req, limit, needsFreeOnly(req.kind), pres);
         break;
       }
+      case "videos": {
+        out[req.blockId] = await resolveVideoCards(db, limit, uuidList(req.props.courseIds), imageIds);
+        break;
+      }
+      case "products": {
+        out[req.blockId] = await resolveProductCards(db, limit, nowMs);
+        break;
+      }
+      case "grades": {
+        out[req.blockId] = await resolveGradeCards(db, limit, Boolean(questionPlatformUrl));
+        break;
+      }
       default:
         out[req.blockId] = [];
     }
   }
-  return { rows: out, imageIds };
+  return { rows: out, imageIds, questionPlatformUrl };
 }
 
 const needsFreeOnly = (kind: string) => kind === "free_content";
+
+// ---------------------------------------------------------------------------
+// Identity-surface resolvers (owner brief: شرح · فيديوهات · كتب ومذكرات ·
+// امتحانات · اختيار الصف). Each one resolves REAL published rows only and
+// returns [] when there is nothing to show, so the block collapses instead of
+// rendering an empty shell or — worse — an invented placeholder.
+// ---------------------------------------------------------------------------
+
+/** Kind labels for product cards (the product's own kind, never a marketing claim). */
+const PRODUCT_KIND_KEY: Record<string, string> = {
+  course: "content.course",
+  subject: "content.subject",
+  bundle: "home.productKindBundle",
+  subscription_plan: "home.productKindSubscription",
+};
+
+/**
+ * Grades → picker cards. Chips are derived from rows that exist for THAT grade:
+ * published subjects, catalog courses, lessons with a ready video, products
+ * covering one of its subjects, and the (globally configured) external exams
+ * platform. No chip is ever emitted without its backing data.
+ */
+async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean): Promise<CardView[]> {
+  const gradeRows = await db
+    .select({
+      id: grades.id, slug: grades.slug, titleAr: grades.titleAr, titleEn: grades.titleEn,
+      programTitleAr: programs.titleAr, programTitleEn: programs.titleEn,
+    })
+    .from(grades)
+    .innerJoin(programs, eq(grades.programId, programs.id))
+    .where(and(eq(grades.status, "published"), isNull(grades.deletedAt), eq(programs.status, "published"), isNull(programs.deletedAt)))
+    .orderBy(asc(grades.sortOrder))
+    .limit(limit);
+  if (!gradeRows.length) return [];
+  const gradeIds = gradeRows.map((g) => g.id);
+
+  const subjectRows = await db
+    .select({ id: subjects.id, gradeId: subjects.gradeId })
+    .from(subjects)
+    .where(and(inArray(subjects.gradeId, gradeIds), eq(subjects.status, "published"), isNull(subjects.deletedAt)));
+  const subjectIds = subjectRows.map((s) => s.id);
+  const gradeBySubject = new Map(subjectRows.map((s) => [s.id, s.gradeId] as const));
+  const subjectCount = new Map<string, number>();
+  for (const s of subjectRows) subjectCount.set(s.gradeId, (subjectCount.get(s.gradeId) ?? 0) + 1);
+
+  const courseRows = subjectIds.length
+    ? await db
+        .select({ id: courses.id, subjectId: courses.subjectId })
+        .from(courses)
+        .where(and(inArray(courses.subjectId, subjectIds), eq(courses.status, "published"), isNull(courses.deletedAt), inArray(courses.visibility, ["catalog", "featured"])))
+    : [];
+  const courseCount = new Map<string, number>();
+  for (const c of courseRows) {
+    const g = gradeBySubject.get(c.subjectId);
+    if (g) courseCount.set(g, (courseCount.get(g) ?? 0) + 1);
+  }
+
+  const videoRows = subjectIds.length
+    ? await db
+        .select({ subjectId: courses.subjectId, n: sql<number>`count(distinct ${lessons.id})` })
+        .from(lessons)
+        .innerJoin(units, eq(lessons.unitId, units.id))
+        .innerJoin(courses, eq(units.courseId, courses.id))
+        .innerJoin(lessonItems, and(eq(lessonItems.lessonId, lessons.id), eq(lessonItems.itemType, "video")))
+        .innerJoin(videos, and(eq(videos.id, lessonItems.videoId), eq(videos.status, "ready")))
+        .where(and(
+          inArray(courses.subjectId, subjectIds),
+          eq(lessons.status, "published"), isNull(lessons.deletedAt),
+          isNull(units.deletedAt),
+          eq(courses.status, "published"), isNull(courses.deletedAt),
+          inArray(courses.visibility, ["catalog", "featured"]),
+        ))
+        .groupBy(courses.subjectId)
+    : [];
+  const videoCount = new Map<string, number>();
+  for (const r of videoRows) {
+    const g = gradeBySubject.get(r.subjectId);
+    if (g) videoCount.set(g, (videoCount.get(g) ?? 0) + Number(r.n));
+  }
+
+  // products (books/notes/…) that cover a subject of this grade AND are buyable
+  // (active product with at least one active price plan)
+  const activeProductRows = await db
+    .select({ id: products.id })
+    .from(products)
+    .innerJoin(pricePlans, and(eq(pricePlans.productId, products.id), eq(pricePlans.active, true)))
+    .where(and(eq(products.active, true), isNull(products.archivedAt)))
+    .groupBy(products.id);
+  const gradeWithProduct = new Set<string>();
+  if (activeProductRows.length) {
+    const itemRows = await db
+      .select({ resourceId: productItems.resourceId })
+      .from(productItems)
+      .where(and(
+        inArray(productItems.productId, activeProductRows.map((p) => p.id)),
+        eq(productItems.resourceType, "subject"),
+      ));
+    for (const it of itemRows) {
+      const g = gradeBySubject.get(it.resourceId);
+      if (g) gradeWithProduct.add(g);
+    }
+  }
+
+  return gradeRows.map((g) => {
+    const chips: LStr[] = [];
+    const chip = (key: string, n?: number) => chips.push({ ar: t("ar", key, n === undefined ? undefined : { n }), en: t("en", key, n === undefined ? undefined : { n }) });
+    const subs = subjectCount.get(g.id) ?? 0;
+    const crs = courseCount.get(g.id) ?? 0;
+    const vids = videoCount.get(g.id) ?? 0;
+    if (subs > 0) chip("home.chipSubjects", subs);
+    if (crs > 0) chip("home.chipCourses", crs);
+    if (vids > 0) chip("home.chipVideos", vids);
+    if (gradeWithProduct.has(g.id)) chip("home.chipBooks");
+    if (examsConfigured) chip("home.chipExams");
+    return {
+      id: g.id,
+      href: `/grades/${g.slug}`,
+      title: L(g.titleAr, g.titleEn),
+      desc: L("", ""),
+      image: null,
+      badge: g.programTitleAr || g.programTitleEn ? L(g.programTitleAr, g.programTitleEn) : null,
+      meta: null,
+      cta: L(t("ar", "home.gradeCta"), t("en", "home.gradeCta")),
+      chips,
+    } satisfies CardView;
+  });
+}
+
+/**
+ * Products (books / notes / bundles / subscriptions) → storefront cards.
+ * Only products that are ACTIVE and have at least one ACTIVE price plan appear
+ * (otherwise checkout is impossible and the card would be a dead end). The card
+ * shows the cheapest effective price of those plans — the same server-side price
+ * truth the public product page renders. `limit` caps the row count.
+ */
+async function resolveProductCards(db: DB, limit: number, nowMs: number): Promise<CardView[]> {
+  const productRows = await db
+    .select({
+      id: products.id, kind: products.kind, slug: products.slug,
+      nameAr: products.nameAr, nameEn: products.nameEn,
+      descriptionAr: products.descriptionAr, descriptionEn: products.descriptionEn,
+      thumbnailFileId: products.thumbnailFileId,
+    })
+    .from(products)
+    .where(and(eq(products.active, true), isNull(products.archivedAt)))
+    .orderBy(asc(products.sortOrder))
+    .limit(limit);
+  if (!productRows.length) return [];
+
+  const planRows = await db
+    .select()
+    .from(pricePlans)
+    .where(and(inArray(pricePlans.productId, productRows.map((p) => p.id)), eq(pricePlans.active, true)));
+
+  const cheapest = new Map<string, { minor: number; currency: string; labelAr: string | null; labelEn: string | null }>();
+  for (const p of planRows) {
+    const minor = effectivePriceMinor(p, nowMs);
+    const current = cheapest.get(p.productId);
+    if (!current || minor < current.minor) {
+      cheapest.set(p.productId, { minor, currency: p.currency, labelAr: p.labelAr, labelEn: p.labelEn });
+    }
+  }
+
+  const cards: CardView[] = [];
+  for (const p of productRows) {
+    const price = cheapest.get(p.id);
+    if (!price) continue; // no active plan → not purchasable → never shown
+    const label = price.labelAr || price.labelEn ? ` · ${price.labelAr || price.labelEn}` : "";
+    cards.push({
+      id: p.id,
+      href: `/products/${p.slug}`,
+      title: L(p.nameAr, p.nameEn),
+      desc: L(p.descriptionAr, p.descriptionEn),
+      image: p.thumbnailFileId ?? null,
+      badge: { ar: t("ar", PRODUCT_KIND_KEY[p.kind] ?? "content.course"), en: t("en", PRODUCT_KIND_KEY[p.kind] ?? "content.course") },
+      meta: { ar: `${formatMoney(price.minor, price.currency)}${label}`, en: `${formatMoney(price.minor, price.currency)}${label}` },
+      cta: L(t("ar", "home.productCta"), t("en", "home.productCta")),
+    });
+  }
+  return cards;
+}
+
+/**
+ * Lesson videos → cards. A row appears only when the lesson is PUBLISHED inside
+ * a published unit of a catalog course AND has a `video` lesson-item whose video
+ * row is `ready` — i.e. there is something real to watch. Playback itself stays
+ * entitlement-checked on /learn (this block only advertises the lesson), exactly
+ * like the existing latest_lessons/free_content blocks.
+ */
+async function resolveVideoCards(db: DB, limit: number, courseFilter: string[], imageIds: string[]): Promise<CardView[]> {
+  const rows = await db
+    .select({
+      lessonId: lessons.id, lessonSlug: lessons.slug, titleAr: lessons.titleAr, titleEn: lessons.titleEn,
+      descriptionAr: lessons.descriptionAr, descriptionEn: lessons.descriptionEn,
+      accessLevel: lessons.accessLevel, freePreview: lessons.freePreview,
+      courseSlug: courses.slug, courseTitleAr: courses.titleAr, courseTitleEn: courses.titleEn,
+      courseThumb: courses.thumbnailFileId,
+      durationSeconds: videos.durationSeconds, videoThumbFileId: videos.thumbnailFileId, videoThumbUrl: videos.thumbnailUrl,
+    })
+    .from(lessons)
+    .innerJoin(units, eq(lessons.unitId, units.id))
+    .innerJoin(courses, eq(units.courseId, courses.id))
+    .innerJoin(lessonItems, and(eq(lessonItems.lessonId, lessons.id), eq(lessonItems.itemType, "video")))
+    .innerJoin(videos, and(eq(videos.id, lessonItems.videoId), eq(videos.status, "ready")))
+    .where(and(
+      eq(lessons.status, "published"), isNull(lessons.deletedAt),
+      isNull(units.deletedAt),
+      eq(courses.status, "published"), isNull(courses.deletedAt),
+      inArray(courses.visibility, ["catalog", "featured"]),
+      courseFilter.length ? inArray(courses.id, courseFilter) : sql`1=1`,
+    ))
+    .orderBy(desc(lessons.createdAt))
+    .limit(limit);
+
+  const seen = new Set<string>();
+  const cards: CardView[] = [];
+  for (const r of rows) {
+    if (seen.has(r.lessonId)) continue; // a lesson with several video items → one card
+    seen.add(r.lessonId);
+    const thumbFile = r.videoThumbFileId ?? r.courseThumb ?? null;
+    if (thumbFile) imageIds.push(thumbFile);
+    const externalThumb = !r.videoThumbFileId && r.videoThumbUrl && /^https:\/\//i.test(r.videoThumbUrl) ? r.videoThumbUrl : null;
+    const courseTitle = L(r.courseTitleAr, r.courseTitleEn);
+    const duration = typeof r.durationSeconds === "number" && r.durationSeconds > 0
+      ? `${t("ar", "content.durationMinutes", { n: Math.max(1, Math.round(r.durationSeconds / 60)) })}`
+      : "";
+    cards.push({
+      id: r.lessonId,
+      href: `/learn/${r.courseSlug}/${r.lessonSlug}`,
+      title: L(r.titleAr, r.titleEn),
+      desc: L(r.descriptionAr, r.descriptionEn),
+      image: thumbFile,
+      imageUrl: externalThumb,
+      badge: r.accessLevel === "public" || r.freePreview
+        ? { ar: t("ar", "content.freePreview"), en: t("en", "content.freePreview") }
+        : { ar: t("ar", "home.videoBadge"), en: t("en", "home.videoBadge") },
+      meta: { ar: [courseTitle.ar, duration].filter(Boolean).join(" · "), en: [courseTitle.en, duration].filter(Boolean).join(" · ") },
+      cta: L(t("ar", "home.videoCta"), t("en", "home.videoCta")),
+    });
+  }
+  return cards;
+}
+
 
 async function resolveLessonCards(
   db: DB,
@@ -520,6 +787,7 @@ export async function renderSnapshot(
       forms: formsView,
       formResults: opts.formResults ?? {},
       identity: buildIdentityView(opts.settings, images),
+      questionPlatformUrl: dyn.questionPlatformUrl,
       now: Date.now(),
     },
   };

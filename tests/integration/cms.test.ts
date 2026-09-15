@@ -22,6 +22,11 @@ import {
 import { renderSnapshot, resolvePublicImageUrls } from "~server/cms/render.server";
 import { sanitizeRichText } from "~server/cms/sanitize.server";
 import { applyTemplate, cloneSectionsIndependent, savePageAsTemplate } from "~server/cms/templates.server";
+import {
+  HomePresetConflictError,
+  applyHomePreset,
+  validateHomePreset,
+} from "~server/cms/home-preset.server";
 import { createCourse, createGrade, createProgram, createSubject, createUnit } from "~server/content/service.server";
 import { auditLogs, files as filesTable } from "~server/db/schema";
 import type { PageSnapshot } from "~/cms/registry";
@@ -375,5 +380,50 @@ describe("homepage composition (philosophy & psychology redesign)", () => {
     const rendered = await renderSnapshot(db, row!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "ar" });
     expect(rendered.sections).toHaveLength(1);
     expect(rendered.sections[0].children[0].type).toBe("hero_showcase");
+  });
+});
+
+describe("recommended homepage preset (admin apply → reversible publish)", () => {
+  it("keeps the whole composition valid against the block registry", () => {
+    const counts = validateHomePreset();
+    expect(counts.sections).toBeGreaterThan(5);
+    expect(counts.blocks).toBeGreaterThanOrEqual(counts.sections);
+  });
+
+  it("creates + publishes the home page on an empty install, then refuses to overwrite silently", async () => {
+    const db = getDb(env);
+    const report = await applyHomePreset(db, actor);
+    expect(report.created).toBe(true);
+    expect(report.replaced).toBe(false);
+    expect(report.versionNo).toBeGreaterThanOrEqual(1);
+
+    const page = await getPageBySlug(db, "home");
+    expect(page?.status).toBe("published");
+    const draft = await blocksForPage(db, page!.id);
+    expect(draft).toHaveLength(report.sections);
+
+    // the published snapshot renders end-to-end on an EMPTY database: every
+    // data-driven block resolves to zero rows instead of throwing
+    const settings = await getSettings(db);
+    const rendered = await renderSnapshot(db, page!.publishedSnapshot as unknown as PageSnapshot, { settings, locale: "ar" });
+    expect(rendered.sections).toHaveLength(report.sections);
+
+    await expect(applyHomePreset(db, actor)).rejects.toBeInstanceOf(HomePresetConflictError);
+  });
+
+  it("replaces the existing layout only when asked, keeping a restorable version", async () => {
+    const db = getDb(env);
+    const first = await applyHomePreset(db, actor);
+    const versionsBefore = (await listVersions(db, first.pageId)).length;
+
+    const second = await applyHomePreset(db, actor, { replace: true });
+    expect(second.created).toBe(false);
+    expect(second.replaced).toBe(true);
+    expect(second.versionNo).toBeGreaterThan(first.versionNo);
+    expect((await listVersions(db, first.pageId)).length).toBeGreaterThan(versionsBefore);
+
+    const draft = await blocksForPage(db, first.pageId);
+    expect(draft).toHaveLength(second.sections);
+    expect(draft.every((s) => s.children.length > 0)).toBe(true);
   });
 });

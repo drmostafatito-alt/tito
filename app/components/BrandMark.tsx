@@ -1,4 +1,17 @@
-export function BrandMark({ name, compact = false }: { name: string; compact?: boolean }) {
+export function BrandMark({
+  name,
+  compact = false,
+  tone = "onLight",
+}: {
+  name: string;
+  compact?: boolean;
+  /**
+   * `onLight` (default) = white/light chrome, `onDark` = the navy footer and
+   * other dark surfaces, where the slate label would be invisible.
+   */
+  tone?: "onLight" | "onDark";
+}) {
+  const labelCls = tone === "onDark" ? "text-white" : "text-slate-900";
   return (
     <span className="inline-flex items-center gap-2.5">
       <span
@@ -10,7 +23,7 @@ export function BrandMark({ name, compact = false }: { name: string; compact?: b
           <path d="M22 4h-6a3 3 0 0 0-3 3v13a2.5 2.5 0 0 1 2.5-2.5H22z" />
         </svg>
       </span>
-      {!compact && <span className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">{name}</span>}
+      {!compact && <span className={`text-base font-bold tracking-tight sm:text-lg ${labelCls}`}>{name}</span>}
     </span>
   );
 }

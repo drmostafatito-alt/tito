@@ -84,6 +84,38 @@ async function firstBlockWithHeading(page: Page) {
   throw new Error("no block on the homepage has an Arabic heading");
 }
 
+/**
+ * Fill a block's fields, save, and PROVE the draft took them before the test
+ * publishes. Two real-world hazards are absorbed here:
+ *   - typing before React hydration finishes (the hydrated value clobbers the
+ *     input), and
+ *   - a publish that races the save POST.
+ * Both would otherwise surface as an unrelated-looking flake in the visitor
+ * assertions further down the test.
+ */
+async function saveBlockAndVerifyDraft(
+  page: Page,
+  index: number,
+  fields: Array<{ name: string; value: string }>
+) {
+  await expandBlock(page, index);
+  const form = blockForms(page).nth(index);
+  for (const f of fields) {
+    const input = form.locator(`input[name="${f.name}"]`);
+    await input.fill(f.value);
+    await expect(input).toHaveValue(f.value);
+  }
+  await form.locator("button").last().click();
+  await page.waitForLoadState("networkidle");
+
+  // Reload the builder: the value must have been SAVED (not just typed).
+  await openHomeEditor(page);
+  await expandBlock(page, index);
+  for (const f of fields) {
+    await expect(blockForms(page).nth(index).locator(`input[name="${f.name}"]`)).toHaveValue(f.value, { timeout: 10_000 });
+  }
+}
+
 async function publish(page: Page) {
   await page.locator('form:has(input[name="_action"][value="publish"]) button').first().click();
   await page.waitForLoadState("networkidle");
@@ -99,6 +131,43 @@ async function visitor(browser: import("@playwright/test").Browser, locale?: "ar
   return { page: p, ctx };
 }
 
+/**
+ * Position of a section heading inside the public <main>, addressed by heading
+ * TEXT so chrome (nav labels, card CTAs) can never be mistaken for the section.
+ * Returns -1 when the heading is not rendered at all.
+ */
+/**
+ * The page's sections in BUILDER order: `{ id, heading }` for every section
+ * wrapper (a `save-block` form carrying the section-only `f.bg` field).
+ * Section wrappers with an empty heading are layout containers whose copy lives
+ * in their children — they are returned too, since the caller needs the real
+ * order, not a filtered one.
+ */
+async function sectionRows(page: Page): Promise<Array<{ id: string; heading: string }>> {
+  const forms = blockForms(page);
+  const n = await forms.count();
+  const rows: Array<{ id: string; heading: string }> = [];
+  for (let i = 0; i < n; i++) {
+    const f = forms.nth(i);
+    if (!(await f.locator('select[name="f.bg"]').count())) continue; // section wrappers only
+    rows.push({
+      id: await f.locator('input[name="blockId"]').first().inputValue(),
+      heading: (await f.locator('input[name="f.heading.ar"]').first().inputValue()).trim(),
+    });
+  }
+  return rows;
+}
+
+async function headingIndex(page: import("@playwright/test").Page, heading: string): Promise<number> {
+  return await page.evaluate((h) => {
+    const headings = Array.from(document.querySelectorAll("main h2, main h3"));
+    const texts = headings.map((el) => (el.textContent ?? "").trim());
+    const hit = texts.findIndex((x) => x === h);
+    if (hit >= 0) return hit;
+    return texts.findIndex((x) => x.includes(h));
+  }, heading);
+}
+
 test.describe("CMS page builder (owner -> public)", () => {
   test.use({ storageState: ADMIN_STATE });
 
@@ -106,8 +175,7 @@ test.describe("CMS page builder (owner -> public)", () => {
     await openHomeEditor(page);
     const target = await firstBlockWithHeading(page);
     const hero = blockForms(page).nth(target.index);
-    const arField = hero.locator('input[name="f.heading.ar"]');
-    const enField = hero.locator('input[name="f.heading.en"]');
+    void hero; // kept as documentation of the target block form
 
     // remember the seeded copy so this test leaves no trace
     const originalAr = target.value;
@@ -118,32 +186,37 @@ test.describe("CMS page builder (owner -> public)", () => {
     const newEn = `Builder probe heading ${stamp}`;
 
     try {
-      await arField.fill(newAr);
-      await enField.fill(newEn);
-      await hero.locator("button").last().click();
-      await page.waitForLoadState("networkidle");
+      await saveBlockAndVerifyDraft(page, target.index, [
+        { name: "f.heading.ar", value: newAr },
+        { name: "f.heading.en", value: newEn },
+      ]);
       await publish(page);
 
       // Arabic is the platform default, so an anonymous visitor sees the AR copy
       const ar = await visitor(browser);
-      await expect(ar.page.locator("body")).toContainText(newAr, { timeout: 20_000 });
+      // Scope to <main>: the header/footer legitimately repeat nav labels, so a
+      // whole-body check can match chrome instead of the section we changed.
+      await expect(ar.page.locator("main")).toContainText(newAr, { timeout: 20_000 });
       expect(await ar.page.locator("html").getAttribute("lang")).toBe("ar");
       await ar.ctx.close();
 
       // and the English copy is independently controlled
       const en = await visitor(browser, "en");
-      await expect(en.page.locator("body")).toContainText(newEn, { timeout: 20_000 });
+      await expect(en.page.locator("main")).toContainText(newEn, { timeout: 20_000 });
       expect(await en.page.locator("html").getAttribute("lang")).toBe("en");
       await en.ctx.close();
     } finally {
-      await openHomeEditor(page);
-      await expandBlock(page, target.index);
-      const h = blockForms(page).nth(target.index);
-      await h.locator('input[name="f.heading.ar"]').fill(originalAr);
-      await h.locator('input[name="f.heading.en"]').fill(originalEn);
-      await h.locator("button").last().click();
-      await page.waitForLoadState("networkidle");
+      await saveBlockAndVerifyDraft(page, target.index, [
+        { name: "f.heading.ar", value: originalAr },
+        { name: "f.heading.en", value: originalEn },
+      ]);
       await publish(page);
+
+      // The restore must be LIVE, not just saved: a draft-only restore would
+      // silently leak the probe heading into the specs that run after this one.
+      const restored = await visitor(browser);
+      await expect(restored.page.locator("main")).toContainText(originalAr, { timeout: 20_000 });
+      await restored.ctx.close();
     }
   });
 
@@ -155,7 +228,7 @@ test.describe("CMS page builder (owner -> public)", () => {
 
     // it is live before we touch anything
     let v = await visitor(browser);
-    await expect(v.page.locator("body")).toContainText(marker, { timeout: 20_000 });
+    await expect(v.page.locator("main")).toContainText(marker, { timeout: 20_000 });
     await v.ctx.close();
 
     try {
@@ -164,7 +237,7 @@ test.describe("CMS page builder (owner -> public)", () => {
       await publish(page);
 
       v = await visitor(browser);
-      await expect(v.page.locator("body")).not.toContainText(marker, { timeout: 20_000 });
+      await expect(v.page.locator("main")).not.toContainText(marker, { timeout: 20_000 });
       await v.ctx.close();
     } finally {
       await openHomeEditor(page);
@@ -174,54 +247,75 @@ test.describe("CMS page builder (owner -> public)", () => {
     }
 
     v = await visitor(browser);
-    await expect(v.page.locator("body")).toContainText(marker, { timeout: 20_000 });
+    await expect(v.page.locator("main")).toContainText(marker, { timeout: 20_000 });
     await v.ctx.close();
   });
 
   test("reordering sections changes the public rendering order", async ({ page, browser }) => {
-    await openHomeEditor(page);
+    // A swap is only observable in public when BOTH sections render a heading
+    // there. Sections whose content is data-driven (statistics, videos, books…)
+    // stay invisible with an empty database, so swapping with one of them
+    // correctly changes nothing a visitor can see. The pair is therefore chosen
+    // from the BUILDER's adjacent order — the units that actually get swapped —
+    // and then checked to be publicly visible before anything is touched.
+    const read = await visitor(browser);
+    const publicHeadings = await read.page.evaluate(() =>
+      Array.from(document.querySelectorAll("main h2, main h3")).map((el) => (el.textContent ?? "").trim())
+    );
+    await read.ctx.close();
 
-    // Top-level sections are the blocks whose settings form carries f.bg — the
-    // section wrapper. Their headings are what a visitor reads in order.
-    const forms = blockForms(page);
-    const count = await forms.count();
-    const sections: Array<{ id: string; heading: string }> = [];
-    for (let i = 0; i < count && sections.length < 2; i++) {
-      const f = forms.nth(i);
-      if (await f.locator('select[name="f.bg"]').count()) {
-        const heading = (await f.locator('input[name="f.heading.ar"]').first().inputValue()).trim();
-        const id = await f.locator('input[name="blockId"]').first().inputValue();
-        if (heading) sections.push({ id, heading });
+    await openHomeEditor(page);
+    const rows = await sectionRows(page);
+    let a: { id: string; heading: string } | undefined;
+    let b: { id: string; heading: string } | undefined;
+    for (let i = 0; i + 1 < rows.length; i++) {
+      const [first, second] = [rows[i], rows[i + 1]];
+      if (!first.heading || !second.heading) continue;
+      const idxA = publicHeadings.indexOf(first.heading);
+      const idxB = publicHeadings.indexOf(second.heading);
+      if (idxA >= 0 && idxB >= 0 && idxA < idxB) {
+        a = first;
+        b = second;
+        break;
       }
     }
-    expect(sections.length, "need two top-level sections with headings to prove ordering").toBe(2);
-
-    const read = await visitor(browser);
-    const bodyBefore = await read.page.locator("body").innerText();
-    await read.ctx.close();
-    const before = bodyBefore.indexOf(sections[0].heading) < bodyBefore.indexOf(sections[1].heading);
+    expect(
+      Boolean(a && b),
+      `need two adjacent, publicly-visible sections; builder order = ${JSON.stringify(rows.map((r) => r.heading))}`
+    ).toBe(true);
+    const firstSection = a!;
+    const secondSection = b!;
 
     try {
-      await toolForm(page, "move-block", sections[0].id, "down").locator("button").click();
+      await toolForm(page, "move-block", firstSection.id, "down").locator("button").click();
       await page.waitForLoadState("networkidle");
+      // Proving the DRAFT moved keeps a lost save from masquerading as a
+      // rendering bug once the publish is checked below.
+      await openHomeEditor(page);
+      const moved = await sectionRows(page);
+      const posA = moved.findIndex((r) => r.id === firstSection.id);
+      const posB = moved.findIndex((r) => r.id === secondSection.id);
+      expect(posA, "moving down must reorder the draft").toBeGreaterThan(posB);
       await publish(page);
 
       const after = await visitor(browser);
-      const bodyAfter = await after.page.locator("body").innerText();
+      const idxAfterA = await headingIndex(after.page, firstSection.heading);
+      const idxAfterB = await headingIndex(after.page, secondSection.heading);
       await after.ctx.close();
-      const nowFirst = bodyAfter.indexOf(sections[0].heading) < bodyAfter.indexOf(sections[1].heading);
-      expect(nowFirst, "the public section order must flip").toBe(!before);
+      expect(idxAfterA, "moved section heading must still be rendered").toBeGreaterThanOrEqual(0);
+      expect(idxAfterB, "the section it swapped with must still be rendered").toBeGreaterThanOrEqual(0);
+      expect(idxAfterA, "the public section order must flip").toBeGreaterThan(idxAfterB);
     } finally {
       await openHomeEditor(page);
-      await toolForm(page, "move-block", sections[0].id, "up").locator("button").click();
+      await toolForm(page, "move-block", firstSection.id, "up").locator("button").click();
       await page.waitForLoadState("networkidle");
+      await openHomeEditor(page);
+      const restored = await sectionRows(page);
+      const posA = restored.findIndex((r) => r.id === firstSection.id);
+      const posB = restored.findIndex((r) => r.id === secondSection.id);
+      expect(posA, "the restore must put the original order back").toBeLessThan(posB);
       await publish(page);
     }
-
-    const restored = await visitor(browser);
-    const bodyRestored = await restored.page.locator("body").innerText();
-    await restored.ctx.close();
-    expect(bodyRestored.indexOf(sections[0].heading) < bodyRestored.indexOf(sections[1].heading)).toBe(before);
   });
 
   test("a page can be saved as a reusable template", async ({ page }) => {

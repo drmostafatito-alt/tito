@@ -12,6 +12,7 @@ export default [
     route("courses", "routes/public.courses.tsx"),
     route("courses/:slug", "routes/public.courses.$slug.tsx"),
     route("courses/:slug/units/:unitId", "routes/public.courses.$slug.units.$unitId.tsx"),
+    route("curriculum/:slug", "routes/public.curriculum.$slug.tsx"),
     route("products/:slug", "routes/public.products.$slug.tsx"),
     route("login", "routes/public/login.tsx"),
     route("register", "routes/public/register.tsx"),

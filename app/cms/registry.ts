@@ -62,7 +62,7 @@ export interface BlockDef {
   labelKey: string;               // i18n key under cms.blocks.*
   group: "layout" | "content" | "media" | "cta" | "social" | "data" | "form";
   section?: boolean;              // top-level container (may hold components)
-  dynamic?: "courses" | "subjects" | "programs" | "free_content" | "featured" | "latest_lessons";
+  dynamic?: "courses" | "subjects" | "programs" | "free_content" | "featured" | "latest_lessons" | "videos" | "products" | "grades";
   fields: FieldDef[];
 }
 
@@ -160,6 +160,9 @@ export const SECTION_FIELDS: FieldDef[] = [
   { name: "gap", kind: "select", labelKey: "cms.f.gap", options: ["none", "sm", "md", "lg"].map((v) => ({ value: v, labelKey: `cms.space.${v}` })) },
   { name: "align", kind: "select", labelKey: "cms.f.align", options: alignOpts },
   { name: "hideMobile", kind: "toggle", labelKey: "cms.f.hideMobile" },
+  // In-page anchor id — lets owner-built cards/CTAs link to a section of the
+  // same page (e.g. "#videos"). Sanitized again at render time.
+  { name: "anchor", kind: "text", labelKey: "cms.f.anchor", max: 40 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -595,6 +598,93 @@ export const BLOCKS: Record<string, BlockDef> = {
       { name: "limit", kind: "number", labelKey: "cms.f.limit", min: 1, max: 12 },
     ],
   },
+
+  // ─── Identity surfaces (owner brief: شرح · فيديوهات · كتب ومذكرات · امتحانات) ─
+  // Every one of these is DATA-DRIVEN and empty-first: it resolves REAL published
+  // rows at render time and collapses to nothing when there is no data. Nothing
+  // here can invent a course, a video, a book, a grade or a statistic.
+  video_showcase: {
+    labelKey: "cms.blocks.video_showcase", group: "data", dynamic: "videos",
+    fields: [
+      { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
+      { name: "subheading", kind: "ltextarea", labelKey: "cms.f.subheading", max: 400 },
+      { name: "courseIds", kind: "refPicker", labelKey: "cms.f.filterCourses", picker: "course" },
+      { name: "limit", kind: "number", labelKey: "cms.f.limit", min: 1, max: 12 },
+      { name: "ctaLabel", kind: "ltext", labelKey: "cms.f.ctaLabelOverride", max: 60 },
+    ],
+  },
+  product_cards: {
+    labelKey: "cms.blocks.product_cards", group: "data", dynamic: "products",
+    fields: [
+      { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
+      { name: "subheading", kind: "ltextarea", labelKey: "cms.f.subheading", max: 400 },
+      { name: "limit", kind: "number", labelKey: "cms.f.limit", min: 1, max: 12 },
+    ],
+  },
+  grade_cards: {
+    labelKey: "cms.blocks.grade_cards", group: "data", dynamic: "grades",
+    fields: [
+      { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
+      { name: "subheading", kind: "ltextarea", labelKey: "cms.f.subheading", max: 400 },
+      { name: "limit", kind: "number", labelKey: "cms.f.limit", min: 1, max: 12 },
+    ],
+  },
+  // External Questions & Exams platform entry (admin-configured URL). Renders
+  // NOTHING unless the platform is enabled with a valid https URL — the same
+  // gate as the signed-in entry (app/lib/question-platform.ts).
+  exam_platform: {
+    labelKey: "cms.blocks.exam_platform", group: "cta",
+    fields: [
+      { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
+      { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 600 },
+      { name: "ctaLabel", kind: "ltext", labelKey: "cms.f.ctaLabel", max: 60 },
+      { name: "note", kind: "ltext", labelKey: "cms.f.note", max: 160 },
+    ],
+  },
+  // Honest learning path — the seeded/edited steps MUST map to functionality
+  // that exists on the platform (the label is CMS-editable).
+  journey_steps: {
+    labelKey: "cms.blocks.journey_steps", group: "content",
+    fields: [{
+      name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.step", maxItems: 8,
+      items: [
+        { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+        { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 120 },
+        { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 300 },
+        { name: "href", kind: "link", labelKey: "cms.f.link" },
+      ],
+    }],
+  },
+  benefit_list: {
+    labelKey: "cms.blocks.benefit_list", group: "content",
+    fields: [{
+      name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.benefit", maxItems: 8,
+      items: [
+        { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+        { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 120 },
+        { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 300 },
+      ],
+    }],
+  },
+  // Premium closing banner (dark navy band + gold ornaments + CTAs).
+  cta_banner: {
+    labelKey: "cms.blocks.cta_banner", group: "cta",
+    fields: [
+      { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
+      { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 600 },
+      { name: "note", kind: "ltext", labelKey: "cms.f.note", max: 160 },
+      {
+        name: "ctas", kind: "repeater", labelKey: "cms.f.ctas", itemLabelKey: "cms.f.ctaItem", maxItems: 3,
+        items: [
+          { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 80 },
+          { name: "href", kind: "link", labelKey: "cms.f.link" },
+          { name: "target", kind: "select", labelKey: "cms.f.target", options: targetOpts },
+          { name: "variant", kind: "select", labelKey: "cms.f.variant", options: variantOpts },
+          { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+        ],
+      },
+    ],
+  },
 };
 
 export type BlockType = keyof typeof BLOCKS;
@@ -681,7 +771,34 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.blocks.free_content": { ar: "محتوى مجاني", en: "Free content" },
   "cms.blocks.featured_content": { ar: "محتوى مميز", en: "Featured content" },
   "cms.blocks.latest_lessons": { ar: "أحدث الدروس", en: "Latest lessons" },
+  "cms.blocks.video_showcase": { ar: "فيديوهات الشرح", en: "Lesson videos" },
+  "cms.blocks.product_cards": { ar: "الكتب والمذكرات (منتجات)", en: "Books & notes (products)" },
+  "cms.blocks.grade_cards": { ar: "اختيار الصف", en: "Grade picker" },
+  "cms.blocks.exam_platform": { ar: "منصة الامتحانات الخارجية", en: "External exams platform" },
+  "cms.blocks.journey_steps": { ar: "خطوات الرحلة الدراسية", en: "Student journey steps" },
+  "cms.blocks.benefit_list": { ar: "قائمة المزايا", en: "Benefits list" },
+  "cms.blocks.cta_banner": { ar: "بانر ختامي (CTA)", en: "Closing CTA banner" },
   // field labels
+  "cms.f.note": { ar: "ملاحظة صغيرة", en: "Note" },
+  "cms.f.anchor": { ar: "معرّف القسم (رابط داخل الصفحة)", en: "Section anchor (in-page link)" },
+  // Admin → CMS: one-click recommended homepage layout (server/cms/home-preset.server.ts)
+  "cms.ui.applyHomePreset": { ar: "تطبيق تصميم الصفحة الرئيسية الموصى به", en: "Apply the recommended homepage layout" },
+  "cms.ui.applyHomePresetHint": {
+    ar: "ينشئ الصفحة الرئيسية بمجموعة أقسام جاهزة (واجهة، شرح، فيديوهات، كتب ومذكرات، امتحانات، اختيار الصف، رحلة الطالب، مزايا، بانر ختامي). كل قسم قابل للتعديل من المحرر. الأقسام المرتبطة بالبيانات تظهر فقط عند وجود محتوى منشور فعليًا.",
+    en: "Builds the homepage from a ready-made set of sections (hero, lessons, videos, books & notes, exams, grade picker, student journey, benefits, closing banner). Every section stays editable in the builder. Data-driven sections only appear when real published content exists.",
+  },
+  "cms.ui.applyHomePresetReplace": {
+    ar: "استبدال محتوى الصفحة الرئيسية الحالي (يُحفظ كنسخة يمكن الرجوع إليها)",
+    en: "Replace the current homepage content (kept as a restorable version)",
+  },
+  "cms.ui.applyHomePresetConflict": {
+    ar: "الصفحة الرئيسية تحتوي على محتوى بالفعل. علّم خيار الاستبدال للمتابعة — سيتم حفظ المحتوى الحالي كنسخة يمكن استعادتها من «النسخ».",
+    en: "The homepage already has content. Tick the replace option to continue — the current content is saved as a restorable version first.",
+  },
+  "cms.ui.applyHomePresetDone": { ar: "تم تطبيق التصميم ونشر الصفحة", en: "Layout applied and page published" },
+  "cms.ui.applyHomePresetCta": { ar: "تطبيق التصميم", en: "Apply layout" },
+  "cms.f.step": { ar: "خطوة", en: "Step" },
+  "cms.f.benefit": { ar: "ميزة", en: "Benefit" },
   "cms.f.heading": { ar: "العنوان", en: "Heading" },
   "cms.f.subheading": { ar: "العنوان الفرعي", en: "Subheading" },
   "cms.f.eyebrow": { ar: "الشارة العلوية", en: "Eyebrow / badge" },

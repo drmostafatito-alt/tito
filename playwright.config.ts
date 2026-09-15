@@ -35,7 +35,14 @@ function registryChromiumPresent(): boolean {
   }
 }
 
-const useAssembled = !registryChromiumPresent() && existsSync(ASSEMBLED);
+/**
+ * Optional override for sandboxes/CI images that ship their own Chromium:
+ * `E2E_CHROMIUM_PATH=/path/to/chrome npm run test:e2e`. Keeps the default
+ * behaviour (registry browser, else the assembled bundle) untouched.
+ */
+const OVERRIDE = process.env.E2E_CHROMIUM_PATH;
+const executable = OVERRIDE ?? ASSEMBLED;
+const useAssembled = OVERRIDE ? true : !registryChromiumPresent() && existsSync(ASSEMBLED);
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -53,7 +60,7 @@ export default defineConfig({
     // registry Chromium (preferred) or self-contained assembled Chromium
     launchOptions: useAssembled
       ? {
-          executablePath: ASSEMBLED,
+          executablePath: executable,
           args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-zygote"],
           env: { ...process.env, LD_LIBRARY_PATH: LIBDIR },
         }

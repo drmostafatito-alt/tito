@@ -14,9 +14,17 @@ export interface CardView {
   title: LStr;
   desc: LStr;
   image: string | null;            // fileId (resolved through ctx.images; missing → omitted)
+  /** Direct https image (e.g. a provider thumbnail URL); preferred over `image`. */
+  imageUrl?: string | null;
   badge: LStr | null;
   meta: LStr | null;               // composed per presentation toggles (teacher/lesson count/…)
   cta: LStr | null;
+  /**
+   * Optional honest signal chips (e.g. grade cards: "n subjects · n videos").
+   * Resolvers only add a chip when the underlying rows actually exist — a chip
+   * is never a claim about content that is not in the database.
+   */
+  chips?: LStr[];
 }
 
 export interface FormFieldView {
@@ -72,5 +80,11 @@ export interface CmsRenderCtx {
   /** actionData feedback for form submissions on this page. */
   formResults: Record<string, FormResultView>;
   identity: IdentityView;
+  /**
+   * Resolved EXTERNAL questions/exams platform URL (https-only, enable-gated) or
+   * null when the platform is disabled/unconfigured/unsafe. Blocks that point at
+   * it render nothing while this is null — the same gate as the signed-in entry.
+   */
+  questionPlatformUrl: string | null;
   now: number;
 }
