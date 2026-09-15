@@ -256,6 +256,9 @@ Feature head (app + server + tests + QA shots): **`056371ad20d116585cb1b0aa6a488
 Full phase history on `arena/01a0a1f8-tito`, each committed and pushed separately:
 
 ```
+f958452  test(e2e): reorder spec swaps an adjacent, publicly-visible pair
+ca66f93  docs(report): state the phase history and the remote-verification rule
+528b888  docs(report): record the report commit + remote SHA
 9cea46a  docs(report): final 20-item phase report (homepage + curriculum pages)
 056371a  fix(quality): modern-browser E2E + accessibility/contrast + font preload
 bc10ba1  test(e2e): make the CMS builder specs order- and hydration-proof
