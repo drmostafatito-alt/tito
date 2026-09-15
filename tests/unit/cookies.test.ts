@@ -7,13 +7,19 @@ import {
 
 describe("cookie helpers", () => {
   it("serializes with the security flags we mandate", () => {
-    const header = serializeCookie("__edu_session", "tok", { maxAgeSeconds: 60 });
-    expect(header).toContain("__edu_session=tok");
+    const header = serializeCookie("__Host-edu_session", "tok", { maxAgeSeconds: 60 });
+    expect(header).toContain("__Host-edu_session=tok");
     expect(header).toContain("HttpOnly");
     expect(header).toContain("Secure");
     expect(header).toContain("SameSite=Lax");
     expect(header).toContain("Path=/");
     expect(header).toContain("Max-Age=60");
+  });
+
+  it("rejects prefix violations and header-injection characters", () => {
+    expect(() => serializeCookie("__Host-edu_session", "tok", { path: "/admin" })).toThrow();
+    expect(() => serializeCookie("__Host-edu_session", "tok", { secure: false })).toThrow();
+    expect(() => serializeCookie("safe", "ok\r\nSet-Cookie=owned")).toThrow();
   });
 
   it("clears with expiry in the past", () => {

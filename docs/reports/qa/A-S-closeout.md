@@ -23,7 +23,7 @@ Language switcher was Chromium-click proven (POST `/set-locale`, full-document `
 
 `admin@educore.local` is a **DEV-only** identity (`ENVIRONMENT=development` / `ADMIN_BOOTSTRAP_EMAIL`). It is not a production identity. Production admin email must come from `ADMIN_BOOTSTRAP_EMAIL` / environment. Seed never prints a production password.
 
-How to obtain/reset locally: `node scripts/e2e-reset.mjs` (forces the known DEV password above). Production: `scripts/bootstrap-admin.mjs` — password is shown once to the operator, then change under Profile → Security. Do not invent one.
+How to obtain/reset locally: `node scripts/e2e-reset.mjs` (forces the known DEV password above). Production: `scripts/bootstrap-admin.mjs` — the operator supplies a temporary password through `ADMIN_BOOTSTRAP_PASSWORD`; it is never printed, and must be changed under Profile → Security. Do not invent one.
 
 ---
 

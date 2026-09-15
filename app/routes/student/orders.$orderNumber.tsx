@@ -18,9 +18,12 @@ import {
   deleteFile,
   detectKind,
   insertFile,
+  normalizeUploadMime,
+  requestBodyTooLarge,
   sha256HexOf,
   signFileUrl,
   sizeCapFor,
+  uploadBytesMatchMime,
 } from "~server/files/storage.server";
 import { Alert } from "~/components/ui/Alert";
 import { Badge } from "~/components/ui/Badge";
@@ -95,6 +98,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   const { auth } = await requireUser(context, request);
   const env = getEnv(context);
   const db = getDb(env);
+  if (requestBodyTooLarge(request)) return { error: "proof_too_large" as const };
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
   const settings = await getSettings(db);
@@ -103,7 +107,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   if (!view) throw new Response("Not found", { status: 404 });
 
   if (intent === "confirm_payment") {
-    const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
+    const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER);
     const rl = await checkRateLimit(db, "payment_confirm", `${auth.user.id}:${ipHash}`, 10, 3_600_000);
     if (!rl.ok) return { error: "rate_limited" as const };
     // Optional proof screenshot (private image owned by this student). Uploaded
@@ -111,11 +115,12 @@ export async function action({ context, params, request }: Route.ActionArgs) {
     const proofFile = form.get("proofFile");
     let proofFileId: string | null = null;
     if (proofFile instanceof File && proofFile.size > 0) {
-      const mime = proofFile.type || "application/octet-stream";
+      const mime = normalizeUploadMime(proofFile.type || "application/octet-stream");
       const kind = detectKind(mime);
       if (kind !== "image") return { error: "invalid_proof_file" as const };
       if (proofFile.size > sizeCapFor("image")) return { error: "proof_too_large" as const };
       const buf = await proofFile.arrayBuffer();
+      if (!uploadBytesMatchMime(buf, mime)) return { error: "invalid_proof_file" as const };
       const checksum = await sha256HexOf(buf);
       const r2Key = buildR2Key("image", proofFile.name, "private");
       await env.PRIVATE_FILES.put(r2Key, buf, { httpMetadata: { contentType: mime } });

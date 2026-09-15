@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import { getDb } from "~server/db/client.server";
 import { login, registerUser } from "~server/auth/service.server";
 import { getSettings } from "~server/settings/service.server";
-import { action as appearanceAction } from "~/routes/admin.appearance";
+import { action as appearanceAction, loader as appearanceLoader } from "~/routes/admin.appearance";
 import { loader as rootLoader } from "~/root";
 import { action as setLocaleAction } from "~/routes/public/set-locale";
 
@@ -55,7 +55,7 @@ function systemForm(extra: Record<string, string>) {
       taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology",
       // The System tab also writes the video + payment groups for a super_admin,
       // so the real form's values for those are included verbatim.
-      provider: "mock", playbackTokenTtl: "45", fileTtl: "120",
+      provider: "mock", playbackTokenTtl: "3600", fileTtl: "120",
       manualEnabled: "on", manualInstructionsAr: "", manualInstructionsEn: "",
       orderTtlMinutes: "4320", refundWindowDays: "0",
       ...extra,
@@ -127,5 +127,35 @@ describe("Appearance → System controls the platform language", () => {
     const data = (await call(rootLoader, withCookie)) as { locale: string; localeOptions: string[] };
     expect(data.localeOptions).toEqual(["ar"]);
     expect(data.locale).toBe("ar");
+  });
+
+  it("hides and rejects the synthetic video provider in production before saving anything", async () => {
+    const productionEnv = { ...env, ENVIRONMENT: "production" } as Env;
+    const productionContext = {
+      cloudflare: { env: productionEnv, ctx: { waitUntil() {}, passThroughOnException() {} } },
+    };
+    const request = systemForm({
+      defaultLocale: "ar",
+      "localeEnabled.ar": "on",
+      "localeEnabled.en": "on",
+      provider: "mock",
+    });
+    const result = (await (appearanceAction as (args: unknown) => unknown)({
+      context: productionContext,
+      request,
+      params: {},
+    })) as { error?: string };
+    expect(result.error).toBe("validation");
+    expect(await db.all(`SELECT key FROM settings`)).toEqual([]);
+
+    const loaderRequest = new Request("https://app.test/admin/appearance", {
+      headers: { cookie: admin.cookie, "user-agent": UA, "cf-connecting-ip": "10.1.2.3" },
+    });
+    const loaderData = (await (appearanceLoader as (args: unknown) => unknown)({
+      context: productionContext,
+      request: loaderRequest,
+      params: {},
+    })) as { allowMockVideo?: boolean };
+    expect(loaderData.allowMockVideo).toBe(false);
   });
 });

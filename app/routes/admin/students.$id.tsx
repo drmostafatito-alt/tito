@@ -11,6 +11,7 @@ import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { Alert } from "~/components/ui/Alert";
+import { ProgressBar } from "~/components/ProgressBar";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
 export async function loader({ context, request, params }: Route.LoaderArgs) {
@@ -31,7 +32,7 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
     assignmentRead: await canAssignment(db, auth, "assignment.read"),
   };
   // audit staff inspection (actor is the staff member, never the student)
-  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
+  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER);
   await auditStudent360Access(db, { userId: auth.user.id, role: auth.user.roleId }, params.id, ipHash);
   void env;
   return { data, perms, now: Date.now() };
@@ -162,9 +163,7 @@ export default function AdminStudent360({ loaderData }: Route.ComponentProps) {
                   <p className="font-semibold text-slate-800">{titleOf(c.titleAr, c.titleEn)}</p>
                   <Badge tone={c.pct === 100 ? "success" : c.pct > 0 ? "brand" : "neutral"}>{c.pct}%</Badge>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={c.pct} aria-valuemin={0} aria-valuemax={100} aria-label={titleOf(c.titleAr, c.titleEn)}>
-                  <div className="h-full rounded-full bg-brand-600" style={{ width: `${c.pct}%` }} />
-                </div>
+                <ProgressBar pct={c.pct} label={titleOf(c.titleAr, c.titleEn)} />
                 <p className="text-xs text-slate-500">{L("s360.completedOf")} {c.completedLessons} / {c.totalLessons}</p>
               </CardBody></Card>
             ))}

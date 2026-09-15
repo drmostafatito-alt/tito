@@ -5,6 +5,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
+import { isNonProductionEnvironment } from "~server/http/origin.server";
 import { getSettings, updateSettingsGroup } from "~server/settings/service.server";
 import { canCms } from "~server/cms/service.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
@@ -52,7 +53,16 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     .where(and(eq(files.visibility, "public"), eq(files.kind, "image")))
     .orderBy(desc(files.createdAt))
     .limit(200);
-  return { tab, allowed, canTheme, canEdit, isSuper, settings, images: imageRows.map((r) => ({ id: r.id, label: r.name })) };
+  return {
+    tab,
+    allowed,
+    canTheme,
+    canEdit,
+    isSuper,
+    allowMockVideo: isNonProductionEnvironment(env),
+    settings,
+    images: imageRows.map((r) => ({ id: r.id, label: r.name })),
+  };
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -65,12 +75,21 @@ export async function action({ context, request }: Route.ActionArgs) {
   if (!TABS.includes(group as Tab)) return { error: "generic" as const };
   const needed = group === "identity" || group === "theme" || group === "system" ? "cms.manage_theme" : "cms.edit";
   if (!(await canCms(db, guarded.auth, needed as "cms.manage_theme"))) return { error: "denied" as const };
-  const actor = { userId: guarded.auth.user.id, role: guarded.auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
+  const actor = { userId: guarded.auth.user.id, role: guarded.auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) };
   const str = (k: string) => String(form.get(k) ?? "");
   const on = (k: string) => form.get(k) === "on";
 
   try {
     if (group === "system") {
+      // Validate production-only invariants before any of this multi-group save
+      // mutates D1, so an invalid video selection cannot produce a partial save.
+      const requestedVideoProvider = guarded.auth.user.rank >= 4 ? str("provider") : null;
+      if (
+        requestedVideoProvider === "mock" &&
+        !isNonProductionEnvironment(env)
+      ) {
+        return { error: "validation" as const };
+      }
       // platform identity (name/tagline/support/maintenance) + — super_admin only — video provider policy.
       const nullable = (k: string) => { const v = str(k); return v === "" ? null : v; };
       // External Questions Platform: https-only or empty (empty + disabled hides the entry)
@@ -105,7 +124,7 @@ export async function action({ context, request }: Route.ActionArgs) {
       if (guarded.auth.user.rank >= 4) {
         const num = (k: string) => Number(str(k) || 0);
         await updateSettingsGroup(db, "video", {
-          provider: str("provider"),
+          provider: requestedVideoProvider!,
           playbackTokenTtlSeconds: num("playbackTokenTtl"),
           fileUrlTtlSeconds: num("fileTtl"),
         }, actor);
@@ -198,12 +217,11 @@ export async function action({ context, request }: Route.ActionArgs) {
     await updateSettingsGroup(db, group as "identity", patch, actor);
     return { ok: true as const };
   } catch (err) {
-    // Surface the actual validation reasons ("default: the default language must
-    // also be offered to visitors") instead of a raw Zod JSON dump the owner
-    // cannot act on. Non-Zod failures keep their message.
+    // Surface safe schema validation reasons, but never return arbitrary D1 or
+    // provider exception text to the browser (even to an authenticated admin).
     const issues = err instanceof ZodError
       ? err.issues.map((i) => `${i.path.join(".") || "value"}: ${i.message}`)
-      : [err instanceof Error ? err.message : String(err)];
+      : ["Unable to save settings."];
     return { error: "validation" as const, issues: issues.map((m) => m.slice(0, 300)) };
   }
 }
@@ -594,11 +612,11 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                   <div className="flex flex-col">
                     <span className="mb-1 text-sm font-medium text-slate-700">{L("cms.f.videoProvider")}</span>
                     <select name="provider" defaultValue={vid.provider} className={selectCls}>
-                      <option value="mock">mock (development only)</option>
+                      {loaderData.allowMockVideo && <option value="mock">mock (development only)</option>}
                       <option value="mux">mux</option>
                     </select>
                   </div>
-                  <Input label={L("cms.f.playbackTtl")} name="playbackTokenTtl" defaultValue={String(vid.playbackTokenTtlSeconds)} dir="ltr" />
+                  <Input label={L("cms.f.playbackTtl")} name="playbackTokenTtl" type="number" min={1800} max={86400} defaultValue={String(vid.playbackTokenTtlSeconds)} dir="ltr" />
                   <Input label={L("cms.f.fileTtl")} name="fileTtl" defaultValue={String(vid.fileUrlTtlSeconds)} dir="ltr" />
                 </fieldset>
               )}

@@ -78,6 +78,13 @@
       "when": 1789420873999,
       "tag": "0010_curriculum_content",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1789471070606,
+      "tag": "0011_furry_talos",
+      "breakpoints": true
     }
   ]
 }

@@ -11,16 +11,59 @@ import { STUDENT_STATE, FIXTURES } from "./helpers";
 test.describe("lesson, video & progress (entitled student)", () => {
   test.use({ storageState: STUDENT_STATE });
 
-  test("lesson with the mock video renders the player with minted credentials", async ({ page }) => {
-    // the seed attaches the mock video to lesson 1 (free preview)
+  test("non-native browsers use the hls.js MSE path with minted credentials", async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = HTMLMediaElement.prototype.canPlayType;
+      HTMLMediaElement.prototype.canPlayType = function (type: string) {
+        if (type === "application/vnd.apple.mpegurl") return "";
+        return original.call(this, type);
+      };
+    });
+    // The component leaves HLS off the media element until capability detection.
+    // Chromium has no native HLS, so a token-carrying media-playlist request is
+    // end-to-end proof that the lazy hls.js/MSE path attached successfully.
+    const mediaPlaylist = page.waitForResponse(
+      (response) => response.url().includes("/api/mock-stream/") && response.url().includes("/media.m3u8?")
+    );
     await page.goto(`/learn/${FIXTURES.courseSlug}/${FIXTURES.lesson1Slug}`);
     await expect(page.locator("body")).toContainText("Introduction to Electric Charges");
-    // the VideoPlayer fetches playback creds server-side (POST /api/playback)
-    // and mounts a <video> whose src carries the minted mock-stream token
+    await expect(page.locator("video")).toBeVisible({ timeout: 20_000 });
+    const response = await mediaPlaylist;
+    expect(response.status()).toBe(200);
+    const streamedUrl = new URL(response.url());
+    expect(streamedUrl.searchParams.get("uid")).toBeTruthy();
+    expect(streamedUrl.searchParams.get("exp")).toMatch(/^\d+$/);
+    expect(streamedUrl.searchParams.get("token")).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test("uses native HLS when the browser reports support", async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = HTMLMediaElement.prototype.canPlayType;
+      HTMLMediaElement.prototype.canPlayType = function (type: string) {
+        if (type === "application/vnd.apple.mpegurl") return "probably";
+        return original.call(this, type);
+      };
+    });
+    await page.goto(`/learn/${FIXTURES.courseSlug}/${FIXTURES.lesson1Slug}`);
     const video = page.locator("video");
     await expect(video).toBeVisible({ timeout: 20_000 });
-    const src = (await video.getAttribute("src")) ?? "";
-    expect(src).toContain("/api/mock-stream/");
+    await expect.poll(() => video.getAttribute("src")).toContain("/api/mock-stream/");
+    expect(await video.getAttribute("src")).toContain("/master.m3u8?");
+  });
+
+  test("shows a controlled error after a fatal HLS bootstrap failure", async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = HTMLMediaElement.prototype.canPlayType;
+      HTMLMediaElement.prototype.canPlayType = function (type: string) {
+        if (type === "application/vnd.apple.mpegurl") return "";
+        return original.call(this, type);
+      };
+    });
+    // Fail the lazy player chunk itself. This deterministically exercises the
+    // guarded import rejection instead of depending on hls.js retry timing.
+    await page.route(/\/assets\/hls-[^/]+\.js(?:\?|$)/, (route) => route.abort("failed"));
+    await page.goto(`/learn/${FIXTURES.courseSlug}/${FIXTURES.lesson1Slug}`);
+    await expect(page.getByText(/Playback failed|تعذر التشغيل/)).toBeVisible({ timeout: 20_000 });
   });
 
   test("entitled lesson shows the attached PDF and never links to the retired internal exams", async ({ page }) => {

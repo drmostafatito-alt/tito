@@ -12,14 +12,21 @@ AUTH_PBKDF2_ITERATIONS=100000
 # (scripts/bootstrap-admin.mjs --remote refuses @educore.local).
 ADMIN_BOOTSTRAP_EMAIL=admin@educore.local
 
-# Environment: dev | preview | production. UNKNOWN/MISSING is treated as
-# production-safe (fail-closed). Set "development" only for local work.
+# Environment: development | test | preview | production. UNKNOWN/MISSING is
+# treated as production-safe (fail-closed). Set development only for local work.
 ENVIRONMENT=development
 
-# C1 guard: when "true", the raw password-reset token is returned so the local
-# reset flow can be exercised WITHOUT an email channel. DEV-ONLY — never set in
-# preview/production (the production-readiness gate refuses a deploy that sets it).
-EXPOSE_DEV_RESET_TOKEN=true
+# Canonical app URL. Production MUST be an HTTPS origin with no path/query.
+# Local development falls back to the incoming Wrangler preview origin.
+APP_ORIGIN=http://127.0.0.1:5173
+
+# Transactional email. Leave blank/noop locally. Production must use `resend`
+# with a server-only API key (never VITE_/PUBLIC_) and a sender on a domain
+# verified by the owner in Resend. onboarding@resend.dev is manual development
+# only and can send only to the Resend account owner's address.
+EMAIL_PROVIDER=
+RESEND_API_KEY=
+EMAIL_FROM=
 
 # Phase 2 — HMAC secret for short-lived private-file signed URLs
 FILE_URL_SECRET=change-me-long-random
@@ -32,6 +39,8 @@ MUX_TOKEN_ID=
 MUX_TOKEN_SECRET=
 MUX_SIGNING_KEY_ID=
 MUX_SIGNING_PRIVATE_KEY=
+# Non-secret ID of the Mux playback restriction configured for the production origin.
+MUX_PLAYBACK_RESTRICTION_ID=
 
 # Phase 6 — HMAC secret for the MOCK payment gateway webhooks (TEST-ONLY; do NOT set in production)
 MOCK_PAYMENTS_SECRET=change-me-long-random

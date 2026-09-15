@@ -113,12 +113,15 @@ test("admin files + rich-text toolbar + logout (single device)", async ({ page }
     "base64",
   );
   const upload = page.locator("form").filter({ has: page.locator('input[name="_action"][value="upload"]') });
-  await upload.locator('input[type="file"]').setInputFiles({ name: "qa-pixel.png", mimeType: "image/png", buffer: png });
   await upload.locator('select[name="visibility"]').selectOption("public");
-  await upload.locator('button[type="submit"]').click();
+  await Promise.all([
+    page.waitForResponse((response) => response.url().includes("/admin/files") && response.request().method() === "POST"),
+    upload.locator('input[type="file"]').setInputFiles({ name: "qa-pixel.png", mimeType: "image/png", buffer: png }),
+  ]);
   await expect(page.locator("body")).toContainText(/qa-pixel\.png/);
 
   const row = page.locator("li").filter({ hasText: "qa-pixel.png" }).first();
+  await row.locator("details > summary").click();
   await row.locator('input[name="altAr"]').fill("بكسل تجريبي");
   await row.locator('input[name="altEn"]').fill("QA pixel");
   await row.locator("form").filter({ has: page.locator('input[name="_action"][value="rename"]') }).locator('button[type="submit"]').click();
@@ -128,14 +131,18 @@ test("admin files + rich-text toolbar + logout (single device)", async ({ page }
     "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR42mP8z8BQz0BVwPCfAQAJHAQAA1+iXwAAAABJRU5ErkJggg==",
     "base64",
   );
-  await row.locator("form").filter({ has: page.locator('input[name="_action"][value="replace"]') }).locator('input[type="file"]').setInputFiles({ name: "qa-pixel-2.png", mimeType: "image/png", buffer: png2 });
-  await row.locator("form").filter({ has: page.locator('input[name="_action"][value="replace"]') }).locator('button[type="submit"]').click();
+  const replaceForm = row.locator("form").filter({ has: page.locator('input[name="_action"][value="replace"]') });
+  await Promise.all([
+    page.waitForResponse((response) => response.url().includes("/admin/files") && response.request().method() === "POST"),
+    replaceForm.locator('input[type="file"]').setInputFiles({ name: "qa-pixel-2.png", mimeType: "image/png", buffer: png2 }),
+  ]);
   const replaced = page.locator("li").filter({ hasText: /qa-pixel/ }).first();
   await expect(replaced).toBeVisible();
 
   await replaced.locator("form").filter({ has: page.locator('input[name="_action"][value="usage"]') }).locator('button[type="submit"]').click();
   await expect(replaced).toContainText(/غير مستخدم|unused/i);
 
+  await replaced.locator("details").evaluate((el) => ((el as HTMLDetailsElement).open = true));
   page.once("dialog", (d) => d.accept());
   await replaced.locator("form").filter({ has: page.locator('input[name="_action"][value="delete"]') }).locator('button[type="submit"]').click();
   await expect(page.locator("body")).not.toContainText(/qa-pixel/);
@@ -144,6 +151,7 @@ test("admin files + rich-text toolbar + logout (single device)", async ({ page }
   if (await used.count()) {
     await used.locator("form").filter({ has: page.locator('input[name="_action"][value="usage"]') }).locator('button[type="submit"]').click();
     await expect(used).toContainText(/page|home|block|مستخدم/i);
+    await used.locator("details").evaluate((el) => ((el as HTMLDetailsElement).open = true));
     page.once("dialog", (d) => d.accept());
     await used.locator("form").filter({ has: page.locator('input[name="_action"][value="delete"]') }).locator('button[type="submit"]').click();
     await expect(page.locator("body")).toContainText(/in_use|مستخدم|hero-philosophy/i);
@@ -194,7 +202,8 @@ test("admin files + rich-text toolbar + logout (single device)", async ({ page }
   await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
   await page.goto("/admin");
-  await page.locator('form[action="/logout"]').getByRole("button").first().click();
+  await page.locator('button[aria-haspopup="menu"]').click();
+  await page.getByRole("menuitem", { name: /تسجيل الخروج|log\s*out/i }).click();
   await page.waitForURL(/\/login/, { timeout: 15_000 });
   await page.goto("/admin");
   await page.waitForURL(/\/login/, { timeout: 15_000 });

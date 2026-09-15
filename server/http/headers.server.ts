@@ -6,6 +6,8 @@
  */
 export interface HeaderLike {
   set(name: string, value: string): void;
+  /** Optional for small test doubles; the real `Headers` implementation has it. */
+  has?(name: string): boolean;
 }
 
 export function applySecurityHeaders(headers: HeaderLike, isDev: boolean, nonce?: string): void {
@@ -29,7 +31,9 @@ export function applySecurityHeaders(headers: HeaderLike, isDev: boolean, nonce?
     // origin can ever be framed.
     `frame-src https://www.youtube-nocookie.com https://docs.google.com`,
     `font-src 'self'`,
-    `connect-src 'self'${isDev ? " ws: http://localhost:* http://127.0.0.1:*" : ""}`,
+    // hls.js fetches Mux manifests/segments through XHR/Fetch; media-src alone
+    // covers only the native Safari path.
+    `connect-src 'self' https://stream.mux.com${isDev ? " ws: http://localhost:* http://127.0.0.1:*" : ""}`,
     `worker-src 'self' blob:`,
     `frame-ancestors 'none'`,
     `object-src 'none'`,
@@ -40,28 +44,51 @@ export function applySecurityHeaders(headers: HeaderLike, isDev: boolean, nonce?
     `upgrade-insecure-requests`,
   ].join("; ");
 
-  headers.set("Content-Security-Policy", csp);
+  // Resource routes can deliberately supply a stricter, content-specific policy
+  // (for example `sandbox` on uploaded SVG documents). Never replace that policy
+  // with the broader application-document CSP in the root middleware.
+  if (!headers.has?.("Content-Security-Policy")) {
+    headers.set("Content-Security-Policy", csp);
+  }
   headers.set("X-Content-Type-Options", "nosniff");
-  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  // Keep route-specific `no-referrer` on bearer-token and signed-file responses.
+  if (!headers.has?.("Referrer-Policy")) {
+    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  }
+  // Fullscreen is required by the first-party lesson player and the allowlisted
+  // privacy-enhanced YouTube iframe; sensitive capabilities remain disabled.
+  headers.set(
+    "Permissions-Policy",
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self "https://www.youtube-nocookie.com")'
+  );
   headers.set("Cross-Origin-Opener-Policy", "same-origin");
   headers.set("X-Frame-Options", "DENY");
 }
 
 /**
- * H8 (Phase 8): authenticated HTML must never be retained by a browser or
- * shared cache. App-rendered documents are user-specific (header CTA, private
- * data), so when a session cookie is present we mark them `private, no-store`.
- * Static assets and /files responses are served outside this handler (the
- * Workers assets binding and the /files route set their own Cache-Control), so
- * only app-rendered responses are affected.
+ * Authenticated responses must never be retained by a browser or shared cache.
+ * This covers HTML, React Router data responses, JSON APIs and redirects: all
+ * can contain account-specific state. Static assets normally bypass the route
+ * handler; protected files already use an equally strict policy.
  */
-export function applyPrivateCacheControl(
-  headers: HeaderLike,
-  hasSession: boolean,
-  contentType: string | null,
-): void {
-  if (hasSession && contentType?.includes("text/html")) {
-    headers.set("Cache-Control", "private, no-store");
+export function applyPrivateCacheControl(headers: HeaderLike, hasSession: boolean): void {
+  if (hasSession) headers.set("Cache-Control", "private, no-store");
+}
+
+const SENSITIVE_AUTH_PATHS = new Set([
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email-change",
+]);
+
+/** Password/auth documents and responses must never be cached or referred. */
+export function applySensitiveAuthHeaders(headers: HeaderLike, pathname: string): void {
+  if (!SENSITIVE_AUTH_PATHS.has(pathname)) return;
+  headers.set("Cache-Control", "private, no-store, max-age=0");
+  headers.set("Pragma", "no-cache");
+  if (pathname === "/reset-password" || pathname === "/verify-email-change") {
+    headers.set("Referrer-Policy", "no-referrer");
   }
 }

@@ -1,29 +1,15 @@
 /**
- * Transactional email abstraction (architecture-mirrors the payment/video
- * provider layers — business logic depends on this interface, never a vendor).
+ * Server-only transactional-email adapters.
  *
- * Server-only. The active channel is chosen by the `EMAIL_PROVIDER` env binding.
- * Production never fabricates delivery: if no provider is configured (or only a
- * dev/test channel is available outside a development context), sending reports
- * `not_configured` and callers fail closed (they never claim a message was sent,
- * and they never expose a token in a response as a substitute for email).
- *
- * A real delivery provider (e.g. Resend, MailChannels, SES) is an OWNER-ONLY
- * provisioning step: it requires an explicit `EMAIL_PROVIDER=<id>` + credentials,
- * and per DECISIONS.md a recorded verification ADR against the provider's current
- * official docs BEFORE any adapter code for it is written. No such adapter ships
- * here. The `log` (dev) and `capture` (test) channels let the full request→send
- * flow be exercised and asserted without external credentials.
+ * Production uses Resend's HTTPS API through native fetch (Workers-compatible,
+ * no Node SDK). Development/test transports are strict allowlists and can never
+ * be selected by an unknown, preview, or production environment.
  */
 
 export interface EmailMessage {
-  /** Recipient address (single) — already normalized/lowercased by callers. */
   to: string;
-  /** Localized, pre-rendered subject line. */
   subject: string;
-  /** Localized, pre-rendered HTML body. */
   html: string;
-  /** Plain-text fallback (optional but encouraged). */
   text?: string;
 }
 
@@ -36,55 +22,111 @@ export interface EmailProvider {
   send(message: EmailMessage): Promise<EmailResult>;
 }
 
-/** No-op channel used whenever a real/delivery channel is not configured. */
+export interface EmailEnvHints {
+  EMAIL_PROVIDER?: string;
+  ENVIRONMENT?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
+}
+
+const SIMPLE_EMAIL_RE = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+
+function validRecipient(value: string): boolean {
+  return value.length <= 254 && SIMPLE_EMAIL_RE.test(value);
+}
+
+export function validEmailSender(value: string): boolean {
+  if (!value || value.length > 320 || /[\r\n\0]/.test(value)) return false;
+  const angle = value.match(/<([^<>]+)>\s*$/);
+  return validRecipient((angle?.[1] ?? value).trim());
+}
+
+export function validResendApiKey(value: string): boolean {
+  return (
+    /^re_[A-Za-z0-9_-]{21,197}$/.test(value) &&
+    !/(?:fake|placeholder|replace|example|test[_-]?key)/i.test(value)
+  );
+}
+
 export class NoopEmailProvider implements EmailProvider {
   readonly id = "noop";
   async send(_message: EmailMessage): Promise<EmailResult> {
-    // Fail closed: nothing is sent and callers must NOT claim delivery.
     return { ok: false, reason: "not_configured" };
   }
 }
 
-export interface EmailEnvHints {
-  EMAIL_PROVIDER?: string;
-  ENVIRONMENT?: string;
+/** Native-fetch Resend adapter. Error responses are intentionally never echoed. */
+export class ResendEmailProvider implements EmailProvider {
+  readonly id = "resend";
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly from: string
+  ) {}
+
+  async send(message: EmailMessage): Promise<EmailResult> {
+    if (!validRecipient(message.to) || !message.subject || !message.html) {
+      return { ok: false, reason: "invalid_address" };
+    }
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          from: this.from,
+          to: [message.to],
+          subject: message.subject,
+          html: message.html,
+          text: message.text ?? "",
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      return response.ok ? { ok: true } : { ok: false, reason: "send_failed" };
+    } catch {
+      // Never expose fetch errors: intermediaries can include request headers.
+      return { ok: false, reason: "send_failed" };
+    }
+  }
 }
 
 /**
- * Select the transactional email channel.
- *
- *  - `log`: writes a formatted message to the server log. DEV/TEST ONLY — refused
- *    in a production environment so a token-laden email can never land in a prod log.
- *  - `capture`: stores messages in an in-memory map for hermetic integration tests.
- *  - anything else / unset: fail-closed NoopEmailProvider (production-safe default).
+ * Select a channel fail-closed.
+ * - resend: only when both server-only credentials are structurally valid
+ * - log: explicit development only
+ * - capture: explicit test only
  */
 export function emailProvider(env: EmailEnvHints): EmailProvider {
   const provider = (env.EMAIL_PROVIDER ?? "").trim().toLowerCase();
   const environment = (env.ENVIRONMENT ?? "").trim().toLowerCase();
-  if (provider === "log" && environment !== "production") return new LogEmailProvider();
-  if (provider === "capture") return new CaptureEmailProvider();
+
+  if (provider === "resend") {
+    const apiKey = (env.RESEND_API_KEY ?? "").trim();
+    const from = (env.EMAIL_FROM ?? "").trim();
+    if (validResendApiKey(apiKey) && validEmailSender(from)) {
+      return new ResendEmailProvider(apiKey, from);
+    }
+    return new NoopEmailProvider();
+  }
+  if (provider === "log" && environment === "development") return new LogEmailProvider();
+  if (provider === "capture" && environment === "test") return new CaptureEmailProvider();
   return new NoopEmailProvider();
 }
-
-/* ---- log channel (dev) ------------------------------------------------- */
 
 class LogEmailProvider implements EmailProvider {
   readonly id = "log";
   async send(message: EmailMessage): Promise<EmailResult> {
-    // Safe dev channel: writes to the server log only. Never selected in production.
-    // The recipient + subject + a link to the body are logged; the body (which may
-    // carry a reset link) is not echoed here to keep even dev logs tidy.
-    // eslint-disable-next-line no-console
-    console.log(
-      `[email:log] to=${message.to} subject=${JSON.stringify(message.subject)} chars=${message.html.length}`
-    );
+    // Do not print body, recipient, or subject: any of them may contain private
+    // account data. This channel is only a local delivery signal.
+    console.info(`[email:log] accepted chars=${message.html.length}`);
     return { ok: true };
   }
 }
 
-/* ---- capture channel (test) -------------------------------------------- */
-
-/** In-memory capture store, keyed by recipient, for hermetic integration tests. */
+/** In-memory test capture; never selectable outside ENVIRONMENT=test. */
 const captureStore = new Map<string, EmailMessage[]>();
 
 export function clearEmailCaptures(): void {
@@ -92,12 +134,13 @@ export function clearEmailCaptures(): void {
 }
 
 export function capturedEmails(to: string): EmailMessage[] {
-  return captureStore.get(to) ?? [];
+  return (captureStore.get(to.toLowerCase()) ?? []).map((message) => ({ ...message }));
 }
 
 class CaptureEmailProvider implements EmailProvider {
   readonly id = "capture";
   async send(message: EmailMessage): Promise<EmailResult> {
+    if (!validRecipient(message.to)) return { ok: false, reason: "invalid_address" };
     const key = message.to.toLowerCase();
     const list = captureStore.get(key) ?? [];
     list.push({ ...message, to: key });

@@ -68,9 +68,13 @@ export interface VideoProvider {
 
   /**
    * THE security boundary: called only after entitlement + policy checks pass.
-   * Mints short-TTL playback credentials server-side.
+   * Mints server-side playback credentials bounded to the asset's expected
+   * viewing duration (Mux rejects segment requests after expiry).
    */
-  getPlayback(video: VideoRowLike, ctx: { studentId: string; lessonId?: string }): Promise<PlaybackInfo>;
+  getPlayback(
+    video: VideoRowLike,
+    ctx: { studentId: string; lessonId?: string; ttlSeconds: number }
+  ): Promise<PlaybackInfo>;
   getThumbnail(video: VideoRowLike): Promise<{ url: string; expiresAt?: number }>;
   syncMetadata(providerAssetId: string): Promise<Partial<AssetStatus>>;
 }

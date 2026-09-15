@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
@@ -43,6 +43,20 @@ async function noOverflow(page: Page) {
   expect(overflow, "horizontal overflow").toBeLessThanOrEqual(2);
 }
 
+async function clickAndWaitForPost(page: Page, target: Locator) {
+  const [response, revalidation] = await Promise.all([
+    page.waitForResponse((res) => res.request().method() === "POST" && new URL(res.url()).origin === BASE),
+    page.waitForResponse((res) => res.request().method() === "GET" && res.url().includes(".data") && new URL(res.url()).origin === BASE),
+    target.click(),
+  ]);
+  expect(response.status()).toBeLessThan(400);
+  expect(revalidation.status()).toBeLessThan(400);
+  // The data response can be streamed; wait for React to consume it and commit
+  // instead of awaiting Response.finished(), which may not resolve for streams.
+  await page.waitForTimeout(100);
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+}
+
 test("1 login / session / GET logout 405 / UI logout", async ({ page, request }) => {
   test.setTimeout(90_000);
   clearAuthRows();
@@ -58,7 +72,8 @@ test("1 login / session / GET logout 405 / UI logout", async ({ page, request })
   expect(getLogout.status()).toBe(405);
 
   await page.goto("/admin");
-  await page.locator('form[action="/logout"]').locator("button[type=submit]").first().click();
+  await page.locator('button[aria-haspopup="menu"]').click();
+  await page.getByRole("menuitem", { name: /تسجيل الخروج|log\s*out/i }).click();
   await page.waitForURL(/\/login/, { timeout: 15_000 });
   await page.goto("/admin");
   await page.waitForURL(/\/login/, { timeout: 15_000 });
@@ -231,32 +246,33 @@ test("5 admin appearance + CMS + templates + files (one login)", async ({ page }
   await page.getByRole("button", { name: /\+ إضافة قسم|Add section/i }).click();
   await expect(page.getByText(/قسم #/)).toHaveCount(sectionCount + 1);
 
-  await page.getByRole("button", { name: /^نسخ$|^Duplicate$/i }).first().click();
+  await clickAndWaitForPost(page, page.getByRole("button", { name: /^نسخ$|^Duplicate$/i }).first());
   await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
-  await page.getByRole("button", { name: /^حذف$|^Delete$/i }).last().click();
+  await clickAndWaitForPost(page, page.getByRole("button", { name: /^حذف$|^Delete$/i }).last());
   await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
   const hideBtn = page.getByRole("button", { name: /إخفاء|^Hide$/i }).first();
-  if (await hideBtn.isEnabled()) await hideBtn.click();
+  if (await hideBtn.isEnabled()) await clickAndWaitForPost(page, hideBtn);
   await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
   const showBtn = page.getByRole("button", { name: /إظهار|^Show$/i }).first();
-  if (await showBtn.count()) await showBtn.click();
+  if (await showBtn.count()) await clickAndWaitForPost(page, showBtn);
 
   const downBtn = page.getByRole("button", { name: "↓" }).first();
-  if (await downBtn.isEnabled()) await downBtn.click();
+  if (await downBtn.isEnabled()) await clickAndWaitForPost(page, downBtn);
 
   const details = page.locator("details").filter({ has: page.locator('input[name="blockTypeDef"][value="section"]') }).first();
-  await details.locator("summary").waitFor({ state: "visible" });
-  if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) await details.locator("summary").click();
-  await details.locator("form").locator('input[name="f.heading.ar"]').fill("الأسئلة الشائعة", { force: true });
-  await details.locator("form").locator('input[name="f.heading.en"]').fill("Frequently asked questions", { force: true });
-  await details.locator("form").locator("button[type=submit]").click();
+  await details.locator(":scope > summary").waitFor({ state: "visible" });
+  await details.evaluate((el) => ((el as HTMLDetailsElement).open = true));
+  await details.locator("form").locator('input[name="f.heading.ar"]').fill("الأسئلة الشائعة");
+  await details.locator("form").locator('input[name="f.heading.en"]').fill("Frequently asked questions");
+  await clickAndWaitForPost(page, details.locator("form").locator("button[type=submit]"));
   await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
   const addBlockForm = page.locator("form").filter({ has: page.locator('input[name="_action"][value="add-block"]') }).last();
   await addBlockForm.locator('select[name="blockType"]').selectOption("rich_text");
-  await addBlockForm.getByRole("button", { name: /إضافة مكوّن|Add block/i }).click();
+  await clickAndWaitForPost(page, addBlockForm.getByRole("button", { name: /إضافة مكوّن|Add block/i }));
   const richLi = page.locator("li").filter({ has: page.locator("span", { hasText: /^نص منسّق$|^Rich text$/ }) }).last();
+  await expect(richLi).toBeVisible();
   await richLi.locator("summary").click();
   const toolbar = page.getByRole("toolbar", { name: /تنسيق النص|Text formatting/ }).first();
   await expect(toolbar).toBeVisible();
@@ -280,28 +296,28 @@ test("5 admin appearance + CMS + templates + files (one login)", async ({ page }
     el.dispatchEvent(new Event("blur", { bubbles: true }));
   });
   expect(await editor.innerHTML()).toMatch(/rt-c-brand/);
-  await richLi.getByRole("button", { name: /حفظ الإعدادات|Save settings/i }).click();
+  await clickAndWaitForPost(page, richLi.getByRole("button", { name: /حفظ الإعدادات|Save settings/i }));
   await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
   await page.locator('input[name="note"]').fill("smoke-publish");
   await page.getByRole("button", { name: /^نشر$|^Publish$/i }).click();
   await expect(page.locator("body")).toContainText(/تم النشر|Published/);
   await expect(page.getByRole("link", { name: /معاينة|Preview/i })).toHaveAttribute("href", /\/admin\/cms\/preview\//);
-  await page.getByRole("button", { name: /^استعادة$|^Restore$/i }).first().click();
+  await clickAndWaitForPost(page, page.getByRole("button", { name: /^استعادة$|^Restore$/i }).first());
   await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
   // --- templates ---
   await page.locator('select[name="templateId"]').selectOption("starter-simple");
   await page.locator('input[name="confirm"]').check();
-  await page.getByRole("button", { name: /تطبيق قالب|Apply template/i }).click();
+  await clickAndWaitForPost(page, page.getByRole("button", { name: /تطبيق قالب|Apply template/i }));
   await expect(page.locator("body")).toContainText(/تم تطبيق|template applied|Template/i);
 
   const secDetails = page.locator("details").filter({ has: page.locator('input[name="blockTypeDef"][value="section"]') }).first();
-  await secDetails.locator("summary").waitFor({ state: "visible" });
-  if (!(await secDetails.evaluate((el) => (el as HTMLDetailsElement).open))) await secDetails.locator("summary").click();
-  await secDetails.locator("form").locator('input[name="f.heading.ar"]').fill("QA-TEMPLATE-A", { force: true });
-  await secDetails.locator("form").locator('input[name="f.heading.en"]').fill("QA-TEMPLATE-A", { force: true });
-  await secDetails.locator("form").locator("button[type=submit]").click();
+  await secDetails.locator(":scope > summary").waitFor({ state: "visible" });
+  await secDetails.evaluate((el) => ((el as HTMLDetailsElement).open = true));
+  await secDetails.locator("form").locator('input[name="f.heading.ar"]').fill("QA-TEMPLATE-A");
+  await secDetails.locator("form").locator('input[name="f.heading.en"]').fill("QA-TEMPLATE-A");
+  await clickAndWaitForPost(page, secDetails.locator("form").locator("button[type=submit]"));
   await expect(page.locator('input[name="f.heading.ar"]').first()).toHaveValue("QA-TEMPLATE-A");
   await page.locator('input[name="note"]').fill("smoke-tpl-a");
   await page.getByRole("button", { name: /^نشر$|^Publish$/i }).click();
@@ -321,7 +337,7 @@ test("5 admin appearance + CMS + templates + files (one login)", async ({ page }
   expect(tplVal).toBeTruthy();
   await page.locator('select[name="templateId"]').selectOption(tplVal!);
   await page.locator('input[name="confirm"]').check();
-  await page.getByRole("button", { name: /تطبيق قالب|Apply template/i }).click();
+  await clickAndWaitForPost(page, page.getByRole("button", { name: /تطبيق قالب|Apply template/i }));
   await expect(page.getByRole("heading", { name: /تواصل معنا|Contact/i })).toBeVisible();
   await page.locator('input[name="note"]').fill("smoke-contact");
   await page.getByRole("button", { name: /^نشر$|^Publish$/i }).click();
@@ -332,11 +348,11 @@ test("5 admin appearance + CMS + templates + files (one login)", async ({ page }
   await page.getByRole("link", { name: /الأسئلة الشائعة|Frequently asked/i }).first().click();
   await page.waitForURL(/\/admin\/cms\/pages\//);
   const sec2 = page.locator("details").filter({ has: page.locator('input[name="blockTypeDef"][value="section"]') }).first();
-  await sec2.locator("summary").waitFor({ state: "visible" });
-  if (!(await sec2.evaluate((el) => (el as HTMLDetailsElement).open))) await sec2.locator("summary").click();
-  await sec2.locator("form").locator('input[name="f.heading.ar"]').fill("QA-TEMPLATE-B", { force: true });
-  await sec2.locator("form").locator('input[name="f.heading.en"]').fill("QA-TEMPLATE-B", { force: true });
-  await sec2.locator("form").locator("button[type=submit]").click();
+  await sec2.locator(":scope > summary").waitFor({ state: "visible" });
+  await sec2.evaluate((el) => ((el as HTMLDetailsElement).open = true));
+  await sec2.locator("form").locator('input[name="f.heading.ar"]').fill("QA-TEMPLATE-B");
+  await sec2.locator("form").locator('input[name="f.heading.en"]').fill("QA-TEMPLATE-B");
+  await clickAndWaitForPost(page, sec2.locator("form").locator("button[type=submit]"));
   await page.locator('input[name="note"]').fill("smoke-tpl-b");
   await page.getByRole("button", { name: /^نشر$|^Publish$/i }).click();
   await expect(page.locator("body")).toContainText(/تم النشر|Published/);
@@ -352,26 +368,33 @@ test("5 admin appearance + CMS + templates + files (one login)", async ({ page }
     "base64",
   );
   const upload = page.locator("form").filter({ has: page.locator('input[name="_action"][value="upload"]') });
-  await upload.locator('input[type="file"]').setInputFiles({ name: "qa-pixel.png", mimeType: "image/png", buffer: png });
   await upload.locator('select[name="visibility"]').selectOption("public");
-  await upload.locator('button[type="submit"]').click();
+  await Promise.all([
+    page.waitForResponse((response) => response.url().includes("/admin/files") && response.request().method() === "POST"),
+    upload.locator('input[type="file"]').setInputFiles({ name: "qa-pixel.png", mimeType: "image/png", buffer: png }),
+  ]);
   await expect(page.locator("body")).toContainText(/qa-pixel\.png/);
   const row = page.locator("li").filter({ hasText: "qa-pixel.png" }).first();
+  await row.locator("details > summary").click();
   await row.locator('input[name="altAr"]').fill("بكسل تجريبي");
   await row.locator('input[name="altEn"]').fill("QA pixel");
-  await row.locator("form").filter({ has: page.locator('input[name="_action"][value="rename"]') }).locator('button[type="submit"]').click();
+  await clickAndWaitForPost(page, row.locator("form").filter({ has: page.locator('input[name="_action"][value="rename"]') }).locator('button[type="submit"]'));
   await expect(row.locator('input[name="altEn"]')).toHaveValue("QA pixel");
   const png2 = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR42mP8z8BQz0BVwPCfAQAJHAQAA1+iXwAAAABJRU5ErkJggg==",
     "base64",
   );
-  await row.locator("form").filter({ has: page.locator('input[name="_action"][value="replace"]') }).locator('input[type="file"]').setInputFiles({ name: "qa-pixel-2.png", mimeType: "image/png", buffer: png2 });
-  await row.locator("form").filter({ has: page.locator('input[name="_action"][value="replace"]') }).locator('button[type="submit"]').click();
+  const replaceForm = row.locator("form").filter({ has: page.locator('input[name="_action"][value="replace"]') });
+  await Promise.all([
+    page.waitForResponse((response) => response.url().includes("/admin/files") && response.request().method() === "POST"),
+    replaceForm.locator('input[type="file"]').setInputFiles({ name: "qa-pixel-2.png", mimeType: "image/png", buffer: png2 }),
+  ]);
   const replaced = page.locator("li").filter({ hasText: /qa-pixel/ }).first();
-  await replaced.locator("form").filter({ has: page.locator('input[name="_action"][value="usage"]') }).locator('button[type="submit"]').click();
+  await clickAndWaitForPost(page, replaced.locator("form").filter({ has: page.locator('input[name="_action"][value="usage"]') }).locator('button[type="submit"]'));
   await expect(replaced).toContainText(/غير مستخدم|unused/i);
+  await replaced.locator("details").evaluate((el) => ((el as HTMLDetailsElement).open = true));
   page.once("dialog", (d) => d.accept());
-  await replaced.locator("form").filter({ has: page.locator('input[name="_action"][value="delete"]') }).locator('button[type="submit"]').click();
+  await clickAndWaitForPost(page, replaced.locator("form").filter({ has: page.locator('input[name="_action"][value="delete"]') }).locator('button[type="submit"]'));
   await expect(page.locator("body")).not.toContainText(/qa-pixel/);
   await expect(page.locator("body")).toContainText(/hero-philosophy/);
 });

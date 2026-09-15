@@ -42,7 +42,7 @@ export async function setup(): Promise<void> {
     ["platform", { nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito", taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null }],
     ["locale", { default: "ar", enabled: ["ar", "en"] }],
     ["devices", { maxPerStudent: 1, onLimit: "block", changeLimitPer30d: 2 }],
-    ["security", { sessionDays: 30, resetTokenMinutes: 60, rateLimits: { loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5 } }],
+    ["security", { sessionDays: 30, resetTokenMinutes: 30, rateLimits: { loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5, forgotPerAccountHour: 3, resetAttemptsPer15Minutes: 10, resetEmailsPerDay: 80, emailChangePerHour: 5 } }],
   ];
   for (const [key, value] of groups) {
     await db
@@ -52,4 +52,6 @@ export async function setup(): Promise<void> {
   }
 }
 
-void setup();
+// Vitest setup files are imported before each test file. Await the complete D1
+// migration/seed sequence so no test can race a partially initialized schema.
+await setup();

@@ -73,7 +73,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     {
       userId: auth.user.id,
       role: auth.user.roleId,
-      ipHash: await sha256Hex(clientIpOf(request) ?? "unknown"),
+      ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER),
     }
   );
   return { toggled: true };

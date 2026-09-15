@@ -25,10 +25,9 @@ function registryChromiumPresent(): boolean {
 }
 
 /**
- * Global setup — assemble the self-contained headless Chromium (+ NSS/NSPR libs)
- * ONLY when the Playwright registry has no Chromium installed (see
- * playwright.config.ts: registry build preferred, assembled build is the
- * fallback for sandboxes that block every browser CDN).
+ * Global setup — prepare the current npm-pinned self-contained Chromium only
+ * when the Playwright registry has no browser installed. The fallback requires
+ * no CDN download and carries none of the obsolete chrome-aws-lambda toolchain.
  *
  * NOTE: the D1/R2 cold-reset + seed intentionally lives in `webServer.command`
  * (playwright.config.ts), NOT here — Playwright starts the webServer plugin

@@ -106,7 +106,10 @@ test.describe("owner-managed YouTube video", () => {
     // An anonymous visitor must not receive playback for the same video.
     const anon = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const p = await anon.newPage();
-    const res = await p.request.post("http://127.0.0.1:5173/api/playback/00000000-0000-0000-0000-000000000000");
+    const res = await p.request.post(
+      "http://127.0.0.1:5173/api/playback/00000000-0000-0000-0000-000000000000",
+      { headers: { Origin: "http://127.0.0.1:5173" } }
+    );
     expect([401, 404]).toContain(res.status());
     await anon.close();
   });

@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { login, registerUser } from "~server/auth/service.server";
 import {
   createCourse, createGrade, createLesson, createLessonItem, createProgram, createSubject, createUnit,
+  setCoursePrerequisites,
 } from "~server/content/service.server";
 import { grantEntitlement } from "~server/entitlements/grant.server";
 import { registerMockVideo } from "~server/video/service.server";
@@ -69,7 +70,7 @@ const callPlayback = (request: Request) =>
 
 beforeEach(async () => {
   for (const table of [
-    "lesson_items", "lessons", "units", "courses", "subjects", "grades", "programs",
+    "lesson_items", "course_prerequisites", "lessons", "units", "courses", "subjects", "grades", "programs",
     "videos", "entitlements", "lesson_progress", "video_progress", "video_watch_sessions", "events",
   ]) {
     await db.run(`DELETE FROM ${table}`);
@@ -117,6 +118,7 @@ describe("beacon route auth + entitlement gates", () => {
     expect((await callBeacon(beaconRequest("not-json", cookie))).status).toBe(400);
     expect((await callBeacon(beaconRequest({ videoId: "nope", positionSeconds: 10 }, cookie))).status).toBe(400);
     expect((await callBeacon(beaconRequest({ videoId, positionSeconds: -5 }, cookie))).status).toBe(400);
+    expect((await callBeacon(beaconRequest({ videoId, positionSeconds: 5 }, cookie))).status).toBe(400);
   });
 
   it("student WITHOUT entitlement → 403; unknown lesson → 404", async () => {
@@ -129,10 +131,73 @@ describe("beacon route auth + entitlement gates", () => {
     expect(missing.status).toBe(404);
   });
 
-  it("unknown video → 404 (ProgressReferenceError)", async () => {
+  it("unknown or lesson-mismatched video → 404 and writes no progress", async () => {
     await grantEntitlement(db, { studentId, resourceType: "subject", resourceId: subjectId, days: 30 }, actor);
-    const res = await callBeacon(beaconRequest({ videoId: crypto.randomUUID(), lessonId, positionSeconds: 10 }, cookie));
-    expect(res.status).toBe(404);
+    const unknown = await callBeacon(
+      beaconRequest({ videoId: crypto.randomUUID(), lessonId, positionSeconds: 10 }, cookie)
+    );
+    expect(unknown.status).toBe(404);
+
+    // The student is entitled to lesson 2, but this video is attached only to
+    // lesson 1. Client-supplied lesson context must not authorize another video.
+    const mismatched = await callBeacon(
+      beaconRequest({ videoId, lessonId: lesson2Id, positionSeconds: 10 }, cookie)
+    );
+    expect(mismatched.status).toBe(404);
+    expect(await db.select().from(videoProgress)).toHaveLength(0);
+  });
+
+  it("locked prerequisites block both direct playback mints and progress beacons", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const prereq = await createCourse(db, {
+      subjectId,
+      titleAr: `متطلب ${suffix}`,
+      titleEn: `Prerequisite ${suffix}`,
+      status: "published",
+      visibility: "catalog",
+      accessLevel: "entitled",
+      sortOrder: 10,
+      descriptionAr: null,
+      descriptionEn: null,
+      thumbnailFileId: null,
+      teacherId: null,
+      publishAt: null,
+      expiresAt: null,
+    }, actor);
+    const prereqUnit = await createUnit(db, {
+      courseId: prereq.id,
+      titleAr: "وحدة متطلب",
+      titleEn: `Prerequisite Unit ${suffix}`,
+      status: "published",
+      sortOrder: 0,
+    }, actor);
+    const prereqLesson = await createLesson(db, {
+      unitId: prereqUnit.id,
+      titleAr: "درس متطلب",
+      titleEn: `Prerequisite Lesson ${suffix}`,
+      status: "published",
+      accessLevel: "entitled",
+      freePreview: false,
+      sortOrder: 0,
+      descriptionAr: null,
+      descriptionEn: null,
+      publishAt: null,
+      expiresAt: null,
+    }, actor);
+    await setCoursePrerequisites(db, courseId, [prereq.id], actor);
+    await grantEntitlement(db, { studentId, resourceType: "subject", resourceId: subjectId, days: 30 }, actor);
+
+    expect((await callPlayback(playbackRequest(cookie))).status).toBe(403);
+    expect((await callBeacon(
+      beaconRequest({ videoId, lessonId, positionSeconds: 30 }, cookie)
+    )).status).toBe(403);
+    expect(await db.select().from(videoProgress)).toHaveLength(0);
+
+    await setLessonCompleted(db, studentId, prereqLesson.id, true);
+    expect((await callPlayback(playbackRequest(cookie))).status).toBe(200);
+    expect((await callBeacon(
+      beaconRequest({ videoId, lessonId, positionSeconds: 30 }, cookie)
+    )).status).toBe(200);
   });
 
   it("entitled student: heartbeat upserts position + touches the lesson", async () => {

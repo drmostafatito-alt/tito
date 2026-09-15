@@ -4,7 +4,7 @@
  *
  * Creates ONLY the minimum system config a fresh production database needs:
  *   1. the four structural roles (student/teacher/admin/super_admin)
- *   2. one super_admin user with a generated one-time password (printed once)
+ *   2. one super_admin user with an operator-supplied temporary password
  *
  * It NEVER creates content: no demo accounts besides the bootstrap admin, no
  * courses, no pages, no settings rows (settings default lazily via zod), no
@@ -16,8 +16,9 @@
  *   node scripts/bootstrap-admin.mjs --remote         # production D1 (wrangler d1 execute --remote)
  *
  * Env:
- *   ADMIN_BOOTSTRAP_EMAIL  (required for --remote; falls back to .dev.vars locally)
- *   AUTH_PBKDF2_ITERATIONS (default 100000 — must match the worker env)
+ *   ADMIN_BOOTSTRAP_EMAIL    (required for --remote; falls back to .dev.vars locally)
+ *   ADMIN_BOOTSTRAP_PASSWORD (required, 14–128 chars; never printed)
+ *   AUTH_PBKDF2_ITERATIONS   (default 100000 — must match the worker env)
  *   D1_NAME                (remote only; overrides wrangler.jsonc database_name)
  *
  * After bootstrapping: log in, change the password, fill Appearance → System
@@ -43,7 +44,9 @@ function loadDevVars() {
 const devVars = loadDevVars();
 
 const adminEmail = String(
-  emailArg ? emailArg.slice("--email=".length) : process.env.ADMIN_BOOTSTRAP_EMAIL || devVars.ADMIN_BOOTSTRAP_EMAIL || ""
+  emailArg
+    ? emailArg.slice("--email=".length)
+    : process.env.ADMIN_BOOTSTRAP_EMAIL || (!REMOTE ? devVars.ADMIN_BOOTSTRAP_EMAIL : "") || ""
 ).toLowerCase().trim();
 if (!adminEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)) {
   console.error("ADMIN_BOOTSTRAP_EMAIL is required (env, .dev.vars, or --email=you@example.com).");
@@ -54,7 +57,13 @@ if (REMOTE && /@(educore\.local|example\.(com|org)|localhost)/.test(adminEmail))
   process.exit(2);
 }
 
-const ITERATIONS = Number(process.env.AUTH_PBKDF2_ITERATIONS || devVars.AUTH_PBKDF2_ITERATIONS || 100_000);
+const ITERATIONS = Number(
+  process.env.AUTH_PBKDF2_ITERATIONS || (!REMOTE ? devVars.AUTH_PBKDF2_ITERATIONS : "") || 100_000
+);
+if (!Number.isSafeInteger(ITERATIONS) || ITERATIONS < 100_000 || ITERATIONS > 2_000_000) {
+  console.error("AUTH_PBKDF2_ITERATIONS must be an integer from 100000 to 2000000 and match the Worker setting.");
+  process.exit(2);
+}
 
 async function pbkdf2Hash(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -126,7 +135,16 @@ if (existing) {
   await finish(0);
 }
 
-const password = `Admin-${crypto.randomUUID().slice(0, 8)}!${Math.floor(Math.random() * 90 + 10)}`;
+const password = String(
+  process.env.ADMIN_BOOTSTRAP_PASSWORD || (!REMOTE ? devVars.ADMIN_BOOTSTRAP_PASSWORD : "") || ""
+);
+const characterClasses = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((pattern) => pattern.test(password)).length;
+if (password.length < 14 || password.length > 128 || characterClasses < 3) {
+  console.error(
+    "ADMIN_BOOTSTRAP_PASSWORD is required (14–128 characters, at least three character classes); it is never printed."
+  );
+  await finish(2);
+}
 const now = Date.now();
 await runSql(
   `INSERT INTO users (id, email, password_hash, full_name, locale_pref, role_id, status, created_at, updated_at)
@@ -135,8 +153,8 @@ await runSql(
 );
 
 console.log("Bootstrap complete — minimum system config only (roles + one super admin). No content created.");
-console.log(`  super admin : ${adminEmail} / ${password}`);
-console.log("  ⚠ This password is printed ONCE. Log in and change it immediately (Profile → Security).");
+console.log(`  super admin : ${adminEmail}`);
+console.log("  password    : not printed; use the value supplied in ADMIN_BOOTSTRAP_PASSWORD and change it after login.");
 console.log("  Next: fill Appearance → System (platform identity) and Identity, then run:");
 console.log(`      npm run check:production-readiness${REMOTE ? " -- --remote" : ""}`);
 await finish(0);

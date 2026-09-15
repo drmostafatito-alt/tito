@@ -11,11 +11,12 @@ import { resolveContentAccess } from "~server/entitlements/access.server";
 import { getVideo, listVideos, mintPlayback, registerMockVideo, syncVideo } from "~server/video/service.server";
 import { MockVideoProvider, signMockToken } from "~server/video/providers/mock.server";
 import { timingSafeEqualHex } from "~server/crypto/hmac.server";
+import { loader as mockStreamLoader } from "~/routes/api.mock-stream.$videoId.$file";
 
 /**
  * Video pipeline with REAL bindings: mock provider playback minting, token
  * verification at the stream route, playback-API auth/entitlement gates, and
- * Mux JWT signing inside workerd (Ed25519 WebCrypto — no credentials needed).
+ * Mux-compatible RS256 JWT signing inside workerd (no credentials needed).
  */
 
 const db = getDb(env);
@@ -88,7 +89,8 @@ describe("playback minting gates (service level — the route calls exactly thes
     const info = playback as { url: string; token?: string; expiresAt: number };
     expect(info.url).toContain(`/api/mock-stream/${videoId}/master.m3u8`);
     expect(info.expiresAt).toBeGreaterThan(Date.now());
-    expect(info.expiresAt).toBeLessThanOrEqual(Date.now() + 60_000);
+    expect(info.expiresAt).toBeGreaterThanOrEqual(Date.now() + 59 * 60_000);
+    expect(info.expiresAt).toBeLessThanOrEqual(Date.now() + 61 * 60_000);
   });
 
   it("mock stream token discipline: valid verifies; expired/forged/cross-scope reject (route parity)", async () => {
@@ -131,6 +133,44 @@ describe("playback minting gates (service level — the route calls exactly thes
     expect(await check({ uid, exp, token, scope: "thumbnail" })).toBe(404);
   });
 
+  it("serves only allowlisted HLS resources with the minted playback credential", async () => {
+    await grantEntitlement(db, { studentId, resourceType: "subject", resourceId: subjectId, days: 30 }, actor);
+    const video = (await getVideo(db, videoId))!;
+    const playback = (await mintPlayback(db, env, video, { studentId, lessonId })) as { url: string };
+    const minted = new URL(playback.url, "https://app.test");
+    const query = minted.search;
+    const context = {
+      cloudflare: {
+        env,
+        ctx: { waitUntil() {}, passThroughOnException() {} },
+      },
+    };
+    const load = (file: string, search = query) =>
+      mockStreamLoader({
+        context,
+        params: { videoId, file },
+        request: new Request(`https://app.test/api/mock-stream/${videoId}/${file}${search}`),
+      } as unknown as Parameters<typeof mockStreamLoader>[0]);
+
+    const master = await load("master.m3u8");
+    expect(master.status).toBe(200);
+    expect(master.headers.get("content-type")).toContain("application/vnd.apple.mpegurl");
+    expect(master.headers.get("cache-control")).toBe("private, no-store");
+    expect(await master.text()).toContain(`media.m3u8?${query.slice(1)}`);
+
+    const media = await load("media.m3u8");
+    expect(media.status).toBe(200);
+    expect(await media.text()).toContain(`segment.ts?${query.slice(1)}`);
+
+    const segment = await load("segment.ts");
+    expect(segment.status).toBe(200);
+    expect(segment.headers.get("content-type")).toContain("video/mp2t");
+    expect((await segment.arrayBuffer()).byteLength).toBe(188);
+
+    expect((await load("secrets.txt")).status).toBe(404);
+    expect((await load("media.m3u8", "?uid=forged&exp=1&token=bad")).status).toBe(404);
+  });
+
   it("video not attached to any lesson finds no allowed chain (route answers 403)", async () => {
     const orphan = await registerMockVideo(db, { durationSeconds: 10, title: "orphan" });
     const items = await db.select().from(lessonItems).where(eq(lessonItems.videoId, orphan.id));
@@ -153,7 +193,8 @@ describe("mint discipline (service level)", () => {
     expect("error" in playback).toBe(false);
     const info = playback as { url: string; expiresAt: number };
     expect(info.expiresAt).toBeGreaterThan(Date.now());
-    expect(info.expiresAt).toBeLessThanOrEqual(Date.now() + 60_000);
+    expect(info.expiresAt).toBeGreaterThanOrEqual(Date.now() + 59 * 60_000);
+    expect(info.expiresAt).toBeLessThanOrEqual(Date.now() + 61 * 60_000);
 
     // pending video → structured error, not credentials
     await db.run(sql`UPDATE videos SET status = 'preparing' WHERE id = ${videoId}`);
@@ -162,21 +203,38 @@ describe("mint discipline (service level)", () => {
   });
 });
 
-describe("mux JWT signing inside workerd (no credentials required)", () => {
-  it("Ed25519 WebCrypto signs/verifies playback tokens in the Workers runtime", async () => {
-    const { importEd25519PrivateKey, signMuxPlaybackJwt, decodeMuxJwt } = await import("~server/video/providers/mux.server");
-    const pair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]) as CryptoKeyPair;
+describe("Mux JWT signing inside workerd (no credentials required)", () => {
+  it("RS256 WebCrypto signs/verifies playback tokens in the Workers runtime", async () => {
+    const { importMuxRsaPrivateKey, signMuxPlaybackJwt, decodeMuxJwt } = await import("~server/video/providers/mux.server");
+    const pair = await crypto.subtle.generateKey(
+      {
+        name: "RSASSA-PKCS1-v1_5",
+        modulusLength: 2048,
+        publicExponent: Uint8Array.of(1, 0, 1),
+        hash: "SHA-256",
+      },
+      true,
+      ["sign", "verify"]
+    ) as CryptoKeyPair;
     const pkcs8 = await crypto.subtle.exportKey("pkcs8", pair.privateKey);
     const b64 = btoa(String.fromCharCode(...new Uint8Array(pkcs8)));
-    const key = await importEd25519PrivateKey(b64);
-    const token = await signMuxPlaybackJwt(key, { sub: "pbW", aud: "v", exp: Math.floor(Date.now() / 1000) + 45, kid: "k1" });
+    const key = await importMuxRsaPrivateKey(b64);
+    const token = await signMuxPlaybackJwt(key, { sub: "pbW", aud: "v", exp: Math.floor(Date.now() / 1000) + 7200, kid: "k1" });
+    expect(decodeMuxJwt(token).header).toMatchObject({ alg: "RS256", kid: "k1" });
     expect(decodeMuxJwt(token).claims).toMatchObject({ sub: "pbW", aud: "v", kid: "k1" });
 
-    const spki = await crypto.subtle.exportKey("spki", pair.publicKey);
-    const pub = await crypto.subtle.importKey("spki", spki, { name: "Ed25519" }, false, ["verify"]);
-    const [h, p, s] = token.split(".");
-    const sigBytes = Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
-    const ok = await crypto.subtle.verify("Ed25519", pub, sigBytes as unknown as ArrayBuffer, new TextEncoder().encode(`${h}.${p}`) as unknown as ArrayBuffer);
+    const [header, payload, signature] = token.split(".");
+    const normalized = signature.replace(/-/g, "+").replace(/_/g, "/");
+    const sigBytes = Uint8Array.from(
+      atob(normalized + "=".repeat((4 - (normalized.length % 4)) % 4)),
+      (char) => char.charCodeAt(0)
+    );
+    const ok = await crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5",
+      pair.publicKey,
+      sigBytes as unknown as ArrayBuffer,
+      new TextEncoder().encode(`${header}.${payload}`) as unknown as ArrayBuffer
+    );
     expect(ok).toBe(true);
   });
 });

@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "educore-integration-test",
+  "main": "../../workers/app.ts",
+  "compatibility_date": "2026-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "educore-integration-test",
+      "database_id": "local",
+      "migrations_dir": "../../migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "PUBLIC_ASSETS", "bucket_name": "integration-public-assets" },
+    { "binding": "PRIVATE_FILES", "bucket_name": "integration-private-files" },
+    { "binding": "VIDEO_MASTERS", "bucket_name": "integration-video-masters" }
+  ]
+}

@@ -128,7 +128,7 @@ export async function resolveDevice(
     keyHash,
     label,
     platform,
-    userAgentHash: await sha256Hex(ua),
+    userAgentHash: await sha256Hex(ua, env.SESSION_PEPPER),
     status: "active",
     firstSeenAt: now,
     lastSeenAt: now,

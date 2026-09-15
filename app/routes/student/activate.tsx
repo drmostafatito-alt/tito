@@ -19,11 +19,12 @@ import { t, type Locale } from "~/lib/i18n";
  */
 export async function action({ context, request }: Route.ActionArgs) {
   const { auth } = await requireUser(context, request);
-  const db = getDb(getEnv(context));
+  const env = getEnv(context);
+  const db = getDb(env);
   const form = await request.formData();
   if (String(form.get("_action") ?? "") !== "redeem") return { error: "generic" as const };
 
-  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
+  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER);
   const rl = await checkRateLimit(db, "code_redeem", `${auth.user.id}:${ipHash}`, 10, 3_600_000);
   if (!rl.ok) return { error: "rate_limited" as const };
 

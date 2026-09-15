@@ -32,6 +32,22 @@ test.describe("IDOR & privilege isolation (student actor)", () => {
     await page.waitForURL(/\/dashboard\?error=forbidden/, { timeout: 20_000 });
   });
 
+  test("global CSRF gate rejects missing and cross-origin mutation evidence", async ({ page }) => {
+    const target = "/api/playback/00000000-0000-4000-8000-0000000000ff";
+    const missing = await page.request.post(target);
+    expect(missing.status()).toBe(403);
+    expect(await missing.text()).toBe("Forbidden");
+
+    const crossOrigin = await page.request.post(target, { headers: { Origin: "https://attacker.example" } });
+    expect(crossOrigin.status()).toBe(403);
+    expect(await crossOrigin.text()).toBe("Forbidden");
+
+    const sameOrigin = await page.request.post(target, { headers: { Origin: "http://127.0.0.1:5173" } });
+    // 401/404 is the route's own denial, proving the request passed the CSRF
+    // layer; only a CSRF 403 would indicate same-origin evidence was rejected.
+    expect([401, 404]).toContain(sameOrigin.status());
+  });
+
   test("unknown video playback never leaks credentials (401/403/404, never 200)", async ({ page }) => {
     const res = await page.request.post("/api/playback/00000000-0000-4000-8000-0000000000ff");
     // unauth → 401, unknown-but-authed → 404, unentitled → 403: all deny. A 200

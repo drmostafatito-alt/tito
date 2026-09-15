@@ -14,7 +14,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   const db = getDb(env);
   const { auth } = await resolveAuth(db, env, request);
   if (auth) {
-    await logout(db, auth.session.id, auth.user.id, await sha256Hex(clientIpOf(request) ?? "unknown"));
+    await logout(db, auth.session.id, auth.user.id, await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER));
   }
   const headers = new Headers();
   headers.append("Set-Cookie", clearCookieHeader(SESSION_COOKIE));

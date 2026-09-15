@@ -13,9 +13,12 @@ import {
   deleteFile,
   detectKind,
   insertFile,
+  normalizeUploadMime,
+  requestBodyTooLarge,
   sha256HexOf,
   sizeCapFor,
   signFileUrl,
+  uploadBytesMatchMime,
 } from "~server/files/storage.server";
 import { Badge } from "~/components/ui/Badge";
 import { Alert } from "~/components/ui/Alert";
@@ -89,6 +92,7 @@ export async function action({ context, request, params }: Route.ActionArgs) {
   const env = getEnv(context);
   const db = getDb(env);
   const actor = { userId: auth.user.id, roleRank: auth.user.rank, roleId: auth.user.roleId };
+  if (requestBodyTooLarge(request)) return redirect(`/assignments/${params.id}?err=too_large`);
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
 
@@ -105,12 +109,13 @@ export async function action({ context, request, params }: Route.ActionArgs) {
   if (intent === "submit_file") {
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) return redirect(`/assignments/${params.id}?err=no_content`);
-    const mime = file.type || "application/octet-stream";
+    const mime = normalizeUploadMime(file.type || "application/octet-stream");
     const kind = detectKind(mime);
     if (kind !== "pdf" && kind !== "image") return redirect(`/assignments/${params.id}?err=bad_type`);
     if (file.size > sizeCapFor(kind)) return redirect(`/assignments/${params.id}?err=too_large`);
 
     const buf = await file.arrayBuffer();
+    if (!uploadBytesMatchMime(buf, mime)) return redirect(`/assignments/${params.id}?err=bad_type`);
     const checksum = await sha256HexOf(buf);
     const r2Key = buildR2Key(kind, file.name, "private");
     await env.PRIVATE_FILES.put(r2Key, buf, { httpMetadata: { contentType: mime } });

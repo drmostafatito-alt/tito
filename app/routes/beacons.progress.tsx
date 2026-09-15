@@ -3,9 +3,10 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { resolveAuth } from "~server/auth/session.server";
 import { getSettings } from "~server/settings/service.server";
-import { chainForLesson } from "~server/content/service.server";
+import { chainForLesson, coursePrereqGate } from "~server/content/service.server";
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { beaconSchema, recordBeacon, ProgressReferenceError } from "~server/progress/service.server";
+import { checkRateLimit } from "~server/http/rate-limit.server";
 
 /**
  * POST /beacons/progress — session-validated progress beacons (ARCHITECTURE §90,
@@ -35,13 +36,28 @@ export async function action({ context, request }: Route.ActionArgs) {
   if (!parsed.success) return Response.json({ error: "invalid_payload" }, { status: 400 });
   const beacon = parsed.data;
 
-  // entitlement re-check with a lesson context (never trust the client)
-  if (beacon.lessonId) {
-    const chain = await chainForLesson(db, beacon.lessonId);
-    if (!chain) return Response.json({ error: "not_found" }, { status: 404 });
-    const verdict = await resolveContentAccess(db, { userId: auth.user.id, roleRank: auth.user.rank }, chain);
-    if (!verdict.allowed) return Response.json({ error: "forbidden" }, { status: 403 });
+  const rate = await checkRateLimit(db, "progress-beacon", auth.user.id, 120, 60_000);
+  if (!rate.ok) {
+    return Response.json(
+      { error: "rate_limited" },
+      { status: 429, headers: { "Retry-After": String(Math.max(1, Math.ceil(rate.retryAfterMs / 1000))) } }
+    );
   }
+
+  // A lesson context is mandatory and its entitlement is always re-checked.
+  // recordBeacon additionally verifies that the video belongs to this lesson.
+  const chain = await chainForLesson(db, beacon.lessonId);
+  if (!chain?.courseId) return Response.json({ error: "not_found" }, { status: 404 });
+  if (auth.user.rank <= 1) {
+    const lock = await coursePrereqGate(
+      db,
+      { userId: auth.user.id, roleRank: auth.user.rank },
+      chain.courseId
+    );
+    if (lock.locked) return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+  const verdict = await resolveContentAccess(db, { userId: auth.user.id, roleRank: auth.user.rank }, chain);
+  if (!verdict.allowed) return Response.json({ error: "forbidden" }, { status: 403 });
 
   const settings = await getSettings(db);
   try {

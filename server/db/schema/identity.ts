@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /** Static role catalog. rank: student 1 < teacher 2 < admin 3 < super_admin 4 */
@@ -126,6 +127,7 @@ export const passwordResetTokens = sqliteTable(
   },
   (t) => [
     uniqueIndex("password_reset_token_uq").on(t.tokenHash),
+    uniqueIndex("password_reset_one_active_user_uq").on(t.userId).where(sql`${t.usedAt} IS NULL`),
     index("password_reset_user_idx").on(t.userId),
   ]
 );
@@ -154,6 +156,7 @@ export const securityEvents = sqliteTable(
         "permission_denied",
         "registration",
         "profile_updated",
+        "email_change_reauth_failed",
         "email_change_requested",
         "email_changed",
       ],

@@ -51,9 +51,12 @@ export class MockVideoProvider implements VideoProvider {
     /* nothing external to clean up */
   }
 
-  async getPlayback(video: VideoRowLike, ctx: { studentId: string; lessonId?: string }): Promise<PlaybackInfo> {
+  async getPlayback(
+    video: VideoRowLike,
+    ctx: { studentId: string; lessonId?: string; ttlSeconds: number }
+  ): Promise<PlaybackInfo> {
     const secret = mockTokenSecret(this.env);
-    const expiresAt = Date.now() + 45_000;
+    const expiresAt = Date.now() + ctx.ttlSeconds * 1000;
     const token = await signMockToken(secret, {
       videoId: video.id,
       scope: "playback",

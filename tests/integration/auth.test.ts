@@ -5,8 +5,16 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:test";
 import { getDb } from "~server/db/client.server";
-import { login, registerUser, requestPasswordReset, resetPassword, shouldExposeDevResetToken } from "~server/auth/service.server";
-import { securityEvents, users } from "~server/db/schema";
+import {
+  exchangeResetToken,
+  login,
+  registerUser,
+  requestPasswordReset,
+  resetPassword,
+  validateResetToken,
+} from "~server/auth/service.server";
+import { passwordResetTokens, securityEvents, sessions, users } from "~server/db/schema";
+import { resolveAuth } from "~server/auth/session.server";
 import { clearEmailCaptures, capturedEmails } from "~server/email/provider";
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1";
@@ -28,6 +36,8 @@ beforeEach(async () => {
   await db.run("DELETE FROM devices");
   await db.run("DELETE FROM password_reset_tokens");
   await db.run("DELETE FROM audit_logs");
+  await db.run("DELETE FROM rate_limit_counters");
+  clearEmailCaptures();
   const all = await db.select({ id: users.id, email: users.email }).from(users);
   for (const u of all) {
     if (u.email.endsWith("@test.local")) await db.delete(users).where(eq(users.id, u.id));
@@ -44,10 +54,69 @@ describe("registration + login", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       const names = result.cookies.map((c) => c.name);
-      expect(names).toContain("__edu_session");
-      expect(names).toContain("__edu_dk");
+      expect(names).toContain("__Host-edu_session");
+      expect(names).toContain("__Host-edu_dk");
       expect(result.user.roleId).toBe("student");
     }
+  });
+
+  it("slides an active session and returns the refreshed expiry/cookie", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "Test Student", password: "Str0ngPass!x" }, makeRequest({ ip: "1.1.1.2" }));
+    const loggedIn = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "1.1.1.2" }));
+    expect(loggedIn.ok).toBe(true);
+    if (!loggedIn.ok) return;
+
+    const token = loggedIn.cookies.find((cookie) => cookie.name === "__Host-edu_session")!.value;
+    const db = getDb(env);
+    const row = (await db.select().from(sessions).limit(1))[0]!;
+    const now = Date.now();
+    const oldExpiry = now + 10 * 60_000;
+    const oldLastSeen = now - 2 * 60_000;
+    await db
+      .update(sessions)
+      .set({ lastSeenAt: oldLastSeen, expiresAt: oldExpiry })
+      .where(eq(sessions.id, row.id));
+
+    const resolved = await resolveAuth(
+      db,
+      env,
+      makeRequest({ ip: "1.1.1.2", cookie: `__Host-edu_session=${token}` })
+    );
+    expect(resolved.auth).not.toBeNull();
+    expect(resolved.refreshCookie).toContain("__Host-edu_session=");
+    const refreshed = (await db.select().from(sessions).where(eq(sessions.id, row.id)).limit(1))[0]!;
+    expect(refreshed.expiresAt).toBeGreaterThan(oldExpiry);
+    expect(resolved.auth!.session.expiresAt).toBe(refreshed.expiresAt);
+  });
+
+  it("rejects an active session after the 180-day absolute lifetime", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "Test Student", password: "Str0ngPass!x" }, makeRequest({ ip: "1.1.1.3" }));
+    const loggedIn = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "1.1.1.3" }));
+    expect(loggedIn.ok).toBe(true);
+    if (!loggedIn.ok) return;
+
+    const token = loggedIn.cookies.find((cookie) => cookie.name === "__Host-edu_session")!.value;
+    const db = getDb(env);
+    const row = (await db.select().from(sessions).limit(1))[0]!;
+    const now = Date.now();
+    await db
+      .update(sessions)
+      .set({
+        createdAt: now - 181 * 86_400_000,
+        lastSeenAt: now - 2 * 60_000,
+        expiresAt: now + 30 * 86_400_000,
+      })
+      .where(eq(sessions.id, row.id));
+
+    const resolved = await resolveAuth(
+      db,
+      env,
+      makeRequest({ ip: "1.1.1.3", cookie: `__Host-edu_session=${token}` })
+    );
+    expect(resolved.auth).toBeNull();
+    expect(resolved.refreshCookie).toBeUndefined();
   });
 
   it("duplicate email is rejected", async () => {
@@ -95,9 +164,9 @@ describe("device policy (default: 1 device)", () => {
     const first = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.6" }));
     expect(first.ok).toBe(true);
 
-    const dk = first.ok ? first.cookies.find((c) => c.name === "__edu_dk")?.value : undefined;
+    const dk = first.ok ? first.cookies.find((c) => c.name === "__Host-edu_dk")?.value : undefined;
     expect(dk).toBeTruthy();
-    const again = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.6", cookie: `__edu_dk=${dk}` }));
+    const again = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.6", cookie: `__Host-edu_dk=${dk}` }));
     expect(again.ok).toBe(true);
   });
 });
@@ -116,145 +185,190 @@ describe("rate limiting", () => {
   });
 });
 
-describe("password reset", () => {
-  it("full flow: request (dev token) → reset → old sessions revoked → new password works", async () => {
+function resetCaptures(email: string) {
+  return capturedEmails(email).filter((message) => message.html.includes("/reset-password#token="));
+}
+
+function resetTokenFromCapture(email: string): string {
+  const messages = resetCaptures(email);
+  expect(messages).toHaveLength(1);
+  const match = /\/reset-password#token=([A-Za-z0-9_-]{40,})/.exec(messages[0].html);
+  expect(match, "reset email must contain a fragment-only token").toBeTruthy();
+  return match![1];
+}
+
+describe("password recovery", () => {
+  it("returns an identical generic response for known and unknown emails with a timing floor", async () => {
     const email = uniqueEmail();
     await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.8" }));
-    const before = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.8" }));
+
+    const knownStart = Date.now();
+    const known = await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.8" }));
+    const knownMs = Date.now() - knownStart;
+    const unknownStart = Date.now();
+    const unknown = await requestPasswordReset(env, uniqueEmail(), makeRequest({ ip: "8.8.4.4" }));
+    const unknownMs = Date.now() - unknownStart;
+
+    expect(known).toEqual({ ok: true });
+    expect(unknown).toEqual({ ok: true });
+    expect(knownMs).toBeGreaterThanOrEqual(200);
+    expect(unknownMs).toBeGreaterThanOrEqual(200);
+    expect(resetCaptures(email)).toHaveLength(1);
+    expect(JSON.stringify(known)).not.toMatch(/[A-Za-z0-9_-]{40,}/);
+  });
+
+  it("stores only a hash, invalidates the previous link, and keeps one active token", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.9" }));
+
+    await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.9" }));
+    const first = resetTokenFromCapture(email);
+    clearEmailCaptures();
+    await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.10" }));
+    const second = resetTokenFromCapture(email);
+    expect(first).not.toBe(second);
+
+    const db = getDb(env);
+    const user = (await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1))[0];
+    const rows = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
+    expect(rows).toHaveLength(2);
+    expect(rows.some((row) => row.tokenHash === first || row.tokenHash === second)).toBe(false);
+    expect(rows.filter((row) => row.usedAt === null)).toHaveLength(1);
+
+    expect((await resetPassword(env, { token: first, newPassword: "FirstLink!55" })).ok).toBe(false);
+    expect((await resetPassword(env, { token: second, newPassword: "SecondLink!66" })).ok).toBe(true);
+  });
+
+  it("rejects invalid, expired, and replayed tokens without revealing why", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.11" }));
+
+    const invalid = await exchangeResetToken(
+      env,
+      "A".repeat(43),
+      makeRequest({ ip: "8.8.8.12" })
+    );
+    expect(invalid).toEqual({ ok: false, code: "invalid_token" });
+
+    await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.11" }));
+    const token = resetTokenFromCapture(email);
+    const db = getDb(env);
+    await db.update(passwordResetTokens).set({ expiresAt: Date.now() - 1 });
+    const expired = await exchangeResetToken(env, token, makeRequest({ ip: "8.8.8.13" }));
+    expect(expired).toEqual({ ok: false, code: "invalid_token" });
+
+    clearEmailCaptures();
+    await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.14" }));
+    const fresh = resetTokenFromCapture(email);
+    expect(await exchangeResetToken(env, fresh, makeRequest({ ip: "8.8.8.15" }))).toEqual({ ok: true });
+    expect(
+      await resetPassword(
+        env,
+        { token: fresh, newPassword: "ConsumedLink!77" },
+        makeRequest({ ip: "8.8.8.15" })
+      )
+    ).toEqual({ ok: true });
+    const replay = await exchangeResetToken(env, fresh, makeRequest({ ip: "8.8.8.16" }));
+    expect(replay).toEqual({ ok: false, code: "invalid_token" });
+  });
+
+  it("changes the password, atomically revokes sessions, and consumes the token once", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.20" }));
+    const before = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.20" }));
     expect(before.ok).toBe(true);
-    // same physical device re-plays its device key after the reset
-    const dk = before.ok ? before.cookies.find((c) => c.name === "__edu_dk")?.value : undefined;
+    const dk = before.ok ? before.cookies.find((c) => c.name === "__Host-edu_dk")?.value : undefined;
 
-    const forgot = await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.8" }));
-    expect(forgot.ok).toBe(true);
-    // non-production exposes the token (email channel arrives Phase 3+)
-    expect(forgot.devToken).toBeTruthy();
+    await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.20" }));
+    const token = resetTokenFromCapture(email);
+    expect(await exchangeResetToken(env, token, makeRequest({ ip: "8.8.8.21" }))).toEqual({ ok: true });
+    expect((await validateResetToken(env, token)).valid).toBe(true);
 
-    const reset = await resetPassword(env, { token: forgot.devToken!, newPassword: "BrandNew!77" });
-    expect(reset.ok).toBe(true);
+    const completed = await resetPassword(
+      env,
+      { token, newPassword: "BrandNew!77" },
+      makeRequest({ ip: "8.8.8.21" })
+    );
+    expect(completed).toEqual({ ok: true });
+    expect(await validateResetToken(env, token)).toEqual({ valid: false });
+    expect(
+      await resetPassword(
+        env,
+        { token, newPassword: "AnotherPass!88" },
+        makeRequest({ ip: "8.8.8.22" })
+      )
+    ).toEqual({ ok: false, code: "invalid_token" });
 
-    // token is single-use
-    const replay = await resetPassword(env, { token: forgot.devToken!, newPassword: "Another!88" });
-    expect(replay.ok).toBe(false);
+    const db = getDb(env);
+    const active = await db.select().from(sessions);
+    expect(active.length).toBeGreaterThan(0);
+    expect(active.every((session) => session.revokedAt !== null)).toBe(true);
 
-    // new password logs in (same device); old sessions were revoked server-side
-    const relogin = await login(
+    const oldLogin = await login(
+      env,
+      { email, password: "Str0ngPass!x" },
+      makeRequest({ ip: "8.8.8.23", cookie: `__Host-edu_dk=${dk}` })
+    );
+    expect(oldLogin.ok).toBe(false);
+    const newLogin = await login(
       env,
       { email, password: "BrandNew!77" },
-      makeRequest({ ip: "8.8.8.8", cookie: `__edu_dk=${dk}` })
+      makeRequest({ ip: "8.8.8.24", cookie: `__Host-edu_dk=${dk}` })
     );
-    expect(relogin.ok).toBe(true);
+    expect(newLogin.ok).toBe(true);
   });
 
-  it("concurrent submissions with the same token: exactly one succeeds (H3)", async () => {
+  it("permits exactly one concurrent completion for a reset token", async () => {
     const email = uniqueEmail();
-    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "11.11.11.11" }));
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.30" }));
+    await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.30" }));
+    const token = resetTokenFromCapture(email);
+    expect(await exchangeResetToken(env, token, makeRequest({ ip: "8.8.8.31" }))).toEqual({ ok: true });
 
-    const forgot = await requestPasswordReset(env, email, makeRequest({ ip: "11.11.11.11" }));
-    expect(forgot.devToken).toBeTruthy();
-
-    // two simultaneous resets with the SAME token — the atomic claim must let
-    // exactly one through (the other sees used_at already set).
     const [a, b] = await Promise.all([
-      resetPassword(env, { token: forgot.devToken!, newPassword: "RacePass!11" }),
-      resetPassword(env, { token: forgot.devToken!, newPassword: "RacePass!22" }),
+      resetPassword(env, { token, newPassword: "RacePass!11" }, makeRequest({ ip: "8.8.8.31" })),
+      resetPassword(env, { token, newPassword: "RacePass!22" }, makeRequest({ ip: "8.8.8.32" })),
     ]);
-    const successes = [a, b].filter((r) => r.ok).length;
-    expect(successes).toBe(1);
+    expect([a, b].filter((result) => result.ok)).toHaveLength(1);
   });
 
-  it("dispatches the reset email via the configured channel and embeds the token link", async () => {
+  it("rate-limits issuance and brute-force token exchange", async () => {
     const email = uniqueEmail();
-    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "10.10.10.10" }));
-
-    // The integration test config binds EMAIL_PROVIDER=capture, so in a dev
-    // context requestPasswordReset must both create the token AND send email.
-    clearEmailCaptures();
-    const forgot = await requestPasswordReset(env, email, makeRequest({ ip: "10.10.10.10" }));
-    expect(forgot.ok).toBe(true);
-    expect(forgot.devToken).toBeTruthy(); // dev-only context
-    expect(forgot.email).toBe("sent");
-
-    const sent = capturedEmails(email);
-    expect(sent.length).toBe(1);
-    // The reset link carries the exact opaque token; it is the ONLY channel that
-    // carries it in a real (non-devToken) flow.
-    expect(sent[0].html).toContain(`/reset-password?token=${encodeURIComponent(forgot.devToken!)}`);
-    expect(sent[0].html.toLowerCase()).not.toContain("educore");
-  });
-
-  it("production (no channel) returns unavailable and sends no email, never exposing the token", async () => {
-    const email = uniqueEmail();
-    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "10.10.10.11" }));
-
-    clearEmailCaptures();
-    // Pin to a production context with NO email channel configured.
-    const prodEnv = { ...env, ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: undefined, EMAIL_PROVIDER: undefined };
-    const forgot = await requestPasswordReset(prodEnv, email, makeRequest({ ip: "10.10.10.11" }));
-    expect(forgot.ok).toBe(true);
-    expect(forgot.devToken).toBeUndefined();
-    expect(forgot.email).toBe("unavailable");
-    expect(capturedEmails(email).length).toBe(0);
-    // The response must never leak a long opaque token-shaped string.
-    expect(JSON.stringify(forgot)).not.toMatch(/([A-Za-z0-9_-]{20,})/);
-  });
-});
-
-describe("password reset token exposure (C1 — fail closed)", () => {
-  it("never exposes the token unless the environment is an explicit development context", async () => {
-    const email = uniqueEmail();
-    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "9.9.9.9" }));
-
-    const cases: Array<{ label: string; envOverride: Partial<Env>; expose: boolean }> = [
-      { label: "production", envOverride: { ENVIRONMENT: "production" }, expose: false },
-      { label: "staging (unknown value)", envOverride: { ENVIRONMENT: "staging" }, expose: false },
-      { label: "undefined", envOverride: { ENVIRONMENT: undefined }, expose: false },
-      { label: "preview", envOverride: { ENVIRONMENT: "preview" }, expose: false },
-      { label: "development", envOverride: { ENVIRONMENT: "development" }, expose: true },
-      // explicit flag overrides even a production-looking environment (dev opt-in)
-      { label: "production + explicit flag", envOverride: { ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: "true" }, expose: true },
-      // flag present but not exactly "true" → still fail closed
-      { label: "flag '1' is not 'true'", envOverride: { ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: "1" }, expose: false },
-    ];
-
-    for (let i = 0; i < cases.length; i++) {
-      const c = cases[i];
-      // Pin EXPOSE_DEV_RESET_TOKEN to undefined FIRST so the fail-closed cases
-      // don't inherit "true" from .dev.vars (cloudflare:test loads it into `env`).
-      const testEnv = { ...env, EXPOSE_DEV_RESET_TOKEN: undefined, ...c.envOverride };
-      // distinct IP per case: the forgot limiter is 5/hour/IP, and this loop
-      // exceeds it — a limited request returns {ok:true} without a token.
-      const forgot = await requestPasswordReset(testEnv, email, makeRequest({ ip: `9.9.9.${(i + 1) % 256}` }));
-      expect(forgot.ok).toBe(true);
-      expect(forgot.devToken == null, `[${c.label}] expected devToken ${c.expose ? "present" : "absent"}`).toBe(!c.expose);
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.40" }));
+    for (let i = 0; i < 7; i++) {
+      expect(await requestPasswordReset(env, email, makeRequest({ ip: "8.8.8.40" }))).toEqual({ ok: true });
     }
+    expect(resetCaptures(email).length).toBeLessThanOrEqual(5);
+
+    let result: Awaited<ReturnType<typeof exchangeResetToken>> = { ok: false, code: "invalid_token" };
+    for (let i = 0; i < 11; i++) {
+      result = await exchangeResetToken(
+        env,
+        `${String(i).padStart(2, "0")}${"A".repeat(41)}`,
+        makeRequest({ ip: "8.8.8.41" })
+      );
+    }
+    expect(result).toMatchObject({ ok: false, code: "rate_limited" });
   });
 
-  it("shouldExposeDevResetToken is an explicit allowlist (unit-style truth table)", () => {
-    expect(shouldExposeDevResetToken({})).toBe(false);
-    expect(shouldExposeDevResetToken({ ENVIRONMENT: "production" })).toBe(false);
-    expect(shouldExposeDevResetToken({ ENVIRONMENT: "staging" })).toBe(false);
-    expect(shouldExposeDevResetToken({ ENVIRONMENT: "preview" })).toBe(false);
-    expect(shouldExposeDevResetToken({ ENVIRONMENT: "development" })).toBe(true);
-    expect(shouldExposeDevResetToken({ EXPOSE_DEV_RESET_TOKEN: "true" })).toBe(true);
-    expect(shouldExposeDevResetToken({ EXPOSE_DEV_RESET_TOKEN: "TRUE" })).toBe(false);
-    expect(shouldExposeDevResetToken({ ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: "true" })).toBe(true);
-  });
-
-  it("the safe response HTML does not contain the token", async () => {
+  it("invalidates a token when delivery is unavailable and never leaks provider state or secrets", async () => {
     const email = uniqueEmail();
-    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "10.10.10.10" }));
-    // production-like: no devToken must ever surface (flag pinned off so it
-    // can't leak in from .dev.vars)
-    const forgot = await requestPasswordReset(
-      { ...env, ENVIRONMENT: "production", EXPOSE_DEV_RESET_TOKEN: undefined },
-      email,
-      makeRequest({ ip: "10.10.10.10" }),
-    );
-    expect(forgot.ok).toBe(true);
-    expect(forgot.devToken).toBeUndefined();
-    // the route maps devToken→null; assert the raw token never appears anywhere in the result
-    expect(JSON.stringify(forgot)).not.toMatch(/([A-Za-z0-9_-]{20,})/);
+    await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "8.8.8.50" }));
+    const unavailableEnv = {
+      ...env,
+      ENVIRONMENT: "production",
+      EMAIL_PROVIDER: "resend",
+      RESEND_API_KEY: undefined,
+      EMAIL_FROM: undefined,
+    };
+    const result = await requestPasswordReset(unavailableEnv, email, makeRequest({ ip: "8.8.8.50" }));
+    expect(result).toEqual({ ok: true });
+    expect(JSON.stringify(result)).not.toContain("RESEND");
+    expect(JSON.stringify(result)).not.toMatch(/[A-Za-z0-9_-]{40,}/);
+
+    const db = getDb(env);
+    const rows = await db.select().from(passwordResetTokens);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].usedAt).not.toBeNull();
   });
 });
-

@@ -1,6 +1,8 @@
 import { type RouteConfig, index, layout, route } from "@react-router/dev/routes";
 
 export default [
+  // Strictly test-gated email inbox for browser E2E (404 when not explicitly testing).
+  route("__test/email-capture", "routes/test.email-capture.tsx"),
   layout("routes/public/layout.tsx", { id: "public" }, [
     index("routes/public/home.tsx"),
     route("p/:slug", "routes/p.$slug.tsx"),

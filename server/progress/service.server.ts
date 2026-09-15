@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { DB } from "~server/db/client.server";
-import { events, lessonProgress, videoProgress, videoWatchSessions } from "~server/db/schema";
+import { events, lessonItems, lessonProgress, videoProgress, videoWatchSessions } from "~server/db/schema";
 import { courses, lessons, units, videos } from "~server/db/schema";
 import { itemsForLesson } from "~server/content/service.server";
 
@@ -25,7 +25,8 @@ const uuid = z.string().regex(/^[0-9a-f-]{36}$/i);
 
 export const beaconSchema = z.object({
   videoId: uuid,
-  lessonId: uuid.optional(),
+  /** Required entitlement context; a bare video id is never sufficient. */
+  lessonId: uuid,
   /** Current playback position (seconds). */
   positionSeconds: z.number().int().min(0).max(24 * 3600),
   /** Client-known media duration (seconds); optional for providers without metadata. */
@@ -161,11 +162,19 @@ export async function recordBeacon(
     .limit(1);
   if (!video[0]) throw new ProgressReferenceError("videoId", "video not found");
 
-  let lessonId = beacon.lessonId ?? null;
-  if (lessonId) {
-    const lesson = await db.select({ id: lessons.id }).from(lessons).where(eq(lessons.id, lessonId)).limit(1);
-    if (!lesson[0]) throw new ProgressReferenceError("lessonId", "lesson not found");
-  }
+  let lessonId: string | null = beacon.lessonId;
+  const attachment = await db
+    .select({ id: lessonItems.id })
+    .from(lessonItems)
+    .where(
+      and(
+        eq(lessonItems.lessonId, beacon.lessonId),
+        eq(lessonItems.videoId, beacon.videoId),
+        eq(lessonItems.itemType, "video")
+      )
+    )
+    .limit(1);
+  if (!attachment[0]) throw new ProgressReferenceError("lessonId", "video is not attached to lesson");
 
   const ts = now();
   // duration: prefer the videos row (provider-synced), fall back to client metadata

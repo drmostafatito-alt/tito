@@ -1,74 +1,255 @@
-# Deployment & Environments
+# Production deployment runbook
 
-> Status: **Phase 0 plan.** Owner has: Cloudflare account + custom domain + Mux account.
-> First real deploy happens at end of Phase 1; this runbook is validated then and kept exact.
+> **Current repository status (2026-09-15): NOT configured for production.**
+> `wrangler.jsonc` intentionally contains local resource identifiers. The deploy
+> command fails closed until the owner supplies real production bindings and
+> non-secret variables. Do not run the local seed against production.
 
-## 1. Environments
+## 1. Free-first architecture
 
-| Env | Where | D1 | R2 | Secrets | Purpose |
-|---|---|---|---|---|---|
-| local | `wrangler dev` in sandbox/dev machine | local D1 (miniflare, file-backed) | local R2 sim | `.dev.vars` | development, live preview |
-| preview | Worker preview URL / `*.workers.dev` | `DB_PREVIEW` | `ASSETS_PREVIEW`/`FILES_PREVIEW`/`MASTERS_PREVIEW` | preview secrets (`wrangler secret --preview`? no — separate preview Worker) | integration testing with fixtures |
-| production | custom domain | `DB_PROD` | prod buckets | prod secrets | live |
+The application runs on Cloudflare Workers + D1 + three private bindings to R2.
+A `*.workers.dev` HTTPS origin is supported and is sufficient for the application;
+a custom application domain is **not required now**. Cloudflare terminates HTTPS,
+and all authentication cookies are `Secure`, host-only, `HttpOnly`, and
+`SameSite=Lax`.
 
-Isolation rule: production data is **never** copied to dev/preview. Fixtures/seed scripts only.
+Production, preview, test, and local data must remain isolated. Never copy the
+production D1 or R2 contents into tests. Browser tests use `tests/e2e/test.env`,
+an in-memory capture email transport, and synthetic values only.
 
-## 2. Cloudflare resources (created once, via dashboard or `wrangler`)
+Current published free-plan boundaries should be monitored in the Cloudflare
+Dashboard before and after launch:
 
-- D1 databases: `educore-preview`, `educore-prod`
-- R2 buckets: `public-assets`, `private-files`, `video-masters` (× env suffix for preview)
-- Worker + static assets (RR7 build), custom domain attached, HTTPS automatic (Cloudflare edge)
-- Bindings in `wrangler.jsonc`: `DB` (D1), `PUBLIC_ASSETS`, `PRIVATE_FILES`, `VIDEO_MASTERS` (R2). The active video provider is NOT an env binding — it is the settings row `video.provider` in D1 (admin-switchable, ADR-006).
+- Workers Free: 100,000 requests/day, 10 ms CPU/request, 128 MB memory, and a
+  100 MB request body maximum.
+- D1 Free: 5 million rows read/day, 100,000 rows written/day, and 5 GB total
+  storage. Since 2026-09-01, exceeding daily read/write quotas causes requests to
+  fail until the UTC reset; it is not merely a warning.
+- R2 Free: verify the current storage and operation allowances in the owner
+  account before launch. The app never enables a paid plan or incurs a paid
+  upgrade automatically.
 
-## 3. Secrets inventory (names only — values never in repo)
+Authoritative references:
+- <https://developers.cloudflare.com/workers/platform/limits/>
+- <https://www.cloudflare.com/products/d1/>
+- <https://developers.cloudflare.com/changelog/post/2026-09-01-d1-free-tier-limit-enforcement/>
 
-| Name | Env | Phase |
+PBKDF2 authentication is intentionally configured at 100,000 iterations. Because
+Workers Free exposes a tight CPU budget, the owner must test registration, known
+and unknown login, and password reset on the real production Worker before
+accepting traffic. Do not silently lower password cost or buy a plan; measure and
+make an explicit decision if the platform reports CPU-limit errors.
+
+## 2. Create production resources
+
+Create one production D1 database and three production R2 buckets. Names are
+examples only; copy the real IDs/names returned by Wrangler into `wrangler.jsonc`:
+
+```bash
+npx wrangler d1 create tito-prod
+npx wrangler r2 bucket create tito-public-assets-prod
+npx wrangler r2 bucket create tito-private-files-prod
+npx wrangler r2 bucket create tito-video-masters-prod
+```
+
+Required bindings:
+
+| Binding | Resource | Public exposure |
 |---|---|---|
-| `SESSION_PEPPER` | all | P1 (defense-in-depth on token hashing; dev fallback exists, MUST be set in prod) |
-| `FILE_URL_SECRET` | all | P2 — REQUIRED: HMAC key for signed private-file URLs (no fallback) |
-| `MOCK_VIDEO_SECRET` | all (dev/local; prod only if mock provider used) | P2 — REQUIRED when provider=mock: playback-token HMAC (no fallback) |
-| `MOCK_PAYMENTS_SECRET` | dev/local/tests ONLY | P6 — binds the TEST-ONLY `mock` payment provider (webhook HMAC). NEVER set in production: without it the mock adapter is not registered and `/webhooks/payments/mock` 404s. No real gateway secret exists yet (PAYMENTS.md §6). |
-| `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` | prod/preview | P2 — required when provider=mux (API ingest/sync); absent → loud `VideoNotConfiguredError` |
-| `MUX_SIGNING_KEY_ID` / `MUX_SIGNING_PRIVATE_KEY` | prod/preview | P2 — required when provider=mux (signed-JWT playback) |
-| `AUTH_PBKDF2_ITERATIONS` (non-secret tuning) | all | P1 (default 100k) |
-| `RESEND_API_KEY` (email — pending verification ADR) | prod | P3+ |
-| Payment gateway keys | prod | P5 (only with verification ADR) |
+| `DB` | production D1 | none |
+| `PUBLIC_ASSETS` | public-content R2 bucket | only through `/files/:id` |
+| `PRIVATE_FILES` | private R2 bucket | never public; signed route only |
+| `VIDEO_MASTERS` | source-video R2 bucket | never public |
 
-Local: copy `.dev.vars.example` → `.dev.vars` (gitignored; committed file contains placeholders only).
+Replace `DB.database_id`, `DB.database_name`, and all production bucket names.
+`npm run check:deploy-config` refuses `database_id: "local"`, development/test
+settings, capture transport, and plaintext secrets.
 
-## 4. CI/CD (GitHub → Cloudflare)
+## 3. Resend Free transactional email
 
-1. PR: `typecheck` → `lint` → `unit` → `integration (miniflare D1)` → `build`. Preview deploy to preview Worker.
-2. Merge to `main`: same suite + deploy preview env + e2e smoke (Playwright against preview).
-3. Release (`git tag vX.Y.Z`): full regression checklist (PROJECT-PLAN §6) → `wrangler deploy` → `wrangler d1 migrations apply DB_PROD` (after export) → post-deploy verification script (health, login, key pages, CSP headers).
-4. Rollback: `wrangler rollback` (Workers versions) + documented migration-reversal policy (expand/contract migrations; never blind down).
+The code uses native HTTPS `POST https://api.resend.com/emails`; no Node SDK,
+SMTP service, paid email provider, or browser-exposed key is used.
 
-## 5. Migration safety (backup → migrate → verify → deploy)
+The owner-confirmed Resend Free allowance for this project is **3,000 emails per
+month and 100 emails per day**. The application adds a conservative shared
+90-per-rolling-24-hour ceiling across welcome, email-change, and recovery mail,
+plus the configurable recovery ceiling (default 80/day). Welcome and email-change
+mail are each capped at 20 per rolling 24 hours, reserving at least 50 shared
+slots for recovery even under lower-priority abuse. These guards do not
+observe mail sent by another application, so use a dedicated Resend key/account
+and monitor the provider dashboard. There are no retries that could duplicate a
+reset message.
 
-- Every migration is additive-first (expand/contract pattern). Destructive steps are separate, later migrations gated on a verified export.
-- Pre-migration: `wrangler d1 export educore-prod --remote --output backups/$(date +%F).sqlite` (+ R2 master listing). Backup verified (row counts of core tables logged) before applying.
-- Full backup/restore tooling (Phase 8 / W5): `node scripts/backup.mjs` and
-  `node scripts/restore.mjs` — see docs/BACKUP-RESTORE.md for scope, procedure,
-  limitations, and the executed rehearsal. Restore is destructive and
-  environment-gated (`--force`; remote restore requires an explicit unsafe opt-in).
-- Migrations are transactional per D1 batch; a failed batch leaves the previous state.
+### Development and automated tests
 
-## 6. First-deploy runbook (updated for Phase 3 / ADR-020)
+- Automated tests use `EMAIL_PROVIDER=capture` only with `ENVIRONMENT=test`.
+- `/__test/email-capture` is additionally protected by a synthetic test secret
+  and returns 404 when any gate is absent.
+- Do not put a real Resend key in `.dev.vars`, `tests/e2e/test.env`, fixtures,
+  GitHub Actions logs, or any `VITE_`/`PUBLIC_` variable.
+- Resend's `onboarding@resend.dev` behavior is suitable only for manual testing
+  to the email address associated with the Resend account. It cannot deliver to
+  arbitrary students.
 
-1. `npm ci && npm run verify` (typecheck/lint/tests/build all green).
-2. Create D1 preview + prod; apply migrations (`wrangler d1 migrations apply <db> --remote`).
-3. Bootstrap the first super admin: `npm run bootstrap:admin:remote` (email via `ADMIN_BOOTSTRAP_EMAIL` or `--email=`; one-time generated password printed once; refuses dev-placeholder emails). **Never run `scripts/seed.mjs` against preview/prod — it is LOCAL-DEV ONLY (plants demo content the readiness gate rejects).**
-4. Owner logs in, changes the bootstrap password, fills Appearance → System (platform identity, video provider) + Identity (owner name/photo/logo/contact) — all zero-deploy.
-5. **Pre-deploy gate**: `npm run check:production-readiness -- --remote` must pass (exit 0). It fails on demo accounts, seed/smoke content, mock video provider, placeholder media, template branding, empty owner identity, lorem-ipsum pages, unapplied migrations, missing CMS permissions, or no active super admin (ADR-020).
-6. Deploy preview → smoke → deploy prod → smoke (`SMOKE_BASE_URL=<url> SMOKE_ADMIN_PASSWORD=… node scripts/smoke.mjs`; note: smoke creates `smoke-`-prefixed rows — re-run the readiness gate afterwards or clean up before launch).
-7. Set secrets; verify CSP/headers with a security-header scan; verify cookie flags.
-8. Update this file with anything that differed.
+### Production sender requirement (owner blocker)
 
-## 7. Custom domain & cookies
+To deliver to student addresses, Resend requires a sending domain that the owner
+controls. This is separate from the application URL: the app may stay on
+`workers.dev`, but arbitrary-recipient email cannot launch with
+`onboarding@resend.dev`. If the owner does not currently control a suitable
+sending domain/DNS zone, password recovery is **not production-operational** and
+the deployment verdict must remain blocked; do not switch providers or purchase
+anything automatically.
 
-- Canonical domain redirect (www/apex unify), HTTPS enforced, HSTS at edge.
-- Cookies: `Secure`, host-only (no wildcards), `SameSite=Lax`; CORS: same-origin only by default (webhooks are server-to-server, not CORS).
+Owner steps in Resend:
 
-## 8. Cloudflare plan boundaries (free-plan-first — no silent paid usage)
+1. Create/sign in to the Resend account and add a sending domain.
+2. Copy the exact DNS records shown by Resend into that domain's DNS zone. Verify
+   SPF and DKIM in the Resend dashboard; do not invent record values from this
+   runbook. DMARC is recommended, initially with a monitoring policy.
+3. Confirm the domain status is verified. Send a controlled test to the account
+   owner, then a second controlled test to another authorized test mailbox.
+4. Create a restricted production API key and copy it once into Wrangler secret
+   storage.
+5. Set `EMAIL_FROM` to a mailbox on the verified domain, for example
+   `Dr Mostafa Tito <noreply@verified-domain.example>`.
 
-Tracked limits: Workers free (100k req/day, 10ms CPU), D1 free (5M rows read/day), R2 free (10GB). The admin overview (Phase 7) surfaces a usage notice if `CF_API_TOKEN` (optional, read-only analytics scope) is configured; otherwise docs table only. Exceeding free tier requires owner's explicit plan upgrade decision — the app never silently depends on paid features. Mux streaming/Delivery usage is billed by Mux — flagged to owner before first production upload.
+Resend references:
+- <https://resend.com/docs/knowledge-base/403-error-resend-dev-domain>
+- <https://resend.com/docs/api-reference/errors>
+- <https://resend.com/docs/dashboard/domains/dmarc>
+
+## 4. Production variables and secrets
+
+Commit only these **non-secret** production variables under `vars` in
+`wrangler.jsonc` after their real values are known:
+
+```json
+"vars": {
+  "ENVIRONMENT": "production",
+  "APP_ORIGIN": "https://your-worker.workers.dev",
+  "EMAIL_PROVIDER": "resend",
+  "EMAIL_FROM": "Dr Mostafa Tito <noreply@verified-sending-domain.example>",
+  "AUTH_PBKDF2_ITERATIONS": "100000",
+  "MUX_PLAYBACK_RESTRICTION_ID": "REPLACE_AFTER_MUX_SETUP"
+}
+```
+
+`APP_ORIGIN` must be the exact bare HTTPS origin: no path, query, credentials, or
+trailing application route. It controls recovery links and same-origin mutation
+checks. A later domain change requires updating this value and redeploying.
+
+Set secrets interactively; never place their values in shell history or files:
+
+```bash
+npx wrangler secret put SESSION_PEPPER
+npx wrangler secret put FILE_URL_SECRET
+npx wrangler secret put RESEND_API_KEY
+```
+
+Generate `SESSION_PEPPER` and `FILE_URL_SECRET` independently with a CSPRNG
+(at least 32 random bytes each). Depending on the already-selected video
+provider, also set `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`,
+`MUX_SIGNING_KEY_ID`, and `MUX_SIGNING_PRIVATE_KEY`. The private-key value is the
+base64-encoded PEM RSA key returned by the Mux signing-key API/dashboard; the
+Worker imports it as RS256 and never sends it to the browser. Create a Mux
+playback restriction allowing only the production `APP_ORIGIN` host, disable
+no-referrer browser playback, and set its non-secret ID as
+`MUX_PLAYBACK_RESTRICTION_ID`; every video/thumbnail JWT carries that claim.
+Mux may have costs
+and is not silently enabled. Before launch, the owner must ingest and play a real
+asset on Safari/iOS and Chromium/Android for longer than the former 60-second
+window; no live Mux credential was available in this audit. `MOCK_VIDEO_SECRET` and `MOCK_PAYMENTS_SECRET` are local
+or test only and must not exist in production. No new payment gateway is added
+by this work.
+
+The Worker independently validates production configuration at runtime and
+returns a generic, non-cacheable `503` before routing when required values are
+missing, placeholder-shaped, reused, or unsafe. Its diagnostic log contains
+field names only, never values. This backstop catches dashboard drift or a
+direct Wrangler deploy; it does not replace either launch gate.
+
+## 5. Database, bootstrap, and content safety
+
+1. Export/verify a D1 backup before every migration:
+   ```bash
+   npx wrangler d1 export tito-prod --remote --output backups/pre-migration.sqlite
+   ```
+2. Apply migrations to production:
+   ```bash
+   npx wrangler d1 migrations apply DB --remote
+   ```
+3. Bootstrap one real super admin. Enter a temporary password from a password
+   manager without echoing it or placing it in shell history; the script validates
+   it and never prints it:
+   ```bash
+   read -rsp "Temporary admin password: " ADMIN_BOOTSTRAP_PASSWORD; echo
+   export ADMIN_BOOTSTRAP_PASSWORD ADMIN_BOOTSTRAP_EMAIL=owner@example.com
+   npm run bootstrap:admin:remote
+   unset ADMIN_BOOTSTRAP_PASSWORD
+   ```
+   The password must be 14–128 characters and use at least three character
+   classes. Log in and change the temporary password immediately.
+4. In admin settings, configure Dr Mostafa Tito's real platform identity and a
+   non-mock video provider.
+5. Never run `scripts/seed.mjs` remotely. Seed/demo/smoke accounts and content
+   intentionally fail the production-readiness gate.
+6. Run:
+   ```bash
+   npm run check:production-readiness -- --remote
+   ```
+   It checks migrations, admin access, branding/content hygiene, payment/video
+   test artifacts, and recovery-token invariants.
+
+Migrations use additive/expand-contract discipline. The recovery migration
+invalidates all previously outstanding reset links before installing the partial
+unique index that permits only one unused token per user. See
+`docs/BACKUP-RESTORE.md` for D1 + R2 restore scope; D1 export alone is not a
+complete media backup.
+
+## 6. Required release gates
+
+Run from a clean checkout with the lockfile:
+
+```bash
+npm ci
+npm run check:deploy-config
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run test:integration
+npm run test:e2e
+npm run test:qa
+npm run build
+npm run audit:dependencies
+npm run check:production-readiness -- --remote
+```
+
+`npm run deploy` runs the static deploy-config gate, full verification, and the
+remote production-readiness database gate before Wrangler deployment. Do not
+bypass a failing gate. Browser tests use a current npm-pinned Chromium fallback
+and never call Resend.
+
+## 7. Post-deploy verification
+
+Before accepting students:
+
+1. Confirm `/`, catalog, login, registration, dashboard, lesson, file, and admin
+   routes on desktop and mobile widths.
+2. Confirm HTTP redirects to HTTPS and the canonical `APP_ORIGIN` if a custom
+   route was configured; `workers.dev` alone is valid.
+3. Inspect session/device/reset cookies for `Secure`, `HttpOnly`, host-only,
+   `SameSite=Lax`; inspect CSP, HSTS, no-store auth headers, and no-referrer reset
+   headers.
+4. Run a controlled real recovery: generic forgot response, one Arabic/RTL
+   Resend message, fragment removed from browser URL, successful reset, old
+   password denied, new password accepted, prior sessions revoked, link replay
+   denied. Inspect Worker/Resend logs and confirm no token, password, API key, or
+   token-bearing URL was recorded.
+5. Verify SPF/DKIM (and preferably DMARC) pass in received headers. Check Resend
+   daily/monthly usage and Cloudflare Worker CPU, D1 rows, and R2 operations.
+6. Re-run the remote readiness check after any smoke test that creates data.
+
+Rollback Worker code with Wrangler version rollback. Do not reverse a D1
+migration blindly; restore only from a verified backup using the documented
+procedure.

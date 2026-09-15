@@ -1,6 +1,7 @@
 import type { Route } from "./+types/sitemap[.]xml";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
+import { applicationOrigin } from "~server/http/origin.server";
 import { indexablePublicUrls, sitemapXml } from "~server/seo/inventory.server";
 
 /**
@@ -17,14 +18,10 @@ import { indexablePublicUrls, sitemapXml } from "~server/seo/inventory.server";
  * URLs.
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
-  const db = getDb(getEnv(context));
-  const urls = await indexablePublicUrls(db);
-  let origin = "https://dr-mostafa-tito.example"; // unreachable: request.url always has an origin
-  try {
-    origin = new URL(request.url).origin;
-  } catch {
-    /* keep placeholder */
-  }
+  const env = getEnv(context);
+  const origin = applicationOrigin(env, request);
+  if (!origin) throw new Response("Service unavailable", { status: 503 });
+  const urls = await indexablePublicUrls(getDb(env));
   return new Response(sitemapXml(urls, origin), {
     headers: {
       "Content-Type": "application/xml; charset=utf-8",

@@ -49,12 +49,13 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 
 export async function action({ context, params, request }: Route.ActionArgs) {
   const { auth } = await requireRole(context, request, 3);
-  const db = getDb(getEnv(context));
+  const env = getEnv(context);
+  const db = getDb(env);
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
   if (intent !== "code_status") return { error: "generic" as const };
   if (!(await canCommerce(db, auth, "commerce.codes"))) return { error: "denied" as const };
-  const actor = { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
+  const actor = { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) };
   try {
     await setActivationCodeStatus(
       db,

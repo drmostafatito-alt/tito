@@ -7,14 +7,18 @@ import { login, registerUser } from "~server/auth/service.server";
 import { requestEmailChange, completeEmailChange } from "~server/users/emailchange.server";
 import { clearEmailCaptures, capturedEmails } from "~server/email/provider";
 import { auditLogs, emailChangeTokens, users } from "~server/db/schema";
+import {
+  action as verifyEmailChangeAction,
+  loader as verifyEmailChangeLoader,
+} from "~/routes/public/verify-email-change";
 
+const routeCtx = { cloudflare: { env, ctx: { waitUntil() {}, passThroughOnException() {} } } };
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
 const uniqueEmail = () => `e${crypto.randomUUID().slice(0, 8)}@test.local`;
 
 function req(ip: string): Request {
   return new Request("https://app.test/profile", { method: "POST", headers: { "user-agent": UA, "cf-connecting-ip": ip } });
 }
-const ORIGIN = "https://app.test";
 
 function tokenFrom(url: string): string {
   const m = url.match(/token=([A-Za-z0-9_-]+)/);
@@ -61,13 +65,39 @@ describe("profile email change + verification", () => {
     await reg(old, "12.2.1.1");
     const uid = (await db.select({ id: users.id }).from(users).where(eq(users.email, old)))[0].id;
 
-    const r = await requestEmailChange(env, db, { userId: uid }, fresh, req("12.2.1.1"), ORIGIN);
+    const r = await requestEmailChange(env, db, { userId: uid }, fresh, "Str0ngPass!x", req("12.2.1.1"));
     expect(r.ok).toBe(true);
     const sent = capturedEmails(fresh);
     expect(sent.length).toBe(1);
+    expect(sent[0].html).toContain("verify-email-change#token=");
+    expect(sent[0].html).not.toContain("verify-email-change?token=");
     const token = tokenFrom(sent[0].html);
 
-    const done = await completeEmailChange(env, db, token);
+    // GET is read-only and its serialized loader data contains no bearer token.
+    const landing = await verifyEmailChangeLoader({
+      context: routeCtx,
+      request: new Request("https://app.test/verify-email-change"),
+      params: {},
+    } as unknown as Parameters<typeof verifyEmailChangeLoader>[0]);
+    expect(landing.url).toBe("https://app.test/verify-email-change");
+    expect(JSON.stringify(landing)).not.toContain(token);
+    await expect(
+      verifyEmailChangeLoader({
+        context: routeCtx,
+        request: new Request(`https://app.test/verify-email-change?token=${token}`),
+        params: {},
+      } as unknown as Parameters<typeof verifyEmailChangeLoader>[0])
+    ).rejects.toMatchObject({ status: 302 });
+    expect((await db.select({ email: users.email }).from(users).where(eq(users.id, uid)))[0].email).toBe(old);
+
+    // The fragment credential is redeemed only by the page's same-origin POST.
+    const body = new FormData();
+    body.set("token", token);
+    const done = await verifyEmailChangeAction({
+      context: routeCtx,
+      request: new Request("https://app.test/verify-email-change", { method: "POST", body }),
+      params: {},
+    } as unknown as Parameters<typeof verifyEmailChangeAction>[0]);
     expect(done.ok).toBe(true);
     const row = (await db.select({ email: users.email }).from(users).where(eq(users.id, uid)))[0];
     expect(row.email).toBe(fresh);
@@ -89,7 +119,7 @@ describe("profile email change + verification", () => {
     const fresh = uniqueEmail();
     await reg(old, "12.3.1.1");
     const uid = (await db.select({ id: users.id }).from(users).where(eq(users.email, old)))[0].id;
-    await requestEmailChange(env, db, { userId: uid }, fresh, req("12.3.1.1"), ORIGIN);
+    await requestEmailChange(env, db, { userId: uid }, fresh, "Str0ngPass!x", req("12.3.1.1"));
     const token = tokenFrom(capturedEmails(fresh)[0].html);
 
     expect((await completeEmailChange(env, db, token)).ok).toBe(true);
@@ -101,7 +131,7 @@ describe("profile email change + verification", () => {
     const fresh2 = uniqueEmail();
     await reg(old2, "12.3.1.2");
     const uid2 = (await db.select({ id: users.id }).from(users).where(eq(users.email, old2)))[0].id;
-    await requestEmailChange(env, db, { userId: uid2 }, fresh2, req("12.3.1.2"), ORIGIN);
+    await requestEmailChange(env, db, { userId: uid2 }, fresh2, "Str0ngPass!x", req("12.3.1.2"));
     const token2 = tokenFrom(capturedEmails(fresh2)[0].html);
     // token_hash column holds the HASH, not the raw token — expire by user.
     await db.update(emailChangeTokens).set({ expiresAt: Date.now() - 1000 }).where(eq(emailChangeTokens.userId, uid2));
@@ -119,7 +149,7 @@ describe("profile email change + verification", () => {
     const uid = (await db.select({ id: users.id }).from(users).where(eq(users.email, a)))[0].id;
 
     const before = capturedEmails(owner).length; // the owner's welcome
-    const r = await requestEmailChange(env, db, { userId: uid }, owner, req("12.4.1.3"), ORIGIN);
+    const r = await requestEmailChange(env, db, { userId: uid }, owner, "Str0ngPass!x", req("12.4.1.3"));
     // Generic success (no distinct error) and NO verification email was sent.
     expect(r.ok).toBe(true);
     expect(capturedEmails(owner).length).toBe(before);
@@ -130,9 +160,15 @@ describe("profile email change + verification", () => {
     const old = uniqueEmail();
     await reg(old, "12.5.1.1");
     const uid = (await db.select({ id: users.id }).from(users).where(eq(users.email, old)))[0].id;
-    const bad = await requestEmailChange(env, db, { userId: uid }, "not-an-email", req("12.5.1.1"), ORIGIN);
+    const bad = await requestEmailChange(env, db, { userId: uid }, "not-an-email", "Str0ngPass!x", req("12.5.1.1"));
     expect(bad.ok).toBe(false);
-    const same = await requestEmailChange(env, db, { userId: uid }, old, req("12.5.1.1"), ORIGIN);
+    const same = await requestEmailChange(env, db, { userId: uid }, old, "Str0ngPass!x", req("12.5.1.1"));
     expect(same.ok).toBe(false);
+
+    const target = uniqueEmail();
+    const wrong = await requestEmailChange(env, db, { userId: uid }, target, "WrongPass!9", req("12.5.1.1"));
+    expect(wrong).toMatchObject({ ok: false, code: "wrong_password" });
+    expect(capturedEmails(target)).toHaveLength(0);
+    expect(await db.select().from(emailChangeTokens).where(eq(emailChangeTokens.userId, uid))).toHaveLength(0);
   });
 });

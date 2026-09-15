@@ -129,12 +129,12 @@ export async function registerYouTubeVideo(
 export async function ingestMaster(
   db: DB,
   env: Env,
-  input: { masterStream: ReadableStream; masterSize: number; originalFilename: string; title: string }
+  input: { masterStream: ReadableStream; masterSize: number; originalFilename: string; title: string; mime: string }
 ): Promise<VideoRow> {
   const provider = await activeProviderFor(db, env);
   const masterR2Key = `masters/${crypto.randomUUID()}/${input.originalFilename.replace(/[^\w.\-]+/g, "_")}`;
   await env.VIDEO_MASTERS.put(masterR2Key, input.masterStream, {
-    httpMetadata: { contentType: "video/mp4" },
+    httpMetadata: { contentType: input.mime },
   });
   const now = Date.now();
   const row = {
@@ -215,11 +215,30 @@ export async function listVideos(db: DB, limit = 100) {
   return db.select().from(videos).orderBy(desc(videos.createdAt)).limit(limit);
 }
 
+const PLAYBACK_EXPIRY_BUFFER_SECONDS = 30 * 60;
+const UNKNOWN_DURATION_TTL_SECONDS = 4 * 60 * 60;
+const MAX_PLAYBACK_TTL_SECONDS = 24 * 60 * 60;
+
+export function playbackCredentialTtlSeconds(
+  durationSeconds: number | null,
+  configuredFloorSeconds: number
+): number {
+  const floor = Number.isSafeInteger(configuredFloorSeconds)
+    ? Math.min(MAX_PLAYBACK_TTL_SECONDS, Math.max(1_800, configuredFloorSeconds))
+    : 3_600;
+  const durationTtl =
+    typeof durationSeconds === "number" && Number.isFinite(durationSeconds) && durationSeconds > 0
+      ? Math.ceil(durationSeconds) + PLAYBACK_EXPIRY_BUFFER_SECONDS
+      : UNKNOWN_DURATION_TTL_SECONDS;
+  return Math.min(MAX_PLAYBACK_TTL_SECONDS, Math.max(floor, durationTtl));
+}
+
 /**
  * Mint playback credentials. THE security boundary — callers MUST have already
  * run the entitlement resolver (ARCHITECTURE §10; routes do this immediately
- * before calling). Re-verifies the asset is ready; TTL comes from settings
- * (≤60s enforced by the settings schema).
+ * before calling). Mux validates every HLS request and stops playback at JWT
+ * expiry, so the effective TTL must cover the asset duration plus a bounded
+ * buffer. The admin setting remains a floor; the absolute ceiling is 24 hours.
  */
 export async function mintPlayback(
   db: DB,
@@ -231,7 +250,12 @@ export async function mintPlayback(
   if (video.provider === "mux" && !video.playbackId) return { error: "no_playback_id" };
   const provider = registry(env)[video.provider];
   if (!provider) throw new VideoNotConfiguredError(video.provider, ["provider registry"]);
-  return provider.getPlayback(video as VideoRowLike, viewer);
+  const settings = await getSettings(db);
+  const ttlSeconds = playbackCredentialTtlSeconds(
+    video.durationSeconds,
+    settings.video.playbackTokenTtlSeconds
+  );
+  return provider.getPlayback(video as VideoRowLike, { ...viewer, ttlSeconds });
 }
 
 export async function deleteVideo(db: DB, env: Env, videoId: string): Promise<boolean> {

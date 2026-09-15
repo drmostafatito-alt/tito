@@ -11,10 +11,20 @@ export type LocaleCode = z.infer<typeof localeCodeSchema>;
  * become a clickable href. javascript:/data:/vbscript:/protocol-relative values
  * are rejected here, fail-closed.
  */
+function isAbsoluteHttpsUrl(value: string): boolean {
+  if (value === "") return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && Boolean(url.hostname) && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 export const externalHttpsUrlOrEmpty = z
   .string()
   .max(500)
-  .refine((s) => s === "" || /^https:\/\/[^\s/$.?#].[^\s]*$/i.test(s), "must be an https URL")
+  .refine(isAbsoluteHttpsUrl, "must be an https URL")
   .default("");
 
 export const platformSettingsSchema = z.object({
@@ -66,15 +76,30 @@ export type DeviceSettings = z.infer<typeof deviceSettingsSchema>;
 
 export const securitySettingsSchema = z.object({
   sessionDays: z.number().int().min(1).max(90).default(30),
-  resetTokenMinutes: z.number().int().min(5).max(240).default(60),
-    rateLimits: z
-      .object({
-        loginPerMinute: z.number().int().min(1).default(10),
-        registerPerHour: z.number().int().min(1).default(5),
-        forgotPerHour: z.number().int().min(1).default(5),
-        emailChangePerHour: z.number().int().min(1).default(5),
-      })
-      .default({ loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5, emailChangePerHour: 5 }),
+  /** Short, bounded bearer-token lifetime. */
+  resetTokenMinutes: z.number().int().min(10).max(30).default(30),
+  rateLimits: z
+    .object({
+      loginPerMinute: z.number().int().min(1).max(100).default(10),
+      registerPerHour: z.number().int().min(1).max(50).default(5),
+      /** Per source IP, while forgotPerAccountHour also stops distributed abuse. */
+      forgotPerHour: z.number().int().min(1).max(20).default(5),
+      forgotPerAccountHour: z.number().int().min(1).max(10).default(3),
+      /** Combined exchange + password submissions per IP and token digest. */
+      resetAttemptsPer15Minutes: z.number().int().min(2).max(30).default(10),
+      /** Keep reset traffic below Resend Free's 100-email daily ceiling. */
+      resetEmailsPerDay: z.number().int().min(1).max(90).default(80),
+      emailChangePerHour: z.number().int().min(1).max(20).default(5),
+    })
+    .default({
+      loginPerMinute: 10,
+      registerPerHour: 5,
+      forgotPerHour: 5,
+      forgotPerAccountHour: 3,
+      resetAttemptsPer15Minutes: 10,
+      resetEmailsPerDay: 80,
+      emailChangePerHour: 5,
+    }),
 });
 export type SecuritySettings = z.infer<typeof securitySettingsSchema>;
 
@@ -82,8 +107,11 @@ export type SecuritySettings = z.infer<typeof securitySettingsSchema>;
 export const videoSettingsSchema = z.object({
   /** Active adapter — switching providers never touches business logic (ADR-006). */
   provider: z.enum(["mock", "mux"]).default("mock"),
-  /** Playback credential TTL seconds (≤ 60 for signed playback; enforced in service). */
-  playbackTokenTtlSeconds: z.number().int().min(10).max(60).default(45),
+  /** Minimum signed-playback viewing window in seconds. */
+  // Mux validates every HLS segment after start, so this is a viewing-window
+  // floor rather than a seconds-long handshake token. Service code also ensures
+  // duration + 30 minutes and caps the final value at 24 hours.
+  playbackTokenTtlSeconds: z.number().int().min(1_800).max(86_400).default(3_600),
   /** Private-file signed-URL TTL seconds. */
   fileUrlTtlSeconds: z.number().int().min(30).max(600).default(120),
   /** Phase 4 — a video counts as completed at this % of its duration (FEATURE-SPEC §4, default 90). */
@@ -116,7 +144,7 @@ export type PaymentsSettings = z.infer<typeof paymentsSettingsSchema>;
 
 /** Phase 3 — site identity & branding (owner brief §BRANDING). File ids reference the files table (public visibility). */
 const fileIdOrEmpty = z.string().max(36).refine((s) => s === "" || /^[0-9a-f-]{36}$/i.test(s), "file id must be a uuid").default("");
-const httpsOrEmpty = z.string().max(500).refine((s) => s === "" || /^https:\/\/[^\s]+$/i.test(s), "must be an https URL").default("");
+const httpsOrEmpty = z.string().max(500).refine(isAbsoluteHttpsUrl, "must be an https URL").default("");
 
 export const identitySettingsSchema = z.object({
   shortNameAr: z.string().max(40).default(""),

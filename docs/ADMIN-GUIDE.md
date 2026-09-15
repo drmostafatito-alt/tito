@@ -3,7 +3,7 @@
 > Status: **complete (Phase 7).** Every admin surface below is live, RBAC-gated server-side and audited. The CMS/page-builder guide lives in `docs/CMS.md` (Phase 3).
 
 ## 1. First-run (end of Phase 1)
-1. Operator runs the seed (DEPLOYMENT.md §6): creates the super_admin account with a one-time generated password.
+1. Operator runs the bootstrap (DEPLOYMENT.md §5): creates the super_admin account with an operator-supplied temporary password that is never printed.
 2. First login forces password change.
 3. Super admin: manage admins (role grant), review security settings defaults.
 
@@ -22,7 +22,7 @@
 ## 4. Files & videos (live — Phase 2, `/admin/files`, `/admin/videos`)
 - Files: upload stores into the PRIVATE R2 bucket; the listing shows a freshly signed **view URL** per private file (short TTL — reload the page for a new one). `download_allowed` controls whether students get an attachment-disposition download link in addition to inline view. Public-visibility files get a plain unsigned URL.
 - Videos: `register mock` creates an instantly-ready dev video (mock provider). `ingest master` uploads through the ACTIVE provider (settings `video.provider`): with `mock` it succeeds offline; with `mux` and no credentials configured it fails loudly with a `VideoNotConfiguredError` detail (the row stays `pending` — never playable — and there is NO silent fallback to mock). `sync` polls provider status for pending/preparing rows.
-- Playback for students is minted only by `POST /api/playback/:videoId` after a server-side entitlement check; tokens live ≤45s (settings-capped ≤60s).
+- Playback for students is minted only by `POST /api/playback/:videoId` after a server-side entitlement check. For Mux, the signed JWT lasts for the known asset duration plus 30 minutes (four hours if unknown, hard-capped at 24 hours), preventing mid-lesson expiry.
 
 ## 5. Entitlement grants (live — Phase 2, `/admin/entitlements`)
 - Grant by student email + resource (subject / course / lesson) + duration in days (blank = permanent) + note; revoke per row. Grants take effect immediately server-side: the student's lesson pages flip from locked to signed-URL/file/playback access on next request (verified in smoke §10). Source type is `admin_grant`; all grants/revokes are audited.

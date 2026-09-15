@@ -6,8 +6,9 @@ import { VideoNotConfiguredError, type AssetStatus, type CreateAssetInput, type 
  *   body { cors_origin, new_asset_settings: { playback_policy: ["signed"], passthrough } };
  *   upload the master bytes with a single PUT to data.url; poll
  *   GET /video/v1/uploads/{id} → data.asset_id; then GET /video/v1/assets/{id}.
- * - Signed playback: JWT claims { sub: playbackId, aud: "v", exp, kid } with an
- *   Ed25519 signing key; URL https://stream.mux.com/{PLAYBACK_ID}.m3u8?token={JWT};
+ * - Signed playback: JWT claims { sub: playbackId, aud: "v", exp, kid } with the
+ *   Mux-issued 2048-bit RSA key and RS256; URL
+ *   https://stream.mux.com/{PLAYBACK_ID}.m3u8?token={JWT};
  *   thumbnails https://image.mux.com/{id}/thumbnail.jpg?token={JWT(aud:"t")}.
  * Sources: mux.com/docs/api-reference/video/direct-uploads/create-direct-upload,
  * docs.mux.com/docs/security-signed-urls (see docs/DECISIONS.md verification queue).
@@ -20,8 +21,10 @@ export interface MuxEnv {
   MUX_TOKEN_ID?: string;
   MUX_TOKEN_SECRET?: string;
   MUX_SIGNING_KEY_ID?: string;
-  /** base64 (raw or PEM) Ed25519 private key from the Mux dashboard/System API */
+  /** Base64-encoded PEM RSA private key from the Mux dashboard/System API. */
   MUX_SIGNING_PRIVATE_KEY?: string;
+  /** Provider-side referrer/User-Agent policy attached to each signed JWT. */
+  MUX_PLAYBACK_RESTRICTION_ID?: string;
 }
 
 export interface MuxDeps {
@@ -41,6 +44,7 @@ function requireSigning(env: MuxEnv) {
   const missing: string[] = [];
   if (!env.MUX_SIGNING_KEY_ID) missing.push("MUX_SIGNING_KEY_ID");
   if (!env.MUX_SIGNING_PRIVATE_KEY) missing.push("MUX_SIGNING_PRIVATE_KEY");
+  if (!env.MUX_PLAYBACK_RESTRICTION_ID) missing.push("MUX_PLAYBACK_RESTRICTION_ID");
   if (missing.length) throw new VideoNotConfiguredError("mux", missing);
 }
 
@@ -66,7 +70,8 @@ async function api<T>(deps: MuxDeps, path: string, init?: RequestInit): Promise<
 }
 
 // ---------------------------------------------------------------------------
-// Ed25519 JWT (EdDSA) — WebCrypto, native in Workers.
+// Mux JWT (RS256) — WebCrypto, native in Workers.
+// Mux signing keys are 2048-bit RSA keys, not Ed25519 keys.
 // ---------------------------------------------------------------------------
 
 function b64urlEncode(bytes: Uint8Array): string {
@@ -82,18 +87,96 @@ function b64urlDecodeToJson(s: string): unknown {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
-/** Accepts raw-base64 or PEM-wrapped PKCS8 Ed25519 keys. */
-export async function importEd25519PrivateKey(secret: string): Promise<CryptoKey> {
-  let b64 = secret.trim();
-  if (b64.includes("-----BEGIN")) {
-    b64 = b64
-      .replace(/-----BEGIN [A-Z ]*KEY-----/, "")
-      .replace(/-----END [A-Z ]*KEY-----/, "")
-      .replace(/\s+/g, "");
+function decodeBase64(value: string): Uint8Array {
+  const compact = value.replace(/\s+/g, "");
+  const bin = atob(compact);
+  return Uint8Array.from(bin, (char) => char.charCodeAt(0));
+}
+
+function derLength(length: number): Uint8Array {
+  if (length < 0x80) return Uint8Array.of(length);
+  const bytes: number[] = [];
+  for (let value = length; value > 0; value >>>= 8) bytes.unshift(value & 0xff);
+  return Uint8Array.of(0x80 | bytes.length, ...bytes);
+}
+
+function derElement(tag: number, value: Uint8Array): Uint8Array {
+  const length = derLength(value.length);
+  const out = new Uint8Array(1 + length.length + value.length);
+  out[0] = tag;
+  out.set(length, 1);
+  out.set(value, 1 + length.length);
+  return out;
+}
+
+/** Wrap a traditional PKCS#1 RSA key in the PKCS#8 PrivateKeyInfo structure. */
+function pkcs1ToPkcs8(pkcs1: Uint8Array): Uint8Array {
+  const version = Uint8Array.of(0x02, 0x01, 0x00);
+  const rsaAlgorithmIdentifier = Uint8Array.of(
+    0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86,
+    0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00
+  );
+  const privateKey = derElement(0x04, pkcs1);
+  const body = new Uint8Array(version.length + rsaAlgorithmIdentifier.length + privateKey.length);
+  body.set(version, 0);
+  body.set(rsaAlgorithmIdentifier, version.length);
+  body.set(privateKey, version.length + rsaAlgorithmIdentifier.length);
+  return derElement(0x30, body);
+}
+
+function pemPayload(pem: string): { bytes: Uint8Array; pkcs1: boolean } {
+  const pkcs1 = pem.includes("-----BEGIN RSA PRIVATE KEY-----");
+  const pkcs8 = pem.includes("-----BEGIN PRIVATE KEY-----");
+  if (!pkcs1 && !pkcs8) throw new Error("invalid Mux signing private key format");
+  const payload = pem
+    .replace(/-----BEGIN (?:RSA )?PRIVATE KEY-----/, "")
+    .replace(/-----END (?:RSA )?PRIVATE KEY-----/, "")
+    .replace(/\s+/g, "");
+  return { bytes: decodeBase64(payload), pkcs1 };
+}
+
+/**
+ * Accept Mux's base64-encoded PEM response, a PEM value copied from its
+ * dashboard, or raw base64 DER. Both PKCS#8 and traditional PKCS#1 RSA PEM are
+ * supported; errors never include key material.
+ */
+export async function importMuxRsaPrivateKey(secret: string): Promise<CryptoKey> {
+  const trimmed = secret.trim();
+  if (!trimmed || trimmed.length > 16_384) throw new Error("invalid Mux signing private key");
+
+  let bytes: Uint8Array;
+  let knownPkcs1 = false;
+  if (trimmed.includes("-----BEGIN")) {
+    ({ bytes, pkcs1: knownPkcs1 } = pemPayload(trimmed));
+  } else {
+    const decoded = decodeBase64(trimmed);
+    const decodedText = new TextDecoder().decode(decoded);
+    if (decodedText.includes("-----BEGIN")) {
+      ({ bytes, pkcs1: knownPkcs1 } = pemPayload(decodedText));
+    } else {
+      bytes = decoded;
+    }
   }
-  const bin = atob(b64);
-  const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
-  return crypto.subtle.importKey("pkcs8", bytes as unknown as ArrayBuffer, { name: "Ed25519" }, false, ["sign"]);
+
+  const algorithm: RsaHashedImportParams = {
+    name: "RSASSA-PKCS1-v1_5",
+    hash: "SHA-256",
+  };
+  const candidates = knownPkcs1 ? [pkcs1ToPkcs8(bytes)] : [bytes, pkcs1ToPkcs8(bytes)];
+  for (const candidate of candidates) {
+    try {
+      return await crypto.subtle.importKey(
+        "pkcs8",
+        candidate as unknown as ArrayBuffer,
+        algorithm,
+        false,
+        ["sign"]
+      );
+    } catch {
+      // Try the other unencrypted RSA container form without exposing details.
+    }
+  }
+  throw new Error("invalid Mux signing private key");
 }
 
 export interface MuxJwtClaims {
@@ -101,17 +184,18 @@ export interface MuxJwtClaims {
   aud: "v" | "t";
   exp: number; // unix seconds
   kid: string;
+  playback_restriction_id?: string;
 }
 
 export async function signMuxPlaybackJwt(
   signingKey: CryptoKey,
   claims: MuxJwtClaims
 ): Promise<string> {
-  const header = { alg: "EdDSA", typ: "JWT", kid: claims.kid };
+  const header = { alg: "RS256", typ: "JWT", kid: claims.kid };
   const enc = (obj: unknown) => b64urlEncode(new TextEncoder().encode(JSON.stringify(obj)));
   const signingInput = `${enc(header)}.${enc(claims)}`;
   const sig = await crypto.subtle.sign(
-    "Ed25519",
+    "RSASSA-PKCS1-v1_5",
     signingKey,
     new TextEncoder().encode(signingInput) as unknown as ArrayBuffer
   );
@@ -223,16 +307,20 @@ export class MuxVideoProvider implements VideoProvider {
     await api(this.deps, `/video/v1/assets/${assetId}`, { method: "DELETE" });
   }
 
-  async getPlayback(video: VideoRowLike, _ctx?: { studentId: string; lessonId?: string }): Promise<PlaybackInfo> {
+  async getPlayback(
+    video: VideoRowLike,
+    ctx: { studentId: string; lessonId?: string; ttlSeconds: number }
+  ): Promise<PlaybackInfo> {
     requireSigning(this.deps.env);
     if (!video.playbackId) throw new Error("mux asset has no playback id yet");
-    const key = await importEd25519PrivateKey(this.deps.env.MUX_SIGNING_PRIVATE_KEY!);
-    const exp = Math.floor(Date.now() / 1000) + 45;
+    const key = await importMuxRsaPrivateKey(this.deps.env.MUX_SIGNING_PRIVATE_KEY!);
+    const exp = Math.floor(Date.now() / 1000) + ctx.ttlSeconds;
     const token = await signMuxPlaybackJwt(key, {
       sub: video.playbackId,
       aud: "v",
       exp,
       kid: this.deps.env.MUX_SIGNING_KEY_ID!,
+      playback_restriction_id: this.deps.env.MUX_PLAYBACK_RESTRICTION_ID!,
     });
     return {
       type: "hls",
@@ -245,13 +333,14 @@ export class MuxVideoProvider implements VideoProvider {
   async getThumbnail(video: VideoRowLike): Promise<{ url: string; expiresAt: number }> {
     requireSigning(this.deps.env);
     if (!video.playbackId) throw new Error("mux asset has no playback id yet");
-    const key = await importEd25519PrivateKey(this.deps.env.MUX_SIGNING_PRIVATE_KEY!);
+    const key = await importMuxRsaPrivateKey(this.deps.env.MUX_SIGNING_PRIVATE_KEY!);
     const exp = Math.floor(Date.now() / 1000) + 45;
     const token = await signMuxPlaybackJwt(key, {
       sub: video.playbackId,
       aud: "t",
       exp,
       kid: this.deps.env.MUX_SIGNING_KEY_ID!,
+      playback_restriction_id: this.deps.env.MUX_PLAYBACK_RESTRICTION_ID!,
     });
     return { url: `https://image.mux.com/${video.playbackId}/thumbnail.jpg?token=${token}`, expiresAt: exp * 1000 };
   }

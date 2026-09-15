@@ -449,6 +449,9 @@ export const SECURITY_EVENT_TYPES = [
   "permission_denied",
   "registration",
   "profile_updated",
+  "email_change_reauth_failed",
+  "email_change_requested",
+  "email_changed",
 ] as const;
 export type SecurityEventTypeFilter = (typeof SECURITY_EVENT_TYPES)[number];
 

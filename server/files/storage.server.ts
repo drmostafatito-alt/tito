@@ -41,18 +41,99 @@ const KIND_BY_MIME: Array<{ kind: FileRow["kind"]; mimes: string[] }> = [
 
 /** Max bytes per kind (upload validation). */
 const SIZE_CAPS: Record<FileRow["kind"], number> = {
-  pdf: 100 * 1024 * 1024,
+  // These routes parse multipart bodies inside a 128 MiB Worker isolate. Larger
+  // media must use a future direct-to-R2 multipart flow instead of buffering a
+  // 100–200 MiB request in application memory.
+  pdf: 50 * 1024 * 1024,
   image: 10 * 1024 * 1024,
-  doc: 50 * 1024 * 1024,
-  audio: 100 * 1024 * 1024,
-  archive: 200 * 1024 * 1024,
-  video: 200 * 1024 * 1024,
+  doc: 25 * 1024 * 1024,
+  audio: 50 * 1024 * 1024,
+  archive: 50 * 1024 * 1024,
+  video: 50 * 1024 * 1024,
 };
 
+export const MAX_MULTIPART_UPLOAD_BYTES = 52 * 1024 * 1024;
+
+export function normalizeUploadMime(mime: string): string {
+  const normalized = mime.split(";")[0].trim().toLowerCase();
+  if (normalized === "image/jpg" || normalized === "image/pjpeg") return "image/jpeg";
+  if (normalized === "application/x-zip-compressed") return "application/zip";
+  return normalized;
+}
+
 export function detectKind(mime: string): FileRow["kind"] | null {
-  const norm = mime.split(";")[0].trim().toLowerCase();
+  const norm = normalizeUploadMime(mime);
   for (const entry of KIND_BY_MIME) if (entry.mimes.includes(norm)) return entry.kind;
   return null;
+}
+
+function starts(bytes: Uint8Array, signature: number[], offset = 0): boolean {
+  return signature.every((byte, index) => bytes[offset + index] === byte);
+}
+
+function ascii(bytes: Uint8Array, start: number, length: number): string {
+  return String.fromCharCode(...bytes.slice(start, start + length));
+}
+
+/**
+ * Validate the declared MIME against file magic before bytes enter R2. Browser
+ * File.type is attacker-controlled and is never sufficient on its own.
+ */
+export function uploadBytesMatchMime(data: ArrayBuffer | Uint8Array, declaredMime: string): boolean {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  const mime = normalizeUploadMime(declaredMime);
+  if (bytes.length === 0 || !detectKind(mime)) return false;
+
+  if (mime === "application/pdf") {
+    return ascii(bytes.slice(0, Math.min(bytes.length, 1024)), 0, Math.min(bytes.length, 1024)).includes("%PDF-");
+  }
+  if (mime === "image/jpeg") return starts(bytes, [0xff, 0xd8, 0xff]);
+  if (mime === "image/png") return starts(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (mime === "image/gif") return ascii(bytes, 0, 6) === "GIF87a" || ascii(bytes, 0, 6) === "GIF89a";
+  if (mime === "image/webp") return ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 4) === "WEBP";
+  if (mime === "image/svg+xml") {
+    try {
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes.slice(0, 16_384)).replace(/^\uFEFF/, "");
+      return /^\s*(?:<\?xml[^>]*>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg(?:\s|>)/i.test(text);
+    } catch {
+      return false;
+    }
+  }
+
+  const zip = starts(bytes, [0x50, 0x4b, 0x03, 0x04]) || starts(bytes, [0x50, 0x4b, 0x05, 0x06]);
+  if (mime === "application/zip" || mime === "application/x-zip-compressed") return zip;
+  if (mime === "application/x-7z-compressed") return starts(bytes, [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]);
+  if (mime === "application/x-rar-compressed") return ascii(bytes, 0, 7) === "Rar!\x1a\x07\x00" || ascii(bytes, 0, 8) === "Rar!\x1a\x07\x01\x00";
+  if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation") return zip;
+  if (mime === "application/msword" || mime === "application/vnd.ms-powerpoint") {
+    return starts(bytes, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+  }
+  if (mime === "text/plain" || mime === "text/markdown") {
+    if (bytes.slice(0, 8_192).includes(0)) return false;
+    try {
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes.slice(0, 8_192));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const isoMedia = ascii(bytes, 4, 4) === "ftyp";
+  if (mime === "video/mp4" || mime === "video/quicktime" || mime === "audio/mp4") return isoMedia;
+  if (mime === "video/x-matroska") return starts(bytes, [0x1a, 0x45, 0xdf, 0xa3]);
+  if (mime === "audio/ogg") return ascii(bytes, 0, 4) === "OggS";
+  if (mime === "audio/wav") return ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 4) === "WAVE";
+  if (mime === "audio/mpeg") return ascii(bytes, 0, 3) === "ID3" || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0);
+  if (mime === "audio/aac") return bytes[0] === 0xff && (bytes[1] & 0xf6) === 0xf0;
+  return false;
+}
+
+export function requestBodyTooLarge(request: Request, cap = MAX_MULTIPART_UPLOAD_BYTES): boolean {
+  const value = request.headers.get("content-length");
+  if (!value) return false;
+  const length = Number(value);
+  return !Number.isSafeInteger(length) || length < 0 || length > cap;
 }
 
 export function sizeCapFor(kind: FileRow["kind"]): number {
@@ -149,6 +230,9 @@ export async function signFileUrl(
   ttlSeconds: number,
   now = Date.now()
 ): Promise<SignedFileUrl> {
+  if (!Number.isSafeInteger(ttlSeconds) || ttlSeconds <= 0 || ttlSeconds > 86_400) {
+    throw new Error("invalid signed-file TTL");
+  }
   const exp = now + ttlSeconds * 1000;
   const sig = await hmacSha256Hex(env.FILE_URL_SECRET, `${fileId}|${perm}|${exp}`);
   return { path: `/files/${fileId}?perm=${perm}&exp=${exp}&sig=${sig}`, expiresAt: exp };
@@ -161,19 +245,55 @@ export async function verifyFileSignature(
 ): Promise<{ ok: true; perm: FilePerm } | { ok: false; reason: "malformed" | "expired" | "bad_sig" }> {
   if (params.perm !== "view" && params.perm !== "download") return { ok: false, reason: "malformed" };
   const exp = Number(params.exp);
-  if (!Number.isFinite(exp) || exp <= 0) return { ok: false, reason: "malformed" };
+  if (!Number.isSafeInteger(exp) || exp <= 0 || exp - now > 86_400_000) {
+    return { ok: false, reason: "malformed" };
+  }
   if (exp <= now) return { ok: false, reason: "expired" };
   const expected = await hmacSha256Hex(env.FILE_URL_SECRET, `${params.fileId}|${params.perm}|${params.exp}`);
   if (!timingSafeEqualHex(expected, params.sig)) return { ok: false, reason: "bad_sig" };
   return { ok: true, perm: params.perm };
 }
 
+/** Strict RFC 7233 single-range parser (`false` means 416, null means full body). */
+export function parseByteRange(
+  value: string | null,
+  size: number
+): { start: number; end: number } | null | false {
+  if (!value) return null;
+  if (!Number.isSafeInteger(size) || size <= 0 || value.length > 200 || value.includes(",")) return false;
+  const match = /^bytes=(\d*)-(\d*)$/i.exec(value.trim());
+  if (!match || (!match[1] && !match[2])) return false;
+
+  if (!match[1]) {
+    const suffix = Number(match[2]);
+    if (!Number.isSafeInteger(suffix) || suffix <= 0) return false;
+    return { start: Math.max(0, size - suffix), end: size - 1 };
+  }
+
+  const start = Number(match[1]);
+  const requestedEnd = match[2] ? Number(match[2]) : size - 1;
+  if (
+    !Number.isSafeInteger(start) ||
+    !Number.isSafeInteger(requestedEnd) ||
+    start < 0 ||
+    start >= size ||
+    requestedEnd < start
+  ) {
+    return false;
+  }
+  return { start, end: Math.min(requestedEnd, size - 1) };
+}
+
 /** Content-disposition per permission: inline viewing vs forced download. */
 export function dispositionFor(row: FileRow, perm: FilePerm): string {
   const fallback = row.kind === "image" || row.kind === "pdf" ? "inline" : "attachment";
   const type = perm === "download" ? "attachment" : fallback;
-  const safeName = row.originalFilename.replace(/["\\\r\n]/g, "");
-  return `${type}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(row.originalFilename)}`;
+  const original = row.originalFilename.slice(0, 255).replace(/[\u0000-\u001f\u007f]/g, "");
+  const safeName = original.replace(/[^\x20-\x7e]|["\\]/g, "_") || "file";
+  const encoded = encodeURIComponent(original || "file").replace(/[!'()*]/g, (char) =>
+    `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+  return `${type}; filename="${safeName}"; filename*=UTF-8''${encoded}`;
 }
 
 /**
@@ -208,7 +328,8 @@ export async function replaceFileBytes(
   originalFilename: string
 ): Promise<boolean> {
   const row = await getFile(db, id);
-  if (!row) return false;
+  const nextKind = detectKind(mime);
+  if (!row || !nextKind || nextKind !== row.kind || !uploadBytesMatchMime(buf, mime)) return false;
   const checksum = await sha256HexOf(buf);
   await bucketOf(env, row).put(row.r2Key, buf, { httpMetadata: { contentType: mime } });
   await db.update(files).set({
