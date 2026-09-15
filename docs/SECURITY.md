@@ -1,7 +1,8 @@
 # Security Model
 
-> Status: **Phase 0 baseline** — realized progressively; each control below lists the phase that
-> implements it and the phase that tests it. This file is the security checklist of record.
+> Status: **implemented security model, audited 2026-09-15.** Controls still
+> dependent on owner/provider configuration are called out explicitly; this file
+> is not evidence that Resend, DNS, or Cloudflare production resources are live.
 
 ## 1. Principles
 
@@ -14,11 +15,11 @@
 ## 2. Authentication (P1)
 
 - PBKDF2-SHA256, **100,000 iterations** (default), 16-byte random salt per user, via WebCrypto (constant-time compare). Upgradable hash params versioned in the hash string (`pbkdf2$sha256$100000$salt$hash`). The 100k default is a **deliberate operational choice** for the Workers free plan's CPU budget (see the `AUTH_PBKDF2_ITERATIONS` note in DEPLOYMENT.md §3 and the inline rationale in `server/auth/password.server.ts`); OWASP's 600k guidance applies once the platform is on a paid plan — raising the iteration count requires only setting `AUTH_PBKDF2_ITERATIONS` (existing hashes transparently rehash on next login). The setting is clamped to a safe range (50k–2M).
-- Opaque session tokens: 256-bit CSPRNG, only SHA-256 hashes stored; cookie `HttpOnly; Secure; SameSite=Lax`.
+- Opaque session tokens: 256-bit CSPRNG, only pepper-keyed SHA-256 hashes stored; `__Host-edu_session` is `HttpOnly; Secure; SameSite=Lax; Path=/` and cannot be set with a parent-domain scope.
 - Session expiry sliding 30d (setting `security.session_days`); absolute cap 180d. Logout & password change revoke sessions (password change: all devices).
 - Login/register/forgot throttled per-IP and per-account (D1 fixed-window counters) with progressive delay; failures → `security_events`.
-- Password reset: single-use token (hashed, 60-min TTL); reset also revokes all sessions. **Email delivery is NOT implemented yet** (verification-gated, ADR-024 discipline) — the raw token is exposed **only** in an explicit development context (`ENVIRONMENT=development` or `EXPOSE_DEV_RESET_TOKEN=true`) for local testing; any unknown/missing configuration fails closed (token never returned). See §17 for the C1 hardening.
-- Enumeration resistance: register/login/reset responses are uniform in shape and timing where practical.
+- Password reset: 256-bit CSPRNG token, peppered hash at rest, 10–30 minute DB expiry (default 30), one active link per user, single-use conditional claim, password update + session revocation + token claim in one D1 transaction. Links carry the bearer in a URL fragment; client code removes it before exchanging it for a 15-minute `HttpOnly` `__Host-edu_reset` cookie. The public forgot response is always `{ sent: true }` and never contains token/provider state. See §17.
+- Enumeration resistance: forgot-password has the same response for malformed, unknown, throttled, provider-failed, and known addresses and enforces a 250 ms minimum service time. Unknown-email login performs PBKDF2-class dummy work; login failures remain uniform.
 
 ## 3. Sessions, devices, account-sharing deterrence (P1/P4)
 
@@ -38,28 +39,28 @@
 - HTTPS only (Cloudflare); HSTS at edge; redirects to canonical domain.
 - CSP: `default-src 'self'`; `media-src 'self' https://stream.mux.com blob:`; `img-src 'self' data: https://image.mux.com`; `script-src 'self'`; `style-src 'self'`; `frame-ancestors 'none'`; `object-src 'none'`; `base-uri 'self'`. App-authored markup never uses inline scripts/styles (design system enforces this); reviewed whenever a provider is added.
 - CSP nonce for framework hydration scripts (W4): React Router v7 emits a small set of inline `<script>` tags (hydration context, streaming, module bootstrap) that carry no `src`, so a strict `script-src 'self'` blocks them. In production these are whitelisted with a **per-request CSP nonce** (`crypto.randomUUID()`, seeded once per request in `workers/app.ts`, surfaced via `server/csp.server.ts` and applied to the header in `app/root.tsx` middleware and to the inline scripts via `<ServerRouter nonce>`). `script-src` becomes `'self' 'nonce-<v>'` — `'unsafe-inline'` is **never** used in production; it is retained only for the Vite HMR client in local dev. The nonce is not user-controllable, never hardcoded, and grants nothing beyond the trusted server-rendered scripts of that one response. See §18 for the W4 E2E-discovered regression and its fix.
-- `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera=(), microphone=(), geolocation=()), `Cross-Origin-Opener-Policy: same-origin`.
+- `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, and a restrictive `Permissions-Policy`: camera/microphone/geolocation/payment/USB are disabled; fullscreen is limited to self and the allowlisted `youtube-nocookie.com` player. Every response to a request carrying a session cookie (HTML, React Router data, API, or redirect) is `private, no-store`; authentication routes are always `private, no-store`, and reset/email-verification routes are `no-referrer`.
 - CSP includes `upgrade-insecure-requests` (never downgrade to http). CSP violation reporting (`report-to`/`report-uri`) is deferred until a report-collection endpoint exists — documented, not hidden.
 - Cookies: always `Secure` + `HttpOnly` (session) + `SameSite=Lax`.
 
 ## 6. CSRF (P1)
 
-Mutations require same-origin evidence: `Origin`/`Sec-Fetch-Site` check in middleware for all non-GET route requests; reject mismatches. (SameSite=Lax is the second layer.) Webhook resource routes are exempt by design but demand provider signatures instead.
+All `POST`/`PUT`/`PATCH`/`DELETE` requests pass one root middleware gate. An exact `Origin` or `Referer` match is accepted; when privacy software omits both, only browser-controlled `Sec-Fetch-Site: same-origin` is accepted (`same-site` is rejected). Production compares against the configured HTTPS `APP_ORIGIN`, never a client-controlled Host header. `SameSite=Lax` cookies are a second layer. Only payment webhook resource paths are exempt, and those fail closed unless their provider signature validates.
 
 ## 7. Input validation & injection (all phases)
 
-- Zod schemas at every action boundary; unknown keys stripped.
-- All SQL via Drizzle (parameterized). No string-concatenated SQL anywhere.
-- Output rendered through React escaping; `dangerouslySetInnerHTML` banned by lint (admin `custom_markdown` block renders a sanitized allowlist subset).
-- Uploads: size caps per kind, MIME sniffing (not extension trust), image re-encode, PDF/images only for study material, stored under random R2 keys with no user-controlled path parts.
+- Route actions use bounded Zod schemas or explicit allowlists before service calls; unknown/unsupported actions fail closed.
+- SQL values use Drizzle parameters or D1 prepared-statement binds. Fixed internal SQL fragments are never built from request values.
+- Output renders through React escaping; the CMS rich-text path uses a sanitizer allowlist before any HTML rendering.
+- Uploads: request and per-kind size caps, normalized declared MIME, byte-signature validation before R2 writes, random storage keys, and replacement-kind checks. Buffered Worker uploads are capped at 50 MiB; larger media requires a future direct-to-R2/provider flow. Signature validation is not antivirus scanning, so downloaded student documents remain untrusted and should be scanned operationally if the threat model requires it.
 - SSRF: admin-defined external URLs (if any) go through a validation allowlist; the server never fetches user-supplied URLs.
 
 ## 8. Protected media (P2/P4)
 
-- Files: R2 `private-files` never public; short-TTL signed URLs (setting `video.fileUrlTtlSeconds`, shipped default **120s**) issued only after entitlement + per-file permission. The HMAC covers file id + `perm` (view|download) + expiry: tampering, id-swapping, perm-swapping, or expiry all produce the same 404-shaped response (no existence/permission oracle). `download_allowed` decides `attachment` vs `inline` disposition; Range requests served (206); responses `no-store`. *Verified live in Phase 2 smoke §5.*
+- Files: private R2 buckets are never public; short-TTL signed URLs (default 120s, verifier hard-cap 24h) are issued only after entitlement + per-file permission. HMAC covers file id + `perm` + expiry; tampering/id/permission swapping and expiry are 404-shaped. `download_allowed` controls attachment disposition. A strict RFC 7233 single-range parser supports closed/open/suffix ranges, clamps ends, and returns 416 for malformed/multiple/unsatisfiable requests. Private responses are `no-store` and `no-referrer`.
 - Active-content sandboxing (H5, Phase 8): HTML-renderable uploads (SVG/HTML/XHTML) are served with `Content-Security-Policy: sandbox`, so a directly-navigated file can't execute scripts or touch the app origin (stored-XSS defense-in-depth). Subresource `<img>` rendering is unaffected (browsers ignore the response CSP in subresource contexts); SVG uploads remain permitted.
-- Video: raw MP4/HLS never exposed for protected content. Playback requires server-minted provider credentials (Mux signed JWT / mock HMAC token, ≤45s TTL, settings-capped ≤60s) via `POST /api/playback/:videoId` — entitlement re-checked server-side on EVERY mint; admins bypass; unentitled → 403; anonymous → 401. Playback restrictions (domain allowlist) configured at the provider. Mock provider mimics the same token discipline in dev, with playback/thumbnail scope separation (cross-scope tokens rejected). *Verified live in Phase 2 smoke §6/§7/§10.*
-- Progress beacons authenticate the session and validate the video is entitlement-covered before writing.
+- Video: raw MP4/HLS is never exposed for protected content. `POST /api/playback/:videoId` re-checks entitlement on every mint (admins bypass; unentitled → 403; anonymous → 401). Mux credentials are RS256 JWTs signed server-side with the provider's 2048-bit RSA key; expiry is known asset duration + 30 minutes, four hours for unknown duration, and never over 24 hours because Mux stops segment requests at expiry. hls.js supports Chromium/Firefox/Android and native HLS supports Safari/iOS. A production-host playback restriction is a required owner/provider configuration step and its ID is embedded in each JWT. Mock video is development/test-only and uses scope-separated HMAC tokens.
+- Progress beacons authenticate and rate-limit the user, require a lesson context, re-check lesson entitlement, and verify the exact video is attached to that lesson before writing. A client cannot authorize an arbitrary video by pairing it with an entitled lesson.
 
 ## 9. Payments security (P6)
 
@@ -77,8 +78,8 @@ Mutations require same-origin evidence: `Origin`/`Sec-Fetch-Site` check in middl
 ## 11. Secrets & configuration (P1)
 
 - Local: `.dev.vars` (gitignored, example committed). Deployed: `wrangler secret put`. No secrets in D1, settings, or client.
-- Secret inventory maintained in DEPLOYMENT.md (names only, never values).
-- Vendor credentials least-privilege where the provider allows (e.g., Mux token scoped to one environment).
+- Secret inventory is maintained in DEPLOYMENT.md (names only). `RESEND_API_KEY`, session pepper, file HMAC key, and Mux credentials are server bindings only; none use `VITE_`/`PUBLIC_` names or enter loader data/client bundles.
+- Vendor credentials are least-privilege and environment-specific. Resend uses a dedicated production key; tests use capture transport and synthetic values only.
 
 ## 12. Audit & monitoring (P1 onward)
 
@@ -86,7 +87,7 @@ Mutations require same-origin evidence: `Origin`/`Sec-Fetch-Site` check in middl
 
 ## 13. Rate limiting & abuse (P1)
 
-D1 fixed-window counters per route+IP and per route+account on: login, register, forgot/reset, checkout, code redemption, payment confirmation, CMS form submission, playback token mint (Phase 8), and exam save/submit (Phase 8). Limits admin-configurable (`security.rate_limits`). Cloudflare WAF rate rules noted as the scale-up path (documented, not assumed).
+D1 fixed-window counters cover login, registration, forgot requests (IP + account), reset validation/completion (IP + token), email change, checkout, code redemption, payment confirmation, CMS forms, playback mint, progress beacons, and exam save/submit. Blocked counters saturate at `limit + 1` so repeated denied traffic does not keep writing the same D1 row. Recovery mail has an 80/day default real-account budget; all transactional mail shares an exact rolling 90-per-24-hour cap beneath Resend Free's owner-confirmed 100/day allowance. Welcome and email-change delivery are each capped at 20 so they cannot completely starve recovery. Limits are bounded in settings where appropriate. Distributed abuse still requires an owner-configured Cloudflare edge/WAF control before launch.
 
 - Rate-limit bucketing trusts **only** `cf-connecting-ip` (set by the Cloudflare edge). `x-forwarded-for` is client-controlled and deliberately ignored so an attacker cannot rotate buckets to bypass limits (H4, Phase 8).
 
@@ -118,32 +119,40 @@ a restore cannot hit production by accident (guards unit-tested in
 - Device fingerprinting can be defeated by determined users; policy + audit is deterrence.
 - Signed video URLs prevent casual hotlinking, not screen recording.
 - No DRM in v1 (Mux DRM is a paid consideration; documented as a future option).
-- Browser-based exams cannot be fully lock-down; we mitigate with server timing, attempt limits, randomization.
+- Browser-based exams cannot be fully locked down; server timing, attempt limits, and randomization mitigate but do not eliminate cheating.
+- File magic-byte checks prevent simple MIME spoofing but are not a malware scanner.
+- Free-plan Worker CPU and D1 daily hard limits can cause availability failures; production metrics and controlled load/auth testing are mandatory.
+- Resend capture tests prove application behavior, not DNS reputation or real delivery. Arbitrary-recipient delivery requires owner-verified SPF/DKIM sending-domain configuration.
 
-## 17. Password-reset token exposure (C1 — Phase 8 hardening)
+## 17. Password recovery and Resend boundary
 
-The raw password-reset token is a full account-takeover credential, so its
-exposure is governed by an **explicit allowlist, not a "!= production" check**:
+Recovery is deliberately split into a public generic request and a transient
+bearer exchange:
 
-- `server/auth/service.server.ts` → `shouldExposeDevResetToken(env)` returns the
-  token **only** when `ENVIRONMENT === "development"` OR `EXPOSE_DEV_RESET_TOKEN === "true"`.
-- **Unknown / missing configuration fails closed**: `ENVIRONMENT=production`,
-  `staging`, `preview`, `undefined`, or any other value never returns the token.
-  The `EXPOSE_DEV_RESET_TOKEN` flag must be exactly `"true"` to take effect.
-- The forgot-password UI renders a reset link **only** when a token is actually
-  returned; there is no other path that can surface the token.
-- Defense-in-depth: `scripts/check-production-readiness.mjs` fails a deploy whose
-  committed `wrangler.jsonc` opts into `EXPOSE_DEV_RESET_TOKEN` or a development
-  `ENVIRONMENT`. The runtime guard in the auth service is the **primary** control;
-  the readiness gate is not relied upon for runtime protection.
-- Regression tests (`tests/integration/auth.test.ts` → "password reset token
-  exposure (C1 — fail closed)") cover the production / staging / undefined /
-  preview / development matrix, the explicit-flag opt-in, the not-exactly-"true"
-  case, and assert the safe response carries no token material.
+1. `POST /forgot-password` validates and rate-limits without changing the public
+   `{ sent: true }` shape. Unknown and known accounts have a 250 ms minimum
+   service time.
+2. For an eligible active account, issuance invalidates prior links and inserts
+   one peppered token hash in a transactional D1 batch. A partial unique index
+   enforces one unused token per user.
+3. Native-fetch Resend delivery runs in `waitUntil`; upstream errors and response
+   bodies are never returned/logged. If origin/provider/delivery/budget fails,
+   that token is invalidated so an invisible credential is not left active.
+4. The Arabic/RTL (or locale-appropriate English) message links to
+   `/reset-password#token=…`. Fragments do not enter edge HTTP logs. Client code
+   removes the fragment before a same-origin exchange and stores it only in a
+   short-lived `HttpOnly; Secure; SameSite=Lax` host cookie. Query-carried tokens
+   are rejected and redirected away.
+5. Completion validates password policy and rate limits, then changes the hash,
+   revokes every session, and claims the token in one D1 transaction. Conditional
+   updates ensure concurrent submissions yield one success. The cookie is cleared
+   on success/invalidity, and replay fails.
 
-Until an email channel is verified and shipped (ADR-024 gate), password reset is
-a **dev/testing-only flow**: in production the token is created but never
-delivered, so reset is effectively inert rather than a leak surface.
+The test capture transport is selectable only in exact `ENVIRONMENT=test`; its
+HTTP inbox has an additional constant-time secret gate and is absent from
+production configuration. Resend's real key is never used in tests. Production
+remains blocked until the owner verifies a sending domain, sets Wrangler secrets,
+and performs a controlled delivery test. See `docs/DEPLOYMENT.md`.
 
 ## 18. CSP hydration-script regression (W4 E2E — confirmed production bug)
 

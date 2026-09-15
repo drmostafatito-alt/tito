@@ -38,7 +38,7 @@ async function requireCms(context: unknown, request: Request, permission: CmsPer
   if (!(await canCms(db, guarded.auth, permission))) {
     return { ...guarded, db, env, allowed: false as const };
   }
-  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
+  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER);
   return {
     ...guarded,
     db,
@@ -56,7 +56,12 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
-  const intent = String((await request.clone().formData()).get("_action") ?? "");
+  // Authenticate before invoking the multipart/urlencoded parser on an
+  // attacker-controlled body. The permission-specific check follows once the
+  // bounded intent is known.
+  await requireRole(context, request, 3);
+  const form = await request.formData();
+  const intent = String(form.get("_action") ?? "");
   const perm: CmsPermission =
     intent === "create" || intent === "duplicate" ? "cms.create"
     : intent === "delete" ? "cms.delete"
@@ -65,7 +70,6 @@ export async function action({ context, request }: Route.ActionArgs) {
   const guard = await requireCms(context, request, perm);
   if (!guard.allowed) return { error: "denied" as const };
   const { db, actor } = guard;
-  const form = await request.formData();
   const pageId = String(form.get("pageId") ?? "");
 
   try {

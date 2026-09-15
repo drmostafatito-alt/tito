@@ -5,14 +5,14 @@ import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
 import { LOCALE_COOKIE } from "~server/settings/locale.server";
 import { serializeCookie } from "~server/auth/cookies.server";
+import { safeLocalRedirect } from "~server/http/redirect.server";
 import { isLocale } from "~/lib/i18n";
 
 /** POST /set-locale { lang, next } — writes the locale cookie, redirects back. */
 export async function action({ context, request }: Route.ActionArgs) {
   const form = await request.formData();
   const lang = String(form.get("lang") ?? "");
-  const nextRaw = String(form.get("next") ?? "/");
-  const next = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/";
+  const next = safeLocalRedirect(form.get("next"), "/");
 
   if (!isLocale(lang)) return redirect(next);
   // Enforce the owner's offered-language setting server-side (Appearance →

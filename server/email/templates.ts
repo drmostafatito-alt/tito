@@ -42,10 +42,10 @@ export function mailShell(opts: {
   const dir = opts.locale === "ar" ? "rtl" : "ltr";
   const cta =
     opts.ctaText && opts.ctaUrl
-      ? `<p style="margin:24px 0 0;"><a href="${esc(opts.ctaUrl)}" style="background:#6d28d9;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:8px;font-weight:600;display:inline-block;">${esc(opts.ctaText)}</a></p>`
+      ? `<p style="margin:24px 0 0;"><a href="${esc(opts.ctaUrl)}" style="background:#d4a72c;color:#172554;text-decoration:none;padding:11px 18px;border-radius:8px;font-weight:600;display:inline-block;">${esc(opts.ctaText)}</a></p>`
       : "";
   const footerNote = opts.footerNote
-    ? `<p style="margin:26px 0 0;color:#64748b;font-size:12px;line-height:1.5;">${opts.footerNote}</p>`
+    ? `<p style="margin:26px 0 0;color:#64748b;font-size:12px;line-height:1.5;">${esc(opts.footerNote)}</p>`
     : "";
   const support = opts.brand.supportEmail
     ? `<p style="margin:8px 0 0;color:#64748b;font-size:12px;">${esc(brandName(opts.brand, opts.locale))} · ${esc(opts.brand.supportEmail)}</p>`
@@ -53,7 +53,7 @@ export function mailShell(opts: {
   return `<!doctype html><html lang="${opts.locale}" dir="${dir}"><body style="margin:0;background:#f1f5f9;font-family:-apple-system,'Segoe UI',Roboto,'IBM Plex Sans Arabic',Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px;"><tr><td align="center">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
-      <tr><td style="padding:22px 28px;background:#6d28d9;color:#ffffff;">
+      <tr><td style="padding:22px 28px;background:#172554;color:#ffffff;">
         <div style="font-size:18px;font-weight:700;">${esc(brandName(opts.brand, opts.locale))}</div>
         ${opts.locale === "ar" ? "<div style=\"font-size:13px;opacity:.85;margin-top:2px;\">منصة الفلسفة وعلم النفس</div>" : "<div style=\"font-size:13px;opacity:.85;margin-top:2px;\">Philosophy & Psychology</div>"}
       </td></tr>
@@ -85,7 +85,15 @@ export function resetPasswordEmail(opts: {
     const text = `مرحبًا ${name}،\nاستلمنا طلبًا لاستعادة كلمة مرور حسابك على ${brand}. افتح الرابط التالي لإدخال كلمة مرور جديدة (صالح لمدة ${opts.expiresMinutes} دقيقة):\n${opts.resetUrl}`;
     return {
       subject: "استعادة كلمة المرور",
-      html: mailShell({ locale: "ar", brand: opts.brand, heading, bodyHtml: body, ctaText: "استعادة كلمة المرور", ctaUrl: opts.resetUrl }),
+      html: mailShell({
+        locale: "ar",
+        brand: opts.brand,
+        heading,
+        bodyHtml: body,
+        ctaText: "استعادة كلمة المرور",
+        ctaUrl: opts.resetUrl,
+        footerNote: `ينتهي هذا الرابط خلال ${opts.expiresMinutes} دقيقة، ولا يمكن استخدامه إلا مرة واحدة.`,
+      }),
       text,
     };
   }
@@ -96,7 +104,15 @@ export function resetPasswordEmail(opts: {
   const text = `Hello ${name},\nWe received a request to reset the password for your ${brand} account. Open this link to choose a new password (valid for ${opts.expiresMinutes} minutes):\n${opts.resetUrl}`;
   return {
     subject: "Reset your password",
-    html: mailShell({ locale: "en", brand: opts.brand, heading, bodyHtml: body, ctaText: "Reset password", ctaUrl: opts.resetUrl }),
+    html: mailShell({
+      locale: "en",
+      brand: opts.brand,
+      heading,
+      bodyHtml: body,
+      ctaText: "Reset password",
+      ctaUrl: opts.resetUrl,
+      footerNote: `This link expires in ${opts.expiresMinutes} minutes and can be used only once.`,
+    }),
     text,
   };
 }

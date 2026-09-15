@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireUser } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
-import { getEnv } from "~server/cf.server";
+import { getEnv, getWaitUntil } from "~server/cf.server";
 import { users, roles } from "~server/db/schema";
 import { logSecurityEvent } from "~server/security/events.server";
 import { LOCALE_COOKIE } from "~server/settings/locale.server";
@@ -56,14 +56,24 @@ export async function action({ context, request }: Route.ActionArgs) {
   // Self-service email change: request an out-of-band verification.
   if (String(form.get("_action") ?? "") === "change-email") {
     const newEmail = String(form.get("newEmail") ?? "");
-    const result = await requestEmailChange(env, db, { userId: auth.user.id }, newEmail, request, new URL(request.url).origin);
+    const currentPassword = String(form.get("currentPassword") ?? "");
+    const result = await requestEmailChange(
+      env,
+      db,
+      { userId: auth.user.id },
+      newEmail,
+      currentPassword,
+      request,
+      getWaitUntil(context)
+    );
     if (!result.ok) {
       if (result.code === "rate_limited") return { emailError: "rate_limited" as const };
       if (result.code === "invalid") return { emailError: "invalid" as const };
+      if (result.code === "wrong_password") return { emailError: "wrong_password" as const };
       return { emailError: "same_email" as const };
     }
-    // Enumeration-safe generic confirmation: we do not reveal whether the address
-    // was available; if it was, a verification email has been sent to it.
+    // Enumeration- and delivery-safe confirmation: do not reveal ownership and
+    // do not claim that an external provider accepted mail we cannot observe here.
     return { emailRequested: true as const };
   }
 
@@ -140,7 +150,9 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
                 ? t(locale, "profile.emailChangeInvalid")
                 : actionData.emailError === "same_email"
                   ? t(locale, "profile.emailChangeSame")
-                  : t(locale, "profile.emailChangeRateLimited")}
+                  : actionData.emailError === "wrong_password"
+                    ? t(locale, "profile.emailChangeWrongPassword")
+                    : t(locale, "profile.emailChangeRateLimited")}
             </Alert>
           )}
           <Form method="post" className="flex flex-col gap-4">
@@ -154,6 +166,16 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
               autoComplete="email"
               dir="ltr"
               defaultValue={actionData && "emailRequested" in actionData ? "" : undefined}
+            />
+            <Input
+              label={t(locale, "profile.currentPassword")}
+              name="currentPassword"
+              type="password"
+              required
+              minLength={1}
+              maxLength={128}
+              autoComplete="current-password"
+              dir="ltr"
             />
             <div className="flex justify-end">
               <SubmitButton>{t(locale, "profile.emailChangeSubmit")}</SubmitButton>

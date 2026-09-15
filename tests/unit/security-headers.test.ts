@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySecurityHeaders, applyPrivateCacheControl } from "~server/http/headers.server";
+import { applySecurityHeaders, applyPrivateCacheControl, applySensitiveAuthHeaders } from "~server/http/headers.server";
 
 /**
  * Regression tests for the CSP nonce fix (W4 E2E discovered that a strict
@@ -62,30 +62,60 @@ describe("applySecurityHeaders", () => {
     expect(h.get("Permissions-Policy")).toContain("camera=()");
     expect(h.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
     expect(h.get("Content-Security-Policy")).toContain("upgrade-insecure-requests");
+    expect(h.get("Content-Security-Policy")).toContain("connect-src 'self' https://stream.mux.com");
+    expect(h.get("Content-Security-Policy")).toContain("worker-src 'self' blob:");
+  });
+
+  it("preserves stricter route-specific CSP and referrer policies", () => {
+    const headers = new Headers({
+      "Content-Security-Policy": "sandbox",
+      "Referrer-Policy": "no-referrer",
+    });
+    applySecurityHeaders(headers, false, "n");
+    expect(headers.get("Content-Security-Policy")).toBe("sandbox");
+    expect(headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(headers.get("X-Frame-Options")).toBe("DENY");
   });
 });
 
-describe("applyPrivateCacheControl (H8 — authenticated HTML never cached)", () => {
+describe("sensitive authentication response headers", () => {
+  it("makes auth routes no-store and token routes no-referrer", () => {
+    for (const path of ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email-change"]) {
+      const headers = new Headers();
+      applySensitiveAuthHeaders(headers, path);
+      expect(headers.get("Cache-Control")).toContain("no-store");
+      expect(headers.get("Pragma")).toBe("no-cache");
+      expect(headers.get("Referrer-Policy")).toBe(
+        path === "/reset-password" || path === "/verify-email-change" ? "no-referrer" : null
+      );
+    }
+  });
+
+  it("does not alter ordinary public responses", () => {
+    const headers = new Headers();
+    applySensitiveAuthHeaders(headers, "/");
+    expect([...headers]).toEqual([]);
+  });
+});
+
+describe("applyPrivateCacheControl (authenticated responses never cached)", () => {
   function render(hasSession: boolean, contentType: string | null): Headers {
     const headers = new Headers();
     if (contentType) headers.set("Content-Type", contentType);
-    applyPrivateCacheControl(headers, hasSession, contentType);
+    applyPrivateCacheControl(headers, hasSession);
     return headers;
   }
 
-  it("marks authenticated HTML as private, no-store", () => {
-    const h = render(true, "text/html; charset=utf-8");
-    expect(h.get("Cache-Control")).toBe("private, no-store");
+  it("marks authenticated HTML, data, API and redirect responses private/no-store", () => {
+    for (const contentType of ["text/html; charset=utf-8", "application/json", "text/x-script", null]) {
+      expect(render(true, contentType).get("Cache-Control")).toBe("private, no-store");
+    }
   });
 
-  it("does not touch HTML without a session (anonymous/public pages stay cacheable-by-default)", () => {
-    const h = render(false, "text/html; charset=utf-8");
-    expect(h.get("Cache-Control")).toBeNull();
-  });
-
-  it("does not touch non-HTML responses (JSON/API/redirects) even with a session", () => {
-    for (const ct of ["application/json", "text/plain", "image/svg+xml", null]) {
-      expect(render(true, ct).get("Cache-Control")).toBeNull();
+  it("does not touch responses without a session (anonymous/public pages stay cacheable-by-default)", () => {
+    for (const contentType of ["text/html; charset=utf-8", "application/json", null]) {
+      expect(render(false, contentType).get("Cache-Control")).toBeNull();
     }
   });
 });

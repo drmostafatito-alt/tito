@@ -43,7 +43,7 @@ Date: 2026-09-06 · Branch: `arena/01a07397-tito` · Scope: final dependency, se
 
 ### 3.2 Auth / session / RBAC — CLEAN (re-audited, already tested)
 - Password hashing PBKDF2-SHA256 100k (deliberate free-plan choice, documented); salt per user; constant-time compare.
-- Opaque 256-bit session tokens, SHA-256 at rest; cookie `__edu_session` HttpOnly + Secure + SameSite=Lax (default in `serializeCookie`); sliding 30d / absolute 180d expiry; logout + password-change revoke sessions.
+- Opaque 256-bit session tokens, SHA-256 at rest; cookie `__Host-edu_session` HttpOnly + Secure + SameSite=Lax (default in `serializeCookie`); sliding 30d / absolute 180d expiry; logout + password-change revoke sessions.
 - CSRF: middleware rejects cross-site mutations via `Origin`/`Sec-Fetch-Site`; SameSite=Lax second layer.
 - Rate limiting: D1 fixed-window per-route+IP and per-route+account on auth/reset/checkout/code/payment/CMS-form/playback/exam-save-submit; bucketing trusts only `cf-connecting-ip` (client-controlled `x-forwarded-for` ignored — H4).
 - RBAC guards server-side in layouts; admin = `requireRole(3)` + granular permission matrix; super-admin protections; entitlement resolver is single source of access truth.
@@ -77,7 +77,7 @@ Date: 2026-09-06 · Branch: `arena/01a07397-tito` · Scope: final dependency, se
 ### 3.8 HTTP / security headers — CSP correct; one gap fixed (H8)
 - CSP is strict: `default-src 'self'`; `script-src 'self' 'nonce-<v>'` (nonce = `crypto.randomUUID().replace(/-/g,"")`, generated per request in `workers/app.ts`, threaded via `server/csp.server.ts` and applied to inline scripts via `<ServerRouter nonce>`). **No `'unsafe-inline'` in production, no `'unsafe-eval'`, no wildcard script/default source.** `style-src 'self'` (+`'unsafe-inline'` dev-only for Vite HMR). `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `upgrade-insecure-requests`.
 - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`, `Cross-Origin-Opener-Policy: same-origin`, `X-Frame-Options: DENY`.
-- **H8 FIX (this audit):** authenticated HTML responses previously had **no explicit `Cache-Control`**, so user-specific pages (dashboard, orders, profile, admin, …) could be retained by browser or shared caches. Added `applyPrivateCacheControl` (in `server/http/headers.server.ts`, wired in `app/root.tsx` middleware) → `Cache-Control: private, no-store` whenever a `__edu_session` cookie is present and the response is `text/html`. Non-HTML (JSON/API/redirects) and anonymous HTML are untouched; static assets and `/files` set their own Cache-Control outside this handler.
+- **H8 FIX (subsequently broadened):** user-specific responses could be retained by browser or shared caches. `applyPrivateCacheControl` (in `server/http/headers.server.ts`, wired in `app/root.tsx` middleware) now sets `Cache-Control: private, no-store` whenever a `__Host-edu_session` cookie is present, covering HTML, React Router data, JSON APIs, and redirects. Anonymous responses remain untouched; protected `/files` responses also set their own strict policy.
 
 ### 3.9 Cloudflare / Workers — CLEAN (environment)
 - `wrangler.jsonc`: classic Workers entry `./workers/app.ts`, `compatibility_date 2026-04-01`, `nodejs_compat`; assets `./build/client`; bindings `DB` (D1), `PUBLIC_ASSETS`/`PRIVATE_FILES`/`VIDEO_MASTERS` (R2); observability enabled. Local uses miniflare-simulated resources; production IDs/names set at deploy time.
@@ -96,7 +96,7 @@ No **CONFIRMED VULNERABILITY** was found in application code.
 
 ## 5. Tests proving the fix
 
-- `tests/unit/security-headers.test.ts` — added `applyPrivateCacheControl` describe (3 cases): authenticated HTML → `private, no-store`; anonymous HTML untouched; non-HTML (JSON/text/svg/redirect) untouched even with a session.
+- `tests/unit/security-headers.test.ts` — `applyPrivateCacheControl` covers authenticated HTML/data/API/redirect responses and leaves anonymous responses untouched.
 - Existing security suites re-run green: CSP nonce shape, rate-limit (H4), reset-token fail-closed (C1), IDOR/privilege isolation, file/signature, commerce idempotency.
 
 ## 6. Verification results

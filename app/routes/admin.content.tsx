@@ -52,7 +52,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     await createProgram(
       db,
       { ...parsed.data, descriptionAr: null, descriptionEn: null, sortOrder: 0, slug: undefined },
-      { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") }
+      { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) }
     );
     return { ok: true as const };
   }
@@ -71,7 +71,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     const actor = {
       userId: auth.user.id,
       role: auth.user.roleId,
-      ipHash: await sha256Hex(clientIpOf(request) ?? "unknown"),
+      ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER),
     };
     switch (type) {
       case "grade":

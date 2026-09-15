@@ -19,8 +19,8 @@
     }
   ],
   "r2_buckets": [
-    { "binding": "PUBLIC_ASSETS", "bucket_name": "educore-public-assets" },
-    { "binding": "PRIVATE_FILES", "bucket_name": "educore-private-files" },
-    { "binding": "VIDEO_MASTERS", "bucket_name": "educore-video-masters" }
+    { "binding": "PUBLIC_ASSETS", "bucket_name": "educore-public-assets-local" },
+    { "binding": "PRIVATE_FILES", "bucket_name": "educore-private-files-local" },
+    { "binding": "VIDEO_MASTERS", "bucket_name": "educore-video-masters-local" }
   ]
 }

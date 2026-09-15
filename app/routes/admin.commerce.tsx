@@ -199,7 +199,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   const actor = {
     userId: auth.user.id,
     role: auth.user.roleId,
-    ipHash: await sha256Hex(clientIpOf(request) ?? "unknown"),
+    ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER),
   };
   const str = (k: string) => String(form.get(k) ?? "").trim();
   const num = (k: string) => (str(k) === "" ? null : Number(str(k)));

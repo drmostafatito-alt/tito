@@ -51,7 +51,7 @@ async function requireCms(context: unknown, request: Request, permission: CmsPer
   const db = getDb(env);
   const allowed = await canCms(db, guarded.auth, permission);
   if (!allowed) return { db, allowed: false as const, auth: guarded.auth, settings: guarded.settings };
-  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
+  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER);
   return {
     db,
     allowed: true as const,
@@ -117,6 +117,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ context, params, request }: Route.ActionArgs) {
+  // Authenticate before parsing a potentially expensive untrusted form body;
+  // the exact CMS permission is checked immediately after reading its intent.
+  await requireRole(context, request, 3);
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
   const perm: CmsPermission =

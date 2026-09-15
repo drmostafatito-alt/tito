@@ -32,7 +32,7 @@ describe("file kind detection + caps", () => {
   });
 
   it("caps sizes per kind", () => {
-    expect(sizeCapFor("pdf")).toBe(100 * 1024 * 1024);
+    expect(sizeCapFor("pdf")).toBe(50 * 1024 * 1024);
     expect(sizeCapFor("image")).toBe(10 * 1024 * 1024);
   });
 

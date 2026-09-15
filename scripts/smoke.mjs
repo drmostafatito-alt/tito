@@ -252,8 +252,8 @@ const run = async () => {
   check("student login → 302 /dashboard", loginOk, loginOk ? "" : `got ${login.status} ${login.location ?? ""} (${loginFailureKind(login.text)})`);
   const wrongLogin = await makeClient("wrongpw").post("/login", { form: { email: STUDENT_EMAIL, password: "wrong-password-x" } });
   const wrongCookies = wrongLogin.headers.getSetCookie?.() ?? [];
-  check("wrong password → 200 form re-render, no session cookie", wrongLogin.status === 200 && !wrongCookies.some((c) => c.startsWith("__edu_session=")), `status=${wrongLogin.status}`);
-  check("session cookie present after login", student.jar.has("__edu_session"));
+  check("wrong password → 200 form re-render, no session cookie", wrongLogin.status === 200 && !wrongCookies.some((c) => c.startsWith("__Host-edu_session=")), `status=${wrongLogin.status}`);
+  check("session cookie present after login", student.jar.has("__Host-edu_session"));
   const dash = await student.get("/dashboard");
   check("student GET /dashboard → 200", dash.status === 200, `got ${dash.status}`);
 
@@ -530,7 +530,7 @@ const run = async () => {
   console.log("\n[11] Session revocation (logout)");
   const s2Logout = await student2.post("/logout");
   check("student2 logout → 302 /login", s2Logout.status === 302 && s2Logout.location === "/login", `${s2Logout.status} ${s2Logout.location}`);
-  check("logout clears the session cookie", !student2.jar.has("__edu_session"));
+  check("logout clears the session cookie", !student2.jar.has("__Host-edu_session"));
   const s2AfterLogout = await student2.get("/dashboard");
   check("revoked session → /dashboard redirects to login", s2AfterLogout.status === 302 && (s2AfterLogout.location ?? "").startsWith("/login"), `got ${s2AfterLogout.status}`);
   if (videoId) {
@@ -655,7 +655,7 @@ const run = async () => {
     nameAr: newPlatformName, nameEn: newPlatformName,
     taglineAr: "", taglineEn: "",
     supportEmail: "", supportPhone: "", whatsapp: "",
-    provider: "mock", playbackTokenTtl: "45", fileTtl: "120",
+    provider: "mock", playbackTokenTtl: "3600", fileTtl: "120",
   } });
   check("system settings saved (platform + video groups)", sysSave.status === 200, `got ${sysSave.status}`);
   const homeAfterSys = await anon.get("/");

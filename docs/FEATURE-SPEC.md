@@ -9,7 +9,7 @@ Global rules applying everywhere: Arabic/English with RTL · loading/empty/error
 ## 1. Auth & account (P1)
 - Register: email + full name + password (min 8, checked against top-common list; no password rules leaked in responses). Rate-limited. Welcome notification.
 - Login: uniform errors (no user-existence leak); device policy applied **before** session issue; suspicious patterns logged.
-- Forgot/reset: single-use 60-min token; reset revokes all sessions.
+- Forgot/reset: generic enumeration-safe response; Resend-delivered 256-bit single-use token (peppered hash, default/max 30 minutes); fragment-to-HttpOnly-cookie exchange; reset atomically revokes all sessions.
 - Profile: name, phone, locale, password change (requires current). Email change: requires password + creates notification (verification flow Phase 4+).
 - Roles: student / teacher / admin / super_admin; only super_admin manages admins & system settings.
 

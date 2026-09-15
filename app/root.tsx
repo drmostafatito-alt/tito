@@ -10,7 +10,18 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from "react-router";
-import { applySecurityHeaders, applyPrivateCacheControl } from "~server/http/headers.server";
+import {
+  applyPrivateCacheControl,
+  applySecurityHeaders,
+  applySensitiveAuthHeaders,
+} from "~server/http/headers.server";
+import {
+  MUTATION_METHODS,
+  declaredBodyTooLarge,
+  hasSameOriginMutationEvidence,
+  streamedBodyTooLarge,
+} from "~server/http/csrf.server";
+import { applicationOrigin } from "~server/http/origin.server";
 import { resolveAuth, SESSION_COOKIE } from "~server/auth/session.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
@@ -78,19 +89,50 @@ export function meta({ loaderData }: Route.MetaArgs): MetaDescriptor[] {
   return [{ title: name || (locale === "ar" ? "د/ مصطفى تيتو" : "Dr mostafa tito") }];
 }
 
+const MAX_FORM_BODY_BYTES = 1 * 1024 * 1024;
+const MAX_MULTIPART_BODY_BYTES = 52 * 1024 * 1024;
+
+function mutationBodyLimit(pathname: string): number {
+  const isBufferedUpload =
+    pathname === "/admin/files" ||
+    pathname === "/admin/videos" ||
+    /^\/assignments\/[^/]+$/.test(pathname) ||
+    /^\/orders\/[^/]+$/.test(pathname);
+  return isBufferedUpload ? MAX_MULTIPART_BODY_BYTES : MAX_FORM_BODY_BYTES;
+}
+
 /** Global middleware: CSRF origin check on mutations + security headers (SECURITY.md §5/§6). */
 export const middleware: Route.MiddlewareFunction[] = [
   async ({ request, context }, next) => {
-    if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
-      const fetchSite = request.headers.get("sec-fetch-site");
-      const origin = request.headers.get("origin");
-      const targetOrigin = new URL(request.url).origin;
-      const sameOrigin =
-        (fetchSite && ["same-origin", "same-site", "none"].includes(fetchSite)) ??
-        (!origin || origin === targetOrigin);
-      if (sameOrigin === false) {
-        return new Response("Cross-site mutation blocked", { status: 403 });
+    const pathname = new URL(request.url).pathname;
+    const isSignedPaymentWebhook = /^\/webhooks\/payments\/[^/]+\/?$/.test(pathname);
+    if (MUTATION_METHODS.has(request.method) && !isSignedPaymentWebhook) {
+      const expectedOrigin = applicationOrigin(getEnv(context), request);
+      if (!expectedOrigin || !hasSameOriginMutationEvidence(request, expectedOrigin)) {
+        const blocked = new Response("Forbidden", { status: 403 });
+        applySecurityHeaders(
+          blocked.headers,
+          Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV),
+          readNonce(context)
+        );
+        return blocked;
       }
+    }
+    const bodyLimit = mutationBodyLimit(pathname);
+    if (
+      MUTATION_METHODS.has(request.method) &&
+      !isSignedPaymentWebhook &&
+      (declaredBodyTooLarge(request, bodyLimit) ||
+        (bodyLimit === MAX_FORM_BODY_BYTES &&
+          (await streamedBodyTooLarge(request, bodyLimit))))
+    ) {
+      const blocked = new Response("Payload Too Large", { status: 413 });
+      applySecurityHeaders(
+        blocked.headers,
+        Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV),
+        readNonce(context)
+      );
+      return blocked;
     }
     const response = await next();
     applySecurityHeaders(
@@ -98,12 +140,12 @@ export const middleware: Route.MiddlewareFunction[] = [
       Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV),
       readNonce(context),
     );
-    // H8: authenticated HTML must not be cached (see headers.server.ts).
+    // Authenticated documents, data responses, APIs and redirects are private.
     applyPrivateCacheControl(
       response.headers,
       parseCookieHeader(request.headers.get("cookie")).has(SESSION_COOKIE),
-      response.headers.get("content-type"),
     );
+    applySensitiveAuthHeaders(response.headers, pathname);
     return response;
   },
 ];
@@ -164,7 +206,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       : { title: t("ar", "errors.errorTitle"), body: t("ar", "errors.errorBody") }
     : { title: t("ar", "errors.errorTitle"), body: t("ar", "errors.errorBody") };
 
-  console.error("[error-boundary]", error);
+  // Never dump route data, request URLs, form bodies, or stack traces: auth
+  // credentials may have been involved. Observability gets only a safe class.
+  console.error(
+    "[error-boundary]",
+    isRouteErrorResponse(error) ? `route_status_${error.status}` : error instanceof Error ? error.name : "unknown"
+  );
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-slate-50 px-6 text-center">

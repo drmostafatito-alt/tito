@@ -5,7 +5,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { resolveAuth } from "~server/auth/session.server";
 import { lessonItems } from "~server/db/schema";
-import { chainForLesson } from "~server/content/service.server";
+import { chainForLesson, coursePrereqGate } from "~server/content/service.server";
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { getSettings } from "~server/settings/service.server";
 import { checkRateLimit } from "~server/http/rate-limit.server";
@@ -14,8 +14,9 @@ import { getVideoProgress, startWatch } from "~server/progress/service.server";
 
 /**
  * POST /api/playback/:videoId — the ONLY place playback credentials are minted
- * (ARCHITECTURE §10). Server-side entitlement check every time; short-TTL
- * credentials; nothing provider-specific is hardcoded (ADR-006).
+ * (ARCHITECTURE §10). Server-side entitlement check every time; credentials
+ * expire after a bounded viewing window; nothing provider-specific is hardcoded
+ * (ADR-006).
  */
 export async function action({ context, params, request }: Route.ActionArgs) {
   if (request.method !== "POST") return Response.json({ error: "method_not_allowed" }, { status: 405 });
@@ -41,7 +42,18 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   let lessonId: string | undefined;
   for (const item of items) {
     const chain = await chainForLesson(db, item.lessonId);
-    if (!chain) continue;
+    if (!chain?.courseId) continue;
+    // Prerequisites are part of the server-side content gate, not merely a UI
+    // redirect. Without this check, a student who knows a video UUID could mint
+    // playback directly while the lesson page itself remains locked.
+    if (auth.user.rank <= 1) {
+      const lock = await coursePrereqGate(
+        db,
+        { userId: auth.user.id, roleRank: auth.user.rank },
+        chain.courseId
+      );
+      if (lock.locked) continue;
+    }
     const verdict = await resolveContentAccess(db, { userId: auth.user.id, roleRank: auth.user.rank }, chain);
     if (verdict.allowed) {
       allowed = true;

@@ -25,7 +25,8 @@ const EVENT_TYPE_OPTIONS = [
   "device_limit_block", "device_change_limit_block", "device_revoked_login",
   "password_reset_requested", "password_reset_completed", "password_changed",
   "sessions_revoked_all", "session_revoked", "rate_limited", "permission_denied",
-  "registration", "profile_updated",
+  "registration", "profile_updated", "email_change_reauth_failed",
+  "email_change_requested", "email_changed",
 ] as const;
 const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
 

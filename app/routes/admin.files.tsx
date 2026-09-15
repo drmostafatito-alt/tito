@@ -11,11 +11,14 @@ import {
   fileUsage,
   insertFile,
   listFiles,
+  normalizeUploadMime,
   replaceFileBytes,
+  requestBodyTooLarge,
   sha256HexOf,
   signFileUrl,
   sizeCapFor,
   updateFileMeta,
+  uploadBytesMatchMime,
 } from "~server/files/storage.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { logAudit } from "~server/audit/log.server";
@@ -59,6 +62,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   const { auth } = await requireRole(context, request, 3);
   const env = getEnv(context);
   const db = getDb(env);
+  if (requestBodyTooLarge(request)) return { error: "too_large" as const };
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
   if (intent === "rename") {
@@ -72,12 +76,14 @@ export async function action({ context, request }: Route.ActionArgs) {
   if (intent === "replace") {
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) return { error: "validation" as const };
-    const mime = file.type || "application/octet-stream";
+    const mime = normalizeUploadMime(file.type || "application/octet-stream");
     const kind = detectKind(mime);
     if (!kind) return { error: "bad_type" as const };
     if (file.size > sizeCapFor(kind)) return { error: "too_large" as const };
-    await replaceFileBytes(db, env, String(form.get("id") ?? ""), await file.arrayBuffer(), mime, file.name);
-    return { ok: true as const };
+    const buf = await file.arrayBuffer();
+    if (!uploadBytesMatchMime(buf, mime)) return { error: "bad_type" as const };
+    const replaced = await replaceFileBytes(db, env, String(form.get("id") ?? ""), buf, mime, file.name);
+    return replaced ? { ok: true as const } : { error: "bad_type" as const };
   }
   if (intent === "usage") {
     const usage = await fileUsage(db, String(form.get("id") ?? ""));
@@ -94,7 +100,7 @@ export async function action({ context, request }: Route.ActionArgs) {
 
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) return { error: "validation" as const };
-  const mime = file.type || "application/octet-stream";
+  const mime = normalizeUploadMime(file.type || "application/octet-stream");
   const kind = detectKind(mime);
   if (!kind) return { error: "bad_type" as const };
   if (file.size > sizeCapFor(kind)) return { error: "too_large" as const };
@@ -103,6 +109,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   const downloadAllowed = form.get("downloadAllowed") === "on";
 
   const buf = await file.arrayBuffer();
+  if (!uploadBytesMatchMime(buf, mime)) return { error: "bad_type" as const };
   const checksum = await sha256HexOf(buf);
   const r2Key = buildR2Key(kind, file.name, visibility);
   const bucket = visibility === "public" ? env.PUBLIC_ASSETS : env.PRIVATE_FILES;
@@ -127,7 +134,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     entityType: "file",
     entityId: id,
     after: { r2Key, kind, visibility, byteSize: file.size },
-    ipHash: await sha256Hex(clientIpOf(request) ?? "unknown"),
+    ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER),
   });
   return { ok: true as const, id };
 }

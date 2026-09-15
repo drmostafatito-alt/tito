@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Response } from "@playwright/test";
+import { test, expect, type Locator, type Page, type Response } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ADMIN_EMAIL, ADMIN_PASSWORD, loginViaUI } from "../e2e/helpers";
@@ -43,6 +43,20 @@ async function shot(page: Page, name: string) {
   await page.screenshot({ path: resolve(OUT, name), fullPage: true });
 }
 
+async function clickAndWaitForPost(page: Page, target: Locator) {
+  const [response, revalidation] = await Promise.all([
+    page.waitForResponse((res) => res.request().method() === "POST" && new URL(res.url()).origin === BASE),
+    page.waitForResponse((res) => res.request().method() === "GET" && res.url().includes(".data") && new URL(res.url()).origin === BASE),
+    target.click(),
+  ]);
+  expect(response.status()).toBeLessThan(400);
+  expect(revalidation.status()).toBeLessThan(400);
+  // The data response can be streamed; wait for React to consume it and commit
+  // instead of awaiting Response.finished(), which may not resolve for streams.
+  await page.waitForTimeout(100);
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+}
+
 /**
  * Builder fields live in closed <details>. Click the visible summary to open,
  * fill heading, click Save settings. Heading is enough for the public-page stamp.
@@ -52,14 +66,13 @@ async function stampPageDraft(page: Page, stamp: string) {
     .locator("details")
     .filter({ has: page.locator('input[name="blockTypeDef"][value="section"]') })
     .first();
-  await details.locator("summary").waitFor({ state: "visible" });
-  const open = await details.evaluate((el) => (el as HTMLDetailsElement).open);
-  if (!open) await details.locator("summary").click();
+  await details.locator(":scope > summary").waitFor({ state: "visible" });
+  await details.evaluate((el) => ((el as HTMLDetailsElement).open = true));
 
   const form = details.locator("form").first();
-  await form.locator('input[name="f.heading.ar"]').fill(stamp, { force: true });
-  await form.locator('input[name="f.heading.en"]').fill(stamp, { force: true });
-  await form.locator("button[type=submit]").click();
+  await form.locator('input[name="f.heading.ar"]').fill(stamp);
+  await form.locator('input[name="f.heading.en"]').fill(stamp);
+  await clickAndWaitForPost(page, form.locator("button[type=submit]"));
   await expect(page.locator('input[name="f.heading.ar"]').first()).toHaveValue(stamp);
 }
 
@@ -255,12 +268,13 @@ test.describe("QA closeout", () => {
     await page.waitForURL(/\/admin\/cms\/pages\//);
     await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
-    await page.getByRole("button", { name: /\+ إضافة قسم|Add section/i }).click();
-    await expect(page.getByText(/قسم #/)).toHaveCount(await page.getByText(/قسم #/).count());
+    const sectionCount = await page.getByText(/قسم #/).count();
+    await clickAndWaitForPost(page, page.getByRole("button", { name: /\+ إضافة قسم|Add section/i }));
+    await expect(page.getByText(/قسم #/)).toHaveCount(sectionCount + 1);
 
     const addBlockForm = page.locator("form").filter({ has: page.locator('input[name="_action"][value="add-block"]') }).last();
     await addBlockForm.locator('select[name="blockType"]').selectOption("rich_text");
-    await addBlockForm.getByRole("button", { name: /إضافة مكوّن|Add block/i }).click();
+    await clickAndWaitForPost(page, addBlockForm.getByRole("button", { name: /إضافة مكوّن|Add block/i }));
     const richItem = page.locator("li").filter({ has: page.locator("span", { hasText: /^نص منسّق$|^Rich text$/ }) }).last();
     await expect(richItem).toBeVisible();
     await richItem.locator("summary").click();
@@ -271,28 +285,28 @@ test.describe("QA closeout", () => {
       el.dispatchEvent(new Event("input", { bubbles: true }));
       el.dispatchEvent(new Event("blur", { bubbles: true }));
     });
-    await page.getByRole("button", { name: /حفظ الإعدادات|Save settings/i }).first().click();
+    await clickAndWaitForPost(page, richItem.getByRole("button", { name: /حفظ الإعدادات|Save settings/i }));
     await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
-    await page.getByRole("button", { name: /^نسخ$|^Duplicate$/i }).first().click();
+    await clickAndWaitForPost(page, page.getByRole("button", { name: /^نسخ$|^Duplicate$/i }).first());
     await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
-    await page.getByRole("button", { name: /^حذف$|^Delete$/i }).last().click();
+    await clickAndWaitForPost(page, page.getByRole("button", { name: /^حذف$|^Delete$/i }).last());
     await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
     const downBtn = page.getByRole("button", { name: "↓" }).first();
-    if (await downBtn.isEnabled()) await downBtn.click();
+    if (await downBtn.isEnabled()) await clickAndWaitForPost(page, downBtn);
 
     await page.locator('input[name="note"]').fill("qa-publish");
     await page.getByRole("button", { name: /^نشر$|^Publish$/i }).click();
     await expect(page.locator("body")).toContainText(/تم النشر|Published/);
     await expect(page.getByRole("link", { name: /معاينة|Preview/i })).toHaveAttribute("href", /\/admin\/cms\/preview\//);
 
-    await page.getByRole("button", { name: /^استعادة$|^Restore$/i }).first().click();
+    await clickAndWaitForPost(page, page.getByRole("button", { name: /^استعادة$|^Restore$/i }).first());
     await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
     // --- Template: apply starter → edit heading → publish; copy to contact; edit source; contact unchanged ---
     await page.locator('select[name="templateId"]').selectOption("starter-simple");
     await page.locator('input[name="confirm"]').check();
-    await page.getByRole("button", { name: /تطبيق قالب|Apply template/i }).click();
+    await clickAndWaitForPost(page, page.getByRole("button", { name: /تطبيق قالب|Apply template/i }));
     await expect(page.locator("body")).toContainText(/تم تطبيق|template applied|Template/i);
 
     await stampPageDraft(page, "QA-TEMPLATE-A");
@@ -315,7 +329,7 @@ test.describe("QA closeout", () => {
     expect(tplVal).toBeTruthy();
     await page.locator('select[name="templateId"]').selectOption(tplVal!);
     await page.locator('input[name="confirm"]').check();
-    await page.getByRole("button", { name: /تطبيق قالب|Apply template/i }).click();
+    await clickAndWaitForPost(page, page.getByRole("button", { name: /تطبيق قالب|Apply template/i }));
     await expect(page.getByRole("heading", { name: /تواصل معنا|Contact/i })).toBeVisible();
     await page.locator('input[name="note"]').fill("qa-contact-from-template");
     await page.getByRole("button", { name: /^نشر$|^Publish$/i }).click();

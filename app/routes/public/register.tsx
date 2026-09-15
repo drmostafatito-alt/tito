@@ -1,7 +1,7 @@
 import type { Route } from "./+types/register";
 import { Form, Link, useActionData, useNavigation, useSearchParams } from "react-router";
 import { redirect } from "react-router";
-import { getEnv } from "~server/cf.server";
+import { getEnv, getWaitUntil } from "~server/cf.server";
 import { login, registerUser } from "~server/auth/service.server";
 import { serializeCookie } from "~server/auth/cookies.server";
 import { Input } from "~/components/ui/Input";
@@ -39,7 +39,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     return { error: "mismatch", email, fullName };
   }
 
-  const registered = await registerUser(env, { email, fullName, password }, request);
+  const registered = await registerUser(env, { email, fullName, password }, request, getWaitUntil(context));
   if (!registered.ok) {
     return { error: registered.code, email, fullName };
   }

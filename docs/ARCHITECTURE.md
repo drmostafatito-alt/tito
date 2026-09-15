@@ -9,13 +9,13 @@
 |---|---|
 | Runtime | Cloudflare Workers (Workerd) — one deployable |
 | Framework | **React Router v7 (framework mode)** — SSR + client navigation, TypeScript strict |
-| Build | Vite + `@cloudflare/vite-plugin`; scaffolded from the official RR7 Cloudflare template (Phase 1) |
+| Build | Vite + React Router framework plugin; classic Worker wrapper (`workers/app.ts`) served by Wrangler |
 | Database | **Cloudflare D1** (SQLite) via Drizzle ORM, versioned migrations |
 | Object storage | **R2** — `public-assets` (cacheable), `private-files` (signed URLs only), `video-masters` (never public) |
 | Video | `VideoProvider` interface — **Mux** adapter (production), **mock** adapter (dev), future: Bunny/Cloudflare Stream |
 | Payments | `PaymentProvider` interface — **manual rail** (transfer + admin approval) first; verified gateways Phase 6 |
 | i18n | **Arabic + English, RTL/LTR** from day one; logical CSS properties; Arabic default (admin-configurable) |
-| Auth | Email/password, PBKDF2-SHA256 (600k iter, WebCrypto), opaque DB-backed sessions bound to devices |
+| Auth | Email/password, PBKDF2-SHA256 (configurable; 100k free-tier default), opaque DB-backed sessions bound to devices |
 | Testing | Vitest (+ Workers pool), Playwright e2e, real-device matrix |
 
 ## 2. System shape
@@ -95,7 +95,7 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
 - Register (rate-limited, Zod-validated) → PBKDF2 hash (600k iterations, 16-byte salt, constant-time compare).
 - Login → device resolution: durable cookie `dk` (random 128-bit) → SHA-256 hash looked up per user. Policy from settings (`devices.max_per_student`, `devices.on_limit: block|replace_oldest`, `devices.change_limit_per_30d`). Evictions/limits → `security_events`.
 - Session token: 256-bit random, stored hashed, `HttpOnly; Secure; SameSite=Lax; Path=/`, sliding 30-day expiry (configurable). Logout revokes the session row — device slot is **not** freed by mere logout when policy says so (device binding persists; revocation is explicit).
-- Password reset: single-use 256-bit token (hashed, 60-min TTL); change password requires current password and revokes all other sessions.
+- Password reset: single-use 256-bit token (peppered hash, 10–30 minute TTL), one-active-token DB invariant, Resend HTTPS delivery, fragment-to-HttpOnly-cookie exchange, and transactional password update/session revocation/token claim. Change password requires the current password and revokes all sessions.
 - Suspicious-login heuristics: new device + new IP class + off-hours → optional admin review flag (settings-driven).
 
 ## 7. Authorization model
@@ -126,7 +126,7 @@ Cloudflare edge ── WAF/CDN ──► Worker (the app)
 
 ## 10. Video pipeline (detail in VIDEO-PROVIDERS.md)
 
-Ingest: admin uploads master → R2 `video-masters/` → provider upload (Mux direct-upload) → `videos` row tracks `provider`, `asset_id`, `playback_id`, `status` (poll/sync). Playback: `POST /api/playback/:videoId` → entitlement + replay-policy check (**live P4**: `settings.video.replayLimit` enforced at mint against pre-increment `watch_count`; admins bypass) → mint provider credentials (Mux signed JWT, short TTL) → client player (hls.js; Safari uses native HLS) + `resumeAt` from stored position. Progress beacons (**live P4**) update `video_progress` (position, watch sessions, completion threshold, replay count); progress writes never block entitled playback (ADR-021).
+Ingest: admin uploads master → R2 `video-masters/` → provider upload (Mux direct-upload) → `videos` row tracks `provider`, `asset_id`, `playback_id`, `status` (poll/sync). Playback: `POST /api/playback/:videoId` → entitlement + replay-policy check (**live P4**: `settings.video.replayLimit` enforced at mint against pre-increment `watch_count`; admins bypass) → mint provider credentials (Mux RS256 JWT covering expected viewing duration, ≤24h) → client player (hls.js; Safari uses native HLS) + `resumeAt` from stored position. Progress beacons (**live P4**) update `video_progress` (position, watch sessions, completion threshold, replay count); progress writes never block entitled playback (ADR-021).
 
 ## 11. Payments (detail in PAYMENTS.md)
 

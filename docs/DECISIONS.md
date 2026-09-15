@@ -4,7 +4,7 @@ Format per record: **Context / Decision / Consequences / Status**.
 
 **Policy:** any external-provider adapter (payments, video, email, WhatsApp) requires a *verification ADR* citing current official documentation before implementation. No invented APIs.
 
-**Owner decisions locked 2026-09-05:** stack = React Router v7 full-stack · locale = Arabic+English RTL-ready · first payment rail = manual + activation codes · infra = Cloudflare account + custom domain + Mux account available.
+**Owner decisions:** stack = React Router v7 full-stack · locale = Arabic+English RTL-ready · payment behavior remains manual + activation codes · infrastructure remains Cloudflare free-first. A `workers.dev` application origin is supported; no custom application domain or paid infrastructure is required by this release. Resend sender-domain ownership is a separate external prerequisite for arbitrary-recipient production email.
 
 ---
 
@@ -25,7 +25,7 @@ Format per record: **Context / Decision / Consequences / Status**.
 
 ## ADR-004 Authentication model
 **Status: Accepted**
-- PBKDF2-SHA256, 600k iterations, per-user salt (WebCrypto — Workers-native). Opaque 256-bit session tokens stored hashed; `HttpOnly; Secure; SameSite=Lax`; sliding 30-day expiry; sessions bound to devices; login/reset rate-limited; reset tokens single-use hashed TTL 60min; role checks in server handlers only.
+- PBKDF2-SHA256 with per-user salt (WebCrypto — Workers-native), configurable iterations with a documented 100k free-tier default. Opaque 256-bit session tokens are pepper-hashed at rest; `__Host-` cookies are `HttpOnly; Secure; SameSite=Lax`; sessions slide up to a 180-day absolute cap and remain device-bound. Login/recovery are rate-limited; reset tokens are pepper-hashed, single-use, and expire after at most 30 minutes; role checks run only in server handlers.
 
 ## ADR-005 Device & session identity (account-sharing deterrence)
 **Status: Accepted**
@@ -33,7 +33,7 @@ Format per record: **Context / Decision / Consequences / Status**.
 
 ## ADR-006 Video provider abstraction
 **Status: Accepted. Initial provider: Mux (owner has account).**
-- Interface per VIDEO-PROVIDERS.md; adapters `mock` (dev) + `mux` (prod). **Playback model verified 2026-09-05** against Mux official docs: signed playback = short-TTL JWT (Ed25519 signing key) appended to `stream.mux.com/{PLAYBACK_ID}.m3u8`; optional domain playback restrictions; signed thumbnails. Re-verification pass on upload API + Workers Ed25519 WebCrypto during Phase 2 scaffold (links in verification queue).
+- Interface per VIDEO-PROVIDERS.md; adapters `mock` (dev) + `mux` (prod). **Playback model corrected/re-verified 2026-09-15** against Mux's official guide: signed playback uses an RS256 JWT from Mux's 2048-bit RSA signing key. Expiry covers asset duration + 30 minutes (four-hour unknown-duration fallback, 24-hour hard cap), because Mux stops an in-progress stream at expiry. A production-host playback restriction is required and embedded in each JWT; thumbnails are signed separately.
 - Masters preserved in R2 `video-masters/` → provider migration = re-ingest job.
 
 ## ADR-007 Payment provider abstraction & first rail
@@ -121,12 +121,12 @@ Format per record: **Context / Decision / Consequences / Status**.
 | Item | Phase | Status |
 |------|-------|--------|
 | Mux playback model (signed JWT, restrictions, thumbnails) | 2 | ✅ verified 2026-09-05 — mux.com/docs (Mux fundamentals; Securing video playback with signed URLs; React Native playback page confirming `?token=` usage) |
-| Mux upload API specifics + Workers Ed25519 WebCrypto support | 2 | ⚠️ partial (2026-09-05): Ed25519 WebCrypto sign/verify proven INSIDE workerd (integration test); direct-upload + asset-sync implemented per docs but **unexercised against the live Mux API (no production credentials here)** — must re-verify schemas on first credentialed run. Provider-switch behavior verified live: missing creds → loud `VideoNotConfiguredError`, no silent fallback |
+| Mux upload API specifics + Workers RS256 WebCrypto support | 2 | ⚠️ partial (corrected 2026-09-15): Mux-compatible RSA PEM import + RS256 sign/verify proven in Node and INSIDE workerd; direct-upload + asset-sync implemented per docs but **unexercised against the live Mux API (no production credentials here)** — owner must verify schemas and real playback before launch. Provider-switch behavior verified locally: missing creds → loud `VideoNotConfiguredError`, no silent fallback |
 | Bunny Stream token auth (future adapter) | later | pending |
 | Paymob: official API, Egypt, webhooks, signature, refunds | 6 | pending |
 | Fawry: same | 6 | pending |
 | Stripe: merchant-entity country constraints | 6 | pending |
-| Email provider (e.g., Resend) for reset/notifications | 4+ | pending |
+| Resend Transactional Email API for reset/notifications | 4+ | ✅ code/API compatibility implemented 2026-09-15 with native Workers `fetch` + hermetic capture tests; ⚠️ owner sending-domain/DNS/API-key setup and real delivery remain unverified deployment blockers |
 | WhatsApp: official WhatsApp Business Platform only | 7+ | pending (legal/account prerequisites) |
 | Cloudflare free-tier limits vs projected usage | ongoing | doc'd in DEPLOYMENT §8 |
 

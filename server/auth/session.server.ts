@@ -4,8 +4,11 @@ import { devices, sessions, users } from "../db/schema";
 import { sha256Hex } from "../http/rate-limit.server";
 import { parseCookieHeader, serializeCookie } from "./cookies.server";
 
-export const SESSION_COOKIE = "__edu_session";
-export const DEVICE_COOKIE = "__edu_dk";
+// __Host- cookies cannot be planted from a sibling subdomain: browsers require
+// Secure, Path=/, and no Domain attribute. serializeCookie enforces that shape.
+export const SESSION_COOKIE = "__Host-edu_session";
+export const DEVICE_COOKIE = "__Host-edu_dk";
+export const SESSION_ABSOLUTE_MAX_AGE_MS = 180 * 86_400_000;
 
 export interface AuthUser {
   id: string;
@@ -40,7 +43,10 @@ export async function createSession(
 ): Promise<{ token: string; expiresAt: number; maxAgeSeconds: number }> {
   const token = newOpaqueToken();
   const now = Date.now();
-  const expiresAt = now + opts.sessionDays * 86_400_000;
+  const expiresAt = Math.min(
+    now + opts.sessionDays * 86_400_000,
+    now + SESSION_ABSOLUTE_MAX_AGE_MS
+  );
   await db.insert(sessions).values({
     id: crypto.randomUUID(),
     userId: opts.userId,
@@ -92,6 +98,8 @@ export async function resolveAuth(
   const row = rows[0];
   const now = Date.now();
   if (!row || row.session.expiresAt <= now || row.session.revokedAt) return { auth: null };
+  const absoluteExpiresAt = row.session.createdAt + SESSION_ABSOLUTE_MAX_AGE_MS;
+  if (absoluteExpiresAt <= now) return { auth: null };
   if (row.user.status !== "active" || row.user.deletedAt) return { auth: null };
   if (row.device.status !== "active") return { auth: null };
 
@@ -99,20 +107,24 @@ export async function resolveAuth(
   const rank = ROLE_RANKS[row.user.roleId] ?? 1;
 
   let refreshCookie: string | undefined;
-  const halfLife = (row.session.expiresAt - row.session.createdAt) / 2;
-  if (now - row.session.lastSeenAt > halfLife) {
-    // H2 (Phase 8): extend by the session's ORIGINAL lifetime, not a hardcoded
-    // 30d floor — this honors the configured `security.sessionDays` that was in
-    // force when the session was created (and future config changes take effect
-    // on next login, as expected).
-    const sessionLifetimeMs = row.session.expiresAt - row.session.createdAt;
-    const newExpiry = now + sessionLifetimeMs;
-    await db.update(sessions).set({ lastSeenAt: now, expiresAt: newExpiry }).where(eq(sessions.id, row.session.id));
+  let resolvedExpiry = row.session.expiresAt;
+  if (now - row.session.lastSeenAt > 60_000) {
+    // Keep the lifetime encoded by the session row: at creation (and after each
+    // refresh), expiresAt - lastSeenAt is the configured lifetime. Moving both
+    // values by the elapsed activity interval provides a real sliding expiry,
+    // capped at 180 days from creation so a stolen active session cannot live
+    // forever. The former half-life test could never fire because lastSeenAt was
+    // updated every minute, so active sessions still expired at their original deadline.
+    const sessionLifetimeMs = row.session.expiresAt - row.session.lastSeenAt;
+    const newExpiry = Math.min(now + sessionLifetimeMs, absoluteExpiresAt);
+    await db
+      .update(sessions)
+      .set({ lastSeenAt: now, expiresAt: newExpiry })
+      .where(and(eq(sessions.id, row.session.id), isNull(sessions.revokedAt)));
     refreshCookie = serializeCookie(SESSION_COOKIE, token, {
-      maxAgeSeconds: Math.floor((newExpiry - now) / 1000),
+      maxAgeSeconds: Math.max(0, Math.floor((newExpiry - now) / 1000)),
     });
-  } else if (now - row.session.lastSeenAt > 60_000) {
-    await db.update(sessions).set({ lastSeenAt: now }).where(eq(sessions.id, row.session.id));
+    resolvedExpiry = newExpiry;
   }
 
   return {
@@ -125,7 +137,7 @@ export async function resolveAuth(
         rank,
         localePref: row.user.localePref,
       },
-      session: { id: row.session.id, expiresAt: row.session.expiresAt },
+      session: { id: row.session.id, expiresAt: resolvedExpiry },
       device: { id: row.device.id, label: row.device.label, platform: row.device.platform },
     },
     refreshCookie,

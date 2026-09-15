@@ -19,6 +19,7 @@ export type SecurityEventType =
   | "permission_denied"
   | "registration"
   | "profile_updated"
+  | "email_change_reauth_failed"
   | "email_change_requested"
   | "email_changed";
 

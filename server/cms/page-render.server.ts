@@ -32,7 +32,7 @@ export function requestLocale(request: Request, settings: Settings, userPref: st
  */
 export async function handleCmsFormAction(
   db: DB,
-  _env: Env,
+  env: Env,
   request: Request
 ): Promise<{ formResults: Record<string, FormResultView> } | { status: number } | null> {
   let formData: FormData;
@@ -41,7 +41,9 @@ export async function handleCmsFormAction(
   if (typeof slug !== "string" || !slug) return null;
 
   const ip = clientIpOf(request);
-  const ipHash = ip ? await sha256Hex(`form:${ip}`) : "form:unknown";
+  const ipHash = ip
+    ? await sha256Hex(`form:${ip}`, env.SESSION_PEPPER)
+    : await sha256Hex("form:unknown", env.SESSION_PEPPER);
   const rl = await checkRateLimit(db, "form-submit", ipHash, 10, 3_600_000);
   if (!rl.ok) {
     return { formResults: { [slug]: { ok: false, errors: { __form: "rate_limited" } } } };

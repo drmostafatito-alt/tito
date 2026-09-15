@@ -71,16 +71,37 @@ export async function verifyPassword(
   stored: string,
   env?: Env
 ): Promise<{ valid: boolean; needsRehash: boolean }> {
-  const parts = stored.split("$");
-  if (parts.length !== 5 || parts[0] !== "pbkdf2" || parts[1] !== "sha256") {
+  try {
+    const parts = stored.split("$");
+    if (parts.length !== 5 || parts[0] !== "pbkdf2" || parts[1] !== "sha256") {
+      return { valid: false, needsRehash: true };
+    }
+    const iterations = Number(parts[2]);
+    if (!Number.isSafeInteger(iterations) || iterations < ITER_MIN || iterations > ITER_MAX) {
+      return { valid: false, needsRehash: true };
+    }
+    // A valid row always has a 16-byte salt and SHA-256's 32-byte output.
+    // Bounds are checked before WebCrypto so corrupt DB values cannot trigger an
+    // expensive or malformed derivation.
+    if (parts[3].length > 64 || parts[4].length > 128) return { valid: false, needsRehash: true };
+    const salt = fromB64(parts[3]);
+    const expected = fromB64(parts[4]);
+    if (salt.length !== 16 || expected.length !== 32) return { valid: false, needsRehash: true };
+    const actual = await derive(password, salt, iterations);
+    const valid = constantTimeEqual(actual, expected);
+    return { valid, needsRehash: valid && iterations < iterationsOf(env) };
+  } catch {
     return { valid: false, needsRehash: true };
   }
-  const iterations = Number(parts[2]);
-  const salt = fromB64(parts[3]);
-  const expected = fromB64(parts[4]);
-  const actual = await derive(password, salt, iterations);
-  const valid = constantTimeEqual(actual, expected);
-  return { valid, needsRehash: valid && iterations < iterationsOf(env) };
+}
+
+/**
+ * Perform the same PBKDF2 class of work for an unknown login identifier. This
+ * closes the otherwise-observable "user lookup missed, no KDF ran" timing gap.
+ */
+export async function burnPasswordVerification(password: string, env?: Env): Promise<void> {
+  const salt = encoder.encode("unknown-user-salt").slice(0, 16);
+  await derive(password, salt, iterationsOf(env));
 }
 
 const COMMON_PASSWORDS = new Set([

@@ -86,7 +86,7 @@ const defaults = {
   },
   locale: { default: "ar", enabled: ["ar", "en"] },
   devices: { maxPerStudent: 1, onLimit: "block", changeLimitPer30d: 2 },
-  security: { sessionDays: 30, resetTokenMinutes: 60, rateLimits: { loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5 } },
+  security: { sessionDays: 30, resetTokenMinutes: 30, rateLimits: { loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5, forgotPerAccountHour: 3, resetAttemptsPer15Minutes: 10, resetEmailsPerDay: 80, emailChangePerHour: 5 } },
 };
 for (const [key, value] of Object.entries(defaults)) {
   const sql = key === "platform"
@@ -164,7 +164,7 @@ if (!existingStudent) {
 // LMS feature coverage for e2e/smoke only — NOT production identity.
 // Production-readiness gate rejects these rows. Do not delete the schema.
 // ---------------------------------------------------------------------------
-const videoSettings = { provider: "mock", playbackTokenTtlSeconds: 45, fileUrlTtlSeconds: 120 };
+const videoSettings = { provider: "mock", playbackTokenTtlSeconds: 3600, fileUrlTtlSeconds: 120 };
 await exec(`INSERT INTO settings (key, value, updated_at) VALUES ('video', ?, ?) ON CONFLICT(key) DO NOTHING`, [
   JSON.stringify(videoSettings),
   now,

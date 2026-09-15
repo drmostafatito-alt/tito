@@ -14,6 +14,9 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/__test/email-capture": {
+    params: {};
+  };
   "/p/:slug": {
     params: {
       "slug": string;
@@ -274,7 +277,11 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/p/:slug" | "/about" | "/programs" | "/programs/:slug" | "/grades/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/curriculum/:slug" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/verify-email-change" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/robots.txt" | "/sitemap.xml" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/webhooks/payments/:provider" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/assignments" | "/assignments/:id" | "/checkout/:productSlug" | "/orders" | "/orders/:orderNumber" | "/activate" | "/profile/security" | "/notifications" | "/admin" | "/admin/cms" | "/admin/cms/templates" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/seo" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/search" | "/admin/users" | "/admin/teachers" | "/admin/users/:id" | "/admin/students/:id" | "/admin/analytics" | "/admin/audit" | "/admin/security" | "/admin/announcements" | "/admin/assignments" | "/admin/assignments/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
+    page: "/" | "/__test/email-capture" | "/p/:slug" | "/about" | "/programs" | "/programs/:slug" | "/grades/:slug" | "/subjects/:slug" | "/courses" | "/courses/:slug" | "/courses/:slug/units/:unitId" | "/curriculum/:slug" | "/products/:slug" | "/login" | "/register" | "/forgot-password" | "/reset-password" | "/verify-email-change" | "/set-locale" | "/logout" | "/theme.css" | "/favicon.ico" | "/robots.txt" | "/sitemap.xml" | "/learn/:courseSlug/:lessonSlug" | "/files/:id" | "/api/playback/:videoId" | "/beacons/progress" | "/webhooks/payments/:provider" | "/api/mock-stream/:videoId/:file" | "/dashboard" | "/profile" | "/assignments" | "/assignments/:id" | "/checkout/:productSlug" | "/orders" | "/orders/:orderNumber" | "/activate" | "/profile/security" | "/notifications" | "/admin" | "/admin/cms" | "/admin/cms/templates" | "/admin/cms/pages/:id" | "/admin/cms/preview/:pageId" | "/admin/cms/menus" | "/admin/cms/forms" | "/admin/appearance" | "/admin/seo" | "/admin/content" | "/admin/content/:type/:id" | "/admin/files" | "/admin/videos" | "/admin/entitlements" | "/admin/search" | "/admin/users" | "/admin/teachers" | "/admin/users/:id" | "/admin/students/:id" | "/admin/analytics" | "/admin/audit" | "/admin/security" | "/admin/announcements" | "/admin/assignments" | "/admin/assignments/:id" | "/admin/commerce" | "/admin/commerce/products/:id" | "/admin/commerce/orders/:id" | "/admin/commerce/batches/:id";
+  };
+  "routes/test.email-capture.tsx": {
+    id: "routes/test.email-capture";
+    page: "/__test/email-capture";
   };
   "routes/public/layout.tsx": {
     id: "public";
@@ -564,6 +571,7 @@ type RouteFiles = {
 
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
+  "routes/test.email-capture": typeof import("./app/routes/test.email-capture.tsx");
   "public": typeof import("./app/routes/public/layout.tsx");
   "routes/public/home": typeof import("./app/routes/public/home.tsx");
   "routes/p.$slug": typeof import("./app/routes/p.$slug.tsx");

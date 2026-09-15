@@ -65,7 +65,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   const intent = String(form.get("_action") ?? "");
   if (intent !== "create_order") return { error: "generic" as const };
 
-  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
+  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER);
   const rl = await checkRateLimit(db, "checkout", `${auth.user.id}:${ipHash}`, 10, 3_600_000);
   if (!rl.ok) return { error: "rate_limited" as const };
 

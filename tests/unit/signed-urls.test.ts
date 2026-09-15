@@ -40,6 +40,18 @@ describe("private-file signed URLs", () => {
     ).toEqual({ ok: false, reason: "bad_sig" });
   });
 
+  it("rejects attacker-chosen far-future expiries and unsafe mint TTLs", async () => {
+    const now = Date.now();
+    expect(
+      await verifyFileSignature(
+        env,
+        { fileId: "f", perm: "view", exp: String(now + 86_400_001), sig: "ab" },
+        now
+      )
+    ).toEqual({ ok: false, reason: "malformed" });
+    await expect(signFileUrl(env, "f", "view", 86_401, now)).rejects.toThrow("invalid signed-file TTL");
+  });
+
   it("rejects malformed params", async () => {
     expect(await verifyFileSignature(env, { fileId: "f", perm: "view", exp: "NaN", sig: "ab" })).toEqual({
       ok: false,

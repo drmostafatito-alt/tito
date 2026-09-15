@@ -5,9 +5,18 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { listVideos, registerMockVideo, registerYouTubeVideo, ingestMaster, syncVideo } from "~server/video/service.server";
 import { parseYouTubeId } from "~server/video/youtube";
+import { sanitizedVideoProviderFailure } from "~server/video/provider-error.server";
+import { isNonProductionEnvironment } from "~server/http/origin.server";
 import { getSettings } from "~server/settings/service.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { logAudit } from "~server/audit/log.server";
+import {
+  detectKind,
+  normalizeUploadMime,
+  requestBodyTooLarge,
+  sizeCapFor,
+  uploadBytesMatchMime,
+} from "~server/files/storage.server";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
@@ -16,10 +25,12 @@ import { t, type Locale } from "~/lib/i18n";
 /** Admin videos: register mock / ingest master through the ACTIVE provider; list + sync. */
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { settings } = await requireRole(context, request, 3);
-  const db = getDb(getEnv(context));
+  const env = getEnv(context);
+  const db = getDb(env);
   const rows = await listVideos(db, 200);
   return {
     provider: settings.video.provider,
+    allowMock: isNonProductionEnvironment(env),
     videos: rows.map((v) => ({
       id: v.id,
       provider: v.provider,
@@ -37,11 +48,15 @@ export async function action({ context, request }: Route.ActionArgs) {
   const { auth } = await requireRole(context, request, 3);
   const env = getEnv(context);
   const db = getDb(env);
+  if (requestBodyTooLarge(request)) return { error: "validation" as const };
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
-  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown");
+  const ipHash = await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER);
 
   if (intent === "register-mock") {
+    // Synthetic media must never be creatable in preview/production, even by an
+    // administrator crafting the POST manually.
+    if (!isNonProductionEnvironment(env)) return { error: "generic" as const };
     const duration = Number(form.get("duration") ?? 60);
     const row = await registerMockVideo(db, {
       durationSeconds: Number.isFinite(duration) && duration > 0 ? Math.min(duration, 7200) : 60,
@@ -70,6 +85,12 @@ export async function action({ context, request }: Route.ActionArgs) {
   if (intent === "ingest") {
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) return { error: "validation" as const };
+    const mime = normalizeUploadMime(file.type || "application/octet-stream");
+    if (!['video/mp4', 'video/quicktime'].includes(mime) || detectKind(mime) !== "video" || file.size > sizeCapFor("video")) {
+      return { error: "validation" as const };
+    }
+    const header = await file.slice(0, 16_384).arrayBuffer();
+    if (!uploadBytesMatchMime(header, mime)) return { error: "validation" as const };
     const settings = await getSettings(db);
     const title = String(form.get("title") ?? file.name).slice(0, 200);
     try {
@@ -78,11 +99,14 @@ export async function action({ context, request }: Route.ActionArgs) {
         masterSize: file.size,
         originalFilename: file.name,
         title,
+        mime,
       });
       await logAudit(db, { actorUserId: auth.user.id, actorRole: auth.user.roleId, action: "videos.ingested", entityType: "video", entityId: row.id, after: { provider: settings.video.provider, status: row.status }, ipHash });
       return { ok: true as const };
-    } catch (err) {
-      return { error: "provider" as const, detail: err instanceof Error ? err.message : String(err) };
+    } catch (error) {
+      // Provider responses can contain request ids, account metadata, internal
+      // URLs, or echoed fields. Keep upstream details at the server boundary.
+      return sanitizedVideoProviderFailure(error);
     }
   }
   if (intent === "sync") {
@@ -90,8 +114,8 @@ export async function action({ context, request }: Route.ActionArgs) {
     try {
       const row = await syncVideo(db, env, id);
       return row ? { ok: true as const } : { error: "not_found" as const };
-    } catch (err) {
-      return { error: "provider" as const, detail: err instanceof Error ? err.message : String(err) };
+    } catch (error) {
+      return sanitizedVideoProviderFailure(error);
     }
   }
   return { error: "generic" as const };
@@ -111,20 +135,22 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardHeader title={`${t(locale, "videosAdmin.title")} — ${t(locale, "videosAdmin.provider")}: ${loaderData.provider}`} />
         <CardBody className="space-y-4">
-          <Form method="post" className="grid gap-3 sm:grid-cols-3">
-            <input type="hidden" name="_action" value="register-mock" />
-            <label className="grid gap-1 text-sm">
-              <span>{t(locale, "videosAdmin.registerMock")}</span>
-              <input name="title" dir="auto" className={input} />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span>⏱ (s)</span>
-              <input name="duration" type="number" min={10} max={7200} defaultValue={60} className={input} />
-            </label>
-            <div className="flex items-end">
-              <SubmitButton>{t(locale, "videosAdmin.registerMock")}</SubmitButton>
-            </div>
-          </Form>
+          {loaderData.allowMock && (
+            <Form method="post" className="grid gap-3 sm:grid-cols-3">
+              <input type="hidden" name="_action" value="register-mock" />
+              <label className="grid gap-1 text-sm">
+                <span>{t(locale, "videosAdmin.registerMock")}</span>
+                <input name="title" dir="auto" className={input} />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span>⏱ (s)</span>
+                <input name="duration" type="number" min={10} max={7200} defaultValue={60} className={input} />
+              </label>
+              <div className="flex items-end">
+                <SubmitButton>{t(locale, "videosAdmin.registerMock")}</SubmitButton>
+              </div>
+            </Form>
+          )}
           <Form method="post" encType="multipart/form-data" className="grid gap-3 sm:grid-cols-3">
             <input type="hidden" name="_action" value="ingest" />
             <label className="grid gap-1 text-sm">
@@ -178,12 +204,14 @@ export default function AdminVideos({ loaderData }: Route.ComponentProps) {
               <SubmitButton>{t(locale, "videosAdmin.registerYouTube")}</SubmitButton>
             </div>
           </Form>
-          {actionData?.ok && <p className="text-sm text-green-600">✓</p>}
+          {actionData && "ok" in actionData && actionData.ok && (
+            <p className="text-sm text-green-600">✓</p>
+          )}
           {actionData && "error" in actionData && actionData.error === "youtube_invalid" && (
             <p className="text-sm text-red-600" data-testid="youtube-error">{t(locale, "videosAdmin.youtubeInvalid")}</p>
           )}
           {actionData && "error" in actionData && actionData.error === "provider" && (
-            <p className="text-sm text-red-600">{(actionData as { detail?: string }).detail}</p>
+            <p className="text-sm text-red-600">{t(locale, "videosAdmin.providerError")}</p>
           )}
         </CardBody>
       </Card>

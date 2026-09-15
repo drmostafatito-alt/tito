@@ -197,7 +197,7 @@ export async function action({ context, request, params }: Route.ActionArgs) {
   const id = params.id;
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
-  const actor = { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
+  const actor = { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) };
 
   try {
     switch (intent) {

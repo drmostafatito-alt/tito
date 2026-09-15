@@ -4,7 +4,7 @@ import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
-import { canCms } from "~server/cms/service.server";
+import { canCms, CmsReferenceError, CmsValidationError } from "~server/cms/service.server";
 import { deleteTemplate, listTemplates } from "~server/cms/templates.server";
 import { Alert } from "~/components/ui/Alert";
 import { Badge } from "~/components/ui/Badge";
@@ -27,12 +27,17 @@ export async function action({ context, request }: Route.ActionArgs) {
   if (!(await canCms(db, guarded.auth, "cms.delete"))) return { error: "denied" as const };
   const form = await request.formData();
   if (String(form.get("_action")) !== "delete") return { error: "generic" as const };
-  const actor = { userId: guarded.auth.user.id, role: guarded.auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
+  const actor = { userId: guarded.auth.user.id, role: guarded.auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) };
   try {
     await deleteTemplate(db, String(form.get("templateId") ?? ""), actor);
     return { ok: true as const };
   } catch (err) {
-    return { error: "validation" as const, issues: [err instanceof Error ? err.message : "failed"] };
+    const message = err instanceof CmsValidationError
+      ? err.issues.map((issue) => issue.message).join(" — ")
+      : err instanceof CmsReferenceError
+        ? err.message
+        : "Unable to delete the template.";
+    return { error: "validation" as const, issues: [message] };
   }
 }
 

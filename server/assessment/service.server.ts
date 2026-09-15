@@ -84,6 +84,13 @@ export class AssessmentReferenceError extends Error {
   }
 }
 
+function safeAssessmentError(err: unknown): string {
+  if (err instanceof AssessmentValidationError || err instanceof AssessmentReferenceError) {
+    return err.message;
+  }
+  return "operation failed";
+}
+
 // ---------------------------------------------------------------------------
 // exam config contract (FEATURE-SPEC §6) — zod-validated on every write/read
 // ---------------------------------------------------------------------------
@@ -424,7 +431,7 @@ export async function bulkSetQuestionStatus(
       await setQuestionStatus(db, id, status, actor);
       out.push({ id, ok: true });
     } catch (err) {
-      out.push({ id, ok: false, error: err instanceof Error ? err.message : "error" });
+      out.push({ id, ok: false, error: safeAssessmentError(err) });
     }
   }
   return out;
@@ -470,7 +477,7 @@ export async function bulkTagQuestions(
       await addQuestionTags(db, id, toAdd);
       out.push({ id, ok: true });
     } catch (err) {
-      out.push({ id, ok: false, error: err instanceof Error ? err.message : "error" });
+      out.push({ id, ok: false, error: safeAssessmentError(err) });
     }
   }
   return out;

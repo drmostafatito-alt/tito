@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   plugins: [
     cloudflareTest({
-      wrangler: { configPath: "wrangler.jsonc" },
+      // This config lives in a directory with no `.dev.vars`, so Wrangler cannot
+      // load a developer's real local secrets into test workerd instances.
+      wrangler: { configPath: "tests/integration/wrangler.test.jsonc" },
       // Hermetic test secrets: the suite must not depend on the gitignored
       // `.dev.vars` being present (CI never has it). These are obviously-fake,
       // test-only values — real secrets live ONLY in `.dev.vars` (local dev) and
@@ -24,10 +26,9 @@ export default defineConfig({
           // request→send flows can be asserted hermetically (never a real provider).
           EMAIL_PROVIDER: "capture",
           AUTH_PBKDF2_ITERATIONS: "100000",
-          // Development context so the reset-token dev flow is exercised here;
-          // fail-closed variants (production/staging/undefined) are asserted by
-          // passing overridden env objects directly in auth.test.ts (C1).
-          ENVIRONMENT: "development",
+          // Explicit test context is required before the capture provider can run.
+          ENVIRONMENT: "test",
+          APP_ORIGIN: "https://app.test",
         },
       },
     }),

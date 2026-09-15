@@ -1,6 +1,6 @@
 import type { Route } from "./+types/forgot-password";
 import { Form, useActionData } from "react-router";
-import { getEnv } from "~server/cf.server";
+import { getEnv, getWaitUntil } from "~server/cf.server";
 import { requestPasswordReset } from "~server/auth/service.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
@@ -28,9 +28,14 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export async function action({ context, request }: Route.ActionArgs) {
   const env = getEnv(context);
   const form = await request.formData();
-  const result = await requestPasswordReset(env, String(form.get("email") ?? ""), request);
-  // uniform response — never reveals whether the email exists
-  return { sent: true, devToken: result.devToken ?? null };
+  await requestPasswordReset(
+    env,
+    String(form.get("email") ?? ""),
+    request,
+    getWaitUntil(context)
+  );
+  // Exact same public shape for known, unknown, malformed and throttled input.
+  return { sent: true as const };
 }
 
 export default function ForgotPassword() {
@@ -45,16 +50,8 @@ export default function ForgotPassword() {
         <p className="mb-6 text-sm text-slate-500">{t(locale, "auth.forgotDesc")}</p>
 
         {actionData?.sent && (
-          <div className="mb-4 flex flex-col gap-3">
+          <div className="mb-4">
             <Alert kind="success">{t(locale, "auth.forgotSent")}</Alert>
-            {actionData.devToken && (
-              <Alert kind="info">
-                <p className="mb-1 font-medium">{t(locale, "auth.forgotDevNote")}:</p>
-                <a className="break-all text-brand-700 underline" dir="ltr" href={`/reset-password?token=${actionData.devToken}`}>
-                  /reset-password?token={actionData.devToken.slice(0, 12)}…
-                </a>
-              </Alert>
-            )}
           </div>
         )}
 

@@ -1,10 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
+import chromium from "@sparticuz/chromium";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { existsSync, readdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+// Headless functional/a11y tests do not need WebGL. Disabling the packaged
+// SwiftShader Vulkan path avoids GPU initialization failures in restricted CI.
+chromium.setGraphicsMode = false;
 
 /**
  * Playwright E2E (W4, Phase 8).
@@ -13,17 +17,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  *   reset + seed runs FIRST (Playwright starts the webServer plugin *before*
  *   globalSetup, so the seed must precede `wrangler dev`, otherwise the dev
  *   server boots against an empty D1 and 500s on `no such table: menus`).
- * - globalSetup: assembles the self-contained headless Chromium (scripts/
- *   e2e-browser-setup.mjs) ONLY when no registry browser is installed.
- * - Browser strategy: prefer the Playwright-registry Chromium (modern build,
- *   currently 153) when present; fall back to the self-contained assembled
- *   Chromium (scripts/e2e-browser-setup.mjs — for sandboxes where every
- *   browser CDN is blocked). Both are real browsers, no mocks.
+ * - globalSetup: prepares the npm-pinned current @sparticuz/chromium binary.
+ * - Browser strategy: prefer the Playwright-registry Chromium when present;
+ *   otherwise use that current self-contained binary. Both are real browsers,
+ *   with no network download, obsolete Chromium fallback, or browser mock.
  *
  * Run:  npm run test:e2e   (see package.json)
  */
-const LIBDIR = resolve(__dirname, ".e2e/browser/lib");
-const ASSEMBLED = resolve(__dirname, ".e2e/browser/chromium");
+const PACKAGED_CHROMIUM = resolve(__dirname, ".e2e/browser/chromium");
+const PACKAGED_LIBDIR = resolve(tmpdir(), "al2023", "lib");
 
 /** Registry Chromium present? (a chromium-N or chromium_headless_shell-N dir under the Playwright browsers path) */
 function registryChromiumPresent(): boolean {
@@ -38,11 +40,13 @@ function registryChromiumPresent(): boolean {
 /**
  * Optional override for sandboxes/CI images that ship their own Chromium:
  * `E2E_CHROMIUM_PATH=/path/to/chrome npm run test:e2e`. Keeps the default
- * behaviour (registry browser, else the assembled bundle) untouched.
+ * behaviour (registry browser, else the packaged bundle) untouched.
  */
 const OVERRIDE = process.env.E2E_CHROMIUM_PATH;
-const executable = OVERRIDE ?? ASSEMBLED;
-const useAssembled = OVERRIDE ? true : !registryChromiumPresent() && existsSync(ASSEMBLED);
+const executable = OVERRIDE ?? PACKAGED_CHROMIUM;
+// Config is evaluated before globalSetup creates the symlink, so intentionally
+// do not gate this on existsSync(PACKAGED_CHROMIUM).
+const usePackaged = Boolean(OVERRIDE) || !registryChromiumPresent();
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -57,12 +61,25 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:5173",
     trace: "retain-on-failure",
-    // registry Chromium (preferred) or self-contained assembled Chromium
-    launchOptions: useAssembled
+    // registry Chromium (preferred) or current self-contained npm binary
+    launchOptions: usePackaged
       ? {
           executablePath: executable,
-          args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-zygote"],
-          env: { ...process.env, LD_LIBRARY_PATH: LIBDIR },
+          // Keep browser security semantics intact: unlike serverless Lambda
+          // defaults, do not disable web security/site isolation or force a
+          // fragile single-process browser in local CI.
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-gpu",
+            "--disable-software-rasterizer",
+            "--use-gl=disabled",
+            "--disable-dev-shm-usage",
+          ],
+          env: {
+            ...process.env,
+            LD_LIBRARY_PATH: [PACKAGED_LIBDIR, process.env.LD_LIBRARY_PATH].filter(Boolean).join(":"),
+          },
         }
       : { args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] },
   },
@@ -82,7 +99,7 @@ export default defineConfig({
   webServer: {
     // reset+seed FIRST, then build + `wrangler dev` — the dev server must boot
     // against the already-migrated/seeded local D1 (see header comment).
-    command: "node scripts/e2e-reset.mjs && npm run dev",
+    command: "node scripts/e2e-reset.mjs && npm run build && node scripts/nw.mjs wrangler dev --ip 0.0.0.0 --port 5173 --env-file tests/e2e/test.env",
     url: "http://127.0.0.1:5173",
     timeout: 240_000,
     reuseExistingServer: false,

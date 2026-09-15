@@ -14,6 +14,18 @@ export function serializeCookie(
   value: string,
   opts: CookieSerializeOptions = {}
 ): string {
+  if (
+    !/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name) ||
+    !/^[\x21\x23-\x2B\x2D-\x3A\x3C-\x5B\x5D-\x7E]*$/.test(value)
+  ) {
+    throw new Error("invalid cookie name or value");
+  }
+  if (
+    name.startsWith("__Host-") &&
+    ((opts.path !== undefined && opts.path !== "/") || opts.secure === false)
+  ) {
+    throw new Error("__Host- cookies require Secure and Path=/");
+  }
   const parts = [`${name}=${value}`];
   parts.push(`Path=${opts.path ?? "/"}`);
   if (opts.maxAgeSeconds !== undefined) parts.push(`Max-Age=${Math.floor(opts.maxAgeSeconds)}`);

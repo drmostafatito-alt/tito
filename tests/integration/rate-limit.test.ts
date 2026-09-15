@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/vitest-plugin/types" />
 import { beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:test";
+import { sql } from "drizzle-orm";
 import { getDb } from "~server/db/client.server";
 import { checkRateLimit } from "~server/http/rate-limit.server";
 import { registerUser, login } from "~server/auth/service.server";
@@ -61,6 +62,20 @@ describe("fixed-window counter rejects at the configured thresholds", () => {
   it("exam_submit throttles at 10/min", async () => {
     await expectThrottled("exam_submit", "userC:attempt1", 10, 60_000);
   });
+
+  it("saturates blocked counters at limit+1 instead of amplifying D1 writes", async () => {
+    const outcomes = [];
+    for (let i = 0; i < 20; i++) {
+      outcomes.push(await checkRateLimit(db, "saturation", "attacker", 3, 60_000));
+    }
+    expect(outcomes.slice(3).every((result) => !result.ok && result.count === 4)).toBe(true);
+    const row = await db.get<{ count: number }>(sql`
+      SELECT count FROM rate_limit_counters
+      WHERE bucket = 'saturation:attacker'
+      LIMIT 1
+    `);
+    expect(row?.count).toBe(4);
+  });
 });
 
 describe("playback route action enforces the mint limit end-to-end", () => {
@@ -86,14 +101,14 @@ describe("playback route action enforces the mint limit end-to-end", () => {
     // real session cookie
     const loginRes = await login(env, { email, password: "Str0ngPass!x" }, new Request("https://app.test/login", { method: "POST", headers: { "user-agent": UA, "cf-connecting-ip": ip } }));
     if (!loginRes.ok) throw new Error("login failed: " + JSON.stringify(loginRes));
-    const sessionCookie = loginRes.cookies.find((c) => c.name === "__edu_session")?.value;
+    const sessionCookie = loginRes.cookies.find((c) => c.name === "__Host-edu_session")?.value;
     if (!sessionCookie) throw new Error("no session cookie");
 
     const context = { cloudflare: { env, ctx: { waitUntil: () => {} } } };
     const post = () =>
       playbackAction({
         context,
-        request: new Request(`https://app.test/api/playback/${video.id}`, { method: "POST", headers: { cookie: `__edu_session=${sessionCookie}`, "user-agent": UA } }),
+        request: new Request(`https://app.test/api/playback/${video.id}`, { method: "POST", headers: { cookie: `__Host-edu_session=${sessionCookie}`, "user-agent": UA } }),
         params: { videoId: video.id },
       } as never);
 

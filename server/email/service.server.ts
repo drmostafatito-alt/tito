@@ -15,6 +15,8 @@ import { resetPasswordEmail, welcomeEmail, emailChangeVerificationEmail, type Em
 export interface EmailEnv {
   EMAIL_PROVIDER?: string;
   ENVIRONMENT?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
 }
 
 export function brandFromNames(nameAr?: string | null, nameEn?: string | null, supportEmail?: string | null): EmailBrand {

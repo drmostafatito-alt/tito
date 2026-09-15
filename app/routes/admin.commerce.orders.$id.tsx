@@ -113,10 +113,11 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 
 export async function action({ context, params, request }: Route.ActionArgs) {
   const { auth } = await requireRole(context, request, 3);
-  const db = getDb(getEnv(context));
+  const env = getEnv(context);
+  const db = getDb(env);
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
-  const actor = { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
+  const actor = { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) };
   const str = (k: string) => String(form.get(k) ?? "").trim();
 
   try {

@@ -63,7 +63,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   const env = getEnv(context);
   const db = getDb(env);
   if (!(await canCms(db, guarded.auth, "cms.manage_forms"))) return { error: "denied" as const };
-  const actor = { userId: guarded.auth.user.id, role: guarded.auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown") };
+  const actor = { userId: guarded.auth.user.id, role: guarded.auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) };
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
 

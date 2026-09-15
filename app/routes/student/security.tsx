@@ -58,10 +58,15 @@ export async function action({ context, request }: Route.ActionArgs) {
   const confirm = String(form.get("passwordConfirm") ?? "");
   if (next !== confirm) return { error: "mismatch" as const };
 
-  const result = await changePassword(env, auth.user.id, {
-    currentPassword: current,
-    newPassword: next,
-  });
+  const result = await changePassword(
+    env,
+    auth.user.id,
+    {
+      currentPassword: current,
+      newPassword: next,
+    },
+    request
+  );
   if (!result.ok) return { error: result.code };
 
   const headers = new Headers();

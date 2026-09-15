@@ -188,7 +188,11 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   const lesson = await lessonBySlug(db, params.lessonSlug);
   if (!lesson) throw new Response("Not Found", { status: 404 });
   const chain = await chainForLesson(db, lesson.id);
-  if (!chain) throw new Response("Not Found", { status: 404 });
+  if (!chain || chain.courseId !== course.id) throw new Response("Not Found", { status: 404 });
+  if (auth.user.rank <= 1) {
+    const lock = await coursePrereqGate(db, { userId: auth.user.id, roleRank: auth.user.rank }, course.id);
+    if (lock.locked) throw new Response("Forbidden", { status: 403 });
+  }
   const verdict = await resolveContentAccess(db, { userId: auth.user.id, roleRank: auth.user.rank }, chain);
   if (!verdict.allowed) throw new Response("Forbidden", { status: 403 });
   const form = await request.formData();

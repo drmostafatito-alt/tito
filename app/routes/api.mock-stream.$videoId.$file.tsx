@@ -5,7 +5,7 @@ import { timingSafeEqualHex } from "~server/crypto/hmac.server";
 
 /**
  * Mock provider stream endpoint. Verifies the HMAC playback token (uid|exp,
- * ≤45s TTL) before serving a synthetic HLS playlist / poster — mirroring the
+ * bounded viewing-session TTL) before serving a synthetic HLS playlist / poster — mirroring the
  * signed-credential discipline of the production provider. Placeholder media
  * segments make the security flow fully exercisable offline; actual A/V
  * decoding is intentionally NOT simulated (documented limitation).
@@ -16,12 +16,15 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const uid = url.searchParams.get("uid") ?? "";
   const exp = Number(url.searchParams.get("exp") ?? "0");
   const token = url.searchParams.get("token") ?? "";
-  const scope = params.file.endsWith(".m3u8") ? "playback" : "thumbnail";
+  // Every HLS resource (master, media playlist, and segment) uses playback
+  // scope. Only the poster is thumbnail-scoped.
+  const scope = params.file === "poster.svg" ? "thumbnail" : "playback";
 
   if (!uid || !Number.isFinite(exp) || exp <= 0 || !token) {
     return new Response("Not Found", { status: 404 });
   }
-  if (exp <= Date.now()) return new Response("Not Found", { status: 404 });
+  const now = Date.now();
+  if (exp <= now || exp - now > 86_400_000) return new Response("Not Found", { status: 404 });
 
   const secret = mockTokenSecret(env);
   const expected = await signMockToken(secret, {
@@ -48,15 +51,27 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     });
   }
 
-  // HLS master playlist: variant references token-carrying media playlist.
-  const master = [
-    "#EXTM3U",
-    "#EXT-X-VERSION:3",
-    `#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=640x360`,
-    `media.m3u8?${qs}`,
-    "",
-  ].join("\n");
-  return new Response(master, {
-    headers: { "Content-Type": "application/vnd.apple.mpegurl", "Cache-Control": "private, no-store" },
-  });
+  if (params.file === "segment.ts") {
+    // Deliberately non-media placeholder: enough to exercise an authenticated
+    // HLS segment request without pretending automated tests decode real A/V.
+    return new Response(new Uint8Array(188), {
+      headers: { "Content-Type": "video/mp2t", "Cache-Control": "private, no-store" },
+    });
+  }
+
+  if (params.file === "master.m3u8") {
+    // HLS master playlist: variant references token-carrying media playlist.
+    const master = [
+      "#EXTM3U",
+      "#EXT-X-VERSION:3",
+      `#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=640x360`,
+      `media.m3u8?${qs}`,
+      "",
+    ].join("\n");
+    return new Response(master, {
+      headers: { "Content-Type": "application/vnd.apple.mpegurl", "Cache-Control": "private, no-store" },
+    });
+  }
+
+  return new Response("Not Found", { status: 404 });
 }

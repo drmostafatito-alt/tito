@@ -894,6 +894,17 @@ describe("webhooks — signature-verified, idempotent, no fulfillment before ver
     expect(await entitlementCount(studentA.id)).toBe(0);
   });
 
+  it("rejects oversized webhook bodies while streaming before provider processing", async () => {
+    const oversized = new Request("https://app.test/webhooks/payments/mock", {
+      method: "POST",
+      headers: { "x-mock-signature": "00".repeat(32) },
+      body: "x".repeat(64_001),
+    });
+    const res = await callWebhookAction(oversized, "mock");
+    expect(res.status).toBe(413);
+    expect(await res.json()).toMatchObject({ error: "payload_too_large" });
+  });
+
   it("unknown provider → 404; route-level forged webhook → 400 JSON", async () => {
     const out = await processPaymentWebhook(db, env, { providerId: "paypal", request: webhookRequest({}, null).req, rawBody: "{}" });
     expect(out.status).toBe(404);
@@ -903,6 +914,15 @@ describe("webhooks — signature-verified, idempotent, no fulfillment before ver
     expect(res.status).toBe(400);
     const json = (await res.json()) as { result: string };
     expect(json.result).toBe("rejected");
+    // The production manual rail has no webhook contract and must not create an
+    // unauthenticated D1 write primitive.
+    const beforeManual = await db.select({ id: paymentEvents.id }).from(paymentEvents);
+    const manual = await callWebhookAction(
+      new Request("https://app.test/webhooks/payments/manual", { method: "POST", body: "{}" }),
+      "manual"
+    );
+    expect(manual.status).toBe(404);
+    expect(await db.select({ id: paymentEvents.id }).from(paymentEvents)).toHaveLength(beforeManual.length);
     // GET is not allowed on the webhook route
     const get = await callWebhookAction(new Request("https://app.test/webhooks/payments/mock"), "mock");
     expect(get.status).toBe(405);

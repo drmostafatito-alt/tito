@@ -2,6 +2,7 @@ import type { Route } from "./+types/login";
 import { Form, Link, useActionData, useNavigation, useSearchParams } from "react-router";
 import { redirect } from "react-router";
 import { getEnv } from "~server/cf.server";
+import { safeLocalRedirect } from "~server/http/redirect.server";
 import { login } from "~server/auth/service.server";
 import { serializeCookie } from "~server/auth/cookies.server";
 import { Input } from "~/components/ui/Input";
@@ -11,12 +12,6 @@ import { Card } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
-
-/** Only same-app paths (no open redirects). */
-function safeNext(raw: string | null): string | null {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
-  return raw;
-}
 
 /** Auth pages never index: unique branded title + noindex (no duplicate brand titles). */
 export async function loader({ request }: Route.LoaderArgs) {
@@ -38,7 +33,8 @@ export async function action({ context, request }: Route.ActionArgs) {
   const form = await request.formData();
   const email = String(form.get("email") ?? "");
   const password = String(form.get("password") ?? "");
-  const next = safeNext(String(form.get("next") ?? ""));
+  const nextInput = String(form.get("next") ?? "");
+  const next = nextInput ? safeLocalRedirect(nextInput, "") || null : null;
 
   const result = await login(env, { email, password }, request);
   if (!result.ok) {

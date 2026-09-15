@@ -17,13 +17,40 @@
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
+function stripJsonComments(input) {
+  let output = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i];
+    const next = input[i + 1];
+    if (inString) {
+      output += char;
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+    } else if (char === '"') {
+      inString = true;
+      output += char;
+    } else if (char === "/" && next === "/") {
+      while (i < input.length && input[i] !== "\n") i++;
+      output += "\n";
+    } else if (char === "/" && next === "*") {
+      i += 2;
+      while (i < input.length - 1 && !(input[i] === "*" && input[i + 1] === "/")) i++;
+      i++;
+    } else output += char;
+  }
+  return output;
+}
+
 const REMOTE = process.argv.includes("--remote");
 
 let query; // (sql) => Promise<row | null>
 let queryAll; // (sql) => Promise<rows[]>
 
 if (REMOTE) {
-  const wranglerCfg = JSON.parse(readFileSync("wrangler.jsonc", "utf8").replace(/\/\/[^\n"]*/g, ""));
+  const wranglerCfg = JSON.parse(stripJsonComments(readFileSync("wrangler.jsonc", "utf8")));
   const dbName = process.env.D1_NAME ?? wranglerCfg.d1_databases?.[0]?.database_name;
   if (!dbName) {
     console.error("No D1 database_name found in wrangler.jsonc (set D1_NAME env for production).");
@@ -69,8 +96,8 @@ async function count(sql) {
 
 // 1) demo/seed/smoke accounts + test credentials
 const badUsers = await count(
-  `SELECT COUNT(*) n FROM users WHERE email LIKE '%@educore.local' OR email LIKE 'smoke-%'
-     OR full_name IN ('Super Admin', 'طالب تجريبي')`
+  `SELECT COUNT(*) n FROM users WHERE email LIKE '%@educore.local' OR email LIKE '%@test.local'
+     OR email LIKE 'smoke-%' OR full_name IN ('Super Admin', 'طالب تجريبي')`
 );
 check("no demo/seed/smoke accounts", badUsers === 0, `${badUsers} found`);
 
@@ -161,7 +188,7 @@ check("no lorem-ipsum in published pages", loremPages === 0, `${loremPages} page
 // 8) migrations applied (schema + permission seed)
 const migrations = await count(`SELECT COUNT(*) n FROM d1_migrations`);
 const expectedMigrations = JSON.parse(readFileSync("drizzle/meta/_journal.json", "utf8")).entries.length;
-check("all migrations applied", migrations >= expectedMigrations, `${migrations}/${expectedMigrations}`);
+check("migration set exactly matches this release", migrations === expectedMigrations, `${migrations}/${expectedMigrations}`);
 
 // 9) CMS permission grants seeded for admin role
 const perms = await count(`SELECT COUNT(*) n FROM role_permissions WHERE role_id = 'admin'`);
@@ -173,20 +200,50 @@ const supers = await count(
 );
 check("at least one active super admin", supers >= 1, `${supers} found`);
 
-// 11) C1 guard (Phase 8): the deploy config must never opt into exposing the raw
-// password-reset token, nor declare a development environment. This is defense-
-// in-depth — the primary protection is fail-closed inside the auth service
-// (server/auth/service.server.ts → shouldExposeDevResetToken). Dashboard-bound
-// Worker vars can't be inspected from here; they are covered by DEPLOYMENT.md.
+// 11) Recovery invariants: short expiry, no duplicate live tokens, and the
+// database-level partial unique index applied.
+const security = await settingsValue("security");
+const resetMinutes = Number(security?.resetTokenMinutes ?? NaN);
+check(
+  "password-reset expiry is configured between 10 and 30 minutes",
+  Number.isInteger(resetMinutes) && resetMinutes >= 10 && resetMinutes <= 30,
+  `resetTokenMinutes=${Number.isFinite(resetMinutes) ? resetMinutes : "unset"}`
+);
+const duplicateResetUsers = await count(
+  `SELECT COUNT(*) n FROM (
+     SELECT user_id FROM password_reset_tokens WHERE used_at IS NULL
+     GROUP BY user_id HAVING COUNT(*) > 1
+   )`
+);
+check("at most one live reset token per user", duplicateResetUsers === 0, `${duplicateResetUsers} duplicate user(s)`);
+const resetIndexes = await queryAll(`PRAGMA index_list('password_reset_tokens')`);
+const hasResetUniqueIndex = resetIndexes.some(
+  (row) => row.name === "password_reset_one_active_user_uq" && Number(row.unique) === 1
+);
+check(
+  "one-active-reset-token unique index exists",
+  hasResetUniqueIndex,
+  hasResetUniqueIndex ? "" : "password_reset_one_active_user_uq missing"
+);
+
+// 12) Test-only transports and development flags must never appear in the
+// deploy config. Runtime provider secrets remain owner-managed Wrangler secrets.
 {
   const rawWrangler = readFileSync("wrangler.jsonc", "utf8");
-  const stripped = rawWrangler.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
-  const hasDevResetFlag = /EXPOSE_DEV_RESET_TOKEN\s*[:=]\s*["']?true/i.test(stripped);
-  const declaresDevEnv = /"ENVIRONMENT"\s*:\s*"development"/i.test(stripped);
+  const stripped = stripJsonComments(rawWrangler);
+  const hasLegacyExposureFlag = /EXPOSE_DEV_RESET_TOKEN/i.test(stripped);
+  const declaresUnsafeEnv = /"ENVIRONMENT"\s*:\s*"(?:development|test)"/i.test(stripped);
+  const declaresCapture = /"EMAIL_PROVIDER"\s*:\s*"capture"/i.test(stripped) || /TEST_CAPTURE_SECRET/i.test(stripped);
   check(
-    "no EXPOSE_DEV_RESET_TOKEN / development ENVIRONMENT in deploy config",
-    !hasDevResetFlag && !declaresDevEnv,
-    hasDevResetFlag ? "EXPOSE_DEV_RESET_TOKEN present" : declaresDevEnv ? "ENVIRONMENT=development present" : ""
+    "no reset-token exposure flags or test email transport in deploy config",
+    !hasLegacyExposureFlag && !declaresUnsafeEnv && !declaresCapture,
+    hasLegacyExposureFlag
+      ? "legacy exposure flag present"
+      : declaresUnsafeEnv
+        ? "development/test ENVIRONMENT present"
+        : declaresCapture
+          ? "capture transport present"
+          : ""
   );
 }
 

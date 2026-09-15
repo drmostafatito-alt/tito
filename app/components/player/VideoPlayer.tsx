@@ -89,6 +89,63 @@ export function VideoPlayer({
     };
   }, [videoId]);
 
+  // Safari/iOS can play HLS natively. Chromium, Firefox, and most Android
+  // browsers need Media Source Extensions; load hls.js only for those clients so
+  // the normal page bundle and native path stay small.
+  useEffect(() => {
+    if (state !== "ready" || !src || kind === "embed") return;
+    const video = ref.current;
+    if (!video) return;
+
+    if (kind === "mp4" || video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      return () => {
+        video.removeAttribute("src");
+        video.load();
+      };
+    }
+
+    let disposed = false;
+    let recoveredMediaError = false;
+    let instance: import("hls.js").default | null = null;
+    void import("hls.js")
+      .then(({ default: Hls }) => {
+        if (disposed) return;
+        if (!Hls.isSupported()) {
+          setState("error");
+          return;
+        }
+        const hls = new Hls({ enableWorker: true });
+        instance = hls;
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (!data.fatal || disposed) return;
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !recoveredMediaError) {
+            recoveredMediaError = true;
+            hls.recoverMediaError();
+            return;
+          }
+          // A second fatal media failure is not recoverable. Network errors can
+          // also mean an expired/invalid signed URL, so retrying the same bearer
+          // is unsafe; a page reload performs a fresh entitlement check/mint.
+          hls.destroy();
+          instance = null;
+          setState("error");
+        });
+        hls.loadSource(src);
+        hls.attachMedia(video);
+      })
+      .catch(() => {
+        if (!disposed) setState("error");
+      });
+
+    return () => {
+      disposed = true;
+      instance?.destroy();
+      video.removeAttribute("src");
+      video.load();
+    };
+  }, [kind, src, state]);
+
   // enforce the admin playback-speed policy (native UI offers speed; we pin it back)
   useEffect(() => {
     const el = ref.current;
@@ -201,7 +258,7 @@ export function VideoPlayer({
          * locked to youtube-nocookie.com, so this frame cannot be pointed
          * anywhere else. allow-same-origin is required for the YouTube player to
          * function and is safe here because the origin is pinned by CSP. */
-        <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+        <div className="relative aspect-video w-full">
           <iframe
             src={src}
             title={title ?? "video"}
@@ -225,7 +282,6 @@ export function VideoPlayer({
           preload="metadata"
           poster={showPoster ? (poster ?? undefined) : undefined}
           controlsList={allowFullscreen ? undefined : "nofullscreen"}
-          src={src}
         >
           {title && <track kind="captions" />}
         </video>
