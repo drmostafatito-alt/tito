@@ -23,7 +23,9 @@ export function BrandMark({
           <path d="M22 4h-6a3 3 0 0 0-3 3v13a2.5 2.5 0 0 1 2.5-2.5H22z" />
         </svg>
       </span>
-      {!compact && <span className={`text-base font-bold tracking-tight sm:text-lg ${labelCls}`}>{name}</span>}
+      {!compact && (
+        <span className={`hidden text-base font-bold tracking-tight sm:inline sm:text-lg ${labelCls}`}>{name}</span>
+      )}
     </span>
   );
 }

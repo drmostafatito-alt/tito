@@ -1713,7 +1713,8 @@ export const en: Dictionary = {
     navTitle: "Learning content",
     title: "Learning content",
     subtitle: "Pick a subject to see its published terms and lessons.",
-    empty: "No published content yet — lessons appear here once the admin publishes them.",
+    emptyTitle: "Content will appear here once it is published",
+    empty: "No grade or subject has been published yet. You can create an account and be ready for the lessons.",
     subjectsTitle: "Subjects",
     termsCount: "{n} terms",
     lessonsCount: "{n} lessons",
@@ -1751,7 +1752,7 @@ export const en: Dictionary = {
   curriculum: {
     overviewEyebrow: "Philosophy & psychology curriculum",
     overviewTitle: "Curriculum overview",
-    coursesCrumb: "Courses",
+    coursesCrumb: "Learning content",
     outlineTitle: "Units and chapters",
     lessonsCount: "{n} lessons",
     availableTitle: "Available on the platform",

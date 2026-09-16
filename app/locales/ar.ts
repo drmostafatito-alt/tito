@@ -1713,7 +1713,8 @@ export const ar = {
     navTitle: "المحتوى التعليمي",
     title: "المحتوى التعليمي",
     subtitle: "اختر المادة لعرض الترمات والدروس المنشورة.",
-    empty: "لا يوجد محتوى منشور حاليًا — يتم إضافة الدروس ونشرها من لوحة التحكم.",
+    emptyTitle: "سيظهر المحتوى هنا عند نشره",
+    empty: "لم يُنشر أي صف أو مادة بعد. يمكنك إنشاء حساب والاستعداد للدروس.",
     subjectsTitle: "المواد",
     termsCount: "{n} ترم",
     lessonsCount: "{n} درس",
@@ -1751,7 +1752,7 @@ export const ar = {
   curriculum: {
     overviewEyebrow: "منهج الفلسفة وعلم النفس",
     overviewTitle: "نبذة عن محتوى المنهج",
-    coursesCrumb: "الكورسات",
+    coursesCrumb: "المحتوى التعليمي",
     outlineTitle: "وحدات المنهج وفصوله",
     lessonsCount: "{n} درسًا",
     availableTitle: "المتاح على المنصة",

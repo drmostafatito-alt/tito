@@ -32,6 +32,13 @@ describe("thinker visual assignment", () => {
     expect(thinkerById("socrates")?.src).toMatch(/socrates\.webp$/);
   });
 
+  it("psychology subjects use Freud/Jung portraits as background layers", () => {
+    expect(thinkerFor({ slot: "subject-card", slug: "psychology", titleAr: "علم النفس", titleEn: "Psychology" })?.id).toBe("freud");
+    expect(thinkerFor({ slot: "subject-hero", slug: "psychology", titleAr: "علم النفس", titleEn: "Psychology" })?.id).toBe("jung");
+    expect(thinkerById("freud")?.src).toMatch(/freud\.webp$/);
+    expect(thinkerById("jung")?.src).toMatch(/jung\.webp$/);
+  });
+
   it("two cards of the same family can take different faces", () => {
     const primary = thinkerFor({ slot: "subject-card", slug: "falsafa", titleEn: "Philosophy" });
     const alt = thinkerAlternate(primary, "other-card");

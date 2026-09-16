@@ -99,8 +99,8 @@ function brandHomeDescription(locale: Locale, name?: { ar: string; en: string } 
   const n = pick(name);
   const tl = pick(tagline);
   if (!n) return "";
-  if (locale === "ar") return tl ? `منصة ${n} الرسمية — ${tl}: كورسات ودروس ومراجعات ومصادر تعليمية.` : `منصة ${n} الرسمية: كورسات ودروس ومراجعات.`;
-  return tl ? `The official ${n} platform — ${tl}: courses, lessons, revision and study resources.` : `The official ${n} platform: courses, lessons and revision.`;
+  if (locale === "ar") return tl ? `منصة ${n} الرسمية — ${tl}: دروس ومراجعات ومصادر تعليمية.` : `منصة ${n} الرسمية: دروس ومراجعات.`;
+  return tl ? `The official ${n} platform — ${tl}: lessons, revision and study resources.` : `The official ${n} platform: lessons and revision.`;
 }
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {

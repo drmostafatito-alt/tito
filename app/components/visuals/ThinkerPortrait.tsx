@@ -24,10 +24,10 @@ export function ThinkerPortrait({
   if (!thinker) return null;
   const opacity =
     intensity === "whisper"
-      ? "opacity-[0.10] sm:opacity-[0.16] lg:opacity-[0.22]"
+      ? "opacity-[0.16] sm:opacity-[0.22] lg:opacity-[0.30]"
       : intensity === "medium"
-        ? "opacity-[0.14] sm:opacity-[0.26] lg:opacity-[0.38]"
-        : "opacity-[0.12] sm:opacity-[0.22] lg:opacity-[0.30]";
+        ? "opacity-[0.20] sm:opacity-[0.32] lg:opacity-[0.42]"
+        : "opacity-[0.18] sm:opacity-[0.28] lg:opacity-[0.36]";
   return (
     <img
       src={thinker.src}
@@ -37,7 +37,7 @@ export function ThinkerPortrait({
       decoding="async"
       width={900}
       height={604}
-      className={`thinker-portrait pointer-events-none absolute inset-y-0 end-0 z-0 h-full w-[min(58%,20rem)] select-none object-contain object-bottom ltr:object-right rtl:object-left sm:w-[min(48%,24rem)] ${opacity} ${className}`}
+      className={`thinker-portrait pointer-events-none absolute inset-y-[-14%] end-[-16%] z-0 h-[128%] w-[min(82%,34rem)] max-w-none select-none object-cover object-top ltr:object-right rtl:object-left sm:w-[min(68%,38rem)] ${opacity} ${className}`}
     />
   );
 }

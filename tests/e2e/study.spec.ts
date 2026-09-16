@@ -25,7 +25,7 @@ test.describe("student learning content hub", () => {
     const gridVisible = await grid.isVisible().catch(() => false);
     expect(emptyVisible || gridVisible).toBe(true);
     if (emptyVisible) {
-      await expect(empty).toContainText(/لا يوجد محتوى منشور|No published content/);
+      await expect(empty).toContainText(/سيظهر المحتوى هنا|Content will appear here|لم يُنشر أي صف|No grade or subject/);
     }
   });
 

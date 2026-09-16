@@ -172,7 +172,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
         <nav aria-label="breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
           <Link to="/" className="hover:text-navy-700">{t(locale, "common.home")}</Link>
           <span aria-hidden="true" className="text-gold-500">›</span>
-          <Link to="/courses" className="hover:text-navy-700">{t(locale, "curriculum.coursesCrumb")}</Link>
+          <Link to="/study" className="hover:text-navy-700">{t(locale, "curriculum.coursesCrumb")}</Link>
           <span aria-hidden="true" className="text-gold-500">›</span>
           <span className="font-medium text-navy-800" dir="auto">{subjectLine}</span>
         </nav>

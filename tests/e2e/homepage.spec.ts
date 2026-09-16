@@ -82,4 +82,21 @@ test.describe("homepage public chrome", () => {
     await menu.click();
     await expect(page.locator("nav#mobile-nav")).toBeAttached();
   });
+
+  test("320px header keeps hamburger and login reachable (not clipped)", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto("/");
+    const header = page.getByTestId("public-header");
+    await expect(header).toBeVisible();
+    const menu = page.getByTestId("public-menu");
+    await expect(menu).toBeVisible();
+    const box = await menu.boundingBox();
+    expect(box, "hamburger must have a box").toBeTruthy();
+    expect(box!.width).toBeGreaterThanOrEqual(40);
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+    await menu.click();
+    await expect(page.locator("nav#mobile-nav")).toBeVisible();
+    await expect(page.locator("nav#mobile-nav").getByRole("link", { name: /تسجيل الدخول|log in/i })).toBeVisible();
+  });
 });

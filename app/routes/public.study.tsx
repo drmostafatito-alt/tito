@@ -62,21 +62,24 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
     ? loaderData.ownerNameAr || loaderData.ownerNameEn
     : loaderData.ownerNameEn || loaderData.ownerNameAr;
 
+  const empty = loaderData.subjects.length === 0;
+
   return (
     <div className="relative isolate overflow-x-hidden">
       <section className="relative isolate overflow-hidden bg-gradient-to-b from-navy-100/70 via-navy-50/30 to-transparent">
-        <SectionDecor variant="hero" />
-        <ThinkerPortrait thinker={heroThinker} intensity="whisper" eager />
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:py-14">
+        <SectionDecor variant="page" />
+        {!empty && <ThinkerPortrait thinker={heroThinker} intensity="whisper" eager />}
+        <div className="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:py-12">
           <nav className="mb-3 flex items-center gap-1 text-sm text-navy-500" aria-label={t(locale, "common.breadcrumb")}>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
             <span aria-hidden="true"> / </span>
             <span className="font-medium text-navy-800">{t(locale, "study.title")}</span>
           </nav>
-          <p className="text-sm font-semibold text-gold-700">{t(locale, "study.discoverEyebrow")}</p>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-navy-900 sm:text-4xl">{t(locale, "study.title")}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-navy-900 sm:text-4xl">{t(locale, "study.title")}</h1>
           <DecorHairline className="mt-3 max-w-[10rem] text-gold-500" />
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">{t(locale, "study.subtitle")}</p>
+          {!empty && (
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">{t(locale, "study.subtitle")}</p>
+          )}
 
           {loaderData.ownerPhotoUrl && (
             <div className="relative mt-6 inline-flex">
@@ -93,8 +96,23 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
       </section>
 
       <div className="relative z-10 mx-auto max-w-5xl px-4 pb-16">
-        {loaderData.subjects.length === 0 ? (
-          <p className="mt-2 text-slate-500" data-testid="study-empty">{t(locale, "study.empty")}</p>
+        {empty ? (
+          <div
+            className="relative isolate mt-1 overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-6 shadow-sm sm:p-8"
+            data-testid="study-empty"
+          >
+            <ThinkerPortrait thinker={heroThinker} intensity="subtle" eager />
+            <div className="relative z-10 max-w-md">
+              <h2 className="text-lg font-extrabold text-navy-900">{t(locale, "study.emptyTitle")}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">{t(locale, "study.empty")}</p>
+              <Link
+                to="/register"
+                className="mt-5 inline-flex min-h-11 items-center rounded-full bg-navy-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-800"
+              >
+                {t(locale, "common.register")}
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2" data-testid="study-subjects">
             {loaderData.subjects.map((s, i) => {

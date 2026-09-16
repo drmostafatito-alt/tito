@@ -41,10 +41,8 @@ export const THINKERS: readonly Thinker[] = [
   { id: "ibn-sina", src: "/visuals/thinkers/ibn-sina.webp", family: "arabic", nameEn: "Ibn Sina", nameAr: "ابن سينا" },
   { id: "al-farabi", src: "/visuals/thinkers/al-farabi.webp", family: "arabic", nameEn: "Al-Farabi", nameAr: "الفارابي" },
   { id: "marx", src: "/visuals/thinkers/marx.webp", family: "social", nameEn: "Marx", nameAr: "ماركس" },
-  // Psychology family: Ibn Sina wrote on the soul (Kitab al-Nafs); Descartes
-  // on mind–body. Dedicated Freud/Jung portraits are added when generated.
-  { id: "ibn-sina-psych", src: "/visuals/thinkers/ibn-sina.webp", family: "psych", nameEn: "Ibn Sina", nameAr: "ابن سينا" },
-  { id: "descartes-psych", src: "/visuals/thinkers/descartes.webp", family: "psych", nameEn: "Descartes", nameAr: "ديكارت" },
+  { id: "freud", src: "/visuals/thinkers/freud.webp", family: "psych", nameEn: "Freud", nameAr: "فرويد" },
+  { id: "jung", src: "/visuals/thinkers/jung.webp", family: "psych", nameEn: "Jung", nameAr: "يونغ" },
 ] as const;
 
 const BY_ID = new Map(THINKERS.map((t) => [t.id, t]));
@@ -89,13 +87,13 @@ const PREFERRED: Record<ThinkerFamily, Partial<Record<ThinkerSlot, string>>> = {
     "home-discover": "plato",
   },
   psych: {
-    "landing-hero": "ibn-sina-psych",
-    "subject-card": "ibn-sina-psych",
-    "subject-hero": "ibn-sina-psych",
-    "term-panel": "descartes-psych",
-    "lesson-page": "kant",
+    "landing-hero": "jung",
+    "subject-card": "freud",
+    "subject-hero": "jung",
+    "term-panel": "freud",
+    "lesson-page": "jung",
     "lesson-locked": "ibn-rushd",
-    "home-discover": "ibn-sina-psych",
+    "home-discover": "freud",
   },
   modern: {
     "landing-hero": "descartes",
