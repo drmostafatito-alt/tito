@@ -246,7 +246,8 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
       <header className="fade-up glow-soft relative overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-5 shadow-sm sm:rounded-[1.75rem] sm:p-7">
         <PhilosopherSlot
           id={subjectPhilosopher(ar ? loaderData.subject.titleAr || loaderData.subject.titleEn : loaderData.subject.titleEn || loaderData.subject.titleAr, loaderData.subject.slug) as PhilosopherSlotId}
-          className="-bottom-12 -end-10 hidden opacity-[0.15] sm:block"
+          opacity={0.13}
+          className="-bottom-14 -end-12 hidden h-52 w-52 sm:block sm:h-60 sm:w-60"
         />
         <span aria-hidden="true" className="dotted-grid pointer-events-none absolute inset-y-0 start-0 hidden w-1/4 opacity-[0.14] lg:block" />
 

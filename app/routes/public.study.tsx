@@ -138,6 +138,7 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
             title={t(locale, "study.empty")}
             body={t(locale, "study.subtitle")}
             icon={<Icon name="book-open" size="md" colorRole="muted" />}
+            art="book"
           />
         </div>
       ) : (

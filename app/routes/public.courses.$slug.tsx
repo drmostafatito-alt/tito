@@ -19,6 +19,7 @@ import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, courseJsonLd, definedTermSetJsonLd, learningResourceJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
 import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
+import { PageHeader } from "~/components/visuals/PageHeader";
 
 /** Course page: units + lessons with access-aware rendering, teacher/duration meta and student progress. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -319,8 +320,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           <span className="text-sm text-slate-500">{t(locale, "content.notAvailable")}</span>
         )}
       </div>
-      <h1 className="text-2xl font-bold">{title}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      <PageHeader art="kant" title={title} subtitle={desc} />
 
       {/* Meta row: teacher · lessons · duration */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">

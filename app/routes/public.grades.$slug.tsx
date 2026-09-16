@@ -13,6 +13,7 @@ import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~
 import { t, type Locale } from "~/lib/i18n";
 import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
 import { getRealLessonsForGrade, getLessonNamesForMeta, getSemanticForLessons } from "~server/seo/realLessonsMapping.server";
+import { PageHeader } from "~/components/visuals/PageHeader";
 
 /**
  * Grade landing page (SEO Master Phase, batch 4 + Lesson Phase + SEO Discovery).
@@ -199,7 +200,7 @@ export default function GradePage({ loaderData }: Route.ComponentProps) {
         <span className="mx-1.5" aria-hidden>›</span>
         <span className="font-medium text-slate-700">{c(grade)}</span>
       </nav>
-      <h1 className="text-2xl font-bold">{c(grade)}</h1>
+      <PageHeader art="socrates" title={c(grade)} />
 
       {subjectRows.length === 0 ? (
         <p className="mt-6 text-slate-500">{t(locale, "catalog.noSubjects")}</p>

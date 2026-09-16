@@ -78,6 +78,7 @@ export default function CmsPage({ loaderData }: Route.ComponentProps) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-16">
         <EmptyState
+          art="scroll"
           title={t(ctx.locale, "content.pageEmptyTitle")}
           body={t(ctx.locale, "content.pageEmptyBody")}
         />

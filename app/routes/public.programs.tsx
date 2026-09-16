@@ -8,6 +8,7 @@ import { Card, CardBody } from "~/components/ui/Card";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
+import { PageHeader } from "~/components/visuals/PageHeader";
 
 /** Programs index: published programs with subject counts (catalog hierarchy root). */
 export async function loader({ context, request }: Route.LoaderArgs) {
@@ -77,7 +78,7 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">{t(locale, "catalog.programs")}</h1>
+      <PageHeader art="columns" title={t(locale, "catalog.programs")} />
       {loaderData.programs.length === 0 ? (
         <p className="text-slate-500">{t(locale, "catalog.noPrograms")}</p>
       ) : (

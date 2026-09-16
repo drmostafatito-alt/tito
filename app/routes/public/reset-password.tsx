@@ -18,6 +18,7 @@ import { Alert } from "~/components/ui/Alert";
 import { Card } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
+import { Art } from "~/components/visuals/Art";
 
 /**
  * Reset links carry the bearer in a URL fragment. Fragments never reach edge or
@@ -144,8 +145,15 @@ export default function ResetPassword({ loaderData }: Route.ComponentProps) {
   const actionError = actionData && "error" in actionData ? actionData.error : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
+    <div className="relative isolate mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
+      {/* Decorative engraved line-art — behind the panel, aria-hidden. */}
+      <div aria-hidden="true" className="pointer-events-none absolute -top-8 start-0 hidden h-40 w-40 select-none opacity-[0.07] sm:block">
+        <Art name="kant" />
+      </div>
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-10 end-0 hidden h-36 w-36 select-none opacity-[0.07] sm:block">
+        <Art name="scroll" />
+      </div>
+      <Card className="relative p-6 sm:p-8">
         <h1 className="mb-6 text-2xl font-bold text-slate-900">{t(locale, "auth.resetTitle")}</h1>
 
         {exchangeState === "checking" && (

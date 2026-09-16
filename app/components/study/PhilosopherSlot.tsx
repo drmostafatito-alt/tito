@@ -1,30 +1,25 @@
+import { ART, type ArtName } from "~/lib/art";
 import { DecorRings } from "~/components/visuals/PhilosophyDecor";
 
 /**
- * Philosopher illustration slot — RESERVED, EMPTY, CONTROLLED.
+ * Philosopher line-art slot — the placement system for the many-thinker visual
+ * identity (Aristotle beside فلسفة ومنطق, Freud beside علم النفس, Marx in the
+ * knowledge band, Socrates in the hero, others by context).
  *
- * The owner's visual direction (visual phase brief §10–15) is a many-thinker
- * visual system: Aristotle beside فلسفة ومنطق, Freud beside علم النفس, Marx in a
- * knowledge banner, and (later) Socrates / Plato / Ibn Rushd / Ibn Sina elsewhere
- * — line-art/engraving style, monochrome, low opacity, partially cropped behind
- * the content, never competing with it.
+ * All the art ships as engraved, monochrome, navy-tinted line drawings in
+ * `/public/art` (see `~/lib/art`). A slot:
  *
- * This phase deliberately ships **no** illustration files: the brief forbids
- * generating images now, and the repository contains none. So every placement is
- * expressed as a slot:
+ *   · reserves the geometry (size, position, cropping, layering) so the layout
+ *     never depends on whether a given thinker has art yet;
+ *   · renders the line-art and marks itself `data-visual-slot-state="filled"`,
+ *     or falls back to a neutral soft-blue placeholder for an id that has no
+ *     asset yet (`"empty"` — no broken image, no invented face);
+ *   · is `aria-hidden` and `pointer-events-none` by construction: assistive
+ *     technology and crawlers never learn a philosopher's name from decoration,
+ *     and the art can never swallow a click meant for a card.
  *
- *   · it reserves the exact geometry of the future artwork (size, position,
- *     cropping, layering) so the layout is already final and stable;
- *   · it renders a neutral, on-identity placeholder made only of the existing
- *     inline-SVG motif + a soft blue tint (no face, no fake portrait, no bitmap);
- *   · `data-visual-slot` publishes the reserved thinker id and
- *     `data-visual-slot-state="empty"` marks it as unfilled, so the later image
- *     step is a pure asset addition — one prop, no layout rework;
- *   · it is `aria-hidden` and `pointer-events-none` by construction: assistive
- *     technology and crawlers never learn a philosopher's name from decoration.
- *
- * Placement rules baked into the defaults (brief §11): behind the content, low
- * opacity, cropped by the container edge, never over text or buttons.
+ * Placement rules baked into the defaults: behind the content, low opacity,
+ * cropped by the container edge, never over text or a button.
  */
 export type PhilosopherSlotId =
   | "aristotle"
@@ -46,36 +41,92 @@ export const PHILOSOPHER_BY_AREA = {
   hubHero: "socrates",
 } as const satisfies Record<string, PhilosopherSlotId>;
 
+/**
+ * Opacity ladder — the brief's band for decorative art is 0.06–0.12 over text
+ * and 0.12–0.20 in empty space. The platform's CSP is `style-src 'self'`, so no
+ * inline style is allowed: call sites pick from this fixed ladder instead, and a
+ * value outside it simply falls back to the standard weight.
+ */
+const SLOT_OPACITY: Record<string, string> = {
+  "0.06": "opacity-[0.06]",
+  "0.08": "opacity-[0.08]",
+  "0.1": "opacity-[0.1]",
+  "0.12": "opacity-[0.12]",
+  "0.14": "opacity-[0.14]",
+  "0.16": "opacity-[0.16]",
+  "0.18": "opacity-[0.18]",
+  "0.2": "opacity-[0.2]",
+};
+
+/** Slots that already have real line-art in the registry. */
+const ART_BY_SLOT: Partial<Record<PhilosopherSlotId, ArtName>> = {
+  aristotle: "aristotle",
+  freud: "freud",
+  marx: "marx",
+  socrates: "socrates",
+  plato: "plato",
+  descartes: "descartes",
+  kant: "kant",
+};
+
 export function PhilosopherSlot({
   id,
   /** visual weight: `card` crops at the card corner, `banner` is the wider band */
   size = "card",
   className = "",
-  /** optional fill for the day the line-art asset exists (still decorative) */
+  /** explicit asset, when a call site wants a different thinker than the id */
   src = null,
+  /** ink opacity inside the slot (brief: 0.06–0.12 over text, 0.12–0.20 in space) */
+  opacity = 0.14,
+  /** brighten the art slightly while the surrounding card is hovered */
+  boostOnHover = false,
 }: {
   id: PhilosopherSlotId;
   size?: "card" | "banner";
   className?: string;
   src?: string | null;
+  opacity?: number;
+  boostOnHover?: boolean;
 }) {
-  const box = size === "card" ? "h-36 w-36 sm:h-44 sm:w-44" : "h-32 w-56 sm:h-40 sm:w-72";
+  const box = size === "card" ? "h-40 w-40 sm:h-48 sm:w-48" : "h-36 w-60 sm:h-44 sm:w-80";
+  const weight = SLOT_OPACITY[String(opacity)] ?? SLOT_OPACITY["0.14"];
+  const art = ART_BY_SLOT[id];
 
   return (
     <div
       aria-hidden="true"
       data-visual-slot={id}
-      data-visual-slot-state={src ? "filled" : "empty"}
-      className={`pointer-events-none absolute select-none overflow-hidden opacity-[0.16] ${box} ${className}`}
+      data-visual-slot-state={src || art ? "filled" : "empty"}
+      data-boost={boostOnHover ? "hover" : undefined}
+      className={`pointer-events-none absolute select-none overflow-hidden transition-opacity ${weight} ${box} ${className}`}
     >
       {src ? (
-        // Reserved drop-in point for the engraved line-art asset (never a photo).
-        <img src={src} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+        <img
+          src={src}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+        />
+      ) : art ? (
+        <img
+          src={ART[art].src}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          loading="lazy"
+          decoding="async"
+          width={ART[art].w}
+          height={ART[art].h}
+          className="h-full w-full object-contain object-bottom"
+        />
       ) : (
         <>
-          {/* Neutral placeholder: soft blue wash + the platform's existing rings
-              motif, cropped by the slot itself. It reads as an intentional
-              visual anchor, never as a person and never as a broken image. */}
+          {/* Neutral fallback for a thinker whose art has not been drawn yet:
+              soft blue wash + the platform's existing rings motif, cropped by
+              the slot. Reads as an intentional anchor, never as a person. */}
           <span className="studyslot absolute inset-0 block" />
           <DecorRings className="absolute inset-0 h-full w-full text-navy-400" />
         </>

@@ -10,6 +10,8 @@ import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, itemListJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { PageHeader } from "~/components/visuals/PageHeader";
+import { Art } from "~/components/visuals/Art";
 
 /**
  * Catalog: published + visible courses only; access badges from row data
@@ -113,9 +115,14 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">{t(locale, "content.catalogTitle")}</h1>
+      <PageHeader art="book" title={t(locale, "content.catalogTitle")} />
       {loaderData.courses.length === 0 ? (
-        <p className="text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+        <div className="relative isolate overflow-hidden rounded-[1.25rem] border border-dashed border-navy-200 bg-navy-50/40 px-6 py-10 text-center">
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-4 -end-4 hidden h-28 w-28 select-none opacity-[0.07] sm:block">
+            <Art name="book" />
+          </div>
+          <p className="relative text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+        </div>
       ) : (
         <div className={`grid gap-4 ${LAYOUT_GRID[pres.layout as keyof typeof LAYOUT_GRID] ?? LAYOUT_GRID.standard}`}>
           {loaderData.courses.map((course) => {

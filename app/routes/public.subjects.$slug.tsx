@@ -16,6 +16,7 @@ import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~
 import { t, type Locale } from "~/lib/i18n";
 import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
 import { getRealLessonsForSubject, getLessonNamesForMeta, getSemanticForLessons } from "~server/seo/realLessonsMapping.server";
+import { PageHeader } from "~/components/visuals/PageHeader";
 
 /**
  * Subject page: canonical target of BOTH the subject cluster
@@ -203,12 +204,11 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
         <span className="mx-1.5" aria-hidden>›</span>
         <span className="font-medium text-slate-700">{c(subject)}</span>
       </nav>
-      <h1 className="text-2xl font-bold">{c(subject)}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      <PageHeader art="aristotle" title={c(subject) ?? ""} subtitle={desc}>
       {grade && (
         <Link
           to={`/grades/${grade.slug}`}
-          className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-300 hover:text-brand-600"
+          className="relative mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-300 hover:text-brand-600"
         >
           {c(grade)}
         </Link>
@@ -216,7 +216,7 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
       {buyOption && (
         <Link
           to={`/products/${buyOption.productSlug}`}
-          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+          className="relative mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
           data-testid="subject-buy-cta"
         >
           {t(locale, "commerce.buyCta")}
@@ -225,6 +225,7 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
           </span>
         </Link>
       )}
+      </PageHeader>
 
       {courses.length === 0 ? (
         <p className="mt-6 text-slate-500">{t(locale, "content.catalogEmpty")}</p>

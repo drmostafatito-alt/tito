@@ -58,7 +58,9 @@ export function SubjectCard(props: SubjectCardProps) {
       <article className="group relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-navy-200 hover:shadow-md sm:p-6">
         <PhilosopherSlot
           id={props.slotId}
-          className="-bottom-10 -end-8 opacity-[0.14] transition-opacity group-hover:opacity-[0.2]"
+          opacity={0.12}
+          boostOnHover
+          className="-bottom-16 -end-12 h-48 w-48 sm:h-56 sm:w-56"
         />
 
         {/* md+: copy at the start, the real numbers + CTA in a narrow end column,

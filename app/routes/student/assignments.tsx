@@ -72,7 +72,7 @@ export default function StudentAssignmentsPage({ loaderData }: Route.ComponentPr
       </div>
 
       {items.length === 0 ? (
-        <EmptyState title={t(locale, "assignment.noAssignmentsForYou")} body={t(locale, "assignment.noAssignmentsForYouBody")} icon="📝" />
+        <EmptyState title={t(locale, "assignment.noAssignmentsForYou")} body={t(locale, "assignment.noAssignmentsForYouBody")} icon="📝" art="scroll" />
       ) : (
         <>
           {(["available", "awaiting", "graded", "closed"] as const).map((s) => {

@@ -9,6 +9,7 @@ import { Card } from "~/components/ui/Card";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
+import { Art } from "~/components/visuals/Art";
 
 /** Auth pages never index: unique branded title + noindex (no duplicate brand titles). */
 export async function loader({ request }: Route.LoaderArgs) {
@@ -44,8 +45,16 @@ export default function ForgotPassword() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
+    <div className="relative isolate mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
+      {/* Decorative engraved line-art — outside the card, behind it, aria-hidden,
+          never over a field or a button. */}
+      <div aria-hidden="true" className="pointer-events-none absolute -top-8 start-0 hidden h-40 w-40 select-none opacity-[0.07] sm:block">
+        <Art name="kant" />
+      </div>
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-10 end-0 hidden h-36 w-36 select-none opacity-[0.07] sm:block">
+        <Art name="scroll" />
+      </div>
+      <Card className="relative p-6 sm:p-8">
         <h1 className="mb-1 text-2xl font-bold text-slate-900">{t(locale, "auth.forgotTitle")}</h1>
         <p className="mb-6 text-sm text-slate-500">{t(locale, "auth.forgotDesc")}</p>
 

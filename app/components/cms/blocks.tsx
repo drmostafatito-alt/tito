@@ -6,6 +6,8 @@ import { t } from "~/lib/i18n";
 import { socialIconName } from "~/cms/social";
 import { ANCHOR_ID_RE, fragmentId, resolveCmsHref, type CmsHrefContext } from "~/cms/links";
 import { SectionDecor, DecorHairline } from "~/components/visuals/PhilosophyDecor";
+import { Art } from "~/components/visuals/Art";
+import type { ArtName } from "~/lib/art";
 import type { CardView, CmsRenderCtx, FormView } from "~/cms/render-types";
 
 const VideoPlayer = lazy(() => import("~/components/player/VideoPlayer").then((m) => ({ default: m.VideoPlayer })));
@@ -1281,6 +1283,50 @@ function renderedAnchorIds(sections: RenderBlock[], ctx: CmsRenderCtx): Set<stri
   return ids;
 }
 
+/**
+ * Section line-art — the engraved decorations that keep the many-thinker visual
+ * identity running through the CMS templates as well as the study pages.
+ *
+ * Every entry is chosen by BLOCK TYPE, so the owner gets the decoration for free
+ * on whatever page he composes, and it is the same art everywhere that block
+ * appears. Two rules are deliberately hard-coded here:
+ *   · `teacher_profile` and the form blocks get NO art — nothing may compete
+ *     with the real teacher photo or sit behind an input;
+ *   · the art is small, cropped by the section edge, `aria-hidden`, and hidden
+ *     on phones (mobile keeps the breathing room, desktop gets the identity).
+ */
+const SECTION_ART: Record<string, { name: ArtName; className: string; opacity: string }> = {
+  hero: { name: "plato", className: "-bottom-10 -end-10 h-56 w-56", opacity: "opacity-[0.10]" },
+  feature_cards: { name: "book", className: "-bottom-8 -end-8 h-40 w-40", opacity: "opacity-[0.07]" },
+  icon_feature: { name: "book", className: "-bottom-6 -end-6 h-32 w-32", opacity: "opacity-[0.07]" },
+  icon_grid: { name: "scroll", className: "-top-6 -end-6 h-32 w-32", opacity: "opacity-[0.07]" },
+  statistics: { name: "kant", className: "-bottom-10 -end-10 h-44 w-44", opacity: "opacity-[0.09]" },
+  video_showcase: { name: "descartes", className: "-bottom-10 -end-10 h-48 w-48", opacity: "opacity-[0.09]" },
+  course_cards: { name: "columns", className: "-bottom-4 -end-4 h-24 w-64", opacity: "opacity-[0.09]" },
+  subject_cards: { name: "columns", className: "-bottom-4 -end-4 h-24 w-64", opacity: "opacity-[0.09]" },
+  program_cards: { name: "columns", className: "-bottom-4 -end-4 h-24 w-64", opacity: "opacity-[0.09]" },
+  grade_cards: { name: "socrates", className: "-bottom-10 -end-10 h-48 w-48", opacity: "opacity-[0.09]" },
+  product_cards: { name: "scroll", className: "-bottom-8 -end-8 h-36 w-36", opacity: "opacity-[0.07]" },
+  exam_platform: { name: "aristotle", className: "-bottom-12 -end-10 h-52 w-52", opacity: "opacity-[0.11]" },
+  journey_steps: { name: "marx", className: "-bottom-10 -end-10 h-44 w-44", opacity: "opacity-[0.09]" },
+  benefit_list: { name: "freud", className: "-bottom-10 -end-10 h-44 w-44", opacity: "opacity-[0.09]" },
+  cta_banner: { name: "plato", className: "-bottom-12 -end-12 h-56 w-56", opacity: "opacity-[0.12]" },
+};
+
+function SectionArt({ type, tone }: { type: string; tone: "ink" | "light" }) {
+  const art = SECTION_ART[type];
+  if (!art) return null;
+  return (
+    <div
+      aria-hidden="true"
+      data-cms-art={type}
+      className={`pointer-events-none absolute hidden select-none overflow-hidden sm:block ${art.opacity} ${art.className}`}
+    >
+      <Art name={art.name} tone={tone} />
+    </div>
+  );
+}
+
 export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRenderCtx }) {
   const p = section.props;
   const L = ctx.locale;
@@ -1311,6 +1357,7 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
       className={`relative isolate scroll-mt-24 overflow-hidden ${SECTION_BG[bg] ?? ""} ${SECTION_PAD[raw(p, "padding") || "md"] ?? SECTION_PAD.md} ${bool(p, "hideMobile") ? "max-md:hidden" : ""}`}
     >
       {(bg === "dark" || bg === "brand") && <SectionDecor variant="band" />}
+      {children.length > 0 && <SectionArt type={children[0].type} tone={bg === "dark" || bg === "brand" ? "light" : "ink"} />}
       {hasBgImage && (
         <>
           <img src={ctx.images[bgImageId]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />

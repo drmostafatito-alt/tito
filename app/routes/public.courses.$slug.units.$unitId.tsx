@@ -15,6 +15,7 @@ import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, learningResourceJsonLd,
 import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
 import { eq } from "drizzle-orm";
 import { grades, programs, subjects } from "~server/db/schema";
+import { PageHeader } from "~/components/visuals/PageHeader";
 
 /** Unit page: lessons of one unit with real per-lesson access verdicts + progress. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -282,7 +283,7 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
         <span className="mx-1.5" aria-hidden>›</span>
         <span className="font-medium text-slate-700">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
       </nav>
-      <h1 className="mb-6 text-2xl font-bold">{locale === "ar" ? unit.titleAr : unit.titleEn}</h1>
+      <PageHeader art="scroll" title={locale === "ar" ? unit.titleAr : unit.titleEn} />
       <ol className="space-y-2">
         {lessons.map((l, i) => (
           <li key={l.slug}>

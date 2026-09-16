@@ -44,8 +44,9 @@ export function StudyHero(props: StudyHeroProps) {
       <span aria-hidden="true" className="dotted-grid pointer-events-none absolute inset-y-0 end-0 hidden w-1/3 opacity-[0.18] sm:block" />
       <PhilosopherSlot
         id={PHILOSOPHER_BY_AREA.hubHero}
-        size="banner"
-        className="-bottom-10 -end-10 hidden opacity-[0.14] sm:block"
+        size="card"
+        opacity={0.12}
+        className="-bottom-14 -end-12 hidden h-52 w-52 sm:block sm:h-60 sm:w-60"
       />
 
       {/* Mobile order: copy → teacher → CTAs (thumb-friendly). On lg the copy and

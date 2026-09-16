@@ -13,6 +13,8 @@
  *                         same real CTA as the hero.
  */
 import { Icon } from "~/cms/icons";
+import { Art } from "~/components/visuals/Art";
+import type { ArtName } from "~/lib/art";
 import { PhilosopherSlot, PHILOSOPHER_BY_AREA } from "~/components/study/PhilosopherSlot";
 import { t, type Locale } from "~/lib/i18n";
 import { contentKindIcon, contentKindLabelKey, countLabel, type StudyContentKind } from "~/lib/study-view";
@@ -22,6 +24,17 @@ export interface MaterialKindFact {
   /** published lessons that actually contain this kind of material */
   lessonCount: number;
 }
+
+/** emblem per material kind — the same art everywhere that kind is shown */
+const MATERIAL_ART: Partial<Record<StudyContentKind, ArtName>> = {
+  video: "columns",
+  pdf: "book",
+  doc: "scroll",
+  image: "socrates",
+  audio: "kant",
+  archive: "scroll",
+  practice: "descartes",
+};
 
 export function MaterialKindsSection({ locale, facts }: { locale: Locale; facts: MaterialKindFact[] }) {
   if (facts.length === 0) return null;
@@ -41,12 +54,16 @@ export function MaterialKindsSection({ locale, facts }: { locale: Locale; facts:
           <li
             key={fact.kind}
             data-material={fact.kind}
-            className="flex items-center gap-3 rounded-[1.25rem] border border-navy-100 bg-white p-4 shadow-sm"
+            className="group relative flex items-center gap-3 overflow-hidden rounded-[1.25rem] border border-navy-100 bg-white p-4 shadow-sm"
           >
+            {/* one engraved emblem per material card, cropped by the card corner */}
+            <div aria-hidden="true" className="pointer-events-none absolute -bottom-4 -end-4 h-24 w-24 select-none opacity-[0.08] transition-opacity group-hover:opacity-[0.14]">
+              <Art name={MATERIAL_ART[fact.kind] ?? "scroll"} />
+            </div>
             <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-navy-50 text-navy-700 ring-1 ring-navy-100">
               <Icon name={contentKindIcon(fact.kind)} size="md" colorRole="default" className="h-5 w-5" />
             </span>
-            <div className="min-w-0">
+            <div className="relative min-w-0">
               <p className="text-sm font-bold text-navy-900">{t(locale, contentKindLabelKey(fact.kind))}</p>
               <p className="text-xs text-slate-500">{countLabel(locale, fact.lessonCount, "lessons")}</p>
             </div>
@@ -58,10 +75,10 @@ export function MaterialKindsSection({ locale, facts }: { locale: Locale; facts:
 }
 
 export function StartSteps({ locale }: { locale: Locale }) {
-  const steps = [
-    { icon: "book-open", titleKey: "study.stepSubjectTitle", bodyKey: "study.stepSubjectBody" },
-    { icon: "layers", titleKey: "study.stepTermTitle", bodyKey: "study.stepTermBody" },
-    { icon: "play-circle", titleKey: "study.stepLessonTitle", bodyKey: "study.stepLessonBody" },
+  const steps: Array<{ icon: string; art: ArtName; titleKey: string; bodyKey: string }> = [
+    { icon: "book-open", art: "book", titleKey: "study.stepSubjectTitle", bodyKey: "study.stepSubjectBody" },
+    { icon: "layers", art: "scroll", titleKey: "study.stepTermTitle", bodyKey: "study.stepTermBody" },
+    { icon: "play-circle", art: "aristotle", titleKey: "study.stepLessonTitle", bodyKey: "study.stepLessonBody" },
   ];
   return (
     <section aria-labelledby="study-start-title" data-testid="study-start" className="mt-12">
@@ -70,15 +87,18 @@ export function StartSteps({ locale }: { locale: Locale }) {
       </h2>
       <ol className="mt-5 grid gap-3 sm:grid-cols-3">
         {steps.map((step, index) => (
-          <li key={step.titleKey} className="relative rounded-[1.25rem] border border-navy-100 bg-white p-5 shadow-sm">
-            <span aria-hidden="true" className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-navy-50 text-navy-700 ring-1 ring-navy-100">
+          <li key={step.titleKey} className="group relative overflow-hidden rounded-[1.25rem] border border-navy-100 bg-white p-5 shadow-sm">
+            <div aria-hidden="true" className="pointer-events-none absolute -bottom-6 -end-5 h-28 w-28 select-none opacity-[0.07] transition-opacity group-hover:opacity-[0.13]">
+              <Art name={step.art} />
+            </div>
+            <span aria-hidden="true" className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-navy-50 text-navy-700 ring-1 ring-navy-100">
               <Icon name={step.icon} size="sm" colorRole="default" className="h-5 w-5" />
             </span>
-            <p className="mt-3 flex items-center gap-2 text-base font-bold text-navy-900">
+            <p className="relative mt-3 flex items-center gap-2 text-base font-bold text-navy-900">
               <span aria-hidden="true" className="text-xs font-bold tabular-nums text-gold-600">{`0${index + 1}`}</span>
               {t(locale, step.titleKey)}
             </p>
-            <p className="mt-1 text-sm leading-relaxed text-slate-600">{t(locale, step.bodyKey)}</p>
+            <p className="relative mt-1 text-sm leading-relaxed text-slate-600">{t(locale, step.bodyKey)}</p>
           </li>
         ))}
       </ol>
@@ -89,7 +109,14 @@ export function StartSteps({ locale }: { locale: Locale }) {
 export function KnowledgeBanner({ locale }: { locale: Locale }) {
   return (
     <section className="relative mt-12 overflow-hidden rounded-[1.5rem] border border-navy-100 bg-navy-50/60 p-5 sm:p-7" data-testid="study-knowledge-banner">
-      <PhilosopherSlot id={PHILOSOPHER_BY_AREA.knowledgeBanner} size="banner" className="-bottom-8 -end-6 hidden opacity-[0.18] sm:block" />
+      <PhilosopherSlot
+        id={PHILOSOPHER_BY_AREA.knowledgeBanner}
+        opacity={0.15}
+        className="-bottom-14 -end-10 hidden h-52 w-52 sm:block sm:h-60 sm:w-60"
+      />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 hidden select-none justify-start opacity-[0.06] md:flex">
+        <Art name="columns" className="h-16 w-80" />
+      </div>
       <div className="relative max-w-2xl">
         <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy-700 shadow-sm">
           <Icon name="lightbulb" size="sm" colorRole="default" className="h-3.5 w-3.5 text-gold-500" />

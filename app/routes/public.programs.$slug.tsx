@@ -10,6 +10,7 @@ import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { PageHeader } from "~/components/visuals/PageHeader";
 
 /** Program page: published grades → subjects with visible-course counts. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -137,8 +138,7 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
         <span className="mx-1.5" aria-hidden>›</span>
         <span className="font-medium text-slate-700">{locale === "ar" ? program.titleAr : program.titleEn}</span>
       </nav>
-      <h1 className="text-2xl font-bold">{locale === "ar" ? program.titleAr : program.titleEn}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      <PageHeader art="plato" title={locale === "ar" ? program.titleAr : program.titleEn} subtitle={desc} />
 
       {!hasSubjects ? (
         <p className="mt-6 text-slate-500">{t(locale, "catalog.noSubjects")}</p>

@@ -14,6 +14,7 @@ import { ProgressBar } from "~/components/ProgressBar";
 import { QuestionPlatformCard } from "~/components/QuestionPlatform";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
+import { Art } from "~/components/visuals/Art";
 
 /**
  * Student dashboard (Phase 3 stage 5): modular, admin-configured. Which
@@ -153,8 +154,14 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="glow-soft relative isolate flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-5 shadow-sm">
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-8 -end-8 hidden h-36 w-36 select-none opacity-[0.08] sm:block">
+          <Art name="descartes" />
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-5 bottom-0 hidden select-none opacity-[0.05] md:block">
+          <Art name="columns" className="h-12 w-full" />
+        </div>
+        <div className="relative">
           <p className="text-sm text-slate-500">{welcomeLine}</p>
           <h1 className="text-2xl font-bold text-slate-900">{loaderData.user.fullName}</h1>
         </div>

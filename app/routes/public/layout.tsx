@@ -13,6 +13,7 @@ import { Icon } from "~/cms/icons";
 import { siteEntitiesMeta } from "~/cms/seo";
 import { resolveSocialLinks, socialsFor, socialIconName } from "~/cms/social";
 import { DecorHairline } from "~/components/visuals/PhilosophyDecor";
+import { Art } from "~/components/visuals/Art";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -298,7 +299,16 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </main>
 
-      <footer className="relative border-t border-navy-900 bg-navy-950 pb-safe text-navy-100">
+      <footer className="relative overflow-hidden border-t border-navy-900 bg-navy-950 pb-safe text-navy-100">
+        {/* Engraved line-art, inverted for the navy panel: a colonnade hairline
+            behind the columns and one thinker low in the empty side space. Both
+            are aria-hidden decoration with no link, no button and no copy. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 hidden select-none justify-center opacity-[0.07] md:flex">
+          <Art name="columns" tone="light" className="h-28 w-[42rem]" />
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute -top-6 end-4 hidden h-44 w-44 select-none opacity-[0.08] lg:block">
+          <Art name="aristotle" tone="light" />
+        </div>
         <DecorHairline className="mx-auto max-w-7xl px-4 text-gold-500 opacity-60" />
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}

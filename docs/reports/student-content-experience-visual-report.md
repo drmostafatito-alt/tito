@@ -75,15 +75,65 @@ slots hidden from assistive tech, one focusable element per subject card
 (stretched title link), `min-h-11` touch targets on all real controls, visible
 focus rings kept, correct `dir="rtl"` and `lang="ar"`.
 
-## 6. Not done, on purpose
 
-No image generation, no stock/AI asset, no new image file, no production deploy,
+## 7. Art phase — engraved line-art distributed across the platform
+
+After explicit owner approval the platform now ships its own engraved ink
+line-art (the earlier "slots only" phase is superseded).
+
+**Pipeline** (`qa-out/art-src/process.sh`, local tool):
+generated as antique book-plate etchings (black ink on white) → converted to
+monochrome navy-900 ink with real alpha → trimmed → resized → WebP (72, alpha 55).
+The whole set is **740 KB** for 10 files, every one `loading="lazy"` +
+`decoding="async"` with intrinsic width/height, so nothing blocks or shifts.
+Because the ink carries alpha, the same file tints correctly on white cards, on
+the soft-blue sections, and (inverted) on the navy footer.
+
+**Registry**: `app/lib/art.ts` (single manifest, no hardcoded paths elsewhere) and
+`app/components/visuals/Art.tsx` (always `aria-hidden`, `alt=""`,
+`pointer-events-none`, `tone="light"` inverts for navy surfaces).
+
+Assets: `public/art/philosopher-{socrates,plato,aristotle,descartes,kant,freud,marx}.webp`,
+`emblem-{book,scroll}.webp`, `frieze-columns.webp`.
+
+**Distribution** — never two of them side by side, always cropped into a corner
+behind the copy, faded, `hidden sm:block` (phones keep the breathing room):
+
+| Surface | Art | Weight |
+| --- | --- | --- |
+| Hub hero | Socrates | 0.12 |
+| Subject card فلسفة ومنطق | Aristotle | 0.12 → 0.20 on hover |
+| Subject card علم النفس | Freud | 0.12 → 0.20 on hover |
+| Knowledge band | Marx + colonnade hairline | 0.15 / 0.06 |
+| Material cards | per kind: columns / book / scroll / descartes | 0.08 → 0.14 hover |
+| Steps cards | book / scroll / aristotle | 0.07 → 0.13 hover |
+| Subject page header | subject-mapped thinker | 0.13 |
+| Footer (navy) | colonnade + Aristotle (inverted) | 0.07 / 0.08 |
+| About identity card | Plato + colonnade | 0.09 / 0.05 |
+| Catalogue headers (courses, programs, programs/:slug, grades/:slug, subjects/:slug, courses/:slug, units) | book / columns / plato / socrates / aristotle / kant / scroll | ~0.09 |
+| Auth pages (login, register, forgot, reset) | Kant + scroll | 0.07 |
+| Student dashboard | Descartes + colonnade | 0.08 |
+| Activation page | scroll + colonnade | 0.08 |
+| Empty states (study, CMS pages, assignments, catalogue) | book / scroll | 0.07 |
+| CMS section templates | one engraving per block type (hero, statistics, feature_cards, course/subject/program/grade/product cards, video_showcase, exam_platform, journey_steps, benefit_list, cta_banner) + inverted on dark/brand bands | 0.07–0.12 |
+
+Unchanged by design: `teacher_profile` and every form block get **no** art, the
+teacher photo keeps its own slot untouched, and `hero_showcase` was left alone
+because it already renders the owner's own hero illustration.
+
+**Verification of this phase**: typecheck ✓ · lint ✓ · unit 454 ✓ · integration
+336 ✓ · Playwright 91 ✓ · zero horizontal overflow at 320/768/1024/1440 for
+`/study` and `/` · zero console errors (the platform CSP is `style-src 'self'`, so
+the art uses Tailwind opacity utilities only — no inline style anywhere).
+
+## 8. Not done, on purpose
+
+No stock/AI substitute for the teacher photo, no production deploy,
 no production data change, no migration, no admin redesign, no payment gateway,
 no homepage rewrite.
 
 ```
 NO TEACHER PHOTO REPLACEMENT
-NO IMAGE GENERATION
 NO FAKE CONTENT
 NO COURSE TERMINOLOGY IN STUDENT UI
 NO PAYMENT GATEWAY

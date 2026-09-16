@@ -9,6 +9,7 @@ import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
 import { t, type Locale } from "~/lib/i18n";
+import { Art } from "~/components/visuals/Art";
 
 /**
  * Activation-code redemption (PAYMENTS.md §3). Logged-in students only and
@@ -43,8 +44,14 @@ export default function ActivatePage({}: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t(locale, "commerce.activateTitle")}</h1>
+    <div className="relative isolate glow-soft space-y-4 overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-5 shadow-sm sm:p-6">
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-10 -end-8 hidden h-40 w-40 select-none opacity-[0.08] sm:block">
+        <Art name="scroll" />
+      </div>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-5 bottom-0 hidden select-none opacity-[0.05] md:block">
+        <Art name="columns" className="h-12 w-full" />
+      </div>
+      <h1 className="relative text-xl font-bold">{t(locale, "commerce.activateTitle")}</h1>
 
       {actionData && "error" in actionData && (
         <div data-testid="redeem-error">

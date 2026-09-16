@@ -164,10 +164,8 @@
  * of the existing navy/light-blue/gold ramps. Pure CSS, zero image files:
  *   glow-soft   very light blue radial wash (hero / section backgrounds)
  *   dotted-grid faint navy dot lattice (technical, modern — not classical decor)
- *   studyslot   the reserved frame for the philosopher illustration slots: it
- *               renders an EMPTY, cropped, aria-hidden area today and is the
- *               single drop-in point for line-art assets later (no generated
- *               imagery ships in this phase).
+ *   studyslot   neutral fallback frame for a philosopher slot whose line-art
+ *               asset does not exist yet (engraved art lives in /public/art).
  *   fade-up     one-shot entrance used by the hero only (globally neutralized
  *               by the prefers-reduced-motion block above). */
 @utility glow-soft {
@@ -189,6 +187,13 @@
 
 @utility fade-up {
   animation: fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Engraved line-art slots: a card hover may brighten the art a little, but the
+ * ceiling stays inside the brief's band for decorative imagery (0.12–0.20), and
+ * it is pinned here so no call site can raise it by accident. */
+.group:hover [data-visual-slot][data-boost="hover"] {
+  opacity: 0.2 !important;
 }
 
 @keyframes fade-up {

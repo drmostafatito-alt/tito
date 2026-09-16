@@ -12,6 +12,7 @@ import { Icon } from "~/cms/icons";
 import { rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, personJsonLd, safeHttpsUrl, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { Art } from "~/components/visuals/Art";
 
 /**
  * About / teacher entity page (SEO Master Phase, batch 4).
@@ -172,16 +173,26 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
         <span className="font-medium text-slate-700">{t(locale, "seo.about")}</span>
       </nav>
 
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-        {owner.photoUrl && (
-          <img src={owner.photoUrl} alt={name} className="h-40 w-40 shrink-0 rounded-2xl object-cover" />
-        )}
-        <div>
-          <h1 className="text-2xl font-bold">{name}</h1>
-          {title && <p className="mt-1 font-medium text-brand-700">{title}</p>}
-          <p className="mt-3 leading-relaxed text-slate-600">
-            {t(locale, "seo.aboutBio", { name: siteName, tagline })}
-          </p>
+      {/* Identity header — the owner's real photo keeps its own slot and is never
+          replaced; the engraved line-art only sits BESIDE it, as page identity. */}
+      <div className="glow-soft relative isolate overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-5 shadow-sm sm:p-6">
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-10 -end-8 hidden h-48 w-48 select-none opacity-[0.09] sm:block">
+          <Art name="plato" />
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-6 bottom-0 hidden select-none opacity-[0.05] md:block">
+          <Art name="columns" className="h-14 w-full" />
+        </div>
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start">
+          {owner.photoUrl && (
+            <img src={owner.photoUrl} alt={name} className="h-40 w-40 shrink-0 rounded-2xl object-cover ring-2 ring-white shadow-sm" />
+          )}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold">{name}</h1>
+            {title && <p className="mt-1 font-medium text-brand-700">{title}</p>}
+            <p className="mt-3 leading-relaxed text-slate-600">
+              {t(locale, "seo.aboutBio", { name: siteName, tagline })}
+            </p>
+          </div>
         </div>
       </div>
 

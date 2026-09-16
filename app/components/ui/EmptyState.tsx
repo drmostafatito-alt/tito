@@ -1,20 +1,31 @@
+import { Art } from "~/components/visuals/Art";
+import type { ArtName } from "~/lib/art";
+
 export function EmptyState({
   title,
   body,
   icon,
   action,
+  /** optional engraved emblem behind the state (public/student surfaces only) */
+  art,
 }: {
   title: string;
   body?: string;
   icon?: React.ReactNode;
   action?: React.ReactNode;
+  art?: ArtName;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center">
-      {icon && <div className="text-3xl text-slate-500" aria-hidden="true">{icon}</div>}
-      <p className="font-medium text-slate-700">{title}</p>
-      {body && <p className="max-w-sm text-sm text-slate-500">{body}</p>}
-      {action && <div className="mt-2">{action}</div>}
+    <div className="relative isolate flex flex-col items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-card)] border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center">
+      {art && (
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-6 -end-6 hidden h-32 w-32 select-none opacity-[0.07] sm:block">
+          <Art name={art} />
+        </div>
+      )}
+      {icon && <div className="relative text-3xl text-slate-500" aria-hidden="true">{icon}</div>}
+      <p className="relative font-medium text-slate-700">{title}</p>
+      {body && <p className="relative max-w-sm text-sm text-slate-500">{body}</p>}
+      {action && <div className="relative mt-2">{action}</div>}
     </div>
   );
 }
