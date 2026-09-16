@@ -1731,6 +1731,29 @@ export const en: Dictionary = {
     breadcrumbHome: "Home",
     gradeLabel: "Grade",
     programLabel: "Stage",
+    /** hub hero (visual phase — copy is factual, no invented claims) */
+    heroLead: "A learning journey through philosophy and psychology — simple on the surface, deep underneath.",
+    heroCta: "Browse subjects",
+    currentYearLabel: "Current academic year",
+    teacherBadge: "Taught directly by the teacher",
+    termUnit: "Term",
+    lessonUnit: "Lesson",
+    freeUnit: "Free",
+    /** material kinds actually present in the published lessons */
+    materialsTitle: "Available content types",
+    materialsBody: "These are the content types that actually exist in the published lessons right now.",
+    /** how the academic path works on this platform */
+    startTitle: "How do you reach a lesson?",
+    stepSubjectTitle: "Pick a subject",
+    stepSubjectBody: "Start with the subject and grade that match you.",
+    stepTermTitle: "Pick a term",
+    stepTermBody: "Every subject is split into terms, and each term lists its lessons and units.",
+    stepLessonTitle: "Start the lesson",
+    stepLessonBody: "Free lessons open right away; subscriber lessons open with a subscription or an activation code.",
+    /** knowledge band */
+    knowledgeEyebrow: "How the content is organised",
+    knowledgeTitle: "Every lesson in its right place",
+    knowledgeBody: "Content is ordered by academic year, grade, subject and term. Each lesson shows what it contains — video, file or practice — and whether it is open for you right now.",
     // ---- student content experience (listing) ----
     exploreSubject: "Explore subject",
     subjectsCount: "{n} subjects",

@@ -202,9 +202,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 stays reachable for SEO but is not the student's front door. */}
             <Link
               to="/study"
-              className="hidden min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-medium text-navy-700 hover:bg-navy-50 hover:text-navy-900 md:inline-flex"
+              className="hidden min-h-11 items-center gap-1.5 rounded-full bg-navy-50 px-4 py-2 text-sm font-semibold text-navy-800 ring-1 ring-navy-100 transition-colors hover:bg-navy-100 hover:text-navy-900 md:inline-flex"
               data-testid="nav-study"
             >
+              <Icon name="book-open" size="sm" colorRole="default" className="h-4 w-4" />
               {t(locale, "study.navTitle")}
             </Link>
             {loaderData.user ? (

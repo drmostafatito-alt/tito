@@ -71,25 +71,28 @@ export function LessonCard(props: LessonCardProps) {
   const secondaryKey = studyLockedSecondaryCtaKey(state);
   const isLocked = state === "locked";
 
+  // Number spine: soft blue for an open lesson, a quiet gold tint once it is
+  // completed, muted for anything the student cannot open yet. Colour is never
+  // the only signal — the state chip and CTA always carry the meaning in words.
   const numberTone =
     progress?.status === "completed"
-      ? "border-gold-200 bg-gold-50 text-gold-700"
+      ? "bg-gold-50 text-gold-700 ring-1 ring-gold-200"
       : state === "open"
-        ? "border-navy-100 bg-navy-50 text-navy-800"
-        : "border-navy-100 bg-white text-navy-400";
+        ? "bg-navy-50 text-navy-800 ring-1 ring-navy-100"
+        : "bg-slate-50 text-slate-400 ring-1 ring-slate-200";
 
   return (
     <li data-testid={`study-lesson-${props.slug}`} data-lesson-state={state}>
       <article
-        className={`group relative flex flex-col gap-3 rounded-[var(--radius-card)] border bg-white p-4 shadow-sm transition-colors sm:flex-row sm:items-start sm:gap-4 sm:p-5 ${
-          isLocked ? "border-navy-100 hover:border-navy-200" : "border-navy-100 hover:border-gold-300 hover:bg-navy-50/20"
+        className={`group relative flex flex-col gap-3 rounded-[1.25rem] border border-navy-100 bg-white p-4 shadow-sm transition-all sm:flex-row sm:items-start sm:gap-4 sm:p-5 ${
+          isLocked ? "hover:border-navy-200" : "hover:-translate-y-0.5 hover:border-navy-200 hover:shadow-md"
         }`}
       >
         {/* Position badge — the "01 / 02" spine of the lesson list */}
         <div className="flex items-center gap-3 sm:block">
           <span
             aria-hidden="true"
-            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-base font-bold tabular-nums ${numberTone}`}
+            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-base font-bold tabular-nums ${numberTone}`}
             data-testid={`study-lesson-number-${props.slug}`}
           >
             {number}
@@ -104,10 +107,10 @@ export function LessonCard(props: LessonCardProps) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <Heading className="text-base font-semibold leading-snug text-navy-900">
+          <Heading className="text-base font-semibold leading-snug text-navy-900 sm:text-[1.0625rem]">
             <Link
               to={props.lessonHref}
-              className="break-words rounded-sm after:absolute after:inset-0 after:rounded-[var(--radius-card)] group-hover:text-navy-700"
+              className="break-words rounded-sm after:absolute after:inset-0 after:rounded-[1.25rem] group-hover:text-navy-700"
               aria-label={`${title} — ${ctaKey ? t(locale, ctaKey) : t(locale, "study.openLesson")}`}
             >
               {title}
@@ -133,13 +136,13 @@ export function LessonCard(props: LessonCardProps) {
             (state === "locked" ? (
               <Link
                 to={offer ? offer.href : props.activateHref}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900 sm:w-auto"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-900 sm:w-auto"
                 data-testid={`study-lesson-cta-${props.slug}`}
               >
                 <Icon name={offer ? "lock" : "tag"} size="sm" colorRole="invert" className="h-4 w-4" />
                 {t(locale, ctaKey)}
                 {offer && (
-                  <span dir="ltr" className="text-xs font-medium text-gold-200">
+                  <span dir="ltr" className="text-xs font-medium text-navy-100">
                     {offer.priceLabel}
                   </span>
                 )}
@@ -147,9 +150,9 @@ export function LessonCard(props: LessonCardProps) {
             ) : (
               <Link
                 to={state === "sign_in_required" ? props.signInHref : props.lessonHref}
-                className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-colors sm:w-auto ${
+                className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-colors sm:w-auto ${
                   state === "open" && progress?.status === "completed"
-                    ? "border border-gold-300 bg-gold-50 text-gold-800 hover:bg-gold-100"
+                    ? "bg-white text-navy-800 ring-1 ring-navy-200 hover:bg-navy-50"
                     : "bg-navy-800 text-white hover:bg-navy-900"
                 }`}
                 data-testid={`study-lesson-cta-${props.slug}`}
@@ -162,7 +165,7 @@ export function LessonCard(props: LessonCardProps) {
           {isLocked && secondaryKey && offer && (
             <Link
               to={props.activateHref}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-800 transition-colors hover:border-gold-300 hover:bg-navy-50 sm:w-auto"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-800 transition-colors hover:border-navy-300 hover:bg-navy-50 sm:w-auto"
               data-testid={`study-lesson-activate-${props.slug}`}
             >
               {t(locale, secondaryKey)}
@@ -172,7 +175,7 @@ export function LessonCard(props: LessonCardProps) {
           {state === "sign_in_required" && (
             <Link
               to={props.signInHref}
-              className="text-center text-xs font-medium text-navy-600 underline decoration-gold-400 underline-offset-4 hover:text-navy-800 sm:text-end"
+              className="text-center text-xs font-medium text-navy-600 underline decoration-navy-300 underline-offset-4 hover:text-navy-800 sm:text-end"
             >
               {t(locale, "study.registerHint")}
             </Link>

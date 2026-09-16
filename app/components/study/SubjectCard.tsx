@@ -1,24 +1,28 @@
 import { Link } from "react-router";
 import { Icon } from "~/cms/icons";
-import { DecorRings } from "~/components/visuals/PhilosophyDecor";
+import { PhilosopherSlot } from "~/components/study/PhilosopherSlot";
 import { t, type Locale } from "~/lib/i18n";
-import { countLabel } from "~/lib/study-view";
+import { countLabel, subjectIcon } from "~/lib/study-view";
 
 /**
- * One subject in the المحتوى التعليمي hub (PART 32): المادة + الصف + المرحلة +
- * counts of REALLY published content + the academic year(s) it is offered in.
+ * One subject card in المحتوى التعليمي — modern white card, soft blue support
+ * colour, gold only as a hairline accent.
  *
- * The whole card is a single link (stretched title link) — one tab stop, a large
- * touch target, and the CTA is a visual affordance rather than a second link.
- * Counts come from the loader (published term containers / published lessons) and
- * a subject with no published term at all is never listed by the hub query, so
- * the card can never advertise content that does not exist.
+ * Layout (visual brief §9/§30): icon tile + title + grade at the top, the
+ * owner's description, a row of COMPACT INFO BLOCKS carrying the real numbers
+ * (terms · lessons · free lessons), then the academic year and the CTA
+ * «استعرض المحتوى». Counts are published rows only; a subject with nothing
+ * published is never returned by the hub query, so no block can ever advertise
+ * content that does not exist.
  *
- * IDENTITY (Phase: visuals not generated yet): the ornament is the existing
- * SVG-only academic motif in Tito's gold. The reserved slot for a future
- * philosopher portrait is the bottom-left corner behind the meta row — see
- * docs/reports/student-content-experience-report.md §VISUAL PLAN. No image is
- * shipped in this phase and the layout is complete without one.
+ * The whole card is one link (stretched title link): one tab stop, a large touch
+ * target, and the CTA is a visual affordance rather than a second link — the
+ * mobile behaviour stays a stacked, thumb-friendly card.
+ *
+ * The philosopher illustration sits in a RESERVED, EMPTY slot (see
+ * PhilosopherSlot): cropped by the card's end corner, behind the copy, aria-hidden
+ * — Aristotle for فلسفة ومنطق, Freud for علم النفس, supplied by the caller. No
+ * imagery ships in this phase; the geometry is already final.
  */
 export interface SubjectCardProps {
   locale: Locale;
@@ -35,6 +39,8 @@ export interface SubjectCardProps {
   lessonCount: number;
   freeLessonCount: number;
   years: Array<{ id: string; titleAr: string; titleEn: string }>;
+  /** reserved illustration slot for this subject (e.g. aristotle / freud) */
+  slotId: "aristotle" | "freud" | "marx" | "socrates" | "plato" | "descartes" | "kant" | "nietzsche" | "ibn-rushd" | "ibn-sina";
 }
 
 export function SubjectCard(props: SubjectCardProps) {
@@ -48,68 +54,89 @@ export function SubjectCard(props: SubjectCardProps) {
   const years = props.years.map((y) => pick(y.titleAr, y.titleEn)).filter(Boolean);
 
   return (
-    <li data-testid={`study-subject-${props.slug}`}>
-      <article className="group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-navy-100 bg-white p-5 shadow-sm transition-all hover:border-gold-300 hover:shadow-md">
-        {/* Decorative academic motif — the component is aria-hidden + pointer-safe
-            by construction (see PhilosophyDecor), and sits behind the card copy. */}
-        <DecorRings className="pointer-events-none absolute -bottom-20 -end-16 h-44 w-44 text-gold-500 opacity-[0.10]" />
+    <li data-testid={`study-subject-${props.slug}`} className="h-full">
+      <article className="group relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-navy-200 hover:shadow-md sm:p-6">
+        <PhilosopherSlot
+          id={props.slotId}
+          className="-bottom-10 -end-8 opacity-[0.14] transition-opacity group-hover:opacity-[0.2]"
+        />
 
-        <div className="relative flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-navy-900 px-3 py-1 text-xs font-semibold text-white">{grade}</span>
-          {program && (
-            <span className="inline-flex items-center rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-800">
-              {program}
-            </span>
-          )}
-        </div>
+        {/* md+: copy at the start, the real numbers + CTA in a narrow end column,
+            so a single-subject grade does not leave a wide empty card. */}
+        <div className="relative flex min-w-0 flex-1 flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-8">
+          <div className="min-w-0 md:flex-1">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-navy-50 text-navy-800 ring-1 ring-navy-100"
+              >
+                <Icon name={subjectIcon(title, props.slug)} size="md" colorRole="default" className="h-6 w-6" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold leading-snug text-navy-900">
+                  <Link
+                    to={`/study/${props.slug}`}
+                    className="break-words rounded-sm after:absolute after:inset-0 after:rounded-[1.5rem] group-hover:text-navy-700"
+                    aria-label={`${title} — ${t(locale, "study.exploreSubject")}`}
+                  >
+                    {title}
+                  </Link>
+                </h3>
+                <p className="mt-1 text-xs font-medium text-slate-500">{grade}</p>
+              </div>
+            </div>
 
-        <h3 className="relative mt-3 flex items-start gap-2 text-lg font-bold leading-snug text-navy-900">
-          <Icon name="book-open" size="md" colorRole="default" className="mt-0.5 h-5 w-5 text-gold-600" />
-          <Link
-            to={`/study/${props.slug}`}
-            className="break-words rounded-sm after:absolute after:inset-0 after:rounded-[var(--radius-card)]"
-            aria-label={`${title} — ${t(locale, "study.exploreSubject")}`}
-          >
-            {title}
-          </Link>
-        </h3>
+            {description && (
+              <p className="mt-3 line-clamp-2 max-w-2xl text-sm leading-relaxed text-slate-600">{description}</p>
+            )}
 
-        {description && <p className="relative mt-2 line-clamp-3 text-sm text-slate-600">{description}</p>}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {program && (
+                <span className="rounded-full bg-navy-50 px-3 py-1 text-[11px] font-medium text-navy-600">{program}</span>
+              )}
+              {years.length > 0 && (
+                <ul className="flex flex-wrap items-center gap-1.5" data-testid={`study-subject-years-${props.slug}`}>
+                  <li className="text-[11px] text-slate-500">{t(locale, "study.yearLabel")}:</li>
+                  {years.map((y) => (
+                    <li key={y} dir="ltr" className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-700">
+                      {y}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
 
-        <ul className="relative mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
-          <li className="flex items-center gap-1.5">
-            <Icon name="layers" size="sm" colorRole="default" className="h-3.5 w-3.5 text-navy-400" />
-            <span>{countLabel(locale, props.termCount, "terms")}</span>
-          </li>
-          <li className="flex items-center gap-1.5">
-            <Icon name="book-open" size="sm" colorRole="default" className="h-3.5 w-3.5 text-navy-400" />
-            <span>{countLabel(locale, props.lessonCount, "lessons")}</span>
-          </li>
-          {props.freeLessonCount > 0 && (
-            <li className="flex items-center gap-1.5 font-medium text-emerald-700" data-testid={`study-subject-free-${props.slug}`}>
-              <Icon name="check-circle" size="sm" colorRole="default" className="h-3.5 w-3.5 text-emerald-600" />
-              <span>{t(locale, "study.freeLessonsChip")}</span>
-            </li>
-          )}
-        </ul>
-
-        {years.length > 0 && (
-          <ul className="relative mt-3 flex flex-wrap items-center gap-1.5" data-testid={`study-subject-years-${props.slug}`}>
-            <li className="text-xs text-slate-500">{t(locale, "study.yearLabel")}:</li>
-            {years.map((y) => (
-              <li key={y} dir="ltr" className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700">
-                {y}
+          {/* Compact information blocks — real published counts only. */}
+          <div className="flex shrink-0 flex-col gap-3 md:w-[15rem]">
+            <ul className="grid grid-cols-3 gap-2">
+              <li className="rounded-xl bg-navy-50/70 px-3 py-2">
+                <span className="block text-sm font-bold tabular-nums text-navy-900">{props.termCount}</span>
+                <span className="text-[11px] text-slate-500">{t(locale, "study.termUnit")}</span>
               </li>
-            ))}
-          </ul>
-        )}
+              <li className="rounded-xl bg-navy-50/70 px-3 py-2">
+                <span className="block text-sm font-bold tabular-nums text-navy-900">{props.lessonCount}</span>
+                <span className="text-[11px] text-slate-500">{t(locale, "study.lessonUnit")}</span>
+              </li>
+              <li
+                className={`rounded-xl px-3 py-2 ${props.freeLessonCount > 0 ? "bg-emerald-50" : "bg-navy-50/70"}`}
+                data-testid={`study-subject-free-${props.slug}`}
+              >
+                <span className={`block text-sm font-bold tabular-nums ${props.freeLessonCount > 0 ? "text-emerald-700" : "text-navy-900"}`}>
+                  {props.freeLessonCount}
+                </span>
+                <span className="text-[11px] text-slate-500">{t(locale, "study.freeUnit")}</span>
+              </li>
+            </ul>
 
-        <div className="relative mt-5 flex-1" />
-
-        <span className="relative inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white transition-colors group-hover:bg-navy-900">
-          {t(locale, "study.exploreSubject")}
-          <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
-        </span>
+            {/* One link only: the title link stretches over the whole card, so the
+                CTA is an affordance, never a second tab stop or a dead button. */}
+            <span className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors group-hover:bg-navy-900">
+              {t(locale, "study.exploreSubject")}
+              <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
+            </span>
+          </div>
+        </div>
       </article>
     </li>
   );

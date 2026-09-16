@@ -1407,6 +1407,55 @@ export interface StudySubjectCard {
 }
 
 /**
+ * Which material kinds the PUBLISHED study content actually contains right now,
+ * with the real number of lessons that carry each kind.
+ *
+ * Drives the "أنواع المحتوى المتاحة" section on the hub. It is deliberately a
+ * measurement, not a capability list: a platform whose lessons only hold PDFs
+ * will simply never render a video tile, and a platform with no published
+ * lesson renders no section at all. Two queries total (see the id sweep + the
+ * shared item/file read in `lessonContentSummaries`), so it stays cheap.
+ */
+export async function studyMaterialKinds(db: DB): Promise<Array<{ kind: LessonContentKind; lessonCount: number }>> {
+  const lessonRows = await db
+    .select({ id: lessons.id })
+    .from(lessons)
+    .innerJoin(units, eq(lessons.unitId, units.id))
+    .innerJoin(courses, eq(units.courseId, courses.id))
+    .innerJoin(subjects, eq(courses.subjectId, subjects.id))
+    .innerJoin(grades, eq(subjects.gradeId, grades.id))
+    .innerJoin(programs, eq(grades.programId, programs.id))
+    .where(
+      and(
+        eq(lessons.status, "published"),
+        isNull(lessons.deletedAt),
+        eq(units.status, "published"),
+        isNull(units.deletedAt),
+        eq(courses.status, "published"),
+        isNull(courses.deletedAt),
+        eq(subjects.status, "published"),
+        isNull(subjects.deletedAt),
+        eq(grades.status, "published"),
+        isNull(grades.deletedAt),
+        eq(programs.status, "published"),
+        isNull(programs.deletedAt)
+      )
+    );
+  if (lessonRows.length === 0) return [];
+
+  const summaries = await lessonContentSummaries(db, lessonRows.map((r) => r.id));
+  const counts = new Map<LessonContentKind, number>();
+  for (const summary of summaries.values()) {
+    // A lesson counts once per kind, however many items of that kind it holds.
+    for (const kind of summary.kinds) counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  return LESSON_CONTENT_KINDS.filter((k) => (counts.get(k) ?? 0) > 0).map((kind) => ({
+    kind,
+    lessonCount: counts.get(kind) ?? 0,
+  }));
+}
+
+/**
  * The "المحتوى التعليمي" index: published subjects that actually have published
  * term containers. Empty-first — nothing is invented when the owner has not
  * published content yet.

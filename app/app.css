@@ -159,6 +159,43 @@
     linear-gradient(-45deg, transparent 46%, color-mix(in srgb, var(--color-gold-500, #c9932a) 70%, transparent) 46% 54%, transparent 54%);
 }
 
+/* ─── Modern study-surface utilities (student content experience, visual phase) ───
+ * White-first identity: these are the only additions the study pages need on top
+ * of the existing navy/light-blue/gold ramps. Pure CSS, zero image files:
+ *   glow-soft   very light blue radial wash (hero / section backgrounds)
+ *   dotted-grid faint navy dot lattice (technical, modern — not classical decor)
+ *   studyslot   the reserved frame for the philosopher illustration slots: it
+ *               renders an EMPTY, cropped, aria-hidden area today and is the
+ *               single drop-in point for line-art assets later (no generated
+ *               imagery ships in this phase).
+ *   fade-up     one-shot entrance used by the hero only (globally neutralized
+ *               by the prefers-reduced-motion block above). */
+@utility glow-soft {
+  background-image:
+    radial-gradient(60% 70% at 88% 8%, color-mix(in srgb, var(--color-navy-100, #e3ecf8) 85%, transparent) 0%, transparent 70%),
+    radial-gradient(50% 60% at 4% 96%, color-mix(in srgb, var(--color-navy-50, #f2f6fc) 90%, transparent) 0%, transparent 72%);
+}
+
+@utility dotted-grid {
+  background-image: radial-gradient(color-mix(in srgb, var(--color-navy-300, #9bb9e1) 55%, transparent) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+@utility studyslot {
+  background-image:
+    radial-gradient(circle at 62% 40%, color-mix(in srgb, var(--color-navy-200, #c6d9ef) 45%, transparent) 0%, transparent 62%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-navy-50, #f2f6fc) 92%, transparent) 0%, color-mix(in srgb, var(--color-navy-100, #e3ecf8) 70%, transparent) 100%);
+}
+
+@utility fade-up {
+  animation: fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
 /* Reduced motion (WCAG 2.3.3 / owner brief §28): decorative movement is a
  * progressive enhancement — neutralize long transitions & animations for
  * visitors who ask for less motion. Interactive state changes stay instant and

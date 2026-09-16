@@ -30,9 +30,9 @@ export function ContentTypeChips({
         <li
           key={kind}
           data-material={kind}
-          className="inline-flex items-center gap-1.5 rounded-full border border-navy-100 bg-navy-50/70 px-2.5 py-1 text-xs font-medium text-navy-700"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-navy-50/80 px-2.5 py-1 text-xs font-medium text-navy-700 ring-1 ring-navy-100"
         >
-          <Icon name={contentKindIcon(kind)} size="sm" colorRole="default" className="h-3.5 w-3.5 text-gold-600" />
+          <Icon name={contentKindIcon(kind)} size="sm" colorRole="default" className="h-3.5 w-3.5 text-navy-500" />
           <span>{t(locale, contentKindLabelKey(kind))}</span>
         </li>
       ))}

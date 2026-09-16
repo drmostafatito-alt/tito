@@ -282,3 +282,63 @@ export function termCompletion(
   const pct = openable.length === 0 ? 0 : Math.round((completed / openable.length) * 100);
   return { completed, openable: openable.length, pct };
 }
+
+/**
+ * Decorative icon for a subject tile.
+ *
+ * The subject rows carry no icon column (nothing to invent), so the tile icon is
+ * chosen deterministically: a small keyword map for the subjects this platform
+ * actually teaches (فلسفة/منطق · علم النفس) and a stable hash into a neutral
+ * academic set for anything else the owner adds later. Purely decorative — the
+ * real title is always the visible, accessible label next to it.
+ */
+const SUBJECT_ICON_KEYWORDS: Array<{ match: RegExp; icon: string }> = [
+  { match: /فلسف|منطق|philos|logic/i, icon: "scale" },
+  { match: /نفس|psych/i, icon: "brain" },
+  { match: /تاريخ|history|civil/i, icon: "landmark" },
+  { match: /لغة|عرب|english|language/i, icon: "scroll" },
+  { match: /أحياء|كيمياء|فيزياء|science|biology|chem|phys/i, icon: "lightbulb" },
+  { match: /رياض|math|algebra|geometry/i, icon: "puzzle" },
+  { match: /اجتماع|جغراف|social|geo/i, icon: "compass" },
+];
+
+const SUBJECT_ICON_FALLBACK = ["book-open", "layers", "scroll", "lightbulb", "compass", "puzzle"] as const;
+
+export function subjectIcon(title: string, slug: string): string {
+  for (const rule of SUBJECT_ICON_KEYWORDS) {
+    if (rule.match.test(title)) return rule.icon;
+  }
+  let hash = 0;
+  for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) % 100000;
+  return SUBJECT_ICON_FALLBACK[hash % SUBJECT_ICON_FALLBACK.length];
+}
+
+/**
+ * Reserved illustration slot for a subject card.
+ *
+ * The owner's direction is a many-thinker visual system (Aristotle for فلسفة
+ * ومنطق, Freud for علم النفس, Marx in the knowledge band, and the rest of the
+ * set elsewhere) distributed so the eye never finds a fixed rule. Like the icon,
+ * it is derived deterministically from the subject itself: the two subjects this
+ * platform teaches get their intended thinker, and any subject the owner adds
+ * later maps onto the remaining set by a stable hash. Decoration only — the name
+ * is never rendered, never announced and never a substitute for the real title.
+ */
+const SUBJECT_PHILOSOPHER_KEYWORDS: Array<{ match: RegExp; slot: string }> = [
+  { match: /فلسف|منطق|philos|logic/i, slot: "aristotle" },
+  { match: /نفس|psych/i, slot: "freud" },
+  { match: /اجتماع|social/i, slot: "marx" },
+  { match: /تاريخ|history/i, slot: "ibn-rushd" },
+  { match: /طب|علوم|science|medic/i, slot: "ibn-sina" },
+];
+
+const SUBJECT_PHILOSOPHER_FALLBACK = ["socrates", "plato", "descartes", "kant", "nietzsche", "ibn-sina", "ibn-rushd"] as const;
+
+export function subjectPhilosopher(title: string, slug: string): string {
+  for (const rule of SUBJECT_PHILOSOPHER_KEYWORDS) {
+    if (rule.match.test(title)) return rule.slot;
+  }
+  let hash = 7;
+  for (let i = 0; i < slug.length; i++) hash = (hash * 33 + slug.charCodeAt(i)) % 100000;
+  return SUBJECT_PHILOSOPHER_FALLBACK[hash % SUBJECT_PHILOSOPHER_FALLBACK.length];
+}

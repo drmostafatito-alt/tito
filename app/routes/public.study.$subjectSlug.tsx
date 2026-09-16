@@ -12,8 +12,7 @@ import { lessonProgressMap } from "~server/progress/service.server";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { ProgressBar } from "~/components/ProgressBar";
 import { Icon } from "~/cms/icons";
-import { DecorRings } from "~/components/visuals/PhilosophyDecor";
-import { StudyRule } from "~/components/study/StudyRule";
+import { PhilosopherSlot, type PhilosopherSlotId } from "~/components/study/PhilosopherSlot";
 import { LessonCard } from "~/components/study/LessonCard";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { breadcrumbJsonLd } from "~/cms/jsonld";
@@ -23,6 +22,8 @@ import {
   groupTermLessons,
   shouldShowUnitHeadings,
   studyLessonState,
+  subjectIcon,
+  subjectPhilosopher,
   summarizeTermStates,
   termCompletion,
   type LessonViewProgress,
@@ -233,44 +234,85 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
       <nav className="mb-3 flex flex-wrap items-center gap-1 text-sm text-slate-500" aria-label={t(locale, "common.breadcrumb")}>
-        <Link to="/" className="rounded-sm hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
+        <Link to="/" className="rounded-sm px-1 py-1.5 hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
         <span aria-hidden="true"> / </span>
         <Link to="/study" className="rounded-sm hover:underline">{t(locale, "study.title")}</Link>
         <span aria-hidden="true"> / </span>
         <span className="font-medium text-navy-800">{ar ? loaderData.subject.titleAr : loaderData.subject.titleEn}</span>
       </nav>
 
-      {/* Subject header: مادة · صف · مرحلة · سنة دراسية — all real rows */}
-      <header className="relative overflow-hidden rounded-[var(--radius-card)] border border-navy-100 bg-white p-5 shadow-sm sm:p-7">
-        <DecorRings className="pointer-events-none absolute -top-24 -end-16 h-52 w-52 text-gold-500 opacity-[0.10]" />
-        <p className="relative text-xs font-semibold uppercase tracking-wide text-gold-700">{t(locale, "study.contentEyebrow")}</p>
-        <h1 className="relative mt-1 break-words text-2xl font-bold text-navy-900 sm:text-3xl">
-          {ar ? loaderData.subject.titleAr : loaderData.subject.titleEn}
-        </h1>
-        <ul className="relative mt-3 flex flex-wrap items-center gap-2" data-testid="study-subject-context">
-          {loaderData.grade && (
-            <li className="inline-flex items-center rounded-full bg-navy-900 px-3 py-1 text-xs font-semibold text-white">
-              {t(locale, "study.gradeLabel")}: {pick(loaderData.grade)}
-            </li>
-          )}
-          {loaderData.program && (
-            <li className="inline-flex items-center rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-xs font-medium text-gold-800">
-              {pick(loaderData.program)}
-            </li>
-          )}
-          {yearLabels.map((y) => (
-            <li key={y} dir="ltr" className="inline-flex items-center gap-1.5 rounded-full border border-navy-100 bg-navy-50 px-3 py-1 text-xs font-semibold tabular-nums text-navy-700">
-              <Icon name="calendar" size="sm" colorRole="default" className="h-3.5 w-3.5 text-gold-600" />
-              {y}
-            </li>
-          ))}
-        </ul>
+      {/* Subject hero — مادة · صف · مرحلة · سنة دراسية, all real rows, white-first
+          with the soft blue support colour; the illustration is a RESERVED slot. */}
+      <header className="fade-up glow-soft relative overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-5 shadow-sm sm:rounded-[1.75rem] sm:p-7">
+        <PhilosopherSlot
+          id={subjectPhilosopher(ar ? loaderData.subject.titleAr || loaderData.subject.titleEn : loaderData.subject.titleEn || loaderData.subject.titleAr, loaderData.subject.slug) as PhilosopherSlotId}
+          className="-bottom-12 -end-10 hidden opacity-[0.15] sm:block"
+        />
+        <span aria-hidden="true" className="dotted-grid pointer-events-none absolute inset-y-0 start-0 hidden w-1/4 opacity-[0.14] lg:block" />
+
+        <div className="relative flex items-start gap-4">
+          <span
+            aria-hidden="true"
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-navy-50 text-navy-800 ring-1 ring-navy-100 sm:h-14 sm:w-14"
+          >
+            <Icon
+              name={subjectIcon(ar ? loaderData.subject.titleAr || loaderData.subject.titleEn : loaderData.subject.titleEn || loaderData.subject.titleAr, loaderData.subject.slug)}
+              size="md"
+              colorRole="default"
+              className="h-6 w-6 sm:h-7 sm:w-7"
+            />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-navy-500">{t(locale, "study.contentEyebrow")}</p>
+            <h1 className="mt-1 break-words text-2xl font-extrabold leading-tight text-navy-900 sm:text-3xl">
+              {ar ? loaderData.subject.titleAr : loaderData.subject.titleEn}
+            </h1>
+            <ul className="mt-3 flex flex-wrap items-center gap-2" data-testid="study-subject-context">
+              {loaderData.grade && (
+                <li className="inline-flex items-center rounded-full bg-navy-50 px-3 py-1 text-xs font-semibold text-navy-800 ring-1 ring-navy-100">
+                  {t(locale, "study.gradeLabel")}: {pick(loaderData.grade)}
+                </li>
+              )}
+              {loaderData.program && (
+                <li className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 ring-1 ring-navy-100">
+                  {pick(loaderData.program)}
+                </li>
+              )}
+              {yearLabels.map((y) => (
+                <li key={y} dir="ltr" className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold tabular-nums text-navy-700 ring-1 ring-navy-100">
+                  <Icon name="calendar" size="sm" colorRole="default" className="h-3.5 w-3.5 text-navy-400" />
+                  {y}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
         {(ar ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn) && (
           <p className="relative mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
             {ar ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn}
           </p>
         )}
-        <StudyRule className="relative mt-5" />
+
+        <ul className="relative mt-5 grid max-w-md grid-cols-3 gap-2">
+          <li className="rounded-xl bg-navy-50/70 px-3 py-2">
+            <span className="block text-sm font-bold tabular-nums text-navy-900">{allTerms.length}</span>
+            <span className="text-[11px] text-slate-500">{t(locale, "study.termUnit")}</span>
+          </li>
+          <li className="rounded-xl bg-navy-50/70 px-3 py-2">
+            <span className="block text-sm font-bold tabular-nums text-navy-900">
+              {allTerms.reduce((sum, t2) => sum + t2.lessons.length, 0)}
+            </span>
+            <span className="text-[11px] text-slate-500">{t(locale, "study.lessonUnit")}</span>
+          </li>
+          <li className="rounded-xl bg-emerald-50 px-3 py-2">
+            <span className="block text-sm font-bold tabular-nums text-emerald-700">
+              {/* free = public + registered-only lessons (the same rule the hub counts with) */}
+              {allTerms.reduce((sum, t2) => sum + t2.lessons.filter((l) => l.accessLevel !== "entitled").length, 0)}
+            </span>
+            <span className="text-[11px] text-slate-500">{t(locale, "study.freeUnit")}</span>
+          </li>
+        </ul>
       </header>
 
       {allTerms.length === 0 ? (
@@ -292,9 +334,9 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                   <li key={term.id}>
                     <a
                       href={`#term-${term.slug}`}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-navy-100 bg-white px-4 py-2 text-sm font-medium text-navy-800 shadow-sm transition-colors hover:border-gold-300 hover:bg-navy-50"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-navy-100 bg-navy-50/70 px-4 py-2 text-sm font-semibold text-navy-800 transition-colors hover:border-navy-200 hover:bg-navy-100/70"
                     >
-                      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+                      <Icon name="layers" size="sm" colorRole="default" className="h-4 w-4 text-navy-500" />
                       {ar ? term.titleAr || term.titleEn : term.titleEn || term.titleAr}
                     </a>
                   </li>
@@ -323,25 +365,34 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                       const showUnits = shouldShowUnitHeadings(groups, locale, DEFAULT_UNIT_TITLES);
                       return (
                         <section key={term.id} id={`term-${term.slug}`} className="scroll-mt-24" data-testid={`study-term-${term.slug}`} aria-labelledby={`term-title-${term.slug}`}>
-                          <div className="flex flex-wrap items-end justify-between gap-2 border-b border-navy-100 pb-3">
-                            <div className="min-w-0">
-                              {!yearBands && (term.academicYearTitleAr || term.academicYearTitleEn) && (
-                                <p className="text-xs font-medium text-slate-500">
-                                  {t(locale, "study.yearLabel")}:{" "}
-                                  <span dir="ltr" className="tabular-nums text-navy-700">
-                                    {ar ? term.academicYearTitleAr || term.academicYearTitleEn : term.academicYearTitleEn || term.academicYearTitleAr}
-                                  </span>
-                                </p>
-                              )}
-                              <TermHeading id={`term-title-${term.slug}`} className="flex items-center gap-2 text-lg font-bold text-navy-900">
-                                <span aria-hidden="true" className="h-5 w-1.5 rounded-full bg-gold-400" />
-                                {termTitle}
-                              </TermHeading>
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border border-navy-100 bg-navy-50/50 px-4 py-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span
+                                aria-hidden="true"
+                                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-navy-700 shadow-sm"
+                              >
+                                <Icon name="layers" size="sm" colorRole="default" className="h-5 w-5" />
+                              </span>
+                              <div className="min-w-0">
+                                {!yearBands && (term.academicYearTitleAr || term.academicYearTitleEn) && (
+                                  <p className="text-[11px] font-medium text-slate-500">
+                                    {t(locale, "study.yearLabel")}:{" "}
+                                    <span dir="ltr" className="tabular-nums text-navy-700">
+                                      {ar ? term.academicYearTitleAr || term.academicYearTitleEn : term.academicYearTitleEn || term.academicYearTitleAr}
+                                    </span>
+                                  </p>
+                                )}
+                                <TermHeading id={`term-title-${term.slug}`} className="text-lg font-bold text-navy-900">
+                                  {termTitle}
+                                </TermHeading>
+                              </div>
                             </div>
-                            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                              <span>{countLabel(locale, summary.total, "lessons")}</span>
+                            <p className="flex flex-wrap items-center gap-2 text-xs">
+                              <span className="rounded-full bg-white px-3 py-1 font-medium text-navy-700 ring-1 ring-navy-100">
+                                {countLabel(locale, summary.total, "lessons")}
+                              </span>
                               {summary.locked > 0 && (
-                                <span className="inline-flex items-center gap-1 text-amber-700">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-800 ring-1 ring-amber-100">
                                   <Icon name="lock" size="sm" colorRole="default" className="h-3.5 w-3.5" />
                                   {countLabel(locale, summary.locked, "lessons")}
                                 </span>
@@ -351,7 +402,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
 
                           {loaderData.signedIn && completion.openable > 0 && (
                             <div className="mt-4" data-testid={`study-term-progress-${term.slug}`}>
-                              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-slate-500">
                                 <span>{t(locale, "study.termProgress")}</span>
                                 <span dir="ltr" className="tabular-nums font-medium text-navy-700">
                                   {completion.completed}/{completion.openable} · {completion.pct}%
@@ -411,30 +462,40 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                               published a real offer for this exact scope. */}
                           {summary.locked > 0 && (
                             <div
-                              className="mt-4 rounded-[var(--radius-card)] border border-gold-200 bg-gold-50/60 p-4"
+                              className="relative mt-4 overflow-hidden rounded-[1.25rem] border border-navy-100 bg-white p-4 shadow-sm sm:p-5"
                               data-testid={`study-term-unlock-${term.slug}`}
                             >
-                              <p className="flex items-center gap-2 text-sm font-semibold text-navy-900">
-                                <Icon name="lock" size="sm" colorRole="default" className="h-4 w-4 text-gold-600" />
-                                {t(locale, "study.termUnlockTitle")}
-                              </p>
-                              <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                                {t(locale, "study.termUnlockBody")}
-                              </p>
+                              {/* gold used as a thin accent only */}
+                              <span aria-hidden="true" className="absolute inset-y-0 start-0 w-1 bg-gradient-to-b from-gold-300 to-gold-500 opacity-80" />
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="flex items-center gap-2 text-sm font-bold text-navy-900">
+                                    <Icon name="lock" size="sm" colorRole="default" className="h-4 w-4 text-navy-500" />
+                                    {t(locale, "study.termUnlockTitle")}
+                                  </p>
+                                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                                    {t(locale, "study.termUnlockBody")}
+                                  </p>
+                                </div>
+                                {offer && (
+                                  <p dir="ltr" className="rounded-xl bg-navy-50 px-3 py-2 text-sm font-bold tabular-nums text-navy-900">
+                                    {offer.priceLabel}
+                                  </p>
+                                )}
+                              </div>
                               <div className="mt-3 flex flex-wrap items-center gap-2">
                                 {offer && (
                                   <Link
                                     to={offer.href}
-                                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900"
+                                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-900"
                                     data-testid={`study-subscribe-${term.slug}`}
                                   >
                                     {t(locale, "content.lockedSubscribe")}
-                                    <span dir="ltr" className="text-xs font-medium text-gold-200">{offer.priceLabel}</span>
                                   </Link>
                                 )}
                                 <Link
                                   to="/activate"
-                                  className="inline-flex min-h-11 items-center rounded-full border border-navy-200 bg-white px-5 py-2 text-sm font-semibold text-navy-800 transition-colors hover:border-gold-300 hover:bg-navy-50"
+                                  className="inline-flex min-h-11 items-center rounded-full border border-navy-200 bg-white px-5 py-2 text-sm font-semibold text-navy-800 transition-colors hover:border-navy-300 hover:bg-navy-50"
                                   data-testid={`study-activate-${term.slug}`}
                                 >
                                   {t(locale, "content.lockedActivate")}

@@ -1731,6 +1731,29 @@ export const ar = {
     breadcrumbHome: "الرئيسية",
     gradeLabel: "الصف",
     programLabel: "المرحلة",
+    /** hub hero (visual phase — copy is factual, no invented claims) */
+    heroLead: "رحلة معرفية في الفلسفة وعلم النفس .. بشكل بسيط وعميق.",
+    heroCta: "استعرض المواد",
+    currentYearLabel: "السنة الدراسية الحالية",
+    teacherBadge: "متابعة مباشرة من المعلّم",
+    termUnit: "ترم",
+    lessonUnit: "درس",
+    freeUnit: "مجاني",
+    /** material kinds actually present in the published lessons */
+    materialsTitle: "أنواع المحتوى المتاحة",
+    materialsBody: "هذه أنواع المحتوى الموجودة فعلًا في الدروس المنشورة الآن.",
+    /** how the academic path works on this platform */
+    startTitle: "كيف تصل إلى الدرس؟",
+    stepSubjectTitle: "اختر المادة",
+    stepSubjectBody: "ابدأ بالمادة والصف المناسبين لك من قائمة المواد.",
+    stepTermTitle: "اختر الترم",
+    stepTermBody: "كل مادة مقسّمة على الترمات، وكل ترم يعرض دروسه وحداته.",
+    stepLessonTitle: "ابدأ بالدرس",
+    stepLessonBody: "الدروس المجانية تفتح مباشرة، ودروس المشتركين تُفتح بالاشتراك أو كود التفعيل.",
+    /** knowledge band */
+    knowledgeEyebrow: "طريقة تنظيم المحتوى",
+    knowledgeTitle: "كل درس في مكانه الصحيح",
+    knowledgeBody: "المحتوى مرتّب بحسب السنة الدراسية والصف والمادة والترم، وكل درس يوضّح ما يحتويه من فيديو أو ملف أو تدريبات، وما إذا كان متاحًا لك الآن.",
     // ---- student content experience (listing) ----
     /** hub */
     exploreSubject: "استكشف المادة",
