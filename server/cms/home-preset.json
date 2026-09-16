@@ -61,10 +61,10 @@
               },
               {
                 "label": {
-                  "ar": "تصفح الكورسات",
-                  "en": "Browse courses"
+                  "ar": "المحتوى التعليمي",
+                  "en": "Learning content"
                 },
-                "href": "/courses",
+                "href": "/study",
                 "target": "_self",
                 "variant": "secondary",
                 "icon": "book-open"
@@ -159,11 +159,11 @@
                   "en": "Philosophy"
                 },
                 "label": {
-                  "ar": "كورسات ومراجعات",
-                  "en": "Courses & revision"
+                  "ar": "دروس ومراجعات",
+                  "en": "Lessons & revision"
                 },
                 "icon": "book-open",
-                "href": "/courses"
+                "href": "/study"
               },
               {
                 "value": {
@@ -171,11 +171,11 @@
                   "en": "Psychology"
                 },
                 "label": {
-                  "ar": "كورسات ومراجعات",
-                  "en": "Courses & revision"
+                  "ar": "دروس ومراجعات",
+                  "en": "Lessons & revision"
                 },
                 "icon": "brain",
-                "href": "/courses"
+                "href": "/study"
               },
               {
                 "value": {
@@ -243,14 +243,14 @@
                   "en": "Lessons"
                 },
                 "text": {
-                  "ar": "دروس ووحدات مرتبة داخل الكورسات.",
-                  "en": "Units and lessons organised inside courses."
+                  "ar": "دروس ووحدات مرتبة حسب الترم.",
+                  "en": "Units and lessons organised by term."
                 },
                 "ctaLabel": {
-                  "ar": "تصفح الكورسات",
-                  "en": "Browse courses"
+                  "ar": "المحتوى التعليمي",
+                  "en": "Learning content"
                 },
-                "href": "/courses",
+                "href": "/study",
                 "tint": "brand"
               },
               {
@@ -315,8 +315,8 @@
       "type": "section",
       "props": {
         "heading": {
-          "ar": "الكورسات",
-          "en": "Courses"
+          "ar": "المحتوى التعليمي",
+          "en": "Learning content"
         },
         "subheading": {
           "ar": "شروحات ومراجعات منظمة، تُحدَّث من لوحة التحكم.",
@@ -367,8 +367,8 @@
           "en": "Lesson videos"
         },
         "subheading": {
-          "ar": "دروس بالفيديو من الكورسات المنشورة.",
-          "en": "Video lessons from the published courses."
+          "ar": "دروس بالفيديو من المحتوى المنشور.",
+          "en": "Video lessons from published content."
         },
         "bg": "default",
         "padding": "lg",
@@ -693,8 +693,8 @@
                   "en": "Organised content"
                 },
                 "text": {
-                  "ar": "كل كورس مقسّم إلى وحدات ودروس مرتبة.",
-                  "en": "Every course is split into ordered units and lessons."
+                  "ar": "كل مادة مقسّمة إلى ترمات ودروس مرتبة.",
+                  "en": "Every subject is split into ordered terms and lessons."
                 }
               },
               {

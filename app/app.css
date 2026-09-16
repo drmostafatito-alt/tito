@@ -159,6 +159,27 @@
     linear-gradient(-45deg, transparent 46%, color-mix(in srgb, var(--color-gold-500, #c9932a) 70%, transparent) 46% 54%, transparent 54%);
 }
 
+/* Thinker portraits fade into the empty side of the frame so they never fight
+ * the text. Logical sides: LTR portrait sits on the right, RTL on the left. */
+.thinker-portrait {
+  mask-image: linear-gradient(to left, #000 38%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to left, #000 38%, transparent 100%);
+}
+[dir="rtl"] .thinker-portrait {
+  mask-image: linear-gradient(to right, #000 38%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 38%, transparent 100%);
+}
+@media (max-width: 639px) {
+  .thinker-portrait {
+    mask-image: linear-gradient(to left, #000 20%, transparent 78%);
+    -webkit-mask-image: linear-gradient(to left, #000 20%, transparent 78%);
+  }
+  [dir="rtl"] .thinker-portrait {
+    mask-image: linear-gradient(to right, #000 20%, transparent 78%);
+    -webkit-mask-image: linear-gradient(to right, #000 20%, transparent 78%);
+  }
+}
+
 /* Reduced motion (WCAG 2.3.3 / owner brief §28): decorative movement is a
  * progressive enhancement — neutralize long transitions & animations for
  * visitors who ask for less motion. Interactive state changes stay instant and
