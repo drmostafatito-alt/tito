@@ -140,9 +140,9 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden">
-      <header className="sticky top-0 z-40 border-b border-navy-100 bg-white/85 pt-safe backdrop-blur-md">
-        <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 px-4">
-          <Link to="/" aria-label={appName} className="inline-flex min-h-11 shrink-0 items-center">
+      <header data-testid="public-header" className="sticky top-0 z-40 border-b border-navy-100 bg-white/85 pt-safe backdrop-blur-md">
+        <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl min-w-0 items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4">
+          <Link to="/" aria-label={appName} className="inline-flex min-h-11 min-w-0 shrink items-center">
             {idn.logoUrl ? (
               <img src={idn.logoUrl} alt={appName} className="h-10 w-auto object-contain" />
             ) : (
@@ -177,7 +177,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             </nav>
           )}
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1">
             {idn.socialsHeader.length > 0 && (
               <div className="hidden items-center gap-1 sm:flex">
                 {idn.socialsHeader.map((s) => (
@@ -214,7 +214,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               <>
                 <Link
                   to="/login"
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-800 shadow-sm transition-colors hover:border-gold-300 hover:bg-navy-50"
+                  className="hidden min-h-11 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-800 shadow-sm transition-colors hover:border-gold-300 hover:bg-navy-50 sm:inline-flex"
                 >
                   <Icon name="user" size="sm" colorRole="default" className="text-current" />
                   {t(locale, "common.login")}
@@ -231,10 +231,11 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             {(loaderData.header.length > 0 || !loaderData.user) && (
               <button
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-navy-800 transition-colors hover:bg-navy-50 lg:hidden"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-800 transition-colors hover:bg-navy-50 lg:hidden"
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-nav"
                 aria-label={t(locale, "common.menu")}
+                data-testid="public-menu"
                 onClick={() => setMobileOpen((v) => !v)}
               >
                 <Icon name={mobileOpen ? "close" : "menu"} size="md" colorRole="default" />
@@ -273,6 +274,13 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               ))}
               {!loaderData.user && (
                 <li className="mt-2 flex flex-col gap-2 border-t border-navy-100 pt-3 sm:hidden">
+                  <Link
+                    to="/login"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-navy-200 bg-white px-5 py-2 text-sm font-semibold text-navy-800 transition-colors hover:bg-navy-50"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {t(locale, "common.login")}
+                  </Link>
                   <Link
                     to="/register"
                     className="inline-flex min-h-11 items-center justify-center rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900"

@@ -48,6 +48,13 @@ describe("seed — demo/fixture catalog is opt-in", () => {
   });
 });
 
+describe("seed — student navigation default", () => {
+  it("defaults the header entry to learning content, not courses", () => {
+    expect(seedSrc).toContain('["المحتوى التعليمي", "Learning", "/study"]');
+    expect(seedSrc).not.toMatch(/\["الكورسات", "Courses", "\/courses"\]/);
+  });
+});
+
 describe("seed — no fabricated payment destination", () => {
   it("does not contain the placeholder InstaPay number", () => {
     expect(seedSrc).not.toContain("01000000000");

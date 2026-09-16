@@ -541,8 +541,8 @@ await seedCmsPage({
 await seedSimplePage({
   slug: "resources", titleAr: "مكتبة المصادر", titleEn: "Resource library",
   headingAr: "مكتبة المصادر", headingEn: "Resource library",
-  textAr: "ستجد هنا المذكرات والملخصات والملفات المتاحة ضمن الكورسات.",
-  textEn: "You'll find the notes, summaries and files available within the courses here.",
+  textAr: "ستجد هنا المذكرات والملخصات والملفات المتاحة ضمن المحتوى التعليمي.",
+  textEn: "You'll find the notes, summaries and files available within the learning content here.",
 });
 await seedSimplePage({
   slug: "faq", titleAr: "الأسئلة الشائعة", titleEn: "Frequently asked questions",
@@ -567,7 +567,7 @@ const existingNav = await DB.prepare("SELECT count(*) AS n FROM menu_items WHERE
 if (!existingNav?.n) {
   const navItems = [
     ["الرئيسية", "Home", "/"],
-    ["الكورسات", "Courses", "/courses"],
+    ["المحتوى التعليمي", "Learning", "/study"],
     ["عن المنصة", "About", "/about"],
     ["مكتبة المصادر", "Resources", "/p/resources"],
     ["الأسئلة الشائعة", "FAQ", "/p/faq"],
@@ -579,6 +579,14 @@ if (!existingNav?.n) {
       [cmsId(), headerMenuId, null, navItems[i][0], navItems[i][1], navItems[i][2], 0, null, i, 1, cmsNow, cmsNow]
     );
   }
+} else {
+  // Identity correction only: the previous default labeled the student entry
+  // "الكورسات". Leave any owner-customized item alone.
+  await exec(
+    `UPDATE menu_items SET label_ar = ?, label_en = ?, href = ?, updated_at = ?
+     WHERE menu_id = ? AND href = '/courses' AND label_ar = 'الكورسات'`,
+    ["المحتوى التعليمي", "Learning", "/study", cmsNow, headerMenuId],
+  );
 }
 
 console.log("Seed complete.");

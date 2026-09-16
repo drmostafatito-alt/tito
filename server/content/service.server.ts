@@ -1327,6 +1327,9 @@ export interface StudySubjectCard {
   /** published term containers, so the card can say how many terms are live */
   termCount: number;
   lessonCount: number;
+  /** Academic year label when every live container shares one (else null). */
+  yearTitleAr: string | null;
+  yearTitleEn: string | null;
 }
 
 /**
@@ -1339,11 +1342,15 @@ export async function studyHub(db: DB): Promise<StudySubjectCard[]> {
     .select({
       subjectId: courses.subjectId,
       courseId: courses.id,
+      yearTitleAr: academicYears.titleAr,
+      yearTitleEn: academicYears.titleEn,
+      yearIsCurrent: academicYears.isCurrent,
     })
     .from(courses)
     .innerJoin(subjects, eq(courses.subjectId, subjects.id))
     .innerJoin(grades, eq(subjects.gradeId, grades.id))
     .innerJoin(programs, eq(grades.programId, programs.id))
+    .leftJoin(academicYears, eq(courses.academicYearId, academicYears.id))
     .where(
       and(
         eq(courses.status, "published"),
@@ -1378,22 +1385,39 @@ export async function studyHub(db: DB): Promise<StudySubjectCard[]> {
 
   const lessonCounts = await publishedLessonCountsBySubject(db, subjectIds);
   const termCounts = new Map<string, number>();
-  for (const c of containers) termCounts.set(c.subjectId, (termCounts.get(c.subjectId) ?? 0) + 1);
+  const yearKeys = new Map<string, Set<string>>();
+  const yearLabels = new Map<string, { ar: string; en: string }>();
+  for (const c of containers) {
+    termCounts.set(c.subjectId, (termCounts.get(c.subjectId) ?? 0) + 1);
+    const key = `${c.yearTitleAr ?? ""}\0${c.yearTitleEn ?? ""}`;
+    const set = yearKeys.get(c.subjectId) ?? new Set();
+    set.add(key);
+    yearKeys.set(c.subjectId, set);
+    if (c.yearTitleAr || c.yearTitleEn) {
+      yearLabels.set(c.subjectId, { ar: c.yearTitleAr ?? "", en: c.yearTitleEn ?? "" });
+    }
+  }
 
-  return subjectRows.map((r) => ({
-    slug: r.subject.slug,
-    titleAr: r.subject.titleAr,
-    titleEn: r.subject.titleEn,
-    descriptionAr: r.subject.descriptionAr,
-    descriptionEn: r.subject.descriptionEn,
-    gradeSlug: r.gradeSlug,
-    gradeTitleAr: r.gradeTitleAr,
-    gradeTitleEn: r.gradeTitleEn,
-    programTitleAr: r.programTitleAr,
-    programTitleEn: r.programTitleEn,
-    termCount: termCounts.get(r.subject.id) ?? 0,
-    lessonCount: lessonCounts.get(r.subject.id) ?? 0,
-  }));
+  return subjectRows.map((r) => {
+    const years = yearKeys.get(r.subject.id);
+    const oneYear = years && years.size === 1 ? yearLabels.get(r.subject.id) : undefined;
+    return {
+      slug: r.subject.slug,
+      titleAr: r.subject.titleAr,
+      titleEn: r.subject.titleEn,
+      descriptionAr: r.subject.descriptionAr,
+      descriptionEn: r.subject.descriptionEn,
+      gradeSlug: r.gradeSlug,
+      gradeTitleAr: r.gradeTitleAr,
+      gradeTitleEn: r.gradeTitleEn,
+      programTitleAr: r.programTitleAr,
+      programTitleEn: r.programTitleEn,
+      termCount: termCounts.get(r.subject.id) ?? 0,
+      lessonCount: lessonCounts.get(r.subject.id) ?? 0,
+      yearTitleAr: oneYear?.ar || null,
+      yearTitleEn: oneYear?.en || null,
+    };
+  });
 }
 
 /** Published-lesson counts per subject (one query, no N+1). */
@@ -1453,6 +1477,8 @@ export interface StudyLesson {
   unitTitleEn: string;
   containerSlug: string;
   itemCount: number;
+  /** Real item kinds present on the lesson (never invented). */
+  itemKinds: Array<"video" | "pdf" | "file" | "quiz">;
   sortOrder: number;
 }
 
@@ -1535,11 +1561,25 @@ export async function subjectStudyView(db: DB, subjectSlug: string): Promise<Sub
     .where(and(inArray(lessons.unitId, unitIds), eq(lessons.status, "published"), isNull(lessons.deletedAt)))
     .orderBy(asc(lessons.sortOrder), asc(lessons.createdAt));
   const itemRows = lessonRows.length === 0 ? [] : await db
-    .select({ lessonId: lessonItems.lessonId, n: sql<number>`count(*)` })
+    .select({
+      lessonId: lessonItems.lessonId,
+      itemType: lessonItems.itemType,
+      fileKind: files.kind,
+    })
     .from(lessonItems)
-    .where(inArray(lessonItems.lessonId, lessonRows.map((l) => l.id)))
-    .groupBy(lessonItems.lessonId);
-  const itemCounts = new Map(itemRows.map((r) => [r.lessonId, Number(r.n)]));
+    .leftJoin(files, eq(lessonItems.fileId, files.id))
+    .where(inArray(lessonItems.lessonId, lessonRows.map((l) => l.id)));
+  const itemCounts = new Map<string, number>();
+  const itemKinds = new Map<string, Set<"video" | "pdf" | "file" | "quiz">>();
+  for (const r of itemRows) {
+    if (r.itemType === "exam") continue;
+    itemCounts.set(r.lessonId, (itemCounts.get(r.lessonId) ?? 0) + 1);
+    const set = itemKinds.get(r.lessonId) ?? new Set();
+    if (r.itemType === "video") set.add("video");
+    else if (r.itemType === "link") set.add("quiz");
+    else if (r.itemType === "file") set.add(r.fileKind === "pdf" ? "pdf" : "file");
+    itemKinds.set(r.lessonId, set);
+  }
 
   const termRows = await listTerms(db, { publishedOnly: false });
   const termById = new Map(termRows.map((t) => [t.id, t]));
@@ -1588,6 +1628,7 @@ export async function subjectStudyView(db: DB, subjectSlug: string): Promise<Sub
           unitTitleEn: u.titleEn,
           containerSlug: course.slug,
           itemCount: itemCounts.get(l.id) ?? 0,
+          itemKinds: [...(itemKinds.get(l.id) ?? [])],
           sortOrder: l.sortOrder,
         }))
     );

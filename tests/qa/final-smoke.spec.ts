@@ -85,7 +85,7 @@ test("2 language AR→EN→reload→AR→reload (Accept-Language=en-US)", async 
   await page.goto("/", { waitUntil: "load" });
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.locator("body")).toContainText("كورسات ومراجعات");
+  await expect(page.locator("body")).toContainText("دروس ومراجعات");
   await expect(page.locator("body")).not.toContainText(/EduCore/i);
 
   const [post] = await Promise.all([
@@ -96,18 +96,18 @@ test("2 language AR→EN→reload→AR→reload (Accept-Language=en-US)", async 
   await page.waitForFunction(() => document.documentElement.lang === "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.locator("body")).toContainText(/Welcome to your platform/i);
-  await expect(page.locator("body")).toContainText(/Courses & revision/);
+  await expect(page.locator("body")).toContainText(/Lessons & revision/);
   expect((await context.cookies(BASE)).find((c) => c.name === "edu_locale")?.value).toBe("en");
   await page.screenshot({ path: resolve(OUT, "smoke-desktop-en.png"), fullPage: true });
 
   await page.reload({ waitUntil: "load" });
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.locator("body")).toContainText(/Courses & revision/);
+  await expect(page.locator("body")).toContainText(/Lessons & revision/);
 
   await page.getByRole("button", { name: /عربي|arabic/i }).click();
   await page.waitForFunction(() => document.documentElement.lang === "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.locator("body")).toContainText("كورسات ومراجعات");
+  await expect(page.locator("body")).toContainText("دروس ومراجعات");
 
   await page.reload({ waitUntil: "load" });
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");

@@ -28,7 +28,7 @@ test("tablet AR RTL + EN LTR", async ({ page }) => {
   await page.locator("[data-locale-switch] button").click();
   await page.waitForFunction(() => document.documentElement.lang === "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.locator("body")).toContainText(/Courses & revision/);
+  await expect(page.locator("body")).toContainText(/Lessons & revision/);
   await page.screenshot({ path: resolve(OUT, "06-tablet-en-ltr.png"), fullPage: true });
 });
 

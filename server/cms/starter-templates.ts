@@ -55,7 +55,7 @@ const LANDING: StarterTemplate = {
           subtitle: L("<p>مساحة للتعلّم الهادئ في الفلسفة وعلم النفس.</p>", "<p>A calm space to learn philosophy and psychology.</p>"),
           ctas: [
             { label: L("ابدأ التعلم", "Start learning"), href: "/register", target: "_self", variant: "primary", icon: "" },
-            { label: L("تصفح الكورسات", "Browse courses"), href: "/courses", target: "_self", variant: "secondary", icon: "" },
+            { label: L("المحتوى التعليمي", "Learning content"), href: "/study", target: "_self", variant: "secondary", icon: "" },
           ],
           videoLabel: L("", ""),
           videoId: "",
@@ -85,9 +85,9 @@ const LANDING: StarterTemplate = {
       }, [
         block(sid("cards"), "feature_cards", {
           items: [
-            { icon: "brain", title: L("علم النفس", "Psychology"), text: L("مفاهيم أساسية وتطبيق يومي.", "Core concepts and daily practice."), ctaLabel: L("", ""), href: "/courses", tint: "brand" },
-            { icon: "scale", title: L("تفكير نقدي", "Critical thinking"), text: L("أسئلة أوضح وتمييز للحجج.", "Clearer questions and stronger arguments."), ctaLabel: L("", ""), href: "/courses", tint: "accent" },
-            { icon: "scroll", title: L("نصوص وشروح", "Texts & lessons"), text: L("شروحات مرتبة يمكنك متابعتها.", "Structured lessons you can follow."), ctaLabel: L("", ""), href: "/courses", tint: "success" },
+            { icon: "brain", title: L("علم النفس", "Psychology"), text: L("مفاهيم أساسية وتطبيق يومي.", "Core concepts and daily practice."), ctaLabel: L("", ""), href: "/study", tint: "brand" },
+            { icon: "scale", title: L("تفكير نقدي", "Critical thinking"), text: L("أسئلة أوضح وتمييز للحجج.", "Clearer questions and stronger arguments."), ctaLabel: L("", ""), href: "/study", tint: "accent" },
+            { icon: "scroll", title: L("نصوص وشروح", "Texts & lessons"), text: L("شروحات مرتبة يمكنك متابعتها.", "Structured lessons you can follow."), ctaLabel: L("", ""), href: "/study", tint: "success" },
           ],
         }),
       ]),

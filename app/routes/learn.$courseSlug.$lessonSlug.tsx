@@ -29,6 +29,8 @@ import { Badge } from "~/components/ui/Badge";
 import { SubmitButton } from "~/components/ui/Button";
 import { ProgressBar } from "~/components/ProgressBar";
 import { Card, CardBody } from "~/components/ui/Card";
+import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
+import { thinkerFor } from "~/lib/thinkers";
 import { t, type Locale } from "~/lib/i18n";
 import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 
@@ -265,9 +267,17 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const title = locale === "ar" ? lesson.titleAr : lesson.titleEn;
   const lessonCompleted = actionData?.completed ?? (progress?.lesson?.status === "completed" || false);
+  const thinker = thinkerFor({
+    slot: verdict.allowed ? "lesson-page" : "lesson-locked",
+    slug: study.subjectSlug ?? course.slug,
+    titleAr: study.subjectTitleAr,
+    titleEn: study.subjectTitleEn,
+  });
+  const backHref = study.subjectSlug ? `/study/${study.subjectSlug}` : "/study";
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
+    <main className="relative isolate mx-auto max-w-3xl overflow-x-hidden px-4 py-8">
+      <ThinkerPortrait thinker={thinker} intensity="whisper" />
       <nav className="mb-2 flex flex-wrap items-center gap-1 text-sm text-slate-500" aria-label={t(locale, "common.breadcrumb")}>
         <Link to="/study" className="hover:underline">{t(locale, "study.title")}</Link>
         {study.subjectSlug && (
@@ -303,11 +313,12 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {!verdict.allowed ? (
-        <Card data-testid="lesson-locked">
-          <CardBody className="space-y-3">
+        <Card data-testid="lesson-locked" className="relative isolate overflow-hidden border-navy-100">
+          <ThinkerPortrait thinker={thinkerFor({ slot: "lesson-locked", slug: study.subjectSlug ?? "locked" })} intensity="subtle" />
+          <CardBody className="relative z-10 space-y-3">
             <div className="flex items-center gap-2">
               <span aria-hidden="true">🔒</span>
-              <h2 className="text-base font-semibold text-slate-800">{t(locale, "content.lockedTitle")}</h2>
+              <h2 className="text-base font-semibold text-navy-900">{t(locale, "content.lockedTitle")}</h2>
             </div>
             <p className="text-sm text-slate-600">{t(locale, "content.lockedBody")}</p>
             {/* The scope this lesson belongs to, so the student knows exactly what
@@ -329,7 +340,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
               {study.offer ? (
                 <Link
                   to={`/checkout/${study.offer.productSlug}`}
-                  className="inline-flex min-h-11 items-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                  className="inline-flex min-h-11 items-center rounded-full bg-gold-500 px-5 py-2 text-sm font-semibold text-navy-950 hover:bg-gold-400"
                   data-testid="lesson-subscribe-cta"
                 >
                   {t(locale, "content.lockedSubscribe")}
@@ -427,27 +438,40 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
             }
             if (item.kind === "file") {
               if (!pres.showAttachments) return null;
+              const isPdf = item.kindOf === "pdf";
               return (
-                <Card key={item.key}>
-                  <CardBody className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="font-medium">📄 {item.filename}</p>
-                      <p className="text-xs text-slate-500">
-                        {Math.max(1, Math.round(item.byteSize / 1024))} KB · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
-                      </p>
+                <Card key={item.key} className="overflow-hidden border-navy-100">
+                  <CardBody className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-navy-900">{isPdf ? t(locale, "content.pdfItem") : t(locale, "content.fileItem")} · {item.filename}</p>
+                        <p className="text-xs text-slate-500">
+                          {Math.max(1, Math.round(item.byteSize / 1024))} KB · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm">
+                        {item.viewUrl && (
+                          <a href={item.viewUrl} target="_blank" rel="noopener" className="font-medium text-navy-700 hover:underline">
+                            {t(locale, "content.view")}
+                          </a>
+                        )}
+                        {item.downloadUrl && (
+                          <a href={item.downloadUrl} className="font-medium text-navy-700 hover:underline">
+                            {t(locale, "content.download")}
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      {item.viewUrl && (
-                        <a href={item.viewUrl} target="_blank" rel="noopener" className="text-blue-600 hover:underline">
-                          {t(locale, "content.view")}
-                        </a>
-                      )}
-                      {item.downloadUrl && (
-                        <a href={item.downloadUrl} className="text-blue-600 hover:underline">
-                          {t(locale, "content.download")}
-                        </a>
-                      )}
-                    </div>
+                    {isPdf && item.viewUrl && (
+                      <div className="overflow-hidden rounded-lg border border-navy-100 bg-navy-50">
+                        <iframe
+                          src={item.viewUrl}
+                          title={item.filename}
+                          className="h-[min(70vh,32rem)] w-full border-0"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
                   </CardBody>
                 </Card>
               );

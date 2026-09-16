@@ -145,19 +145,19 @@ test.describe("QA closeout", () => {
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     const cookiesEn = await page.context().cookies(BASE);
     expect(cookiesEn.find((c) => c.name === "edu_locale")?.value).toBe("en");
-    await expect(page.locator("body")).toContainText(/Courses & revision/);
-    await expect(page.locator("body")).not.toContainText("كورسات ومراجعات");
+    await expect(page.locator("body")).toContainText(/Lessons & revision/);
+    await expect(page.locator("body")).not.toContainText("دروس ومراجعات");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-    await expect(page.locator("body")).toContainText(/Courses & revision/);
+    await expect(page.locator("body")).toContainText(/Lessons & revision/);
 
     await page.getByRole("button", { name: /عربي|arabic/i }).click();
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await expect(page.locator("body")).toContainText("كورسات ومراجعات");
+    await expect(page.locator("body")).toContainText("دروس ومراجعات");
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
