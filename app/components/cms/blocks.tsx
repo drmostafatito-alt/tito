@@ -1,9 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "~/cms/icons";
 import { ls, type LStr } from "~/cms/l10n";
 import { t } from "~/lib/i18n";
 import { socialIconName } from "~/cms/social";
+import { ANCHOR_ID_RE, fragmentId, resolveCmsHref, type CmsHrefContext } from "~/cms/links";
 import { SectionDecor, DecorHairline } from "~/components/visuals/PhilosophyDecor";
 import type { CardView, CmsRenderCtx, FormView } from "~/cms/render-types";
 
@@ -38,14 +39,37 @@ const ALIGN = {
   end: "items-end text-end",
 } as const;
 
-/** Internal links → <Link>; external https → <a rel=noopener>; empty → span. */
+/**
+ * Page-level navigation facts (which in-page anchors really exist, and the
+ * resolved external Questions Platform URL). Provided once by `PageView` and read
+ * by every link renderer, so a stored destination can be resolved without
+ * threading the render context through ~15 call sites. Default = unconstrained.
+ */
+const CmsNavContext = createContext<CmsHrefContext>({});
+
+/**
+ * Internal links → <Link>; in-page fragments → same-document <a href="#…">;
+ * external https → <a target=_blank rel=noopener>; unresolved/empty → <span>.
+ *
+ * Resolution is what keeps destinations honest: an in-page fragment whose target
+ * section will not render (the exams section collapses while the Questions
+ * Platform is disabled/unconfigured) and the `exam:external` token with no URL
+ * configured both resolve to "" — the block still renders, but never as a dead
+ * or misleading link.
+ */
 function SmartLink({ href, className, children, ariaLabel }: { href: string; className?: string; children: React.ReactNode; ariaLabel?: string }) {
-  if (!href) return <span className={className}>{children}</span>;
-  if (href.startsWith("/")) {
-    return <Link to={href} className={className} aria-label={ariaLabel}>{children}</Link>;
+  const nav = useContext(CmsNavContext);
+  const resolved = resolveCmsHref(href, nav);
+  if (!resolved) return <span className={className}>{children}</span>;
+  if (fragmentId(resolved)) {
+    // Same-document jump — never target/rel (that would open a second tab).
+    return <a href={resolved} className={className} aria-label={ariaLabel}>{children}</a>;
+  }
+  if (resolved.startsWith("/")) {
+    return <Link to={resolved} className={className} aria-label={ariaLabel}>{children}</Link>;
   }
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer nofollow" className={className} aria-label={ariaLabel}>
+    <a href={resolved} target="_blank" rel="noopener noreferrer nofollow" className={className} aria-label={ariaLabel}>
       {children}
     </a>
   );
@@ -63,19 +87,28 @@ const FALLBACK_HERO_SRC = "/hero-philosophy.webp";
 
 function CtaButton({ label, href, target, variant, icon, className = "" }: { label: string; href: string; target?: string; variant?: string; icon?: string; className?: string }) {
   if (!label && !href) return null; // nothing configured → render nothing
+  const nav = useContext(CmsNavContext);
+  const resolved = resolveCmsHref(href, nav);
   const base = `inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-7 py-3 text-base font-semibold transition-colors ${BUTTON_VARIANT[(variant ?? "primary") as keyof typeof BUTTON_VARIANT] ?? BUTTON_VARIANT.primary} ${className}`;
-  if (href && href.startsWith("/") && target !== "_blank") {
-    return <Link to={href} className={base}>{icon ? <Icon name={icon} size="sm" colorRole="default" className="text-current" /> : null}{label}</Link>;
+  const iconEl = icon ? <Icon name={icon} size="sm" colorRole="default" className="text-current" /> : null;
+  if (fragmentId(resolved)) {
+    // Same-document jump — never target/rel (that would open a second tab).
+    return <a href={resolved} className={base}>{iconEl}{label}</a>;
   }
-  if (href) {
+  if (resolved && resolved.startsWith("/") && target !== "_blank") {
+    return <Link to={resolved} className={base}>{iconEl}{label}</Link>;
+  }
+  if (resolved) {
+    // External https (including the resolved Questions Platform URL) always
+    // leaves the site safely — new tab, no opener, no referrer.
     return (
-      <a href={href} {...(target === "_blank" ? { target: "_blank", rel: "noopener noreferrer nofollow" } : {})} className={base}>
-        {icon ? <Icon name={icon} size="sm" colorRole="default" className="text-current" /> : null}
+      <a href={resolved} target="_blank" rel="noopener noreferrer nofollow" className={base}>
+        {iconEl}
         {label}
       </a>
     );
   }
-  return <span className={base}>{icon ? <Icon name={icon} size="sm" colorRole="default" className="text-current" /> : null}{label}</span>;
+  return <span className={base}>{iconEl}{label}</span>;
 }
 
 /** Rich text: snapshot html is server-sanitized at publish (allowlist + href validation). */
@@ -1227,6 +1260,27 @@ function blockIsEmpty(type: string, blockId: string, ctx: CmsRenderCtx): boolean
   return false;
 }
 
+/**
+ * Anchor ids of the sections that will ACTUALLY render, using the same predicate
+ * `SectionView` uses to decide whether to emit its `id` at all.
+ *
+ * This is what keeps fragment links (#videos, #books, #exams…) truthful: a
+ * collapsed section emits no `id`, so a link to it would be a dead anchor. Keeping
+ * the predicate in one place (here) and consuming it in `resolveCmsHref` means the
+ * link layer can never disagree with the section layer.
+ */
+function renderedAnchorIds(sections: RenderBlock[], ctx: CmsRenderCtx): Set<string> {
+  const ids = new Set<string>();
+  for (const s of sections) {
+    if (!s.visible) continue;
+    const children = (s.children ?? []).filter((c) => c.visible);
+    if (children.length > 0 && children.every((c) => blockIsEmpty(c.type, c.id, ctx))) continue;
+    const anchor = raw(s.props, "anchor");
+    if (ANCHOR_ID_RE.test(anchor)) ids.add(anchor);
+  }
+  return ids;
+}
+
 export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRenderCtx }) {
   const p = section.props;
   const L = ctx.locale;
@@ -1284,11 +1338,19 @@ export function PageView({ sections, ctx, main = true }: { sections: RenderBlock
   // layout (e.g. the public layout) — nesting a second <main> would violate the
   // "one main landmark" rule (axe: landmark-no-duplicate-main / landmark-unique).
   const Wrapper = main ? "main" : "div";
+  // Resolve link destinations once per page. The provider renders no DOM element,
+  // so the emitted markup (and therefore the layout) is unchanged.
+  const nav = useMemo<CmsHrefContext>(
+    () => ({ anchors: renderedAnchorIds(sections, ctx), questionPlatformUrl: ctx.questionPlatformUrl ?? null }),
+    [sections, ctx],
+  );
   return (
     <Wrapper className="flex flex-col">
-      {sections.map((s) => (
-        <SectionView key={s.id} section={s} ctx={ctx} />
-      ))}
+      <CmsNavContext.Provider value={nav}>
+        {sections.map((s) => (
+          <SectionView key={s.id} section={s} ctx={ctx} />
+        ))}
+      </CmsNavContext.Provider>
     </Wrapper>
   );
 }

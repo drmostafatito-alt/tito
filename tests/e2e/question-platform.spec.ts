@@ -249,4 +249,50 @@ test.describe.serial("External Questions Platform entry", () => {
       await ctx.close();
     }
   });
+
+  test("homepage exam destination is never a dead anchor while unconfigured", async ({ page }) => {
+    // State inherited from the previous test: disabled + cleared.
+    await page.goto("/");
+
+    // No link at all to the exams section (it collapses, so #exams would be dead)
+    // and the reserved token must never leak into the DOM as an href.
+    expect(await page.locator('a[href="#exams"]').count()).toBe(0);
+    expect(await page.locator('a[href="exam:external"]').count()).toBe(0);
+    expect(await page.locator("#exams").count()).toBe(0);
+
+    // The rest of the homepage is unaffected: it still renders its hero.
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    // Anchors whose sections DO render must still be real same-document links —
+    // the guard must not neutralise every fragment. (The demo seed publishes a
+    // video and a product, so the videos/books sections render here.)
+    await expect(page.locator("#videos")).toHaveCount(1);
+    await expect(page.locator("#books")).toHaveCount(1);
+    const videosLink = page.locator('a[href="#videos"]').first();
+    await expect(videosLink).toBeVisible();
+    // A fragment is a same-document jump: never opened in a second tab.
+    expect(await videosLink.getAttribute("target")).toBeNull();
+
+    // The "اختبر نفسك" journey step has no destination while unconfigured.
+    expect(await page.locator(`a[href="${EXTERNAL_URL}"]`).count()).toBe(0);
+  });
+
+  test("homepage exam destination opens the configured external platform safely", async ({ page }) => {
+    await saveOk(page, { enabled: true, url: EXTERNAL_URL });
+    await page.goto("/");
+
+    const link = page.locator(`a[href="${EXTERNAL_URL}"]`).first();
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("target", "_blank");
+    const rel = (await link.getAttribute("rel")) ?? "";
+    expect(rel).toContain("noopener");
+    expect(rel).toContain("noreferrer");
+
+    // still no dead anchor and no raw token in the DOM
+    expect(await page.locator('a[href="#exams"]').count()).toBe(0);
+    expect(await page.locator('a[href="exam:external"]').count()).toBe(0);
+
+    // restore the default (disabled + empty) for whatever runs next
+    await saveOk(page, { enabled: false, url: "" });
+  });
 });

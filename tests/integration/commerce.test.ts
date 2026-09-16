@@ -126,8 +126,10 @@ async function makeStudent(prefix: string) {
 
 const paySettings = () => ({
   manualEnabled: true,
-  manualInstructionsAr: "حوالة إنستاباي إلى 01000000000",
-  manualInstructionsEn: "Instapay transfer to 01000000000",
+  // Owner-entered text only. Deliberately NOT a phone number: a fake
+  // destination here used to be mistaken for real payment instructions.
+  manualInstructionsAr: "تعليمات سداد تجريبية — اتبع التعليمات المرسلة من الإدارة",
+  manualInstructionsEn: "Test payment instructions — follow the instructions sent by the admin",
   orderTtlMinutes: 60,
   refundWindowDays: 7,
 });
@@ -342,10 +344,31 @@ describe("checkout — server-side pricing, idempotency, entitlement guards", ()
     expect(pays[0]!.status).toBe("pending");
     const instr = pays[0]!.instructions as { reference: string; instructionsAr: string };
     expect(instr.reference).toBe(r.order.orderNumber);
-    expect(instr.instructionsAr).toContain("إنستاباي");
+    expect(instr.instructionsAr).toContain("تعليمات");
     // an order alone grants NOTHING
     expect(await studentAccess(studentA.id)).toBe(false);
     expect(await entitlementCount(studentA.id)).toBe(0);
+  });
+
+  it("stores no payment destination when the owner has not configured one (never a seeded/fake number)", async () => {
+    const { product, plan } = await makeProduct(5_000);
+    const r = await createOrder(db, {
+      studentId: studentA.id,
+      productId: product.id,
+      pricePlanId: plan.id,
+      // Empty instructions == the real default: nothing is seeded for payments,
+      // so the order page must fall back to "shared via support" — not to a
+      // placeholder number that looks like a real bank/InstaPay destination.
+      paymentsSettings: { ...paySettings(), manualInstructionsAr: "", manualInstructionsEn: "" },
+    });
+    const pays = await db.select().from(payments).where(eq(payments.orderId, r.order.id));
+    expect(pays).toHaveLength(1);
+    const instr = pays[0]!.instructions as { reference: string; instructionsAr: string; instructionsEn: string };
+    expect(instr.reference).toBe(r.order.orderNumber);
+    expect(instr.instructionsAr).toBe("");
+    expect(instr.instructionsEn).toBe("");
+    // The frozen snapshot leaks no digits other than the order reference itself.
+    expect(String(instr.instructionsAr) + String(instr.instructionsEn)).not.toMatch(/\d/);
   });
 
   it("dedupes double submissions: same pending plan → same order reused, one payment row", async () => {
