@@ -101,7 +101,8 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
 
   const coreLinks: Array<{ to: string; label: string; end?: boolean; badge?: number }> = [
     { to: "/dashboard", label: t(locale, "common.dashboard") },
-    { to: "/courses", label: t(locale, "content.catalogTitle") },
+    // Student-facing terminology: "المحتوى التعليمي" — never "الكورسات".
+    { to: "/study", label: t(locale, "study.navTitle") },
     { to: "/programs", label: t(locale, "catalog.programs") },
     { to: "/assignments", label: t(locale, "assignment.myAssignments") },
     { to: "/orders", label: t(locale, "commerce.myOrders") },

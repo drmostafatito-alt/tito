@@ -17,6 +17,62 @@ import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqli
  * docs/DECISIONS.md, not changed silently.
  */
 
+/**
+ * Academic years ("السنة الدراسية", e.g. 2026/2027). Owner-created — never
+ * hardcoded, never auto-generated: the platform only ever shows a year an admin
+ * actually published. A year is a *labelling + scoping* dimension: it is attached
+ * to the term containers (see `courses.academicYearId`) so that entitlements and
+ * activation codes can be scoped to "this subject, this year, this term".
+ */
+export const academicYears = sqliteTable(
+  "academic_years",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull().unique(),
+    /** display label, e.g. "2026/2027" */
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    /** first calendar year of the academic year (integer, not a string guess) */
+    startYear: integer("start_year", { mode: "number" }).notNull(),
+    endYear: integer("end_year", { mode: "number" }).notNull(),
+    /** the year new visitors land on by default (at most one row should be true) */
+    isCurrent: integer("is_current", { mode: "boolean" }).notNull().default(false),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull().default("draft"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "number" }),
+  },
+  (t) => [
+    index("academic_years_status_idx").on(t.status, t.sortOrder),
+    index("academic_years_start_year_idx").on(t.startYear),
+  ]
+);
+
+/**
+ * Terms ("الترم"). Reusable definitions an admin creates as needed — the system
+ * deliberately does NOT assume two terms, and does not seed any. A term is bound
+ * to a year + subject through the term container (`courses.termId`).
+ */
+export const terms = sqliteTable(
+  "terms",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull().unique(),
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    /** optional admin-defined teaching window (display + scheduling only) */
+    startsAt: integer("starts_at", { mode: "number" }),
+    endsAt: integer("ends_at", { mode: "number" }),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull().default("draft"),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "number" }),
+  },
+  (t) => [index("terms_status_idx").on(t.status, t.sortOrder)]
+);
+
 export const programs = sqliteTable(
   "programs",
   {
@@ -78,6 +134,15 @@ export const courses = sqliteTable(
     id: text("id").primaryKey(),
     subjectId: text("subject_id").notNull(),
     teacherId: text("teacher_id"),
+    /**
+     * ACADEMIC scoping (owner content model: Year → Grade → Subject → Term → Lesson).
+     * A course row that carries BOTH an academic year and a term is the internal
+     * "term offering" container: the student UI labels it with the *term* name and
+     * never with the word "course". Both stay nullable so pre-existing rows (and any
+     * legacy course-shaped content) keep working untouched — no data migration.
+     */
+    academicYearId: text("academic_year_id"),
+    termId: text("term_id"),
     slug: text("slug").notNull().unique(),
     titleAr: text("title_ar").notNull(),
     titleEn: text("title_en").notNull(),
@@ -105,6 +170,7 @@ export const courses = sqliteTable(
   (t) => [
     index("courses_subject_idx").on(t.subjectId, t.status, t.sortOrder),
     index("courses_visibility_idx").on(t.visibility, t.status),
+    index("courses_year_term_idx").on(t.academicYearId, t.termId),
   ]
 );
 

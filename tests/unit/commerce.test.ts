@@ -151,17 +151,22 @@ describe("server-side price evaluation", () => {
 
 describe("code hygiene", () => {
   it("normalizes codes case/dash/space-insensitively", () => {
+    expect(normalizeCode(" tito-abcd-1234 ")).toBe("TITOABCD1234");
+    expect(normalizeCode("TITO ABCD 1234")).toBe("TITOABCD1234");
+    expect(normalizeCode("tito_abcd_1234!")).toBe("TITOABCD1234");
+    // legacy-prefix codes stay normalizable (old printed codes must not break)
     expect(normalizeCode(" edu-abcd-1234 ")).toBe("EDUABCD1234");
-    expect(normalizeCode("EDU ABCD 1234")).toBe("EDUABCD1234");
-    expect(normalizeCode("edu_abcd_1234!")).toBe("EDUABCD1234");
   });
 
   it("generates unique, unambiguous, well-shaped codes", () => {
     const seen = new Set<string>();
     for (let i = 0; i < 300; i++) {
       const code = generateActivationCode();
-      expect(code).toMatch(/^EDU-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/);
-      expect(code).not.toMatch(/[01ILO]/); // no ambiguous glyphs
+      expect(code).toMatch(/^TITO-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/);
+      // The random BODY carries no ambiguous glyphs. The brand prefix "TITO" is
+      // checked separately (it legitimately contains an I).
+      expect(code.slice("TITO-".length)).not.toMatch(/[01ILO]/);
+      expect(code.startsWith("TITO-")).toBe(true);
       seen.add(code);
     }
     expect(seen.size).toBe(300); // crypto-random: no collisions in 300 draws

@@ -13,6 +13,8 @@ import {
 } from "~server/commerce/service.server";
 import { checkRateLimit, clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { formatMoney } from "~server/commerce/money";
+import { buildReceiptMessage, visiblePaymentMethods, whatsAppReceiptHref } from "~server/commerce/payment-methods";
+import { orderScopeView, scopeLinePairs } from "~server/commerce/order-scope.server";
 import {
   buildR2Key,
   deleteFile,
@@ -44,6 +46,55 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const view = await orderDetailForStudent(db, String(params.orderNumber ?? ""), auth.user.id);
   if (!view) throw new Response("Not found", { status: 404 });
   const { order, items, payments } = view;
+
+  // Manual payment rails the owner actually configured (disabled or unconfigured
+  // methods never reach this page — see server/commerce/payment-methods.ts).
+  const settings = await getSettings(db);
+  const methods = visiblePaymentMethods(settings.payments.methods);
+
+  // WhatsApp receipt hand-off: a click-to-chat link built server-side from REAL
+  // request data. The platform does not send or receive anything by itself; the
+  // student attaches the receipt inside WhatsApp.
+  const firstItem = items[0] ?? null;
+  const scope = firstItem
+    ? await orderScopeView(db, {
+        entitlementSpec: firstItem.spec,
+        titleSnapshotAr: firstItem.titleSnapshotAr,
+        titleSnapshotEn: firstItem.titleSnapshotEn,
+      })
+    : null;
+  const scopeLinesFor = (loc: "ar" | "en"): string[] => {
+    const out: string[] = [];
+    for (const pair of scope ? scopeLinePairs(scope) : []) {
+      const labelKey =
+        pair.key === "year" ? "commerce.scopeYear"
+        : pair.key === "grade" ? "commerce.scopeGrade"
+        : pair.key === "subject" ? "commerce.scopeSubject"
+        : "commerce.scopeTerm";
+      out.push(`${t(loc, labelKey)}: ${loc === "ar" ? pair.title.ar : pair.title.en}`);
+    }
+    return out;
+  };
+  const receiptHrefFor = (loc: "ar" | "en"): string | null => {
+    if (!settings.payments.receiptWhatsappEnabled || !settings.platform.whatsapp) return null;
+    const first = methods[0] ?? null;
+    const message = buildReceiptMessage({
+      locale: loc,
+      studentName: auth.user.fullName || auth.user.email,
+      studentEmail: auth.user.email,
+      orderNumber: order.orderNumber,
+      amount: formatMoney(order.totalMinor, order.currency),
+      currency: order.currency,
+      scopeLines: scopeLinesFor(loc),
+      planLabel: scope?.planLabel ? (loc === "ar" ? scope.planLabel.ar : scope.planLabel.en) : null,
+      // the message names the rails that are actually configured; the student
+      // picks one in the form and the row records the exact choice
+      methodLabel: first ? (loc === "ar" ? first.labelAr : first.labelEn) : "",
+      note: loc === "ar" ? settings.payments.receiptNoteAr : settings.payments.receiptNoteEn,
+    });
+    return whatsAppReceiptHref(settings.platform.whatsapp, message);
+  };
+
   return {
     order: {
       id: order.id,
@@ -62,6 +113,19 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       unitPriceMinor: i.unitPriceMinor,
       grantsCount: i.spec.grants.length,
     })),
+    scope: scope
+      ? {
+          years: scope.years,
+          grades: scope.grades,
+          subjects: scope.subjects,
+          terms: scope.terms,
+          scopeKind: scope.scopeKind,
+          planLabel: scope.planLabel,
+        }
+      : null,
+    methods,
+    whatsappHrefAr: receiptHrefFor("ar"),
+    whatsappHrefEn: receiptHrefFor("en"),
     payments: await Promise.all(payments.map(async (p) => {
       const evidence = ((p.metadata ?? {}) as {
         evidence?: { transferReference?: string; note?: string | null; proofFileId?: string | null; senderName?: string | null; transferDateMs?: number | null; transferAmountMinor?: number | null; confirmedAt?: number };
@@ -145,6 +209,9 @@ export async function action({ context, params, request }: Route.ActionArgs) {
         senderName,
         transferDateMs: Number.isFinite(transferDateMs) ? transferDateMs : null,
         transferAmountMinor,
+        // the rail the student picked — re-validated server-side against the
+        // enabled + configured methods (a disabled rail is rejected)
+        methodId: String(form.get("methodId") ?? "") || null,
         paymentsSettings: settings.payments,
       });
       return { ok: true as const };
@@ -182,9 +249,16 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
-  const { order, items, payments } = loaderData;
+  const { order, items, payments, scope, methods } = loaderData;
   const latest = payments[0] ?? null;
   const canConfirm = order.status === "pending" && latest !== null && (latest.status === "pending" || latest.status === "failed");
+  const whatsappHref = locale === "ar" ? loaderData.whatsappHrefAr : loaderData.whatsappHrefEn;
+  const scopeEntries: Array<{ label: string; titles: { ar: string; en: string }[] }> = [
+    { label: t(locale, "commerce.scopeYear"), titles: scope?.years ?? [] },
+    { label: t(locale, "commerce.scopeGrade"), titles: scope?.grades ?? [] },
+    { label: t(locale, "commerce.scopeSubject"), titles: scope?.subjects ?? [] },
+    { label: t(locale, "commerce.scopeTerm"), titles: scope?.terms ?? [] },
+  ].filter((e) => e.titles.length > 0);
 
   return (
     <div className="space-y-4">
@@ -239,6 +313,43 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
           </p>
         </CardBody>
       </Card>
+
+      {/* What is actually being subscribed to: السنة · الصف · المادة · الترم */}
+      {scopeEntries.length > 0 && (
+        <Card>
+          <CardHeader title={t(locale, "commerce.subscriptionScope")} />
+          <CardBody>
+            <dl className="space-y-1.5 text-sm" data-testid="order-scope">
+              {scopeEntries.map((e) => (
+                <div key={e.label} className="flex flex-wrap justify-between gap-2">
+                  <dt className="text-slate-500">{e.label}</dt>
+                  <dd className="font-medium text-slate-800">
+                    {e.titles.map((x) => (locale === "ar" ? x.ar : x.en)).join("، ")}
+                  </dd>
+                </div>
+              ))}
+              {scope?.planLabel && (
+                <div className="flex flex-wrap justify-between gap-2">
+                  <dt className="text-slate-500">{t(locale, "commerce.scopePlan")}</dt>
+                  <dd className="font-medium text-slate-800">
+                    {locale === "ar" ? scope.planLabel.ar : scope.planLabel.en}
+                    {scope.scopeKind === "full_year" ? ` · ${t(locale, "commerce.scopeFullYear")}` : ""}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Request state — the student always knows where their request stands.
+          Access is granted ONLY after the admin approves the payment. */}
+      {order.status === "pending" && latest?.status === "under_review" && (
+        <Alert kind="info">
+          <span className="font-semibold">{t(locale, "commerce.requestPendingTitle")}</span>{" "}
+          {t(locale, "commerce.requestPendingBody")}
+        </Alert>
+      )}
 
       {latest && latest.instructions && order.status === "pending" && (
         <Card>
@@ -301,6 +412,44 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
             {canConfirm && (
               <Form method="post" encType="multipart/form-data" className="space-y-3 pt-1">
                 <input type="hidden" name="_action" value="confirm_payment" />
+                {/* Manual rails only (InstaPay / Vodafone Cash / Etisalat Cash / …).
+                    Rendered from admin settings; a disabled or unconfigured rail
+                    is never listed. No destination is hardcoded anywhere. */}
+                <fieldset className="space-y-2">
+                  <legend className="mb-1 text-sm font-semibold text-slate-700">
+                    {t(locale, "commerce.paymentMethodChoose")}
+                  </legend>
+                  {methods.length === 0 ? (
+                    <p className="text-sm text-slate-500" data-testid="no-payment-methods">
+                      {t(locale, "commerce.paymentMethodNone")}
+                    </p>
+                  ) : (
+                    methods.map((m, i) => (
+                      <label
+                        key={m.id}
+                        className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50"
+                        data-testid={`payment-method-${m.key}`}
+                      >
+                        <input type="radio" name="methodId" value={m.id} required defaultChecked={i === 0} className="mt-1" />
+                        <span className="min-w-0 text-sm">
+                          <span className="block font-semibold text-slate-800">{locale === "ar" ? m.labelAr : m.labelEn}</span>
+                          <span className="mt-0.5 block text-xs text-slate-500">{t(locale, "commerce.paymentMethodDestination")}</span>
+                          <span className="block font-mono text-sm text-slate-900" dir="ltr">{m.destination}</span>
+                          {(locale === "ar" ? m.accountNameAr : m.accountNameEn) && (
+                            <span className="mt-0.5 block text-xs text-slate-600">
+                              {t(locale, "commerce.paymentMethodAccountName")}: {locale === "ar" ? m.accountNameAr : m.accountNameEn}
+                            </span>
+                          )}
+                          {(locale === "ar" ? m.instructionsAr : m.instructionsEn) && (
+                            <span className="mt-1 block whitespace-pre-line text-xs text-slate-600">
+                              {locale === "ar" ? m.instructionsAr : m.instructionsEn}
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </fieldset>
                 <label className="grid gap-1 text-sm">
                   <span>{t(locale, "commerce.transferReference")}</span>
                   <input
@@ -340,6 +489,29 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
                   <SubmitButton variant="secondary" name="_action" value="cancel_order">{t(locale, "commerce.cancelOrder")}</SubmitButton>
                 </div>
                 <p className="text-xs text-slate-500">{t(locale, "commerce.confirmDisclaimer")}</p>
+                {/* WhatsApp hand-off: click-to-chat with the request details
+                    pre-filled. The student attaches the receipt image themselves —
+                    the platform has no WhatsApp API and claims no automatic
+                    delivery. Hidden entirely when no number is configured. */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-sm font-semibold text-slate-700">{t(locale, "commerce.sendReceiptWhatsapp")}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{t(locale, "commerce.sendReceiptHint")}</p>
+                  {whatsappHref ? (
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#25D366] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1ebe5b]"
+                      data-testid="whatsapp-receipt-link"
+                    >
+                      {t(locale, "commerce.sendReceiptWhatsapp")}
+                    </a>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-500" data-testid="whatsapp-not-configured">
+                      {t(locale, "commerce.receiptNotConfigured")}
+                    </p>
+                  )}
+                </div>
               </Form>
             )}
           </CardBody>

@@ -5,6 +5,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { resolveAuth } from "~server/auth/session.server";
 import {
+  academicYearById,
   allLessonsForCourse,
   chainForLesson,
   courseBySlug,
@@ -12,10 +13,14 @@ import {
   filesByIds,
   itemsForLesson,
   lessonBySlug,
+  subjectById,
+  termById,
   unitsForCourse,
   videosByIds,
 } from "~server/content/service.server";
 import { resolveContentAccess } from "~server/entitlements/access.server";
+import { purchasableFor } from "~server/commerce/service.server";
+import { formatMoney } from "~server/commerce/money";
 import { courseProgress, lessonProgressMap, setLessonCompleted, videoProgressMap } from "~server/progress/service.server";
 import { getSettings } from "~server/settings/service.server";
 import { signFileUrl } from "~server/files/storage.server";
@@ -63,6 +68,17 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const unitRows = await unitsForCourse(db, course.id);
   const unit = unitRows.find((u) => u.id === lesson.unitId);
   const settings = await getSettings(db);
+
+  // Study context (المادة / الترم / السنة الدراسية) for breadcrumbs + the locked CTA.
+  const [studySubject, studyTerm, studyYear] = await Promise.all([
+    subjectById(db, course.subjectId),
+    course.termId ? termById(db, course.termId) : Promise.resolve(null),
+    course.academicYearId ? academicYearById(db, course.academicYearId) : Promise.resolve(null),
+  ]);
+  const offer = verdict.allowed
+    ? null
+    : await purchasableFor(db, { type: "course", id: course.id, subjectId: course.subjectId });
+
   const lessonItemsAll = await itemsForLesson(db, lesson.id);
   // Legacy internal-exam items were retired together with the question bank
   // (exams live on a standalone external platform now). Their rows are retained
@@ -160,6 +176,20 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     lessonId: lesson.id,
     url: request.url,
     course: { slug: course.slug, titleAr: course.titleAr, titleEn: course.titleEn },
+    // Study context: the student-facing labels (مادة / ترم / سنة) + the real
+    // subscription offer for this scope, so a locked lesson can point somewhere
+    // useful instead of a dead end. Nothing here is invented: `offer` is null
+    // unless the admin published a product with a real price for this scope.
+    study: {
+      subjectSlug: studySubject?.slug ?? null,
+      subjectTitleAr: studySubject?.titleAr ?? null,
+      subjectTitleEn: studySubject?.titleEn ?? null,
+      termTitleAr: studyTerm?.titleAr ?? course.titleAr,
+      termTitleEn: studyTerm?.titleEn ?? course.titleEn,
+      yearTitleAr: studyYear?.titleAr ?? null,
+      yearTitleEn: studyYear?.titleEn ?? null,
+      offer,
+    },
     unit: unit ? { titleAr: unit.titleAr, titleEn: unit.titleEn } : null,
     lesson: {
       slug: lesson.slug,
@@ -230,7 +260,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export default function LessonPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const { course, unit, lesson, verdict, items, prev, next, pres, progress, lessonId } = loaderData;
+  const { course, unit, lesson, verdict, items, prev, next, pres, progress, lessonId, study } = loaderData;
   const revalidator = useRevalidator();
   const actionData = useActionData<typeof action>();
   const title = locale === "ar" ? lesson.titleAr : lesson.titleEn;
@@ -238,10 +268,19 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <nav className="mb-2 flex items-center gap-1 text-sm text-slate-500" aria-label={t(locale, "common.breadcrumb")}>
-        <Link to={`/courses/${course.slug}`} className="hover:underline">
-          {locale === "ar" ? course.titleAr : course.titleEn}
-        </Link>
+      <nav className="mb-2 flex flex-wrap items-center gap-1 text-sm text-slate-500" aria-label={t(locale, "common.breadcrumb")}>
+        <Link to="/study" className="hover:underline">{t(locale, "study.title")}</Link>
+        {study.subjectSlug && (
+          <>
+            <span aria-hidden="true"> / </span>
+            <Link to={`/study/${study.subjectSlug}`} className="hover:underline">
+              {locale === "ar" ? study.subjectTitleAr || study.subjectTitleEn : study.subjectTitleEn || study.subjectTitleAr}
+            </Link>
+          </>
+        )}
+        <span aria-hidden="true"> / </span>
+        {/* the term container, labelled with the TERM name — never "كورس" */}
+        <span>{locale === "ar" ? study.termTitleAr : study.termTitleEn}</span>
         {unit && <span> / {locale === "ar" ? unit.titleAr : unit.titleEn}</span>}
       </nav>
       <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -264,9 +303,56 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {!verdict.allowed ? (
-        <Card>
-          <CardBody>
-            <p className="text-sm text-slate-600">{t(locale, "content.locked")}</p>
+        <Card data-testid="lesson-locked">
+          <CardBody className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span aria-hidden="true">🔒</span>
+              <h2 className="text-base font-semibold text-slate-800">{t(locale, "content.lockedTitle")}</h2>
+            </div>
+            <p className="text-sm text-slate-600">{t(locale, "content.lockedBody")}</p>
+            {/* The scope this lesson belongs to, so the student knows exactly what
+                they would be subscribing to (year · subject · term). */}
+            <p className="text-xs text-slate-500" data-testid="lesson-locked-scope">
+              {[
+                study.yearTitleAr || study.yearTitleEn
+                  ? `${t(locale, "commerce.scopeYear")}: ${locale === "ar" ? study.yearTitleAr || study.yearTitleEn : study.yearTitleEn || study.yearTitleAr}`
+                  : null,
+                study.subjectTitleAr || study.subjectTitleEn
+                  ? `${t(locale, "commerce.scopeSubject")}: ${locale === "ar" ? study.subjectTitleAr || study.subjectTitleEn : study.subjectTitleEn || study.subjectTitleAr}`
+                  : null,
+                `${t(locale, "commerce.scopeTerm")}: ${locale === "ar" ? study.termTitleAr : study.termTitleEn}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {study.offer ? (
+                <Link
+                  to={`/checkout/${study.offer.productSlug}`}
+                  className="inline-flex min-h-11 items-center rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                  data-testid="lesson-subscribe-cta"
+                >
+                  {t(locale, "content.lockedSubscribe")}
+                  <span dir="ltr" className="ms-2 text-xs">
+                    {formatMoney(study.offer.minPriceMinor, study.offer.currency)}
+                  </span>
+                </Link>
+              ) : (
+                <span className="text-sm text-slate-500" data-testid="lesson-no-offer">
+                  {t(locale, "content.lockedNoOffer")}
+                </span>
+              )}
+            </div>
+            <div className="border-t border-slate-100 pt-3">
+              <p className="text-sm text-slate-600">{t(locale, "content.lockedActivateHint")}</p>
+              <Link
+                to="/activate"
+                className="mt-2 inline-flex min-h-11 items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                data-testid="lesson-activate-cta"
+              >
+                {t(locale, "content.lockedActivate")}
+              </Link>
+            </div>
             <Link to={`/courses/${course.slug}`} className="mt-2 inline-block text-sm text-blue-600 hover:underline">
               {t(locale, "common.back")}
             </Link>

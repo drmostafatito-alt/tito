@@ -128,13 +128,71 @@ export const assessmentSettingsSchema = z.object({
 });
 export type AssessmentSettings = z.infer<typeof assessmentSettingsSchema>;
 
-/** Phase 6 — commerce/payments knobs (PAYMENTS.md §3 manual rail; FEATURE-SPEC §7). */
+/**
+ * Phase 6 — commerce/payments knobs (PAYMENTS.md §3 manual rail; FEATURE-SPEC §7).
+ *
+ * MANUAL PAYMENT ONLY. No gateway (Paymob/Fawry/Stripe/…) is wired here or
+ * anywhere else in this codebase.
+ *
+ * Every destination/account value is OWNER DATA entered in Admin → Appearance →
+ * Payments. Nothing is seeded, defaulted or hardcoded: an unconfigured method is
+ * treated as "does not exist" and is never shown to a student (see
+ * `server/commerce/payment-methods.ts`).
+ */
+export const PAYMENT_METHOD_KEYS = ["instapay", "vodafone_cash", "etisalat_cash", "bank_transfer", "other"] as const;
+export type PaymentMethodKey = (typeof PAYMENT_METHOD_KEYS)[number];
+
+export const paymentMethodSchema = z.object({
+  /** stable row id (uuid) — the value stored on `payments.method` */
+  id: z.string().max(40).default(""),
+  key: z.enum(PAYMENT_METHOD_KEYS).default("other"),
+  /** master switch: a disabled method is invisible everywhere publicly */
+  enabled: z.boolean().default(false),
+  labelAr: z.string().max(80).default(""),
+  labelEn: z.string().max(80).default(""),
+  /**
+   * Where the student sends the money (InstaPay handle, wallet number, IBAN…).
+   * Empty = NOT CONFIGURED ⇒ the method is hidden, even when `enabled`.
+   * Deliberately a free-form string: the owner's real destination is unknown to
+   * the codebase and must never be guessed or placeholdered.
+   */
+  destination: z.string().trim().max(160).default(""),
+  /** account holder name shown next to the destination so the student verifies it */
+  accountNameAr: z.string().max(160).default(""),
+  accountNameEn: z.string().max(160).default(""),
+  /** per-method instructions ("حوّل المبلغ ثم أرسل الإيصال على واتساب …") */
+  instructionsAr: z.string().max(2000).default(""),
+  instructionsEn: z.string().max(2000).default(""),
+  sortOrder: z.number().int().min(0).max(99).default(0),
+});
+export type PaymentMethodSetting = z.infer<typeof paymentMethodSchema>;
+
 export const paymentsSettingsSchema = z.object({
   /** Manual rail master switch: when off, checkout refuses to create manual payments. */
   manualEnabled: z.boolean().default(true),
   /** Admin-configured transfer instructions shown on pending manual payments (bank/Instapay/wallet). */
   manualInstructionsAr: z.string().max(2000).default(""),
   manualInstructionsEn: z.string().max(2000).default(""),
+  /**
+   * The three rails the owner asked for (InstaPay, Vodafone Cash, Etisalat Cash)
+   * plus room for a bank transfer / custom rail. All ship DISABLED and EMPTY —
+   * the owner fills in real destinations in the admin panel.
+   */
+  methods: z.array(paymentMethodSchema).max(12).default([
+    { id: "instapay", key: "instapay", enabled: false, labelAr: "إنستاباي", labelEn: "InstaPay", destination: "", accountNameAr: "", accountNameEn: "", instructionsAr: "", instructionsEn: "", sortOrder: 0 },
+    { id: "vodafone_cash", key: "vodafone_cash", enabled: false, labelAr: "فودافون كاش", labelEn: "Vodafone Cash", destination: "", accountNameAr: "", accountNameEn: "", instructionsAr: "", instructionsEn: "", sortOrder: 1 },
+    { id: "etisalat_cash", key: "etisalat_cash", enabled: false, labelAr: "اتصالات كاش", labelEn: "Etisalat Cash", destination: "", accountNameAr: "", accountNameEn: "", instructionsAr: "", instructionsEn: "", sortOrder: 2 },
+  ]),
+  /**
+   * Receipt hand-off. WhatsApp is a MANUAL channel: the platform builds a
+   * click-to-chat link with a structured message from real order data and the
+   * student attaches the receipt inside WhatsApp. No WhatsApp API is called and
+   * no receipt is ever received automatically by the system.
+   */
+  receiptWhatsappEnabled: z.boolean().default(true),
+  /** extra owner note appended to the generated message (optional) */
+  receiptNoteAr: z.string().max(600).default(""),
+  receiptNoteEn: z.string().max(600).default(""),
   /** Pending (unconfirmed) orders/payments older than this are auto-expired by the sweep (PAYMENTS.md §4). */
   orderTtlMinutes: z.number().int().min(10).max(43200).default(4320),
   /** Refund window (days) after payment for admin refunds; 0 = no window limit. */

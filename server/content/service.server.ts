@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { DB } from "../db/client.server";
 import {
+  academicYears,
   coursePrerequisites,
   courses,
   files,
@@ -11,6 +12,7 @@ import {
   lessons,
   programs,
   subjects,
+  terms,
   units,
   users,
   videos,
@@ -21,9 +23,15 @@ import { logAudit } from "../audit/log.server";
  * Content tree service (Phase 2): Program→Grade→Subject→Course→Unit→Lesson→LessonItem.
  * Admin mutations are audited; catalog reads expose only published/visible nodes;
  * ordering is explicit (sort_order within parent); slugs are unique per table.
+ *
+ * Owner content model (Study phase): AcademicYear → Grade → Subject → Term → Lesson.
+ * `academic_years` and `terms` are first-class owner-created rows. The (year, term)
+ * binding lives on the `courses` row — internally a "term offering" container — so
+ * the existing chain, resolver, progress and prerequisite machinery is reused
+ * unchanged while the student-facing surfaces speak only سنة/صف/مادة/ترم/درس.
  */
 
-export const CONTENT_TYPES = ["program", "grade", "subject", "course", "unit", "lesson", "lessonItem"] as const;
+export const CONTENT_TYPES = ["academicYear", "term", "program", "grade", "subject", "course", "unit", "lesson", "lessonItem"] as const;
 export type ContentType = (typeof CONTENT_TYPES)[number];
 
 export const statusSchema = z.enum(["draft", "published", "archived"]);
@@ -43,6 +51,41 @@ export const createProgramSchema = z.object({
   sortOrder: z.number().int().min(0).default(0),
 });
 
+/**
+ * Academic year ("2026/2027"). The admin types the label AND the two calendar
+ * years, so nothing is derived by guessing from a string. `endYear` must follow
+ * `startYear`. Years are never auto-created by the system.
+ */
+export const createAcademicYearSchema = z
+  .object({
+    slug: z.string().trim().min(1).max(120).optional(),
+    titleAr: titleSchema,
+    titleEn: titleSchema,
+    startYear: z.number().int().min(1990).max(2999),
+    endYear: z.number().int().min(1990).max(2999),
+    isCurrent: z.boolean().default(false),
+    status: statusSchema.default("draft"),
+    sortOrder: z.number().int().min(0).default(0),
+  })
+  .refine((v) => v.endYear === v.startYear + 1 || v.endYear === v.startYear, {
+    message: "endYear must be the same or the next calendar year",
+    path: ["endYear"],
+  });
+
+/**
+ * Term ("الترم الأول"). A free, owner-defined list — the platform never assumes
+ * a fixed number of terms and never seeds one.
+ */
+export const createTermSchema = z.object({
+  slug: z.string().trim().min(1).max(120).optional(),
+  titleAr: titleSchema,
+  titleEn: titleSchema,
+  startsAt: z.number().int().positive().optional().nullable(),
+  endsAt: z.number().int().positive().optional().nullable(),
+  status: statusSchema.default("draft"),
+  sortOrder: z.number().int().min(0).default(0),
+});
+
 export const createGradeSchema = createProgramSchema.omit({ descriptionAr: true, descriptionEn: true }).extend({ programId: z.string().min(1) });
 export const createSubjectSchema = createProgramSchema.extend({
   gradeId: z.string().min(1),
@@ -52,6 +95,9 @@ export const createSubjectSchema = createProgramSchema.extend({
 export const createCourseSchema = z.object({
   subjectId: z.string().min(1),
   teacherId: z.string().optional().nullable(),
+  /** Academic scoping: when both are set the row is a "term offering" container. */
+  academicYearId: z.string().min(1).optional().nullable(),
+  termId: z.string().min(1).optional().nullable(),
   slug: z.string().trim().min(1).max(120).optional(),
   titleAr: titleSchema,
   titleEn: titleSchema,
@@ -139,6 +185,8 @@ async function uniqueSlug(taken: (s: string) => Promise<boolean>, base: string):
 
 function tableFor(type: ContentType) {
   switch (type) {
+    case "academicYear": return academicYears;
+    case "term": return terms;
     case "program": return programs;
     case "grade": return grades;
     case "subject": return subjects;
@@ -217,6 +265,45 @@ export interface ActorCtx {
   ipHash?: string | null;
 }
 
+export async function createAcademicYear(db: DB, input: z.infer<typeof createAcademicYearSchema>, actor: ActorCtx) {
+  const slug = await uniqueSlug(
+    async (s) => (await db.select({ id: academicYears.id }).from(academicYears).where(eq(academicYears.slug, s)).limit(1)).length > 0,
+    input.slug ?? `${input.startYear}-${input.endYear}`
+  );
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  // "current year" is a single-select flag: setting it clears the previous one so
+  // the student hub never has to guess which year to open first.
+  if (input.isCurrent) {
+    await db.update(academicYears).set({ isCurrent: false, updatedAt: now }).where(eq(academicYears.isCurrent, true));
+  }
+  const row = {
+    id, slug, titleAr: input.titleAr, titleEn: input.titleEn,
+    startYear: input.startYear, endYear: input.endYear, isCurrent: input.isCurrent,
+    status: input.status, sortOrder: input.sortOrder, createdAt: now, updatedAt: now, deletedAt: null,
+  };
+  await db.insert(academicYears).values(row);
+  await logAudit(db, { actorUserId: actor.userId, actorRole: actor.role, action: "content.academicYear.created", entityType: "academicYear", entityId: id, after: row });
+  return row;
+}
+
+export async function createTerm(db: DB, input: z.infer<typeof createTermSchema>, actor: ActorCtx) {
+  const slug = await uniqueSlug(
+    async (s) => (await db.select({ id: terms.id }).from(terms).where(eq(terms.slug, s)).limit(1)).length > 0,
+    input.slug ?? input.titleEn
+  );
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  const row = {
+    id, slug, titleAr: input.titleAr, titleEn: input.titleEn,
+    startsAt: input.startsAt ?? null, endsAt: input.endsAt ?? null,
+    status: input.status, sortOrder: input.sortOrder, createdAt: now, updatedAt: now, deletedAt: null,
+  };
+  await db.insert(terms).values(row);
+  await logAudit(db, { actorUserId: actor.userId, actorRole: actor.role, action: "content.term.created", entityType: "term", entityId: id, after: row });
+  return row;
+}
+
 export async function createProgram(db: DB, input: z.infer<typeof createProgramSchema>, actor: ActorCtx) {
   const slug = await uniqueSlug(
     async (s) => (await db.select({ id: programs.id }).from(programs).where(eq(programs.slug, s)).limit(1)).length > 0,
@@ -263,6 +350,11 @@ export async function createCourse(db: DB, input: z.infer<typeof createCourseSch
   await assertContentRef(db, "subject", input.subjectId, "subjectId");
   await assertUserRef(db, input.teacherId, "teacherId");
   await assertFileRef(db, input.thumbnailFileId, "thumbnailFileId");
+  await assertOptionalContentRef(db, "academicYear", input.academicYearId, "academicYearId");
+  await assertOptionalContentRef(db, "term", input.termId, "termId");
+  // A term is only meaningful inside a year: refuse the ambiguous half-scope so
+  // authorization can never have to guess what "الترم الأول" alone refers to.
+  if (input.termId && !input.academicYearId) throw new ContentReferenceError("academicYearId", "(required with termId)");
   const slug = await uniqueSlug(
     async (s) => (await db.select({ id: courses.id }).from(courses).where(eq(courses.slug, s)).limit(1)).length > 0,
     input.slug ?? input.titleEn
@@ -271,6 +363,7 @@ export async function createCourse(db: DB, input: z.infer<typeof createCourseSch
   const now = Date.now();
   const row = {
     id, subjectId: input.subjectId, teacherId: input.teacherId ?? null, slug,
+    academicYearId: input.academicYearId ?? null, termId: input.termId ?? null,
     titleAr: input.titleAr, titleEn: input.titleEn,
     descriptionAr: input.descriptionAr ?? null, descriptionEn: input.descriptionEn ?? null,
     thumbnailFileId: input.thumbnailFileId ?? null,
@@ -342,10 +435,12 @@ export const updateFieldsSchema = z.record(z.string(), z.unknown());
 
 /** Whitelisted mutable fields per node type. */
 const MUTABLE: Record<ContentType, string[]> = {
+  academicYear: ["titleAr", "titleEn", "startYear", "endYear", "isCurrent", "status", "sortOrder"],
+  term: ["titleAr", "titleEn", "startsAt", "endsAt", "status", "sortOrder"],
   program: ["titleAr", "titleEn", "descriptionAr", "descriptionEn", "status", "sortOrder"],
   grade: ["titleAr", "titleEn", "status", "sortOrder"],
   subject: ["titleAr", "titleEn", "descriptionAr", "descriptionEn", "thumbnailFileId", "status", "sortOrder"],
-  course: ["titleAr", "titleEn", "descriptionAr", "descriptionEn", "thumbnailFileId", "accessLevel", "status", "visibility", "sortOrder", "publishAt", "expiresAt", "teacherId"],
+  course: ["titleAr", "titleEn", "descriptionAr", "descriptionEn", "thumbnailFileId", "accessLevel", "status", "visibility", "sortOrder", "publishAt", "expiresAt", "teacherId", "academicYearId", "termId"],
   unit: ["titleAr", "titleEn", "status", "sortOrder"],
   lesson: ["titleAr", "titleEn", "descriptionAr", "descriptionEn", "accessLevel", "freePreview", "status", "sortOrder", "publishAt", "expiresAt"],
   lessonItem: ["sortOrder", "required"],
@@ -391,7 +486,13 @@ export async function archiveNode(db: DB, type: ContentType, id: string, actor: 
 // Safety: copies are always created as DRAFT so nothing publishes implicitly.
 // ---------------------------------------------------------------------------
 
-type DuplicableType = Exclude<ContentType, "lessonItem">;
+/**
+ * Duplication is meaningful for the content tree only. Academic years and terms
+ * are small owner-managed reference rows (a copied year/term would be a duplicate
+ * label, not useful content), so they are excluded — they are created/edited and
+ * reordered directly.
+ */
+type DuplicableType = Exclude<ContentType, "lessonItem" | "academicYear" | "term">;
 
 export async function duplicateNode(
   db: DB,
@@ -447,6 +548,8 @@ export async function duplicateNode(
     case "course":
       newRootId = (await createCourse(db, {
         subjectId: node.subjectId as string,
+        academicYearId: (node.academicYearId as string | null) ?? null,
+        termId: (node.termId as string | null) ?? null,
         titleAr: copyTitle(node.titleAr, suffixAr),
         titleEn: copyTitle(node.titleEn, suffixEn),
         descriptionAr: (node.descriptionAr as string | null) ?? null,
@@ -563,6 +666,8 @@ async function duplicateInto(
       if (parentType !== "subject") return;
       newId = (await createCourse(db, {
         subjectId: newParentId, titleAr: copyTitle(node.titleAr), titleEn: copyTitle(node.titleEn),
+        academicYearId: (node.academicYearId as string | null) ?? null,
+        termId: (node.termId as string | null) ?? null,
         descriptionAr: (node.descriptionAr as string | null) ?? null,
         descriptionEn: (node.descriptionEn as string | null) ?? null,
         thumbnailFileId: (node.thumbnailFileId as string | null) ?? null,
@@ -642,6 +747,9 @@ const PARENT_FIELD: Partial<Record<ContentType, string>> = {
   lessonItem: "lessonId",
 };
 
+/** Root-level reference rows that are still reorderable among their own siblings. */
+const SELF_ORDERED_ROOTS: ContentType[] = ["academicYear", "term"];
+
 export async function moveNode(
   db: DB,
   type: ContentType,
@@ -649,7 +757,8 @@ export async function moveNode(
   direction: "up" | "down"
 ): Promise<{ ok: true } | { ok: false; error: "not_found" | "no_neighbor" | "root_type" }> {
   const parentField = PARENT_FIELD[type];
-  if (!parentField) return { ok: false, error: "root_type" };
+  const selfOrdered = SELF_ORDERED_ROOTS.includes(type);
+  if (!parentField && !selfOrdered) return { ok: false, error: "root_type" };
   const node = await getNode(db, type, id);
   if (!node) return { ok: false, error: "not_found" };
 
@@ -658,7 +767,11 @@ export async function moveNode(
   const siblings = (await db
     .select()
     .from(table)
-    .where(eq(col(parentField), node[parentField] as never))
+    .where(
+      parentField
+        ? eq(col(parentField), node[parentField] as never)
+        : and(isNull(col("deletedAt")))
+    )
     .orderBy(asc(col("sortOrder")), asc(col("createdAt")))) as unknown as Array<Record<string, unknown>>;
 
   const idx = siblings.findIndex((s) => s.id === id);
@@ -837,6 +950,13 @@ export interface ChainRow {
   status: string;
   publishAt: number | null;
   expiresAt: number | null;
+  /**
+   * Academic scope of the node (owner content model). These are IDs — the
+   * resolver compares them literally and never matches on titles/slugs/strings.
+   */
+  academicYearId?: string | null;
+  gradeId?: string | null;
+  termId?: string | null;
 }
 
 /** Loads lesson → unit → course → subject and returns the resolver input shape. */
@@ -863,6 +983,9 @@ export async function chainForLesson(db: DB, lessonId: string): Promise<ChainRow
     status: lesson.status,
     publishAt: lesson.publishAt ?? null,
     expiresAt: lesson.expiresAt ?? null,
+    academicYearId: course.academicYearId ?? null,
+    gradeId: subject.gradeId ?? null,
+    termId: course.termId ?? null,
   };
 }
 
@@ -882,6 +1005,9 @@ export async function chainForCourse(db: DB, courseId: string) {
     status: course.status,
     publishAt: course.publishAt ?? null,
     expiresAt: course.expiresAt ?? null,
+    academicYearId: course.academicYearId ?? null,
+    gradeId: subject.gradeId ?? null,
+    termId: course.termId ?? null,
   };
 }
 
@@ -897,6 +1023,9 @@ export async function chainForSubject(db: DB, subjectId: string) {
     status: subject.status,
     publishAt: null,
     expiresAt: null,
+    academicYearId: null,
+    gradeId: subject.gradeId ?? null,
+    termId: null,
   };
 }
 
@@ -1106,4 +1235,476 @@ export async function coursePrereqGate(db: DB, subject: PrereqSubject, courseId:
     if (!(await courseCompletedByStudent(db, p.courseId, subject.userId))) missing.push(p);
   }
   return { locked: missing.length > 0, missing };
+}
+
+// ---------------------------------------------------------------------------
+// Study hub — the STUDENT-facing content model
+//   السنة الدراسية → الصف → المادة → الترم → الدرس → محتوى الدرس
+//
+// These reads never mention "courses": a `courses` row that carries an academic
+// year + term is the internal term container, and everything below surfaces it as
+// the *term*. Only PUBLISHED, non-deleted rows are ever returned, so drafts can
+// never reach a student page or the sitemap (PART 21).
+// ---------------------------------------------------------------------------
+
+export async function listAcademicYears(db: DB, opts: { publishedOnly?: boolean } = {}) {
+  const rows = await db
+    .select()
+    .from(academicYears)
+    .where(and(isNull(academicYears.deletedAt), ...(opts.publishedOnly ? [eq(academicYears.status, "published")] : [])))
+    .orderBy(asc(academicYears.sortOrder), asc(academicYears.createdAt));
+  return rows;
+}
+
+export async function listTerms(db: DB, opts: { publishedOnly?: boolean } = {}) {
+  const rows = await db
+    .select()
+    .from(terms)
+    .where(and(isNull(terms.deletedAt), ...(opts.publishedOnly ? [eq(terms.status, "published")] : [])))
+    .orderBy(asc(terms.sortOrder), asc(terms.createdAt));
+  return rows;
+}
+
+/** Single-row lookups used for student-facing labels (مادة / ترم / سنة). */
+export async function subjectById(db: DB, id: string) {
+  const rows = await db
+    .select({ id: subjects.id, slug: subjects.slug, titleAr: subjects.titleAr, titleEn: subjects.titleEn })
+    .from(subjects)
+    .where(eq(subjects.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function gradeById(db: DB, id: string) {
+  const rows = await db
+    .select({ id: grades.id, slug: grades.slug, titleAr: grades.titleAr, titleEn: grades.titleEn })
+    .from(grades)
+    .where(eq(grades.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function termById(db: DB, id: string) {
+  const rows = await db
+    .select({ id: terms.id, slug: terms.slug, titleAr: terms.titleAr, titleEn: terms.titleEn })
+    .from(terms)
+    .where(eq(terms.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function academicYearById(db: DB, id: string) {
+  const rows = await db
+    .select({ id: academicYears.id, slug: academicYears.slug, titleAr: academicYears.titleAr, titleEn: academicYears.titleEn })
+    .from(academicYears)
+    .where(eq(academicYears.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/** Options for the admin scope pickers (year → grade → subject → term). */
+export async function academicScopeOptions(db: DB) {
+  const [years, termRows, gradeRows, subjectRows] = await Promise.all([
+    listAcademicYears(db),
+    listTerms(db),
+    db.select().from(grades).where(isNull(grades.deletedAt)).orderBy(asc(grades.sortOrder)),
+    db.select().from(subjects).where(isNull(subjects.deletedAt)).orderBy(asc(subjects.sortOrder)),
+  ]);
+  return { years, terms: termRows, grades: gradeRows, subjects: subjectRows };
+}
+
+export interface StudySubjectCard {
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  gradeSlug: string;
+  gradeTitleAr: string;
+  gradeTitleEn: string;
+  programTitleAr: string;
+  programTitleEn: string;
+  /** published term containers, so the card can say how many terms are live */
+  termCount: number;
+  lessonCount: number;
+}
+
+/**
+ * The "المحتوى التعليمي" index: published subjects that actually have published
+ * term containers. Empty-first — nothing is invented when the owner has not
+ * published content yet.
+ */
+export async function studyHub(db: DB): Promise<StudySubjectCard[]> {
+  const containers = await db
+    .select({
+      subjectId: courses.subjectId,
+      courseId: courses.id,
+    })
+    .from(courses)
+    .innerJoin(subjects, eq(courses.subjectId, subjects.id))
+    .innerJoin(grades, eq(subjects.gradeId, grades.id))
+    .innerJoin(programs, eq(grades.programId, programs.id))
+    .where(
+      and(
+        eq(courses.status, "published"),
+        isNull(courses.deletedAt),
+        isNull(subjects.deletedAt),
+        isNull(grades.deletedAt),
+        isNull(programs.deletedAt),
+        eq(subjects.status, "published"),
+        eq(grades.status, "published"),
+        eq(programs.status, "published")
+      )
+    );
+  if (containers.length === 0) return [];
+
+  const subjectIds = [...new Set(containers.map((c) => c.subjectId))];
+  const subjectRows = await db
+    .select({
+      subject: subjects,
+      gradeSlug: grades.slug,
+      gradeTitleAr: grades.titleAr,
+      gradeTitleEn: grades.titleEn,
+      gradeOrder: grades.sortOrder,
+      programTitleAr: programs.titleAr,
+      programTitleEn: programs.titleEn,
+      programOrder: programs.sortOrder,
+    })
+    .from(subjects)
+    .innerJoin(grades, eq(subjects.gradeId, grades.id))
+    .innerJoin(programs, eq(grades.programId, programs.id))
+    .where(and(inArray(subjects.id, subjectIds), eq(subjects.status, "published"), isNull(subjects.deletedAt)))
+    .orderBy(asc(programs.sortOrder), asc(grades.sortOrder), asc(subjects.sortOrder));
+
+  const lessonCounts = await publishedLessonCountsBySubject(db, subjectIds);
+  const termCounts = new Map<string, number>();
+  for (const c of containers) termCounts.set(c.subjectId, (termCounts.get(c.subjectId) ?? 0) + 1);
+
+  return subjectRows.map((r) => ({
+    slug: r.subject.slug,
+    titleAr: r.subject.titleAr,
+    titleEn: r.subject.titleEn,
+    descriptionAr: r.subject.descriptionAr,
+    descriptionEn: r.subject.descriptionEn,
+    gradeSlug: r.gradeSlug,
+    gradeTitleAr: r.gradeTitleAr,
+    gradeTitleEn: r.gradeTitleEn,
+    programTitleAr: r.programTitleAr,
+    programTitleEn: r.programTitleEn,
+    termCount: termCounts.get(r.subject.id) ?? 0,
+    lessonCount: lessonCounts.get(r.subject.id) ?? 0,
+  }));
+}
+
+/** Published-lesson counts per subject (one query, no N+1). */
+async function publishedLessonCountsBySubject(db: DB, subjectIds: string[]): Promise<Map<string, number>> {
+  if (subjectIds.length === 0) return new Map();
+  const rows = await db
+    .select({ subjectId: subjects.id, n: sql<number>`count(*)` })
+    .from(lessons)
+    .innerJoin(units, eq(lessons.unitId, units.id))
+    .innerJoin(courses, eq(units.courseId, courses.id))
+    .innerJoin(subjects, eq(courses.subjectId, subjects.id))
+    .where(
+      and(
+        inArray(subjects.id, subjectIds),
+        eq(lessons.status, "published"),
+        isNull(lessons.deletedAt),
+        eq(units.status, "published"),
+        isNull(units.deletedAt),
+        eq(courses.status, "published"),
+        isNull(courses.deletedAt)
+      )
+    )
+    .groupBy(subjects.id);
+  return new Map(rows.map((r) => [r.subjectId, Number(r.n)]));
+}
+
+export interface StudyTerm {
+  /** internal term-container id (the `courses` row) */
+  id: string;
+  slug: string;
+  /** label the student sees: the term name when bound, else the container title */
+  titleAr: string;
+  titleEn: string;
+  academicYearId: string | null;
+  academicYearTitleAr: string | null;
+  academicYearTitleEn: string | null;
+  termId: string | null;
+  sortOrder: number;
+  accessLevel: "public" | "authenticated" | "entitled";
+  status: string;
+}
+
+export interface StudyLesson {
+  id: string;
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  accessLevel: "public" | "authenticated" | "entitled";
+  freePreview: boolean;
+  status: string;
+  publishAt: number | null;
+  expiresAt: number | null;
+  unitId: string;
+  unitTitleAr: string;
+  unitTitleEn: string;
+  containerSlug: string;
+  itemCount: number;
+  sortOrder: number;
+}
+
+export interface SubjectStudyView {
+  subject: {
+    id: string;
+    slug: string;
+    titleAr: string;
+    titleEn: string;
+    descriptionAr: string | null;
+    descriptionEn: string | null;
+  };
+  grade: { slug: string; titleAr: string; titleEn: string } | null;
+  program: { slug: string; titleAr: string; titleEn: string } | null;
+  /** year → terms → lessons, already ordered */
+  years: Array<{
+    id: string | null;
+    titleAr: string;
+    titleEn: string;
+    terms: Array<{ term: StudyTerm; lessons: StudyLesson[] }>;
+  }>;
+}
+
+/**
+ * Subject study page data: published term containers grouped by academic year,
+ * each with its published lessons. Draft/archived rows and unpublished ancestors
+ * are excluded here (never rendered, never linked, never in the sitemap).
+ */
+export async function subjectStudyView(db: DB, subjectSlug: string): Promise<SubjectStudyView | null> {
+  const subjectRows = await db
+    .select({
+      subject: subjects,
+      gradeSlug: grades.slug,
+      gradeTitleAr: grades.titleAr,
+      gradeTitleEn: grades.titleEn,
+      programSlug: programs.slug,
+      programTitleAr: programs.titleAr,
+      programTitleEn: programs.titleEn,
+    })
+    .from(subjects)
+    .innerJoin(grades, eq(subjects.gradeId, grades.id))
+    .innerJoin(programs, eq(grades.programId, programs.id))
+    .where(eq(subjects.slug, subjectSlug))
+    .limit(1);
+  const row = subjectRows[0];
+  if (!row || row.subject.status !== "published" || row.subject.deletedAt) return null;
+
+  const containers = await db
+    .select({
+      course: courses,
+      yearTitleAr: academicYears.titleAr,
+      yearTitleEn: academicYears.titleEn,
+    })
+    .from(courses)
+    .leftJoin(academicYears, eq(courses.academicYearId, academicYears.id))
+    .where(and(eq(courses.subjectId, row.subject.id), eq(courses.status, "published"), isNull(courses.deletedAt)))
+    .orderBy(asc(courses.sortOrder), asc(courses.createdAt));
+  if (containers.length === 0) {
+    return {
+      subject: {
+        id: row.subject.id, slug: row.subject.slug, titleAr: row.subject.titleAr, titleEn: row.subject.titleEn,
+        descriptionAr: row.subject.descriptionAr, descriptionEn: row.subject.descriptionEn,
+      },
+      grade: { slug: row.gradeSlug, titleAr: row.gradeTitleAr, titleEn: row.gradeTitleEn },
+      program: { slug: row.programSlug, titleAr: row.programTitleAr, titleEn: row.programTitleEn },
+      years: [],
+    };
+  }
+
+  const containerIds = containers.map((c) => c.course.id);
+  const unitRows = await db
+    .select()
+    .from(units)
+    .where(and(inArray(units.courseId, containerIds), eq(units.status, "published"), isNull(units.deletedAt)))
+    .orderBy(asc(units.sortOrder), asc(units.createdAt));
+  const unitIds = unitRows.map((u) => u.id);
+  const lessonRows = unitIds.length === 0 ? [] : await db
+    .select()
+    .from(lessons)
+    .where(and(inArray(lessons.unitId, unitIds), eq(lessons.status, "published"), isNull(lessons.deletedAt)))
+    .orderBy(asc(lessons.sortOrder), asc(lessons.createdAt));
+  const itemRows = lessonRows.length === 0 ? [] : await db
+    .select({ lessonId: lessonItems.lessonId, n: sql<number>`count(*)` })
+    .from(lessonItems)
+    .where(inArray(lessonItems.lessonId, lessonRows.map((l) => l.id)))
+    .groupBy(lessonItems.lessonId);
+  const itemCounts = new Map(itemRows.map((r) => [r.lessonId, Number(r.n)]));
+
+  const termRows = await listTerms(db, { publishedOnly: false });
+  const termById = new Map(termRows.map((t) => [t.id, t]));
+  const yearRows = await listAcademicYears(db, { publishedOnly: false });
+  const yearById = new Map(yearRows.map((y) => [y.id, y]));
+
+  const years: SubjectStudyView["years"] = [];
+  const yearIndex = new Map<string, number>();
+  for (const c of containers) {
+    const course = c.course;
+    const term = course.termId ? termById.get(course.termId) ?? null : null;
+    const year = course.academicYearId ? yearById.get(course.academicYearId) ?? null : null;
+    // A container whose year/term row was archived or deleted still renders with
+    // its own titles — content the owner published is never silently dropped.
+    const studyTerm: StudyTerm = {
+      id: course.id,
+      slug: course.slug,
+      titleAr: term?.titleAr ?? course.titleAr,
+      titleEn: term?.titleEn ?? course.titleEn,
+      academicYearId: course.academicYearId ?? null,
+      academicYearTitleAr: year?.titleAr ?? c.yearTitleAr ?? null,
+      academicYearTitleEn: year?.titleEn ?? c.yearTitleEn ?? null,
+      termId: course.termId ?? null,
+      sortOrder: course.sortOrder,
+      accessLevel: course.accessLevel,
+      status: course.status,
+    };
+    const courseUnits = unitRows.filter((u) => u.courseId === course.id);
+    const lessonsForContainer: StudyLesson[] = courseUnits.flatMap((u) =>
+      lessonRows
+        .filter((l) => l.unitId === u.id)
+        .map((l) => ({
+          id: l.id,
+          slug: l.slug,
+          titleAr: l.titleAr,
+          titleEn: l.titleEn,
+          descriptionAr: l.descriptionAr,
+          descriptionEn: l.descriptionEn,
+          accessLevel: l.accessLevel,
+          freePreview: l.freePreview,
+          status: l.status,
+          publishAt: l.publishAt ?? null,
+          expiresAt: l.expiresAt ?? null,
+          unitId: u.id,
+          unitTitleAr: u.titleAr,
+          unitTitleEn: u.titleEn,
+          containerSlug: course.slug,
+          itemCount: itemCounts.get(l.id) ?? 0,
+          sortOrder: l.sortOrder,
+        }))
+    );
+
+    const yearKey = course.academicYearId ?? "";
+    let yi = yearIndex.get(yearKey);
+    if (yi === undefined) {
+      yi = years.length;
+      yearIndex.set(yearKey, yi);
+      years.push({
+        id: course.academicYearId ?? null,
+        titleAr: year?.titleAr ?? c.yearTitleAr ?? "",
+        titleEn: year?.titleEn ?? c.yearTitleEn ?? "",
+        terms: [],
+      });
+    }
+    years[yi].terms.push({ term: studyTerm, lessons: lessonsForContainer });
+  }
+
+  return {
+    subject: {
+      id: row.subject.id, slug: row.subject.slug, titleAr: row.subject.titleAr, titleEn: row.subject.titleEn,
+      descriptionAr: row.subject.descriptionAr, descriptionEn: row.subject.descriptionEn,
+    },
+    grade: { slug: row.gradeSlug, titleAr: row.gradeTitleAr, titleEn: row.gradeTitleEn },
+    program: { slug: row.programSlug, titleAr: row.programTitleAr, titleEn: row.programTitleEn },
+    years,
+  };
+}
+
+/** Chain rows for every lesson of a subject study view — one batch, no N+1. */
+export function chainsForStudyView(view: SubjectStudyView): Map<string, ChainRow> {
+  const map = new Map<string, ChainRow>();
+  for (const year of view.years) {
+    for (const { term, lessons } of year.terms) {
+      for (const l of lessons) {
+        map.set(l.id, {
+          lessonId: l.id,
+          unitId: l.unitId,
+          courseId: term.id,
+          subjectId: view.subject.id,
+          accessLevel: l.accessLevel,
+          freePreview: l.freePreview,
+          status: l.status,
+          publishAt: l.publishAt,
+          expiresAt: l.expiresAt,
+          academicYearId: term.academicYearId,
+          gradeId: null,
+          termId: term.termId,
+        });
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Term containers of a subject inside one academic year — the concrete resource
+ * ids a FULL-YEAR entitlement/code must cover. IDs only: the full-year rule is
+ * resolved by comparing these ids, never by matching titles or slugs.
+ */
+export async function termContainersForSubjectYear(db: DB, subjectId: string, academicYearId: string) {
+  return db
+    .select({ id: courses.id, termId: courses.termId, status: courses.status })
+    .from(courses)
+    .where(
+      and(
+        eq(courses.subjectId, subjectId),
+        eq(courses.academicYearId, academicYearId),
+        isNull(courses.deletedAt)
+      )
+    )
+    .orderBy(asc(courses.sortOrder));
+}
+
+/**
+ * The single term container for (subject, academic year, term) — the concrete
+ * resource a TERM-scoped entitlement/code grants. Returns null when the owner has
+ * not created that term yet (nothing is invented on their behalf).
+ */
+export async function termContainerFor(
+  db: DB,
+  scope: { subjectId: string; academicYearId: string; termId: string }
+) {
+  const rows = await db
+    .select({ id: courses.id, status: courses.status, slug: courses.slug })
+    .from(courses)
+    .where(
+      and(
+        eq(courses.subjectId, scope.subjectId),
+        eq(courses.academicYearId, scope.academicYearId),
+        eq(courses.termId, scope.termId),
+        isNull(courses.deletedAt)
+      )
+    )
+    .orderBy(asc(courses.sortOrder), asc(courses.createdAt))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * A lesson created straight under a term container still needs a unit row (the
+ * schema requires one). The owner should not have to think about that, so the
+ * study-facing admin flow ensures a single internal "الدروس" grouping per
+ * container and reuses it. Real unit grouping remains fully available.
+ */
+export async function ensureDefaultUnit(db: DB, courseId: string, actor: ActorCtx) {
+  const existing = await db
+    .select()
+    .from(units)
+    .where(and(eq(units.courseId, courseId), isNull(units.deletedAt)))
+    .orderBy(asc(units.sortOrder), asc(units.createdAt))
+    .limit(1);
+  if (existing[0]) return existing[0];
+  return createUnit(
+    db,
+    { courseId, titleAr: "الدروس", titleEn: "Lessons", status: "published", sortOrder: 0 },
+    actor
+  );
 }

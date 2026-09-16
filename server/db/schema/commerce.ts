@@ -338,6 +338,12 @@ export const activationCodes = sqliteTable(
   {
     id: text("id").primaryKey(),
     batchId: text("batch_id").references(() => activationCodeBatches.id),
+    /**
+     * Subscription request this code was issued against (admin "generate code"
+     * after approving a manual payment). Nullable: batch-generated codes have none.
+     * App-ref to `orders` (cross-domain ⇒ plain TEXT, per ADR-017).
+     */
+    orderId: text("order_id"),
     /** sha-256 of the normalized code — plaintext shown once at generation */
     codeHash: text("code_hash").notNull(),
     prefix: text("prefix").notNull().default(""),
@@ -357,6 +363,7 @@ export const activationCodes = sqliteTable(
     uniqueIndex("activation_codes_hash_uidx").on(t.codeHash),
     index("activation_codes_batch_idx").on(t.batchId),
     index("activation_codes_status_idx").on(t.status),
+    index("activation_codes_order_idx").on(t.orderId),
   ]
 );
 

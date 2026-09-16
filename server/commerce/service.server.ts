@@ -26,7 +26,7 @@ import {
 } from "../db/schema";
 import type { PaymentsSettings } from "../settings/schema";
 import { logAudit } from "../audit/log.server";
-import { getNode, slugify } from "../content/service.server";
+import { getNode, slugify, termContainerFor, termContainersForSubjectYear } from "../content/service.server";
 import { sha256Hex } from "../http/rate-limit.server";
 import { paymentProviderRegistry } from "../payments/provider";
 import {
@@ -35,6 +35,7 @@ import {
   generateActivationCode,
   normalizeCode,
 } from "./money";
+import { findPaymentMethod, methodSnapshot } from "./payment-methods";
 
 /**
  * Commerce engine (Phase 6 — FEATURE-SPEC §7, PAYMENTS.md, ADR-007/023).
@@ -161,12 +162,28 @@ const productItemSchema = z.object({
   resourceId: uuid,
 });
 
+/**
+ * Academic scope of a grant (owner content model: Year → Grade → Subject → Term).
+ * Stored on the frozen spec and copied onto every entitlement row's metadata, so
+ * the resolver can apply the EXPLICIT term / full-year rules by ID comparison.
+ */
+export const entitlementScopeSchema = z.object({
+  kind: z.enum(["term", "full_year"]),
+  academicYearId: uuid,
+  subjectId: uuid,
+  gradeId: uuid.nullish(),
+  termId: uuid.nullish(),
+});
+export type EntitlementScopeSpec = z.infer<typeof entitlementScopeSchema>;
+
 /** Frozen at purchase; fulfillment expands it into concrete entitlement rows (ADR-023). */
 export const entitlementSpecSchema = z.object({
   grants: z.array(grantSchema).min(1).max(50),
   durationDays: z.number().int().min(1).max(3650).nullish(),
   fixedExpiresAt: z.number().int().positive().nullish(),
   recurring: z.boolean().optional(),
+  /** optional academic scope; absent on legacy specs (plain resource matching) */
+  scope: entitlementScopeSchema.nullish(),
 });
 export type EntitlementSpec = z.infer<typeof entitlementSpecSchema>;
 
@@ -1011,6 +1028,12 @@ export async function confirmManualPayment(
     transferDateMs?: number | null;
     /** Amount the student entered; when present it MUST equal the order total. */
     transferAmountMinor?: number | null;
+    /**
+     * The manual rail the student says they used (id of an ENABLED + CONFIGURED
+     * method from settings). Re-validated server-side: a disabled or unconfigured
+     * method is rejected, so the student can never pick a rail that isn't live.
+     */
+    methodId?: string | null;
     paymentsSettings: PaymentsSettings;
     nowMs?: number;
   }
@@ -1020,6 +1043,10 @@ export async function confirmManualPayment(
   if (!order || order.studentId !== opts.studentId) throw new CommerceReferenceError("orderId", opts.orderId);
   if (order.status !== "pending") throw new CommerceStateError("order_not_pending");
   if (!opts.transferReference.trim()) throw new CommerceValidationError("transfer_reference_required");
+
+  // Manual-rail selection is server-authoritative (only enabled+configured rows).
+  const method = opts.methodId ? findPaymentMethod(opts.paymentsSettings.methods, opts.methodId) : null;
+  if (opts.methodId && !method) throw new CommerceValidationError("payment_method_unavailable");
 
   // Server-authoritative amount consistency: a stated transfer amount must match
   // the order total (money never comes from the client — PAYMENTS.md §5).
@@ -1049,7 +1076,7 @@ export async function confirmManualPayment(
       id: retryId,
       orderId: order.id,
       provider: "manual",
-      method: null,
+      method: method?.key ?? null,
       amountMinor: order.totalMinor,
       currency: order.currency,
       status: "pending",
@@ -1058,6 +1085,7 @@ export async function confirmManualPayment(
         reference: order.orderNumber,
         instructionsAr: opts.paymentsSettings.manualInstructionsAr,
         instructionsEn: opts.paymentsSettings.manualInstructionsEn,
+        ...(method ? { method: methodSnapshot(method, "ar") } : {}),
         generatedAt: nowMs,
       },
       reviewedBy: null,
@@ -1077,10 +1105,13 @@ export async function confirmManualPayment(
       .set({
         status: "under_review",
         updatedAt: nowMs,
+        // the rail the student actually used, frozen with the details they saw
+        ...(method ? { method: method.key, instructions: { ...(payment.instructions ?? {}), method: methodSnapshot(method, "ar") } } : {}),
         metadata: {
           ...(payment.metadata ?? {}),
           evidence: {
             transferReference: opts.transferReference.trim().slice(0, 200),
+            methodId: method?.id ?? null,
             note: (opts.note ?? "").slice(0, 500) || null,
             proofFileId: opts.proofFileId ?? null,
             senderName: (opts.senderName ?? "").trim().slice(0, 200) || null,
@@ -1241,7 +1272,7 @@ async function fulfillPaid(
           grantedBy: opts.actor?.userId ?? null,
           revokedAt: null,
           revokeReason: null,
-          metadata: { orderId: order.id, productId: item.productId },
+          metadata: { orderId: order.id, productId: item.productId, scope: spec.scope ?? null },
         });
       }
     } else {
@@ -1261,7 +1292,7 @@ async function fulfillPaid(
           grantedBy: opts.actor?.userId ?? null,
           revokedAt: null,
           revokeReason: null,
-          metadata: { orderId: order.id, productId: item.productId },
+          metadata: { orderId: order.id, productId: item.productId, scope: spec.scope ?? null },
         });
       }
     }
@@ -1618,6 +1649,80 @@ export async function createGatewayPayment(
 }
 
 // ---------------------------------------------------------------------------
+// Academic scope resolution (Year → Grade → Subject → Term)
+// ---------------------------------------------------------------------------
+
+export const academicScopeInputSchema = z
+  .object({
+    kind: z.enum(["term", "full_year"]),
+    academicYearId: z.string().min(1),
+    subjectId: z.string().min(1),
+    termId: z.string().min(1).nullish(),
+  })
+  .refine((v) => v.kind !== "term" || Boolean(v.termId), {
+    message: "termId is required for a term-scoped grant",
+    path: ["termId"],
+  });
+export type AcademicScopeInput = z.infer<typeof academicScopeInputSchema>;
+
+export interface ResolvedScope {
+  scope: EntitlementScopeSpec;
+  /** concrete term-container grants the spec carries alongside the scope */
+  grants: { resourceType: "course"; resourceId: string }[];
+}
+
+/**
+ * Turns the admin's scope choice into (a) an explicit ID-based scope record and
+ * (b) the concrete term-container grants that exist TODAY.
+ *
+ * Every id is validated against a real row before anything is written — the
+ * system never invents a year, a subject or a term. A `full_year` scope keeps
+ * working for term containers published later because the resolver re-evaluates
+ * the scope against the node's own year/subject ids (see `scopeCovers`).
+ */
+export async function resolveAcademicScope(db: DB, input: AcademicScopeInput): Promise<ResolvedScope> {
+  const year = await getNode(db, "academicYear", input.academicYearId);
+  if (!year) throw new CommerceReferenceError("academicYearId", input.academicYearId);
+  const subject = (await getNode(db, "subject", input.subjectId)) as { id: string; gradeId?: string } | null;
+  if (!subject) throw new CommerceReferenceError("subjectId", input.subjectId);
+
+  if (input.kind === "term") {
+    const termId = input.termId!;
+    const term = await getNode(db, "term", termId);
+    if (!term) throw new CommerceReferenceError("termId", termId);
+    const container = await termContainerFor(db, {
+      subjectId: subject.id,
+      academicYearId: input.academicYearId,
+      termId,
+    });
+    if (!container) throw new CommerceValidationError("term_not_created");
+    return {
+      scope: {
+        kind: "term",
+        academicYearId: input.academicYearId,
+        subjectId: subject.id,
+        gradeId: subject.gradeId ?? null,
+        termId,
+      },
+      grants: [{ resourceType: "course", resourceId: container.id }],
+    };
+  }
+
+  const containers = await termContainersForSubjectYear(db, subject.id, input.academicYearId);
+  if (containers.length === 0) throw new CommerceValidationError("year_has_no_terms");
+  return {
+    scope: {
+      kind: "full_year",
+      academicYearId: input.academicYearId,
+      subjectId: subject.id,
+      gradeId: subject.gradeId ?? null,
+      termId: null,
+    },
+    grants: containers.map((c) => ({ resourceType: "course" as const, resourceId: c.id })),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Activation codes (PAYMENTS.md §3 — hashed storage, atomic single-use)
 // ---------------------------------------------------------------------------
 
@@ -1628,12 +1733,18 @@ export const activationBatchSchema = z
     count: z.number().int().min(1).max(500),
     productId: uuid.nullish(),
     grants: z.array(grantSchema).max(50).optional(),
+    /** admin-picked academic scope; takes precedence over raw `grants` */
+    scope: academicScopeInputSchema.nullish(),
+    /** subscription request this batch was issued for (admin "generate code") */
+    orderId: uuid.nullish(),
     durationDays: z.number().int().min(1).max(3650).nullish(),
     fixedExpiresAt: z.number().int().positive().nullish(),
     maxUses: z.number().int().min(1).max(1000).default(1),
     expiresAt: z.number().int().positive().nullish(),
   })
-  .refine((v) => v.productId || (v.grants && v.grants.length > 0), { message: "productId or grants required" });
+  .refine((v) => v.productId || v.scope || (v.grants && v.grants.length > 0), {
+    message: "productId, scope or grants required",
+  });
 
 export interface GeneratedBatch {
   batchId: string;
@@ -1648,7 +1759,14 @@ export async function generateActivationBatch(
 ): Promise<GeneratedBatch> {
   let grants: { resourceType: "subject" | "course" | "lesson"; resourceId: string }[];
   let productId: string | null = null;
-  if (input.productId) {
+  let scope: EntitlementScopeSpec | null = null;
+  if (input.scope) {
+    // Admin picked a scope (Year → Subject → Term, or the whole year): the
+    // concrete term containers are resolved from real rows — never invented.
+    const resolved = await resolveAcademicScope(db, input.scope);
+    grants = resolved.grants;
+    scope = resolved.scope;
+  } else if (input.productId) {
     const product = await getProduct(db, input.productId);
     if (!product) throw new CommerceReferenceError("productId", input.productId);
     if (product.archivedAt !== null) throw new CommerceStateError("product_archived");
@@ -1665,10 +1783,17 @@ export async function generateActivationBatch(
       if (!node) throw new CommerceReferenceError("grants.lessonId", g.resourceId);
     }
   }
+  let orderId: string | null = null;
+  if (input.orderId) {
+    const order = await getOrder(db, input.orderId);
+    if (!order) throw new CommerceReferenceError("orderId", input.orderId);
+    orderId = order.id;
+  }
   const spec = entitlementSpecSchema.parse({
     grants,
     durationDays: input.durationDays ?? null,
     fixedExpiresAt: input.fixedExpiresAt ?? null,
+    scope,
   });
 
   const ts = now();
@@ -1694,6 +1819,7 @@ export async function generateActivationBatch(
     rows.push({
       id: crypto.randomUUID(),
       batchId,
+      orderId,
       codeHash: await sha256Hex(normalized),
       prefix: normalized.slice(0, 4),
       productId,
@@ -1716,10 +1842,100 @@ export async function generateActivationBatch(
     actorUserId: actor.userId, actorRole: actor.role,
     action: "commerce.batch.created", entityType: "activation_batch", entityId: batchId,
     // plaintext codes are NEVER logged
-    after: { name: input.name, count: input.count, maxUses: input.maxUses, productId, spec },
+    after: { name: input.name, count: input.count, maxUses: input.maxUses, productId, orderId, spec },
     ipHash: actor.ipHash,
   });
   return { batchId, codes: plaintext };
+}
+
+/**
+ * PART 16 — issue an activation code against an APPROVED subscription request.
+ *
+ * The scope is not re-typed by the admin and not re-invented here: it is the
+ * frozen `entitlement_spec` of the order's item (the exact year/grade/subject/
+ * term the request was for, plus its academic scope when the product carried one).
+ * The code is single-use by default, hashed at rest, linked to the order, and the
+ * plaintext is returned exactly once for the admin to hand over manually
+ * (e.g. over WhatsApp). The system sends nothing itself.
+ */
+export async function generateCodeForOrder(
+  db: DB,
+  opts: { orderId: string; actor: ActorCtx; maxUses?: number; expiresAt?: number | null; nowMs?: number }
+): Promise<GeneratedBatch> {
+  const nowMs = opts.nowMs ?? now();
+  const order = await getOrder(db, opts.orderId);
+  if (!order) throw new CommerceReferenceError("orderId", opts.orderId);
+  if (order.status !== "paid") throw new CommerceStateError("order_not_paid");
+  const items = await orderItemsOf(db, order.id);
+  if (items.length === 0) throw new CommerceValidationError("order_has_no_items");
+  const spec = entitlementSpecSchema.parse(items[0].entitlementSpec);
+
+  const batchId = crypto.randomUUID();
+  const batchName = `طلب ${order.orderNumber}`;
+  await db.insert(activationCodeBatches).values({
+    id: batchId,
+    name: batchName.slice(0, 200),
+    note: `Activation code issued for order ${order.orderNumber} (student ${order.studentId})`.slice(0, 500),
+    spec: spec as unknown as Record<string, unknown>,
+    count: 1,
+    createdBy: opts.actor.userId,
+    createdAt: nowMs,
+  });
+
+  const maxUses = Math.max(1, Math.min(1000, opts.maxUses ?? 1));
+  const plaintext: string[] = [];
+  const rows: (typeof activationCodes.$inferInsert)[] = [];
+  const seen = new Set<string>();
+  while (rows.length < 1) {
+    const code = generateActivationCode();
+    const normalized = normalizeCode(code);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    rows.push({
+      id: crypto.randomUUID(),
+      batchId,
+      orderId: order.id,
+      codeHash: await sha256Hex(normalized),
+      prefix: normalized.slice(0, 4),
+      productId: items[0].productId,
+      entitlementSpec: spec as unknown as Record<string, unknown>,
+      maxUses,
+      useCount: 0,
+      status: "active",
+      expiresAt: opts.expiresAt ?? null,
+      createdBy: opts.actor.userId,
+      createdAt: nowMs,
+      updatedAt: nowMs,
+    });
+    plaintext.push(code);
+  }
+  await db.insert(activationCodes).values(rows);
+  await logAudit(db, {
+    actorUserId: opts.actor.userId, actorRole: opts.actor.role,
+    action: "commerce.code.issued_for_order", entityType: "order", entityId: order.id,
+    // plaintext codes are NEVER logged — only the batch/scope metadata is
+    after: { batchId, orderNumber: order.orderNumber, studentId: order.studentId, maxUses, grants: spec.grants.length, scope: spec.scope ?? null },
+    ipHash: opts.actor.ipHash,
+  });
+  return { batchId, codes: plaintext };
+}
+
+/** Activation codes already issued for an order (admin view; never the plaintext). */
+export async function codesForOrder(db: DB, orderId: string) {
+  return db
+    .select({
+      id: activationCodes.id,
+      batchId: activationCodes.batchId,
+      prefix: activationCodes.prefix,
+      status: activationCodes.status,
+      maxUses: activationCodes.maxUses,
+      useCount: activationCodes.useCount,
+      expiresAt: activationCodes.expiresAt,
+      createdAt: activationCodes.createdAt,
+    })
+    .from(activationCodes)
+    .where(eq(activationCodes.orderId, orderId))
+    .orderBy(desc(activationCodes.createdAt));
 }
 
 export type RedeemErrorReason =
@@ -1729,7 +1945,6 @@ export type RedeemErrorReason =
   | "exhausted"
   | "expired"
   | "already_redeemed";
-
 export interface RedeemResult {
   ok: true;
   entitlementIds: string[];
@@ -1812,7 +2027,9 @@ export async function redeemActivationCode(
       grantedBy: null,
       revokedAt: null,
       revokeReason: null,
-      metadata: { batchId: code.batchId, codePrefix: code.prefix },
+      // the academic scope travels with the grant so the resolver can apply the
+      // explicit term / full-year rules (IDs only — never title matching)
+      metadata: { batchId: code.batchId, codePrefix: code.prefix, scope: spec.scope ?? null },
     };
   });
 
@@ -2237,6 +2454,12 @@ export async function listOrdersAdmin(
   return { rows, page, perPage };
 }
 
+/**
+ * Subscription-request queue (PART 15): every manual payment with the student's
+ * identity, the rail they claim to have used, and the frozen entitlement spec of
+ * the order — which is what the route turns into the readable scope
+ * (السنة · الصف · المادة · الترم) the admin approves against.
+ */
 export async function listPaymentsAdmin(db: DB, filter: { status?: string; page?: number }) {
   const perPage = 20;
   const page = Math.max(1, filter.page ?? 1);
@@ -2245,9 +2468,11 @@ export async function listPaymentsAdmin(db: DB, filter: { status?: string; page?
   const rows = await db
     .select({
       id: payments.id, orderId: payments.orderId, orderNumber: orders.orderNumber, studentEmail: users.email,
-      provider: payments.provider, amountMinor: payments.amountMinor, currency: payments.currency,
+      studentName: users.fullName, orderStatus: orders.status,
+      provider: payments.provider, method: payments.method, amountMinor: payments.amountMinor, currency: payments.currency,
       status: payments.status, reference: payments.reference, reviewedAt: payments.reviewedAt,
       paidAt: payments.paidAt, createdAt: payments.createdAt, metadata: payments.metadata,
+      instructions: payments.instructions,
     })
     .from(payments)
     .innerJoin(orders, eq(orders.id, payments.orderId))
@@ -2256,7 +2481,21 @@ export async function listPaymentsAdmin(db: DB, filter: { status?: string; page?
     .orderBy(desc(payments.createdAt))
     .limit(perPage)
     .offset((page - 1) * perPage);
-  return { rows, page, perPage };
+
+  // Attach the order's frozen spec so the queue can show the exact scope.
+  const orderIds = [...new Set(rows.map((r) => r.orderId))];
+  const itemRows = orderIds.length
+    ? await db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds))
+    : [];
+  const specByOrder = new Map<string, Record<string, unknown>>();
+  for (const it of itemRows) {
+    if (!specByOrder.has(it.orderId)) specByOrder.set(it.orderId, it.entitlementSpec as Record<string, unknown>);
+  }
+  return {
+    rows: rows.map((r) => ({ ...r, entitlementSpec: specByOrder.get(r.orderId) ?? null })),
+    page,
+    perPage,
+  };
 }
 
 export async function listSubscriptionsAdmin(db: DB, filter: { status?: string; page?: number }) {

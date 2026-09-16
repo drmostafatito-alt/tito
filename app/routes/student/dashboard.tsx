@@ -309,8 +309,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.quickActions")} />
           <CardBody>
             <div className="flex flex-wrap gap-2">
-              <Link to="/courses" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
-                {t(locale, "content.catalogTitle")}
+              <Link to="/study" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700" data-testid="dash-study-link">
+                {t(locale, "study.navTitle")}
               </Link>
               <Link to="/profile/security" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
                 {t(locale, "security.devicesTitle")}

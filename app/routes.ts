@@ -11,6 +11,10 @@ export default [
     route("programs/:slug", "routes/public.programs.$slug.tsx"),
     route("grades/:slug", "routes/public.grades.$slug.tsx"),
     route("subjects/:slug", "routes/public.subjects.$slug.tsx"),
+    // المحتوى التعليمي — the student-facing content hub (year → grade → subject →
+    // term → lesson). Deliberately separate from the legacy /courses catalog.
+    route("study", "routes/public.study.tsx"),
+    route("study/:subjectSlug", "routes/public.study.$subjectSlug.tsx"),
     route("courses", "routes/public.courses.tsx"),
     route("courses/:slug", "routes/public.courses.$slug.tsx"),
     route("courses/:slug/units/:unitId", "routes/public.courses.$slug.units.$unitId.tsx"),

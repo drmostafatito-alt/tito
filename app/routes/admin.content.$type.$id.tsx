@@ -233,7 +233,8 @@ export async function action({ context, request, params }: Route.ActionArgs) {
         return { ok: true as const };
       }
       case "duplicate": {
-        if (type === "lessonItem") return { error: "generic" as const };
+        // Reference rows (academic year / term) and lesson items are not duplicable.
+        if (type === "lessonItem" || type === "academicYear" || type === "term") return { error: "generic" as const };
         const res = await duplicateNode(db, type, id, actor);
         if (!res.ok) return { error: res.error };
         // Land the admin directly in the copy's editor (obvious lifecycle).

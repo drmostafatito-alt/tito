@@ -927,7 +927,7 @@ const run = async () => {
       const genRes = await admin.post("/admin/commerce?tab=codes", {
         form: { _action: "generate_codes", name: `Smoke batch ${runId}`, count: "2", maxUses: "1", productId: smokeProductId ?? "", resourceId: "", durationDays: "", expiresAt: "", note: "smoke" },
       });
-      const codes = [...genRes.text.matchAll(/EDU-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}/g)].map((m) => m[0]);
+      const codes = [...genRes.text.matchAll(/TITO-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}/g)].map((m) => m[0]);
       check("activation batch generated; plaintext codes shown once", codes.length >= 2, `found ${codes.length}`);
       if (codes.length >= 2) {
         const redeem = await rejectee.post("/activate", { form: { _action: "redeem", code: codes[0] } });
@@ -936,7 +936,7 @@ const run = async () => {
         check("redeemed code → entitlement → lesson unlocked", !s2Unlocked.text.includes("يتطلب صلاحية وصول"));
         const replay = await rejectee.post("/activate", { form: { _action: "redeem", code: codes[0] } });
         check("same code twice → already_redeemed (no double grant)", replay.text.includes("لقد فعّلت هذا الكود من قبل"));
-        const junk = await rejectee.post("/activate", { form: { _action: "redeem", code: "EDU-2222-3333-4444" } });
+        const junk = await rejectee.post("/activate", { form: { _action: "redeem", code: "TITO-2222-3333-4444" } });
         check("fabricated code → invalid", junk.text.includes('data-testid="redeem-error"'));
       }
     }
