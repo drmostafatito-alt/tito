@@ -17,6 +17,27 @@ export type ContentResourceType =
 
 export type EntitlementResourceType = "subject" | "course" | "lesson" | "product" | "plan";
 
+/**
+ * Academic scope carried by an entitlement (owner content model:
+ * Year → Grade → Subject → Term). Everything here is an **id** — the coverage
+ * rules below compare ids literally and never match on titles, slugs or any
+ * other string, so renaming a term can never widen or narrow access.
+ *
+ * - `term`      — one term of one subject in one academic year.
+ * - `full_year` — every term the admin scoped for that subject in that year,
+ *                 including term containers published AFTER the grant (the rule
+ *                 is evaluated against the node's own year/subject ids).
+ */
+export interface EntitlementScope {
+  kind: "term" | "full_year";
+  academicYearId: string;
+  subjectId: string;
+  /** optional narrowing; a subject belongs to exactly one grade in this schema */
+  gradeId?: string | null;
+  /** required for `kind: "term"`, ignored for `full_year` */
+  termId?: string | null;
+}
+
 export interface ContentRef {
   type: ContentResourceType;
   id: string;
@@ -27,6 +48,15 @@ export interface EntitlementLike {
   resourceId: string | null;
   status: "active" | "expired" | "revoked";
   expiresAt: number | null; // null = permanent
+  /** academic scope, when the grant was issued with one */
+  scope?: EntitlementScope | null;
+}
+
+/** Academic scope of the node being opened (ids only). */
+export interface ChainScope {
+  academicYearId?: string | null;
+  gradeId?: string | null;
+  termId?: string | null;
 }
 
 export interface ResourceAccessState {
@@ -68,6 +98,8 @@ export function resolveAccess(input: {
   /** the target content node + its ancestor chain, e.g. [lesson, unit, course, subject] */
   chain: ContentRef[];
   entitlements: EntitlementLike[];
+  /** academic scope of the node (year/grade/term ids) — enables the explicit full-year rule */
+  chainScope?: ChainScope | null;
   now?: number;
 }): AccessVerdict {
   const now = input.now ?? Date.now();
@@ -91,18 +123,19 @@ export function resolveAccess(input: {
     case "entitled": {
       if (!subject.userId) return { allowed: false, reason: "anon" };
       if (resource.freePreview) return { allowed: true, reason: "free_preview" };
-      const match = entitlements.find((e) => entitlementCovers(e, chain, now));
+      const match = entitlements.find((e) => entitlementCovers(e, chain, now, input.chainScope ?? null));
       if (!match) return { allowed: false, reason: "no_entitlement" };
       return { allowed: true, reason: "entitlement" };
     }
   }
 }
 
-/** An entitlement covers a node when it targets the node itself, an ancestor, or a plan/product. */
+/** An entitlement covers a node when it targets the node itself, an ancestor, a plan/product, or its academic scope. */
 export function entitlementCovers(
   entitlement: EntitlementLike,
   chain: ContentRef[],
-  now: number
+  now: number,
+  chainScope?: ChainScope | null
 ): boolean {
   if (entitlement.status !== "active") return false;
   if (entitlement.expiresAt !== null && entitlement.expiresAt <= now) return false;
@@ -112,7 +145,36 @@ export function entitlementCovers(
     // (Phase 2 content service expands product_items). Here: no direct coverage.
     return false;
   }
+  if (scopeCovers(entitlement.scope ?? null, chain, chainScope ?? null)) return true;
   return chain.some(
     (ref) => ref.type === entitlement.resourceType && ref.id === entitlement.resourceId
   );
+}
+
+/**
+ * EXPLICIT academic-scope coverage (PART 18/19). Id comparison only:
+ *
+ *  - `term`      → opens a node ONLY inside the same year + subject + term.
+ *                  Philosophy Term 1 never opens Philosophy Term 2, and never
+ *                  opens Psychology — different ids, no match.
+ *  - `full_year` → opens any node of the same year + subject, whichever term it
+ *                  sits in (so a full-year code keeps working for terms the admin
+ *                  publishes later). It is NOT "isSubscribed = true": the subject
+ *                  and the year must both match.
+ */
+export function scopeCovers(
+  scope: EntitlementScope | null,
+  chain: ContentRef[],
+  chainScope: ChainScope | null
+): boolean {
+  if (!scope || !chainScope) return false;
+  const subjectRef = chain.find((r) => r.type === "subject");
+  if (!subjectRef) return false;
+  if (scope.subjectId !== subjectRef.id) return false;
+  if (!scope.academicYearId || chainScope.academicYearId !== scope.academicYearId) return false;
+  if (scope.gradeId && chainScope.gradeId && scope.gradeId !== chainScope.gradeId) return false;
+  if (scope.kind === "term") {
+    return Boolean(scope.termId) && chainScope.termId === scope.termId;
+  }
+  return scope.kind === "full_year";
 }

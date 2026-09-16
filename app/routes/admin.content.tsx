@@ -7,12 +7,17 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import {
   adminTree,
+  createAcademicYear,
   createCourse,
   createGrade,
   createLesson,
   createProgram,
   createSubject,
+  createTerm,
   createUnit,
+  ensureDefaultUnit,
+  listAcademicYears,
+  listTerms,
   type AdminTreeNode,
 } from "~server/content/service.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
@@ -25,8 +30,12 @@ import { t, type Locale } from "~/lib/i18n";
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
   const db = getDb(getEnv(context));
-  const tree = await adminTree(db);
-  return { tree };
+  const [tree, years, termRows] = await Promise.all([adminTree(db), listAcademicYears(db), listTerms(db)]);
+  return {
+    tree,
+    years: years.map((y) => ({ id: y.id, titleAr: y.titleAr, titleEn: y.titleEn, status: y.status, isCurrent: y.isCurrent, startYear: y.startYear, endYear: y.endYear })),
+    terms: termRows.map((tm) => ({ id: tm.id, titleAr: tm.titleAr, titleEn: tm.titleEn, status: tm.status })),
+  };
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -52,6 +61,54 @@ export async function action({ context, request }: Route.ActionArgs) {
     await createProgram(
       db,
       { ...parsed.data, descriptionAr: null, descriptionEn: null, sortOrder: 0, slug: undefined },
+      { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) }
+    );
+    return { ok: true as const };
+  }
+
+  // Academic years & terms: owner-created reference rows (never auto-generated,
+  // never hardcoded). Both are ordinary content nodes (status/sortOrder/audit).
+  if (intent === "create-academic-year") {
+    const startYear = Number(String(form.get("startYear") ?? ""));
+    const endYearRaw = String(form.get("endYear") ?? "").trim();
+    const endYear = endYearRaw === "" ? startYear + 1 : Number(endYearRaw);
+    const titleAr = String(form.get("titleAr") ?? "").trim();
+    const titleEn = String(form.get("titleEn") ?? "").trim() || `${startYear}/${endYear}`;
+    if (!Number.isInteger(startYear) || !Number.isInteger(endYear) || (!titleAr && !titleEn)) {
+      return { error: "validation" as const };
+    }
+    await createAcademicYear(
+      db,
+      {
+        titleAr: titleAr || titleEn,
+        titleEn,
+        startYear,
+        endYear,
+        isCurrent: form.get("isCurrent") === "on",
+        status: (String(form.get("status") ?? "draft") as "draft" | "published") || "draft",
+        sortOrder: 0,
+        slug: undefined,
+      },
+      { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) }
+    );
+    return { ok: true as const };
+  }
+
+  if (intent === "create-term") {
+    const titleAr = String(form.get("titleAr") ?? "").trim();
+    const titleEn = String(form.get("titleEn") ?? "").trim();
+    if (!titleAr || !titleEn) return { error: "validation" as const };
+    await createTerm(
+      db,
+      {
+        titleAr,
+        titleEn,
+        startsAt: null,
+        endsAt: null,
+        status: (String(form.get("status") ?? "draft") as "draft" | "published") || "draft",
+        sortOrder: 0,
+        slug: undefined,
+      },
       { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) }
     );
     return { ok: true as const };
@@ -84,11 +141,16 @@ export async function action({ context, request }: Route.ActionArgs) {
           actor
         );
         break;
-      case "course":
+      case "course": {
+        // A term container: subject + academic year + term. The admin never
+        // re-types the grade or subject — they are implied by the parent subject.
+        const academicYearId = S("academicYearId") || null;
+        const termId = S("termId") || null;
         await createCourse(
           db,
           {
             subjectId: parentId, titleAr, titleEn, status,
+            academicYearId, termId,
             visibility: "catalog", accessLevel: "entitled", sortOrder: 0,
             descriptionAr: null, descriptionEn: null, thumbnailFileId: null, teacherId: null,
             publishAt: null, expiresAt: null, slug: undefined,
@@ -96,6 +158,7 @@ export async function action({ context, request }: Route.ActionArgs) {
           actor
         );
         break;
+      }
       case "unit":
         await createUnit(db, { courseId: parentId, titleAr, titleEn, status, sortOrder: 0 }, actor);
         break;
@@ -104,12 +167,28 @@ export async function action({ context, request }: Route.ActionArgs) {
           db,
           {
             unitId: parentId, titleAr, titleEn, status,
-            accessLevel: "entitled", freePreview: false, sortOrder: 0,
-            descriptionAr: null, descriptionEn: null, publishAt: null, expiresAt: null, slug: undefined,
+            accessLevel: accessFromForm(S("access")), freePreview: false, sortOrder: 0,
+            descriptionAr: S("descriptionAr") || null, descriptionEn: null, publishAt: null, expiresAt: null, slug: undefined,
           },
           actor
         );
         break;
+      case "termLesson": {
+        // Lesson straight inside a term container: the internal unit row the
+        // schema requires is ensured automatically, so the owner only thinks in
+        // سنة → صف → مادة → ترم → درس.
+        const unitRow = await ensureDefaultUnit(db, parentId, actor);
+        await createLesson(
+          db,
+          {
+            unitId: unitRow.id, titleAr, titleEn, status,
+            accessLevel: accessFromForm(S("access")), freePreview: false, sortOrder: 0,
+            descriptionAr: S("descriptionAr") || null, descriptionEn: null, publishAt: null, expiresAt: null, slug: undefined,
+          },
+          actor
+        );
+        break;
+      }
       default:
         return { error: "generic" as const };
     }
@@ -117,6 +196,17 @@ export async function action({ context, request }: Route.ActionArgs) {
   }
 
   return { error: "generic" as const };
+}
+
+/**
+ * Admin access choice → the existing `access_level` enum (no new column, no new
+ * resolver branch):
+ *   مجاني (للمسجّلين) → authenticated · مجاني للجميع → public · مدفوع → entitled
+ */
+function accessFromForm(value: string): "public" | "authenticated" | "entitled" {
+  if (value === "free") return "authenticated";
+  if (value === "public") return "public";
+  return "entitled";
 }
 
 function StatusBadge({ status, locale }: { status: string; locale: Locale }) {
@@ -174,10 +264,12 @@ function matches(node: AdminTreeNode, needle: string): boolean {
 }
 
 const TYPE_LABEL_KEY: Record<string, string> = {
+  academicYear: "content.academicYear",
+  term: "content.term",
   program: "content.program",
   grade: "content.grade",
   subject: "content.subject",
-  course: "content.course",
+  course: "content.termContainer",
   unit: "content.unit",
   lesson: "content.lesson",
 };
@@ -272,12 +364,25 @@ function collectByType(nodes: AdminTreeNode[], type: string, locale: Locale): Ar
 }
 
 // For each creatable child, which ancestor type is its required parent.
+// `course` is the internal TERM CONTAINER (subject + academic year + term);
+// `termLesson` is a lesson placed directly inside that container.
 const PARENT_OF: Record<string, string> = {
   grade: "program",
   subject: "grade",
   course: "subject",
   unit: "course",
   lesson: "unit",
+  termLesson: "course",
+};
+
+/** i18n key for a node type in admin selectors (term container ≠ "كورس"). */
+const TYPE_PARENT_LABEL_KEY: Record<string, string> = {
+  program: "content.program",
+  grade: "content.grade",
+  subject: "content.subject",
+  course: "content.termContainer",
+  unit: "content.unit",
+  lesson: "content.lesson",
 };
 
 export default function AdminContent({ loaderData }: Route.ComponentProps) {
@@ -290,7 +395,7 @@ export default function AdminContent({ loaderData }: Route.ComponentProps) {
     <div className="space-y-6">
       <h1 className="sr-only">{t(locale, "admin.navContent")}</h1>
       <Card>
-        <CardHeader title={t(locale, "admin.navContent")} description="Program → Grade → Subject → Course → Unit → Lesson" />
+        <CardHeader title={t(locale, "admin.navContent")} description={t(locale, "content.treeHint")} />
         <CardBody>
           <ContentTree tree={loaderData.tree} locale={locale} />
         </CardBody>
@@ -324,12 +429,112 @@ export default function AdminContent({ loaderData }: Route.ComponentProps) {
         </CardBody>
       </Card>
 
-      <ContentCreator tree={loaderData.tree} locale={locale} />
+      {/* السنة الدراسية — owner-created, never hardcoded, never auto-added. */}
+      <Card>
+        <CardHeader title={t(locale, "content.yearsTitle")} description={t(locale, "content.yearsHint")} />
+        <CardBody className="space-y-4">
+          {loaderData.years.length > 0 && (
+            <ul className="flex flex-col gap-1.5 text-sm" data-testid="admin-years">
+              {loaderData.years.map((y) => (
+                <li key={y.id} className="flex flex-wrap items-center gap-2">
+                  <StatusBadge status={y.status} locale={locale} />
+                  <Link to={`/admin/content/academicYear/${y.id}`} className="font-medium text-slate-800 hover:underline">
+                    {locale === "ar" ? y.titleAr : y.titleEn}
+                  </Link>
+                  <span dir="ltr" className="text-xs text-slate-500">{y.startYear}/{y.endYear}</span>
+                  {y.isCurrent && <Badge tone="brand">{t(locale, "content.isCurrent")}</Badge>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <Form method="post" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <input type="hidden" name="_action" value="create-academic-year" />
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "content.startYear")}</span>
+              <input name="startYear" type="number" min={1990} max={2999} required dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2" placeholder="2026" />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "content.endYear")}</span>
+              <input name="endYear" type="number" min={1990} max={2999} dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2" placeholder="2027" />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "content.titleAr")}</span>
+              <input name="titleAr" dir="rtl" className="rounded-lg border border-slate-300 px-3 py-2" placeholder="2026/2027" />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "content.status")}</span>
+              <select name="status" className="rounded-lg border border-slate-300 px-3 py-2">
+                <option value="draft">{t(locale, "content.statusDraft")}</option>
+                <option value="published">{t(locale, "content.statusPublished")}</option>
+              </select>
+            </label>
+            <div className="flex flex-col justify-end gap-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="isCurrent" />
+                {t(locale, "content.isCurrent")}
+              </label>
+              <SubmitButton>{t(locale, "content.addAcademicYear")}</SubmitButton>
+            </div>
+          </Form>
+        </CardBody>
+      </Card>
+
+      {/* الترم — a free list: the platform never assumes two terms. */}
+      <Card>
+        <CardHeader title={t(locale, "content.termsTitle")} description={t(locale, "content.termsHint")} />
+        <CardBody className="space-y-4">
+          {loaderData.terms.length > 0 && (
+            <ul className="flex flex-wrap gap-2 text-sm" data-testid="admin-terms">
+              {loaderData.terms.map((tm) => (
+                <li key={tm.id} className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1">
+                  <StatusBadge status={tm.status} locale={locale} />
+                  <Link to={`/admin/content/term/${tm.id}`} className="font-medium text-slate-800 hover:underline">
+                    {locale === "ar" ? tm.titleAr : tm.titleEn}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Form method="post" className="grid gap-3 sm:grid-cols-4">
+            <input type="hidden" name="_action" value="create-term" />
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "content.titleAr")}</span>
+              <input name="titleAr" required dir="rtl" className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الترم الأول" />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "content.titleEn")}</span>
+              <input name="titleEn" required dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2" placeholder="Term 1" />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "content.status")}</span>
+              <select name="status" className="rounded-lg border border-slate-300 px-3 py-2">
+                <option value="draft">{t(locale, "content.statusDraft")}</option>
+                <option value="published">{t(locale, "content.statusPublished")}</option>
+              </select>
+            </label>
+            <div className="flex items-end">
+              <SubmitButton>{t(locale, "content.addTerm")}</SubmitButton>
+            </div>
+          </Form>
+        </CardBody>
+      </Card>
+
+      <ContentCreator tree={loaderData.tree} locale={locale} years={loaderData.years} terms={loaderData.terms} />
     </div>
   );
 }
 
-function ContentCreator({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }) {
+function ContentCreator({
+  tree,
+  locale,
+  years,
+  terms,
+}: {
+  tree: AdminTreeNode[];
+  locale: Locale;
+  years: Array<{ id: string; titleAr: string; titleEn: string }>;
+  terms: Array<{ id: string; titleAr: string; titleEn: string }>;
+}) {
   const actionData = useActionData<typeof action>();
   const [type, setType] = useState("grade");
   const [parentId, setParentId] = useState("");
@@ -337,14 +542,17 @@ function ContentCreator({ tree, locale }: { tree: AdminTreeNode[]; locale: Local
     () => collectByType(tree, PARENT_OF[type], locale),
     [tree, type, locale]
   );
+  const isTermContainer = type === "course";
+  const isLesson = type === "lesson" || type === "termLesson";
   // Auto-pick the first available parent whenever the type or options change.
   useEffect(() => {
     if (!options.some((o) => o.id === parentId) && options[0]) setParentId(options[0].id);
   }, [options, parentId]);
   const TypeCap = type.charAt(0).toUpperCase() + type.slice(1);
   const selectParentLabel = t(locale, "content.selectParent", {
-    type: t(locale, `content.${PARENT_OF[type]}`),
+    type: t(locale, TYPE_PARENT_LABEL_KEY[PARENT_OF[type]] ?? `content.${PARENT_OF[type]}`),
   });
+  const submitKey = type === "termLesson" ? "content.addTermLesson" : type === "course" ? "content.addTermContainer" : `content.add${TypeCap}`;
   return (
     <Card>
       <CardHeader title={t(locale, "content.createNewSection")} />
@@ -359,9 +567,13 @@ function ContentCreator({ tree, locale }: { tree: AdminTreeNode[]; locale: Local
               onChange={(e) => setType(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2"
             >
-              {(["grade", "subject", "course", "unit", "lesson"] as const).map((tType) => (
+              {(["grade", "subject", "course", "termLesson", "unit", "lesson"] as const).map((tType) => (
                 <option key={tType} value={tType}>
-                  {t(locale, `content.add${tType.charAt(0).toUpperCase() + tType.slice(1)}`)}
+                  {tType === "course"
+                    ? t(locale, "content.addTermContainer")
+                    : tType === "termLesson"
+                      ? t(locale, "content.addTermLesson")
+                      : t(locale, `content.add${tType.charAt(0).toUpperCase() + tType.slice(1)}`)}
                 </option>
               ))}
             </select>
@@ -397,8 +609,53 @@ function ContentCreator({ tree, locale }: { tree: AdminTreeNode[]; locale: Local
               <option value="published">{t(locale, "content.statusPublished")}</option>
             </select>
           </label>
+
+          {/* Academic scope — only for the term container. The grade and the
+              subject are already implied by the parent subject, so the admin
+              never re-enters them. */}
+          {isTermContainer && (
+            <>
+              <label className="grid gap-1 text-sm">
+                <span>{t(locale, "content.academicYear")}</span>
+                <select name="academicYearId" className="rounded-lg border border-slate-300 px-3 py-2" data-testid="creator-year">
+                  <option value="">—</option>
+                  {years.map((y) => (
+                    <option key={y.id} value={y.id}>{locale === "ar" ? y.titleAr : y.titleEn}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span>{t(locale, "content.term")}</span>
+                <select name="termId" className="rounded-lg border border-slate-300 px-3 py-2" data-testid="creator-term">
+                  <option value="">—</option>
+                  {terms.map((tm) => (
+                    <option key={tm.id} value={tm.id}>{locale === "ar" ? tm.titleAr : tm.titleEn}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
+
+          {/* Free / Paid — maps onto the existing access_level enum. */}
+          {isLesson && (
+            <label className="grid gap-1 text-sm">
+              <span>{t(locale, "content.accessLabel")}</span>
+              <select name="access" defaultValue="paid" className="rounded-lg border border-slate-300 px-3 py-2" data-testid="creator-access">
+                <option value="paid">{t(locale, "content.accessPaid")}</option>
+                <option value="free">{t(locale, "content.accessFree")}</option>
+                <option value="public">{t(locale, "content.accessFreeForAll")}</option>
+              </select>
+            </label>
+          )}
+          {isLesson && (
+            <label className="grid gap-1 text-sm sm:col-span-2">
+              <span>{t(locale, "content.descriptionAr")}</span>
+              <input name="descriptionAr" dir="rtl" maxLength={4000} className="rounded-lg border border-slate-300 px-3 py-2" />
+            </label>
+          )}
+
           <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
-            <SubmitButton>{t(locale, `content.add${TypeCap}`)}</SubmitButton>
+            <SubmitButton>{t(locale, submitKey)}</SubmitButton>
             {actionData?.ok && <span className="text-sm text-green-600">{t(locale, "content.created")}</span>}
           </div>
         </Form>

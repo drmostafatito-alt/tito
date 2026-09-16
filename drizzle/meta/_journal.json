@@ -85,6 +85,13 @@
       "when": 1789471070606,
       "tag": "0011_furry_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1789557122754,
+      "tag": "0012_academic_terms",
+      "breakpoints": true
     }
   ]
 }

@@ -11,6 +11,7 @@ import {
 import { resolveContentAccess } from "~server/entitlements/access.server";
 import { grantEntitlement } from "~server/entitlements/grant.server";
 import { updateSettingsGroup } from "~server/settings/service.server";
+import type { PaymentMethodSetting } from "~server/settings/schema";
 import { normalizeCode } from "~server/commerce/money";
 import { signMockWebhook } from "~server/payments/providers/mock.server";
 import {
@@ -130,6 +131,11 @@ const paySettings = () => ({
   // destination here used to be mistaken for real payment instructions.
   manualInstructionsAr: "تعليمات سداد تجريبية — اتبع التعليمات المرسلة من الإدارة",
   manualInstructionsEn: "Test payment instructions — follow the instructions sent by the admin",
+  // Manual rails ship disabled + empty: no destination is ever invented in code.
+  methods: [] as PaymentMethodSetting[],
+  receiptWhatsappEnabled: true,
+  receiptNoteAr: "",
+  receiptNoteEn: "",
   orderTtlMinutes: 60,
   refundWindowDays: 7,
 });
@@ -689,7 +695,7 @@ describe("activation codes — hashed, atomic, race-safe, single-use", () => {
     const gen = await generateActivationBatch(db, { name: "b", count: 4, maxUses: 1, productId: product.id }, actor);
     const [c0, c1, c2, c3] = gen.codes as [string, string, string, string];
 
-    expect(await redeemActivationCode(db, { studentId: studentA.id, code: "EDU-XXXX-XXXX-XXXX" })).toEqual({ ok: false, reason: "invalid" });
+    expect(await redeemActivationCode(db, { studentId: studentA.id, code: "TITO-XXXX-XXXX-XXXX" })).toEqual({ ok: false, reason: "invalid" });
 
     const all = await db.select().from(activationCodes).orderBy(desc(activationCodes.createdAt));
     const h1 = await hashOf(c1);
@@ -742,7 +748,7 @@ describe("activation codes — hashed, atomic, race-safe, single-use", () => {
   it("route: redemption through /activate with student cookie; garbage → invalid", async () => {
     const { product } = await makeProduct();
     const gen = await generateActivationBatch(db, { name: "b", count: 1, maxUses: 1, productId: product.id }, actor);
-    const bad = await asJson(await callActivateAction(postForm("/activate", { _action: "redeem", code: "EDU-0000-0000-0000" }, studentA.cookie)));
+    const bad = await asJson(await callActivateAction(postForm("/activate", { _action: "redeem", code: "TITO-0000-0000-0000" }, studentA.cookie)));
     expect(bad.error).toBe("invalid");
     const good = await asJson(await callActivateAction(postForm("/activate", { _action: "redeem", code: gen.codes[0]! }, studentA.cookie)));
     expect(good.ok).toBe(true);

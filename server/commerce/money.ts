@@ -50,7 +50,7 @@ export function normalizeCode(input: string): string {
 export const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 
 /**
- * Cryptographically random activation code: EDU-XXXX-XXXX-XXXX (12 symbols ≈ 59
+ * Cryptographically random activation code: TITO-XXXX-XXXX-XXXX (12 symbols ≈ 59
  * bits of entropy). Rejection sampling avoids modulo bias.
  */
 export function generateActivationCode(): string {
@@ -63,7 +63,7 @@ export function generateActivationCode(): string {
       if (chars.length === 12) break;
     }
   }
-  return `EDU-${chars.slice(0, 4).join("")}-${chars.slice(4, 8).join("")}-${chars.slice(8, 12).join("")}`;
+  return `TITO-${chars.slice(0, 4).join("")}-${chars.slice(4, 8).join("")}-${chars.slice(8, 12).join("")}`;
 }
 
 /** Days → ms (integer). */

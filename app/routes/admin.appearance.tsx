@@ -13,7 +13,9 @@ import { files } from "~server/db/schema";
 import { cmsLabel, ICON_IDS } from "~/cms/registry";
 import { namedSocialsFromLinks, socialLinksForEditor, type SocialLink } from "~/cms/social";
 import { useState } from "react";
-import { DASHBOARD_MODULE_IDS } from "~server/settings/schema";
+import { DASHBOARD_MODULE_IDS, PAYMENT_METHOD_KEYS } from "~server/settings/schema";
+import type { PaymentMethodKey, PaymentMethodSetting } from "~server/settings/schema";
+import { PAYMENT_METHOD_LABELS } from "~server/commerce/payment-methods";
 import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
@@ -129,10 +131,39 @@ export async function action({ context, request }: Route.ActionArgs) {
           fileUrlTtlSeconds: num("fileTtl"),
         }, actor);
         // Phase 6: manual payment-rail configuration (PAYMENTS.md §3 — admin-configured instructions)
+        // Manual rails (InstaPay / Vodafone Cash / Etisalat Cash / …): every
+        // destination is typed here by the owner. Nothing is defaulted to a
+        // number in code, and an unchecked or empty row stays invisible to
+        // students (server/commerce/payment-methods.ts).
+        const methods: PaymentMethodSetting[] = [];
+        for (let i = 0; i < 12; i++) {
+          const key = str(`pm.${i}.key`).trim();
+          const destination = str(`pm.${i}.destination`).trim();
+          const labelAr = str(`pm.${i}.labelAr`).trim();
+          const id = str(`pm.${i}.id`).trim();
+          if (!key && !destination && !labelAr && !id) continue;
+          methods.push({
+            id: id || crypto.randomUUID(),
+            key: (PAYMENT_METHOD_KEYS.includes(key as PaymentMethodKey) ? key : "other") as PaymentMethodKey,
+            enabled: on(`pm.${i}.enabled`),
+            labelAr: labelAr.slice(0, 80),
+            labelEn: str(`pm.${i}.labelEn`).trim().slice(0, 80),
+            destination: destination.slice(0, 160),
+            accountNameAr: str(`pm.${i}.accountNameAr`).trim().slice(0, 160),
+            accountNameEn: str(`pm.${i}.accountNameEn`).trim().slice(0, 160),
+            instructionsAr: str(`pm.${i}.instructionsAr`).slice(0, 2000),
+            instructionsEn: str(`pm.${i}.instructionsEn`).slice(0, 2000),
+            sortOrder: Number(str(`pm.${i}.sortOrder`) || i) || i,
+          });
+        }
         await updateSettingsGroup(db, "payments", {
           manualEnabled: on("manualEnabled"),
           manualInstructionsAr: str("manualInstructionsAr").slice(0, 2000),
           manualInstructionsEn: str("manualInstructionsEn").slice(0, 2000),
+          methods,
+          receiptWhatsappEnabled: on("receiptWhatsappEnabled"),
+          receiptNoteAr: str("receiptNoteAr").slice(0, 600),
+          receiptNoteEn: str("receiptNoteEn").slice(0, 600),
           orderTtlMinutes: num("orderTtlMinutes"),
           refundWindowDays: num("refundWindowDays"),
         }, actor);
@@ -406,6 +437,26 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
   const loc = settings.locale;
   const vid = settings.video;
   const pay = settings.payments;
+  // 12 editable slots: the configured rails first, then empty rows so the owner
+  // can add another one without a code change. Empty rows submit nothing
+  // (the action skips rows with no key/destination/label/id).
+  const methodSlots: PaymentMethodSetting[] = Array.from({ length: 12 }, (_, i) => {
+    const m = pay.methods[i];
+    if (m) return m;
+    return {
+      id: "",
+      key: "other",
+      enabled: false,
+      labelAr: "",
+      labelEn: "",
+      destination: "",
+      accountNameAr: "",
+      accountNameEn: "",
+      instructionsAr: "",
+      instructionsEn: "",
+      sortOrder: i,
+    };
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -637,6 +688,69 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                   </div>
                   <Input label={t(locale, "commerceAdmin.orderTtlMinutes")} name="orderTtlMinutes" defaultValue={String(pay.orderTtlMinutes)} dir="ltr" />
                   <Input label={t(locale, "commerceAdmin.refundWindowDays")} name="refundWindowDays" defaultValue={String(pay.refundWindowDays)} dir="ltr" />
+
+                  {/* --- manual payment rails (owner-entered destinations) --- */}
+                  <div className="mt-2 border-t border-slate-200 pt-3" data-testid="payment-methods">
+                    <p className="text-sm font-semibold text-slate-700">{t(locale, "commerceAdmin.settingsMethodsTitle")}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{t(locale, "commerceAdmin.settingsMethodsHint")}</p>
+                    <div className="mt-3 space-y-3">
+                      {methodSlots.map((m, i) => (
+                        <div key={m.id || `slot-${i}`} className="rounded-lg border border-slate-200 p-3" data-testid={`payment-method-row-${i}`}>
+                          <input type="hidden" name={`pm.${i}.id`} value={m.id} />
+                          <input type="hidden" name={`pm.${i}.sortOrder`} value={String(m.sortOrder ?? i)} />
+                          <div className="flex flex-wrap items-center gap-3">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input type="checkbox" name={`pm.${i}.enabled`} defaultChecked={m.enabled} />
+                              {t(locale, "commerceAdmin.methodEnabled")}
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                              <span className="text-slate-600">{t(locale, "commerceAdmin.methodKind")}</span>
+                              <select name={`pm.${i}.key`} defaultValue={m.key} className="rounded-lg border border-slate-300 px-2 py-1 text-sm">
+                                {PAYMENT_METHOD_KEYS.map((k) => (
+                                  <option key={k} value={k}>{PAYMENT_METHOD_LABELS[k].en} — {PAYMENT_METHOD_LABELS[k].ar}</option>
+                                ))}
+                              </select>
+                            </label>
+                          </div>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            <Input label={t(locale, "commerceAdmin.methodLabelAr")} name={`pm.${i}.labelAr`} defaultValue={m.labelAr} dir="rtl" />
+                            <Input label={t(locale, "commerceAdmin.methodLabelEn")} name={`pm.${i}.labelEn`} defaultValue={m.labelEn} dir="ltr" />
+                          </div>
+                          <div className="mt-2">
+                            <Input label={t(locale, "commerceAdmin.methodDestination")} name={`pm.${i}.destination`} defaultValue={m.destination} dir="ltr" />
+                          </div>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            <Input label={t(locale, "commerceAdmin.methodAccountNameAr")} name={`pm.${i}.accountNameAr`} defaultValue={m.accountNameAr} dir="rtl" />
+                            <Input label={t(locale, "commerceAdmin.methodAccountNameEn")} name={`pm.${i}.accountNameEn`} defaultValue={m.accountNameEn} dir="ltr" />
+                          </div>
+                          <div className="mt-2 grid gap-2">
+                            <label className="flex flex-col text-sm">
+                              <span className="mb-1 text-slate-600">{t(locale, "commerceAdmin.methodInstructionsAr")}</span>
+                              <textarea name={`pm.${i}.instructionsAr`} rows={2} defaultValue={m.instructionsAr} dir="rtl" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                            </label>
+                            <label className="flex flex-col text-sm">
+                              <span className="mb-1 text-slate-600">{t(locale, "commerceAdmin.methodInstructionsEn")}</span>
+                              <textarea name={`pm.${i}.instructionsEn`} rows={2} defaultValue={m.instructionsEn} dir="ltr" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">{t(locale, "commerceAdmin.methodAdd")}</p>
+                  </div>
+
+                  {/* --- WhatsApp receipt hand-off (manual channel) --- */}
+                  <div className="mt-3 border-t border-slate-200 pt-3" data-testid="receipt-settings">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" name="receiptWhatsappEnabled" defaultChecked={pay.receiptWhatsappEnabled} />
+                      {t(locale, "commerceAdmin.receiptWhatsappEnabled")}
+                    </label>
+                    <p className="mt-1 text-xs text-slate-500">{t(locale, "commerceAdmin.receiptWhatsappHint")}</p>
+                    <div className="mt-2 grid gap-2">
+                      <Input label={t(locale, "commerceAdmin.receiptNoteAr")} name="receiptNoteAr" defaultValue={pay.receiptNoteAr} dir="rtl" />
+                      <Input label={t(locale, "commerceAdmin.receiptNoteEn")} name="receiptNoteEn" defaultValue={pay.receiptNoteEn} dir="ltr" />
+                    </div>
+                  </div>
                 </fieldset>
               )}
               <SubmitButton className="w-fit">{L("cms.ui.saveGroup")}</SubmitButton>

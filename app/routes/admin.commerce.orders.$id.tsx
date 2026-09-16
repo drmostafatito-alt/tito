@@ -9,10 +9,13 @@ import {
   CommerceValidationError,
   approveManualPayment,
   canCommerce,
+  codesForOrder,
+  generateCodeForOrder,
   orderDetailForAdmin,
   refundPayment,
   rejectManualPayment,
 } from "~server/commerce/service.server";
+import { orderScopeView, scopeLinePairs } from "~server/commerce/order-scope.server";
 import { getSettings } from "~server/settings/service.server";
 import { getFile, signFileUrl } from "~server/files/storage.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
@@ -47,14 +50,36 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     read: await canCommerce(db, auth, "commerce.read"),
     payments: await canCommerce(db, auth, "commerce.payments"),
     refunds: await canCommerce(db, auth, "commerce.refunds"),
+    codes: await canCommerce(db, auth, "commerce.codes"),
   };
   if (!perms.read) throw new Response("Forbidden", { status: 403 });
   const view = await orderDetailForAdmin(db, id);
   if (!view) throw new Response("Not found", { status: 404 });
   const settings = await getSettings(db);
+  // Readable academic scope of the first item's FROZEN spec (real rows only).
+  const firstSpec = view.items[0]?.spec ?? null;
+  const scopeView = firstSpec
+    ? await orderScopeView(db, {
+        entitlementSpec: firstSpec as unknown as Record<string, unknown>,
+        titleSnapshotAr: view.items[0]?.titleSnapshotAr ?? "",
+        titleSnapshotEn: view.items[0]?.titleSnapshotEn ?? "",
+      })
+    : null;
+  const codeRows = await codesForOrder(db, id);
   return {
     perms,
     refundWindowDays: settings.payments.refundWindowDays,
+    scope: scopeView ? { pairs: scopeLinePairs(scopeView), planLabel: scopeView.planLabel, scopeKind: scopeView.scopeKind } : null,
+    orderCodes: codeRows.map((c) => ({
+      id: c.id,
+      batchId: c.batchId,
+      prefix: c.prefix,
+      status: c.status,
+      maxUses: c.maxUses,
+      useCount: c.useCount,
+      expiresAt: c.expiresAt,
+      createdAt: c.createdAt,
+    })),
     order: {
       id: view.order.id,
       orderNumber: view.order.orderNumber,
@@ -115,6 +140,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   const { auth } = await requireRole(context, request, 3);
   const env = getEnv(context);
   const db = getDb(env);
+  const id = String(params.id ?? "");
   const form = await request.formData();
   const intent = String(form.get("_action") ?? "");
   const actor = { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) };
@@ -146,6 +172,17 @@ export async function action({ context, params, request }: Route.ActionArgs) {
       });
       return { ok: true as const, refunded: true };
     }
+    if (intent === "generate_code") {
+      if (!(await canCommerce(db, auth, "commerce.codes"))) return { error: "denied" as const };
+      const result = await generateCodeForOrder(db, {
+        orderId: id,
+        actor,
+        maxUses: Math.max(1, Number(str("maxUses") || 1)),
+        expiresAt: str("expiresAt") ? new Date(str("expiresAt")).getTime() || null : null,
+      });
+      // The plaintext code is returned ONCE and never logged.
+      return { ok: true as const, code: result.codes[0] ?? null, batchId: result.batchId };
+    }
     return { error: "generic" as const };
   } catch (err) {
     if (err instanceof CommerceValidationError || err instanceof CommerceStateError) return { error: err.reason as "validation" };
@@ -175,7 +212,7 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
       {actionData && "error" in actionData && (
         <Alert kind="error">{et(locale, "commerceAdmin", String(actionData.error))}</Alert>
       )}
-      {actionData && "ok" in actionData && (
+      {actionData && "ok" in actionData && !("code" in actionData) && (
         <Alert kind="success">
           {"refunded" in actionData && actionData.refunded
             ? t(locale, "commerceAdmin.refundDone")
@@ -220,6 +257,77 @@ export default function AdminOrderPage({ loaderData }: Route.ComponentProps) {
           </p>
         </CardBody>
       </Card>
+
+      {/* ---------------- ACADEMIC SCOPE OF THIS REQUEST ---------------- */}
+      {loaderData.scope && loaderData.scope.pairs.length > 0 && (
+        <Card>
+          <CardHeader title={t(locale, "commerceAdmin.scope")} />
+          <CardBody className="text-sm">
+            <p className="flex flex-wrap gap-x-2 gap-y-1" data-testid="admin-order-scope">
+              {loaderData.scope.pairs.map((line, i) => (
+                <span key={`${line.key}-${i}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
+                  <span className="text-slate-500">{t(locale, `content.${line.key === "year" ? "academicYear" : line.key}` as never)}: </span>
+                  {locale === "ar" ? line.title.ar : line.title.en}
+                </span>
+              ))}
+            </p>
+            {loaderData.scope.scopeKind === "full_year" ? (
+              <p className="mt-2 text-xs text-emerald-700" data-testid="scope-full-year">
+                {t(locale, "commerce.scopeFullYear")}
+              </p>
+            ) : null}
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ---------------- ACTIVATION CODE FOR THIS ORDER ---------------- */}
+      {perms.codes && (
+        <Card id="generate-code">
+          <CardHeader title={t(locale, "commerceAdmin.codesForOrder")} />
+          <CardBody className="space-y-3 text-sm">
+            {actionData && "code" in actionData && actionData.code ? (
+              <Alert kind="success">
+                <p>{t(locale, "commerceAdmin.codeGenerated")}</p>
+                <p className="mt-1 font-mono text-lg font-bold" dir="ltr" data-testid="generated-code">{actionData.code}</p>
+              </Alert>
+            ) : null}
+            {loaderData.orderCodes.length === 0 ? (
+              <p className="text-xs text-slate-500">{t(locale, "commerceAdmin.noCodesForOrder")}</p>
+            ) : (
+              <ul className="space-y-1" data-testid="order-codes">
+                {loaderData.orderCodes.map((c) => (
+                  <li key={c.id} className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-mono" dir="ltr">{c.prefix}••••</span>
+                    {/* status ∈ active | disabled | revoked | exhausted */}
+                    <Badge tone={c.status === "active" ? "success" : c.status === "disabled" ? "warning" : c.status === "exhausted" ? "neutral" : "danger"}>
+                      {c.status}
+                    </Badge>
+                    <span className="text-slate-500" dir="ltr">{c.useCount}/{c.maxUses}</span>
+                    <span className="text-slate-400">{formatDate(locale, c.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {order.status === "paid" ? (
+              <Form method="post" className="flex flex-wrap items-end gap-3 rounded-lg bg-slate-50 p-3">
+                <input type="hidden" name="_action" value="generate_code" />
+                <label className="grid gap-1 text-xs">
+                  <span>{t(locale, "commerceAdmin.maxUses")}</span>
+                  <input name="maxUses" type="number" min={1} max={1000} defaultValue={1} className="w-24 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" dir="ltr" />
+                </label>
+                <label className="grid gap-1 text-xs">
+                  <span>{t(locale, "commerceAdmin.expiresAt")}</span>
+                  <input name="expiresAt" type="date" className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm" dir="ltr" />
+                </label>
+                <SubmitButton name="_action" value="generate_code">{t(locale, "commerceAdmin.generateCode")}</SubmitButton>
+                <p className="w-full text-xs text-slate-500">{t(locale, "commerceAdmin.generateCodeHint")}</p>
+              </Form>
+            ) : (
+              <p className="text-xs text-slate-500">{t(locale, "commerceAdmin.codeNeedsPaidOrder")}</p>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader title={t(locale, "commerceAdmin.paymentsTrail")} />

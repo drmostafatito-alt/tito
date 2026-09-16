@@ -31,6 +31,9 @@ import {
   sweepExpiredOrders,
   sweepExpiredSubscriptions,
 } from "~server/commerce/service.server";
+import { orderScopeView, scopeLinePairs } from "~server/commerce/order-scope.server";
+import { listAcademicYears, listTerms } from "~server/content/service.server";
+import { PAYMENT_METHOD_LABELS } from "~server/commerce/payment-methods";
 import { getSettings } from "~server/settings/service.server";
 import { courses, subjects } from "~server/db/schema";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
@@ -56,6 +59,33 @@ type Tab = (typeof TABS)[number];
 
 const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
 const selectCls = "h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm";
+
+/** Frozen method snapshot shape written by confirmManualPayment. */
+type MethodRow = { method: string | null; instructions: Record<string, unknown> | null };
+
+function frozenMethod(r: MethodRow): { labelAr?: string; labelEn?: string; destination?: string } {
+  const snap = (r.instructions ?? {}) as { method?: { labelAr?: string; labelEn?: string; destination?: string } };
+  return snap.method ?? {};
+}
+
+/**
+ * The rail the student says they used, as the admin should read it. Falls back to
+ * the rail key's own name — never to a made-up label.
+ */
+function methodLabelOf(r: MethodRow): { ar: string; en: string } | null {
+  const snap = frozenMethod(r);
+  const key = r.method as keyof typeof PAYMENT_METHOD_LABELS | null;
+  if (!snap.labelAr && !snap.labelEn && !key) return null;
+  return {
+    ar: snap.labelAr || (key ? PAYMENT_METHOD_LABELS[key].ar : String(key ?? "")),
+    en: snap.labelEn || (key ? PAYMENT_METHOD_LABELS[key].en : String(key ?? "")),
+  };
+}
+
+function methodDestinationOf(r: MethodRow): string | null {
+  const d = frozenMethod(r).destination;
+  return d && d.trim() ? d.trim() : null;
+}
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { auth } = await requireRole(context, request, 3);
@@ -115,12 +145,42 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       status: url.searchParams.get("status") || "under_review",
       page: Number(url.searchParams.get("page") ?? 1) || 1,
     });
+    // Resolve each row's frozen entitlement spec into the readable scope the
+    // admin approves against (السنة · الصف · المادة · الترم) — real titles, real
+    // years; nothing is hardcoded or defaulted.
+    const scopes: Record<string, { pairs: ReturnType<typeof scopeLinePairs> }> = {};
+    for (const r of rows) {
+      if (!r.entitlementSpec) continue;
+      const view = await orderScopeView(db, {
+        entitlementSpec: r.entitlementSpec,
+        titleSnapshotAr: "",
+        titleSnapshotEn: "",
+      });
+      scopes[r.id] = { pairs: scopeLinePairs(view) };
+    }
     return {
       ...base,
       paymentsQ: {
         rows: rows.map((r) => ({
-          ...r,
+          id: r.id,
+          orderId: r.orderId,
+          orderNumber: r.orderNumber,
+          orderStatus: r.orderStatus,
+          studentEmail: r.studentEmail,
+          studentName: r.studentName,
+          provider: r.provider,
+          amountMinor: r.amountMinor,
+          currency: r.currency,
+          status: r.status,
+          reference: r.reference,
+          reviewedAt: r.reviewedAt,
+          paidAt: r.paidAt,
+          createdAt: r.createdAt,
+          method: r.method,
+          methodLabel: methodLabelOf(r),
+          methodDestination: methodDestinationOf(r),
           evidence: ((r.metadata ?? {}) as { evidence?: { transferReference?: string; note?: string | null; confirmedAt?: number } }).evidence ?? null,
+          scope: scopes[r.id] ?? null,
         })),
         page,
       },
@@ -173,7 +233,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 }
 
 async function loadContentOptions(db: ReturnType<typeof getDb>) {
-  const [courseRows, subjectRows] = await Promise.all([
+  const [courseRows, subjectRows, yearRows, termRows] = await Promise.all([
     db
       .select({ id: courses.id, titleAr: courses.titleAr, titleEn: courses.titleEn, slug: courses.slug })
       .from(courses)
@@ -186,8 +246,16 @@ async function loadContentOptions(db: ReturnType<typeof getDb>) {
       .where(and(eq(subjects.status, "published"), isNull(subjects.deletedAt)))
       .orderBy(asc(subjects.titleEn))
       .limit(200),
+    // Real years/terms only — the admin can never be offered an invented scope.
+    listAcademicYears(db),
+    listTerms(db),
   ]);
-  return { courses: courseRows, subjects: subjectRows };
+  return {
+    courses: courseRows,
+    subjects: subjectRows,
+    years: yearRows.map((y) => ({ id: y.id, titleAr: y.titleAr, titleEn: y.titleEn })),
+    terms: termRows.map((tm) => ({ id: tm.id, titleAr: tm.titleAr, titleEn: tm.titleEn })),
+  };
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -285,12 +353,31 @@ export async function action({ context, request }: Route.ActionArgs) {
         };
         const expiresAt = dt("expiresAt");
         if (expiresAt !== null && Number.isNaN(expiresAt)) return { error: "validation" as const };
+        // Academic scope (PART 17): the admin may bind a batch to
+        // Year + Subject + Term, or to the whole Year for that subject. When a
+        // scope is picked it takes precedence over the raw resource dropdown —
+        // resolveAcademicScope re-validates every id against a real row.
+        const scopeKind = str("scopeKind");
+        const scopeYearId = str("scopeAcademicYearId");
+        const scopeSubjectId = str("scopeSubjectId");
+        const scopeTermId = str("scopeTermId");
+        const scope =
+          (scopeKind === "term" || scopeKind === "full_year") && scopeYearId && scopeSubjectId
+            ? {
+                kind: scopeKind as "term" | "full_year",
+                academicYearId: scopeYearId,
+                subjectId: scopeSubjectId,
+                termId: scopeKind === "term" ? scopeTermId || null : null,
+              }
+            : undefined;
+        if (scopeKind === "term" && scope && !scope.termId) return { error: "validation" as const };
         const input = activationBatchSchema.parse({
           name: str("name"),
           note: str("note") || null,
           count: Number(str("count") || 0),
-          productId: str("productId") || null,
-          grants: str("resourceId")
+          productId: scope ? null : str("productId") || null,
+          scope,
+          grants: !scope && str("resourceId")
             ? [{ resourceType: str("resourceType") === "subject" ? "subject" : "course", resourceId: str("resourceId") }]
             : undefined,
           durationDays: num("durationDays") ?? null,
@@ -554,17 +641,41 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
             {loaderData.paymentsQ.rows.map((p) => (
               <div key={p.id} className="space-y-2 border-b border-slate-100 py-3 last:border-0" data-testid="payment-review-row">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <div>
+                  <div className="min-w-0">
                     <Link to={`/admin/commerce/orders/${p.orderId}`} className="font-mono text-xs text-blue-700 hover:underline" dir="ltr">
                       {p.orderNumber}
                     </Link>
                     <span className="ms-2 text-xs text-slate-500" dir="ltr">{p.studentEmail ?? ""}</span>
+                    {p.studentName ? <span className="ms-2 text-xs text-slate-500">{p.studentName}</span> : null}
                     {p.evidence?.transferReference && (
                       <p className="text-xs text-slate-600" data-testid="evidence-ref" dir="ltr">
                         {t(locale, "commerceAdmin.evidence")}: {p.evidence.transferReference}
                         {p.evidence.note ? ` — ${p.evidence.note}` : ""}
                       </p>
                     )}
+                    {/* The rail the student says they used — read from the frozen
+                        order snapshot, never assumed. */}
+                    {p.methodLabel ? (
+                      <p className="text-xs text-slate-600" data-testid="payment-method-used">
+                        {t(locale, "commerceAdmin.method")}: {locale === "ar" ? p.methodLabel.ar : p.methodLabel.en}
+                        {p.methodDestination ? ` (${p.methodDestination})` : ""}
+                      </p>
+                    ) : null}
+                    {/* The exact academic scope this request would unlock. */}
+                    {p.scope && p.scope.pairs.length ? (
+                      <p className="text-xs text-slate-600" data-testid="request-scope">
+                        {t(locale, "commerceAdmin.scope")}:{" "}
+                        {p.scope.pairs.map((line) => (locale === "ar" ? line.title.ar : line.title.en)).join(" · ")}
+                      </p>
+                    ) : null}
+                    {p.orderStatus === "paid" ? (
+                      <Link
+                        to={`/admin/commerce/orders/${p.orderId}#generate-code`}
+                        className="inline-flex items-center text-xs font-semibold text-green-700 hover:underline"
+                      >
+                        {t(locale, "commerceAdmin.generateCodeForOrder")}
+                      </Link>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500">{p.provider}</span>
@@ -693,6 +804,48 @@ export default function AdminCommercePage({ loaderData }: Route.ComponentProps) 
                     <span>{t(locale, "commerceAdmin.maxUses")}</span>
                     <input name="maxUses" type="number" min={1} max={1000} defaultValue={1} required className={inputCls} dir="ltr" />
                   </label>
+                  {/* ---- Academic scope binding (Year · Subject · Term) ---- */}
+                  <fieldset className="sm:col-span-2 lg:col-span-3 rounded-xl border border-slate-200 p-3" data-testid="code-scope">
+                    <legend className="px-1 text-sm font-semibold">{t(locale, "commerceAdmin.scopeSection")}</legend>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <label className="grid min-w-0 gap-1 text-sm">
+                        <span>{t(locale, "commerceAdmin.scopeKind")}</span>
+                        <select name="scopeKind" className={selectCls} defaultValue="" data-testid="scope-kind">
+                          <option value="">{t(locale, "commerceAdmin.scopeNone")}</option>
+                          <option value="term">{t(locale, "commerceAdmin.scopeTermOnly")}</option>
+                          <option value="full_year">{t(locale, "commerceAdmin.scopeWholeYear")}</option>
+                        </select>
+                      </label>
+                      <label className="grid min-w-0 gap-1 text-sm">
+                        <span>{t(locale, "commerceAdmin.scopeYear")}</span>
+                        <select name="scopeAcademicYearId" className={selectCls} defaultValue="" data-testid="scope-year">
+                          <option value="">{t(locale, "commerceAdmin.none")}</option>
+                          {loaderData.contentOptions.years.map((y) => (
+                            <option key={y.id} value={y.id}>{locale === "ar" ? y.titleAr : y.titleEn}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="grid min-w-0 gap-1 text-sm">
+                        <span>{t(locale, "commerceAdmin.scopeSubject")}</span>
+                        <select name="scopeSubjectId" className={selectCls} defaultValue="" data-testid="scope-subject">
+                          <option value="">{t(locale, "commerceAdmin.none")}</option>
+                          {loaderData.contentOptions.subjects.map((s) => (
+                            <option key={s.id} value={s.id}>{locale === "ar" ? s.titleAr : s.titleEn}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="grid min-w-0 gap-1 text-sm">
+                        <span>{t(locale, "commerceAdmin.scopeTermPick")}</span>
+                        <select name="scopeTermId" className={selectCls} defaultValue="" data-testid="scope-term">
+                          <option value="">{t(locale, "commerceAdmin.none")}</option>
+                          {loaderData.contentOptions.terms.map((tm) => (
+                            <option key={tm.id} value={tm.id}>{locale === "ar" ? tm.titleAr : tm.titleEn}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">{t(locale, "commerceAdmin.scopeHint")}</p>
+                  </fieldset>
                   <label className="grid min-w-0 gap-1 text-sm">
                     <span>{t(locale, "commerceAdmin.bindProduct")}</span>
                     <select name="productId" className={selectCls} defaultValue="">

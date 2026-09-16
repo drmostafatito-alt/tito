@@ -71,7 +71,7 @@ export default function ActivatePage({}: Route.ComponentProps) {
                 autoComplete="off"
                 maxLength={40}
                 className="rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase"
-                placeholder="EDU-XXXX-XXXX-XXXX"
+                placeholder="TITO-XXXX-XXXX-XXXX"
                 data-testid="code-input"
               />
             </label>
