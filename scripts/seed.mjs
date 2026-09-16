@@ -11,9 +11,14 @@
  * Demo/fixture catalog (LMS feature coverage for e2e/smoke — NOT site identity):
  *   - subject physics-3s, course physics-3s-full (with a PDF lesson item)
  *   - product physics-3s-full-access, student@educore.local
- *   Production-readiness gate rejects all of the above.
+ *   Production-readiness gate rejects all of the above, and it is OPT-IN here:
+ *   a normal seed installs none of it (see --with-demo). The public homepage,
+ *   catalog and discovery surfaces read PUBLISHED rows, so seeding the demo
+ *   catalog unconditionally surfaced physics content under this platform's
+ *   philosophy & psychology identity.
  *
- * Usage: npm run db:seed:local
+ * Usage: npm run db:seed:local                  (platform identity + CMS only)
+ *        npm run db:seed:local -- --with-demo   (adds the e2e/smoke fixtures)
  */
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -186,144 +191,166 @@ async function ensureContent(table, slug, cols) {
   return id;
 }
 
-const programId = await ensureContent("programs", "al-Thanawiya-al-3amma", {
-    slug: "al-Thanawiya-al-3amma",
-  title_ar: "الثانوية العامة",
-  title_en: "General Secondary",
-  status: "published",
-  sort_order: 0,
-  created_at: now,
-  updated_at: now,
-});
-const gradeId = await ensureContent("grades", "grade-3-secondary", {
-    program_id: programId,
-  slug: "grade-3-secondary",
-  title_ar: "الصف الثالث الثانوي",
-  title_en: "Grade 12 (3rd Secondary)",
-  status: "published",
-  sort_order: 0,
-  created_at: now,
-  updated_at: now,
-});
-const subjectId = await ensureContent("subjects", "physics-3s", {
-    grade_id: gradeId,
-  slug: "physics-3s",
-  title_ar: "الفيزياء",
-  title_en: "Physics",
-  status: "published",
-  sort_order: 0,
-  created_at: now,
-  updated_at: now,
-});
-const courseId = await ensureContent("courses", "physics-3s-full", {
-    subject_id: subjectId,
-  slug: "physics-3s-full",
-  title_ar: "مراجعة شاملة — فيزياء الثالث الثانوي",
-  title_en: "Full Revision — Physics 3rd Secondary",
-  description_ar: "دورة شاملة تغطي المنهج بالكامل مع فيديوهات وملفات PDF.",
-  description_en: "Complete syllabus coverage with videos and PDF files.",
-  access_level: "entitled",
-  status: "published",
-  visibility: "featured",
-  sort_order: 0,
-  created_at: now,
-  updated_at: now,
-});
-const freeCourseId = await ensureContent("courses", "study-skills", {
-    subject_id: subjectId,
-  slug: "study-skills",
-  title_ar: "مهارات الدراسة (مجاني)",
-  title_en: "Study Skills (Free)",
-  access_level: "authenticated",
-  status: "published",
-  visibility: "catalog",
-  sort_order: 1,
-  created_at: now,
-  updated_at: now,
-});
-// units have no slug — idempotency via title lookup
-let unitId = (await DB.prepare("SELECT id FROM units WHERE course_id = ? AND title_en = ?").bind(courseId, "Unit 1: Electrostatics").first())?.id;
-if (!unitId) {
-  unitId = detId("unit:electrostatics");
-  await exec(
-    `INSERT INTO units (id, course_id, title_ar, title_en, status, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)`,
-    [unitId, courseId, "الوحدة الأولى: الكهرباء الساكنة", "Unit 1: Electrostatics", "published", 0, now, now]
-  );
-}
-const lesson1Id = await ensureContent("lessons", "electrostatics-intro", {
-    unit_id: unitId,
-  slug: "electrostatics-intro",
-  title_ar: "مقدمة الشحنات الكهربائية",
-  title_en: "Introduction to Electric Charges",
-  access_level: "entitled",
-  free_preview: 1,
-  status: "published",
-  sort_order: 0,
-  created_at: now,
-  updated_at: now,
-});
-const lesson2Id = await ensureContent("lessons", "coulomb-law", {
-    unit_id: unitId,
-  slug: "coulomb-law",
-  title_ar: "قانون كولوم",
-  title_en: "Coulomb's Law",
-  access_level: "entitled",
-  free_preview: 0,
-  status: "published",
-  sort_order: 1,
-  created_at: now,
-  updated_at: now,
-});
+// ---------------------------------------------------------------------------
+// Demo/fixture data is OPT-IN (`--with-demo`).
+//
+// The physics catalog below exists only so the e2e/smoke suites can exercise
+// the LMS against real rows. It is not site identity and it is not public
+// content — but the homepage's data-driven blocks (course/video/product cards)
+// and the public catalog/discovery read PUBLISHED rows, so installing it by
+// default made demo physics courses, videos and a 300 EGP product appear on a
+// philosophy & psychology platform. A normal seed therefore installs identity,
+// settings and the CMS homepage only; `scripts/e2e-reset.mjs` passes
+// `--with-demo` so the browser suites keep their fixtures.
+// ---------------------------------------------------------------------------
+const WITH_DEMO = process.argv.includes("--with-demo");
 
-// mock video + attach to lesson 1
-const existingVideo = await DB.prepare("SELECT id FROM videos WHERE metadata LIKE '%\"title\":\"Demo: Coulomb intro\"%'").first();
-let videoId;
-if (!existingVideo) {
-  videoId = detId("video:coulomb-intro");
-  const assetId = `mock-asset-${crypto.randomUUID()}`;
-  await exec(
-    `INSERT INTO videos (id, provider, provider_asset_id, playback_id, status, duration_seconds, metadata, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
-    [videoId, "mock", assetId, `mock-pb-${assetId.slice(11, 23)}`, "ready", 120, JSON.stringify({ title: "Demo: Coulomb intro" }), now, now]
-  );
-} else {
-  videoId = existingVideo.id;
-}
-const existingItem = await DB.prepare("SELECT id FROM lesson_items WHERE lesson_id = ? AND video_id = ?").bind(lesson1Id, videoId).first();
-if (!existingItem) {
-  await exec(`INSERT INTO lesson_items (id, lesson_id, item_type, video_id, sort_order, required, created_at) VALUES (?,?,?,?,?,?,?)`, [
-    crypto.randomUUID(), lesson1Id, "video", videoId, 0, 1, now,
-  ]);
-}
+// Fixture ids the demo commerce block below needs (same gate). Null while the
+// demo catalog is not installed.
+let demoSubjectId = null;
+let demoCourseId = null;
+if (WITH_DEMO) {
+  const programId = await ensureContent("programs", "al-Thanawiya-al-3amma", {
+      slug: "al-Thanawiya-al-3amma",
+    title_ar: "الثانوية العامة",
+    title_en: "General Secondary",
+    status: "published",
+    sort_order: 0,
+    created_at: now,
+    updated_at: now,
+  });
+  const gradeId = await ensureContent("grades", "grade-3-secondary", {
+      program_id: programId,
+    slug: "grade-3-secondary",
+    title_ar: "الصف الثالث الثانوي",
+    title_en: "Grade 12 (3rd Secondary)",
+    status: "published",
+    sort_order: 0,
+    created_at: now,
+    updated_at: now,
+  });
+  const subjectId = await ensureContent("subjects", "physics-3s", {
+      grade_id: gradeId,
+    slug: "physics-3s",
+    title_ar: "الفيزياء",
+    title_en: "Physics",
+    status: "published",
+    sort_order: 0,
+    created_at: now,
+    updated_at: now,
+  });
+  const courseId = await ensureContent("courses", "physics-3s-full", {
+      subject_id: subjectId,
+    slug: "physics-3s-full",
+    title_ar: "مراجعة شاملة — فيزياء الثالث الثانوي",
+    title_en: "Full Revision — Physics 3rd Secondary",
+    description_ar: "دورة شاملة تغطي المنهج بالكامل مع فيديوهات وملفات PDF.",
+    description_en: "Complete syllabus coverage with videos and PDF files.",
+    access_level: "entitled",
+    status: "published",
+    visibility: "featured",
+    sort_order: 0,
+    created_at: now,
+    updated_at: now,
+  });
+  const freeCourseId = await ensureContent("courses", "study-skills", {
+      subject_id: subjectId,
+    slug: "study-skills",
+    title_ar: "مهارات الدراسة (مجاني)",
+    title_en: "Study Skills (Free)",
+    access_level: "authenticated",
+    status: "published",
+    visibility: "catalog",
+    sort_order: 1,
+    created_at: now,
+    updated_at: now,
+  });
+  // units have no slug — idempotency via title lookup
+  let unitId = (await DB.prepare("SELECT id FROM units WHERE course_id = ? AND title_en = ?").bind(courseId, "Unit 1: Electrostatics").first())?.id;
+  if (!unitId) {
+    unitId = detId("unit:electrostatics");
+    await exec(
+      `INSERT INTO units (id, course_id, title_ar, title_en, status, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)`,
+      [unitId, courseId, "الوحدة الأولى: الكهرباء الساكنة", "Unit 1: Electrostatics", "published", 0, now, now]
+    );
+  }
+  const lesson1Id = await ensureContent("lessons", "electrostatics-intro", {
+      unit_id: unitId,
+    slug: "electrostatics-intro",
+    title_ar: "مقدمة الشحنات الكهربائية",
+    title_en: "Introduction to Electric Charges",
+    access_level: "entitled",
+    free_preview: 1,
+    status: "published",
+    sort_order: 0,
+    created_at: now,
+    updated_at: now,
+  });
+  const lesson2Id = await ensureContent("lessons", "coulomb-law", {
+      unit_id: unitId,
+    slug: "coulomb-law",
+    title_ar: "قانون كولوم",
+    title_en: "Coulomb's Law",
+    access_level: "entitled",
+    free_preview: 0,
+    status: "published",
+    sort_order: 1,
+    created_at: now,
+    updated_at: now,
+  });
 
-// demo PDF in R2 private-files + attach to lesson 2
-const demoPdfId = detId("file:physics-revision");
-const pdfKey = `private/pdf/${demoPdfId}/physics-revision.pdf`;
-const existingPdf = await DB.prepare("SELECT id FROM files WHERE original_filename = ?").bind("physics-revision.pdf").first();
-let pdfFileId;
-if (!existingPdf) {
-  // minimal valid PDF (one empty page)
-  const pdf = `%PDF-1.4
-1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
-2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
-3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj
-trailer<</Root 1 0 R>>
-%%EOF`;
-  await env.PRIVATE_FILES.put(pdfKey, pdf, { httpMetadata: { contentType: "application/pdf" } });
-  await exec(
-    `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, alt_ar, alt_en, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [demoPdfId, pdfKey, "PRIVATE_FILES", "pdf", "physics-revision.pdf", "application/pdf", pdf.length, "seed-demo", "private", 1, "", "", now, now]
-  );
-  pdfFileId = demoPdfId;
-} else {
-  pdfFileId = existingPdf.id;
-}
-const existingPdfItem = await DB.prepare("SELECT id FROM lesson_items WHERE lesson_id = ? AND file_id = ?").bind(lesson2Id, pdfFileId).first();
-if (!existingPdfItem) {
-  await exec(`INSERT INTO lesson_items (id, lesson_id, item_type, file_id, sort_order, required, created_at) VALUES (?,?,?,?,?,?,?)`, [
-    crypto.randomUUID(), lesson2Id, "file", pdfFileId, 0, 1, now,
-  ]);
+  // mock video + attach to lesson 1
+  const existingVideo = await DB.prepare("SELECT id FROM videos WHERE metadata LIKE '%\"title\":\"Demo: Coulomb intro\"%'").first();
+  let videoId;
+  if (!existingVideo) {
+    videoId = detId("video:coulomb-intro");
+    const assetId = `mock-asset-${crypto.randomUUID()}`;
+    await exec(
+      `INSERT INTO videos (id, provider, provider_asset_id, playback_id, status, duration_seconds, metadata, created_at, updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [videoId, "mock", assetId, `mock-pb-${assetId.slice(11, 23)}`, "ready", 120, JSON.stringify({ title: "Demo: Coulomb intro" }), now, now]
+    );
+  } else {
+    videoId = existingVideo.id;
+  }
+  const existingItem = await DB.prepare("SELECT id FROM lesson_items WHERE lesson_id = ? AND video_id = ?").bind(lesson1Id, videoId).first();
+  if (!existingItem) {
+    await exec(`INSERT INTO lesson_items (id, lesson_id, item_type, video_id, sort_order, required, created_at) VALUES (?,?,?,?,?,?,?)`, [
+      crypto.randomUUID(), lesson1Id, "video", videoId, 0, 1, now,
+    ]);
+  }
+
+  // demo PDF in R2 private-files + attach to lesson 2
+  const demoPdfId = detId("file:physics-revision");
+  const pdfKey = `private/pdf/${demoPdfId}/physics-revision.pdf`;
+  const existingPdf = await DB.prepare("SELECT id FROM files WHERE original_filename = ?").bind("physics-revision.pdf").first();
+  let pdfFileId;
+  if (!existingPdf) {
+    // minimal valid PDF (one empty page)
+    const pdf = `%PDF-1.4
+  1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+  2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+  3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj
+  trailer<</Root 1 0 R>>
+  %%EOF`;
+    await env.PRIVATE_FILES.put(pdfKey, pdf, { httpMetadata: { contentType: "application/pdf" } });
+    await exec(
+      `INSERT INTO files (id, r2_key, bucket, kind, original_filename, mime, byte_size, checksum_sha256, visibility, download_allowed, alt_ar, alt_en, created_at, updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [demoPdfId, pdfKey, "PRIVATE_FILES", "pdf", "physics-revision.pdf", "application/pdf", pdf.length, "seed-demo", "private", 1, "", "", now, now]
+    );
+    pdfFileId = demoPdfId;
+  } else {
+    pdfFileId = existingPdf.id;
+  }
+  const existingPdfItem = await DB.prepare("SELECT id FROM lesson_items WHERE lesson_id = ? AND file_id = ?").bind(lesson2Id, pdfFileId).first();
+  if (!existingPdfItem) {
+    await exec(`INSERT INTO lesson_items (id, lesson_id, item_type, file_id, sort_order, required, created_at) VALUES (?,?,?,?,?,?,?)`, [
+      crypto.randomUUID(), lesson2Id, "file", pdfFileId, 0, 1, now,
+    ]);
+  }
+  demoSubjectId = subjectId;
+  demoCourseId = courseId;
 }
 
 // ---------------------------------------------------------------------------
@@ -338,8 +365,12 @@ if (!existingPdfItem) {
 // ---------------------------------------------------------------------------
 const paymentsSettings = {
   manualEnabled: true,
-  manualInstructionsAr: "حوالة إنستاباي إلى 01000000000 — اكتب رقم الطلب في البيان",
-  manualInstructionsEn: "Instapay transfer to 01000000000 — write the order number as the reference",
+  // No payment destination is seeded: bank/InstaPay details are owner data
+  // entered in Appearance -> System -> Payments, never invented here. While
+  // they are empty the order page falls back to "instructions are shared via
+  // support" (commerce.instructionsNotConfigured).
+  manualInstructionsAr: "",
+  manualInstructionsEn: "",
   orderTtlMinutes: 4320,
   refundWindowDays: 14,
 };
@@ -348,47 +379,49 @@ await exec(`INSERT INTO settings (key, value, updated_at) VALUES ('payments', ?,
   now,
 ]);
 
-const demoProductId = await ensureContent("products", "physics-3s-full-access", {
-    kind: "course",
-  slug: "physics-3s-full-access",
-  name_ar: "فيزياء ٣ث — وصول كامل للدورة",
-  name_en: "Physics 3S — Full Course Access",
-  description_ar: "افتح كل دروس دورة الفيزياء: الشرح والملفات والواجبات.",
-  description_en: "Unlock every physics lesson: videos, files and assignments.",
-  active: 1,
-  sort_order: 0,
-  created_at: now,
-  updated_at: now,
-});
-const existingProductItem = await DB.prepare(
-  "SELECT id FROM product_items WHERE product_id = ? AND resource_id = ?"
-).bind(demoProductId, courseId).first();
-if (!existingProductItem) {
-  await exec(
-    `INSERT INTO product_items (id, product_id, resource_type, resource_id, sort_order, created_at) VALUES (?,?,?,?,?,?)`,
-    [crypto.randomUUID(), demoProductId, "course", courseId, 0, now]
-  );
-}
-const existingPricePlan = await DB.prepare("SELECT id FROM price_plans WHERE product_id = ?").bind(demoProductId).first();
-if (!existingPricePlan) {
-  await exec(
-    `INSERT INTO price_plans (id, product_id, currency, amount_minor, kind, active, sort_order, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
-    [crypto.randomUUID(), demoProductId, "EGP", 30000, "one_time", 1, 0, now, now]
-  );
-}
+if (WITH_DEMO) {
+  const demoProductId = await ensureContent("products", "physics-3s-full-access", {
+      kind: "course",
+    slug: "physics-3s-full-access",
+    name_ar: "فيزياء ٣ث — وصول كامل للدورة",
+    name_en: "Physics 3S — Full Course Access",
+    description_ar: "افتح كل دروس دورة الفيزياء: الشرح والملفات والواجبات.",
+    description_en: "Unlock every physics lesson: videos, files and assignments.",
+    active: 1,
+    sort_order: 0,
+    created_at: now,
+    updated_at: now,
+  });
+  const existingProductItem = await DB.prepare(
+    "SELECT id FROM product_items WHERE product_id = ? AND resource_id = ?"
+  ).bind(demoProductId, demoCourseId).first();
+  if (!existingProductItem) {
+    await exec(
+      `INSERT INTO product_items (id, product_id, resource_type, resource_id, sort_order, created_at) VALUES (?,?,?,?,?,?)`,
+      [crypto.randomUUID(), demoProductId, "course", demoCourseId, 0, now]
+    );
+  }
+  const existingPricePlan = await DB.prepare("SELECT id FROM price_plans WHERE product_id = ?").bind(demoProductId).first();
+  if (!existingPricePlan) {
+    await exec(
+      `INSERT INTO price_plans (id, product_id, currency, amount_minor, kind, active, sort_order, created_at, updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [crypto.randomUUID(), demoProductId, "EGP", 30000, "one_time", 1, 0, now, now]
+    );
+  }
 
-// demo entitlement: student → subject (covers both courses' entitled content)
-const studentRow = await DB.prepare("SELECT id FROM users WHERE email = ?").bind(studentEmail).first();
-const existingGrant = await DB.prepare(
-  "SELECT id FROM entitlements WHERE student_id = ? AND resource_type = 'subject' AND resource_id = ? AND status = 'active'"
-).bind(studentRow.id, subjectId).first();
-if (!existingGrant) {
-  await exec(
-    `INSERT INTO entitlements (id, student_id, source_type, resource_type, resource_id, status, starts_at, granted_at, metadata)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
-    [crypto.randomUUID(), studentRow.id, "admin_grant", "subject", subjectId, "active", now, now, JSON.stringify({ note: "seed demo grant" })]
-  );
+  // demo entitlement: student → subject (covers both courses' entitled content)
+  const studentRow = await DB.prepare("SELECT id FROM users WHERE email = ?").bind(studentEmail).first();
+  const existingGrant = await DB.prepare(
+    "SELECT id FROM entitlements WHERE student_id = ? AND resource_type = 'subject' AND resource_id = ? AND status = 'active'"
+  ).bind(studentRow.id, demoSubjectId).first();
+  if (!existingGrant) {
+    await exec(
+      `INSERT INTO entitlements (id, student_id, source_type, resource_type, resource_id, status, starts_at, granted_at, metadata)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [crypto.randomUUID(), studentRow.id, "admin_grant", "subject", demoSubjectId, "active", now, now, JSON.stringify({ note: "seed demo grant" })]
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

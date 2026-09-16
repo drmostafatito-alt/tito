@@ -301,7 +301,7 @@
                   "ar": "الامتحانات",
                   "en": "Exams"
                 },
-                "href": "#exams",
+                "href": "exam:external",
                 "tint": "warning"
               }
             ]
@@ -589,7 +589,7 @@
                   "ar": "تصفح الصفوف والمواد المنشورة.",
                   "en": "Browse the published grades and subjects."
                 },
-                "href": "/courses"
+                "href": "/programs"
               },
               {
                 "icon": "book-open",
@@ -613,7 +613,7 @@
                   "ar": "شرح بالفيديو داخل الدروس.",
                   "en": "Video explanations inside the lessons."
                 },
-                "href": "/courses"
+                "href": "#videos"
               },
               {
                 "icon": "file-text",
@@ -625,7 +625,7 @@
                   "ar": "ملفات ومذكرات للمراجعة.",
                   "en": "Notes and files for revision."
                 },
-                "href": "/courses"
+                "href": "#books"
               },
               {
                 "icon": "target",
@@ -637,7 +637,7 @@
                   "ar": "تدريبات وامتحانات إلكترونية.",
                   "en": "Online practice and exams."
                 },
-                "href": "/courses"
+                "href": "exam:external"
               },
               {
                 "icon": "chart",

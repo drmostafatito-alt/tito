@@ -57,8 +57,11 @@ console.log("· cold reset .wrangler");
 // 3) migrations
 run("npm", ["run", "db:migrate:local"]);
 
-// 4) seed
-run("npm", ["run", "db:seed:local"]);
+// 4) seed — WITH the demo/fixture catalog. The e2e suites drive the LMS against
+//    these real rows (see FIXTURES in tests/e2e/helpers.ts). A normal
+//    `npm run db:seed:local` deliberately installs none of it, so a local
+//    platform never shows physics demo content on its public surfaces.
+run("npm", ["run", "db:seed:local", "--", "--with-demo"]);
 
 // 5) force the super-admin password to the deterministic E2E value
 const { getPlatformProxy } = await import("wrangler");
