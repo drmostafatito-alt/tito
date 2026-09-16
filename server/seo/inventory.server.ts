@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, not } from "drizzle-orm";
 import type { DB } from "../db/client.server";
 import { courses, grades, pages, programs, products, subjects, units } from "../db/schema";
-import { catalogCourses } from "../content/service.server";
+import { catalogCourses, studyHub } from "../content/service.server";
 import { pricePlansForProduct } from "../commerce/service.server";
 import { getSettings } from "../settings/service.server";
 import { CURRICULUM_PAGES, curriculumPagePath } from "./curriculum-pages.server";
@@ -137,6 +137,23 @@ export async function indexablePublicUrls(db: DB): Promise<SitemapUrl[]> {
   const settings = await getSettings(db);
   if (settings.identity.ownerNameAr.trim() !== "" || settings.identity.ownerNameEn.trim() !== "") {
     out.push({ path: "/about", lastmodMs: null });
+  }
+
+  // --- study hierarchy (المحتوى التعليمي) -----------------------------------
+  // The student-facing content experience: السنة الدراسية → الصف → المادة →
+  // الترم → الدرس. Same anti-thin policy as every other index page:
+  //   · /study itself is listed only when at least one real subject exists
+  //     (a hub with only an empty state is not worth indexing);
+  //   · /study/:subjectSlug is listed only for subjects that have at least one
+  //     published lesson (a subject page with no lessons is a thin page).
+  // `studyHub` only ever reads PUBLISHED, non-deleted rows across the whole
+  // chain (subject → grade → program → term container), so a draft anywhere in
+  // the hierarchy removes the page from the sitemap automatically — drafts can
+  // never leak into SEO.
+  const studySubjects = (await studyHub(db)).filter((s) => s.termCount > 0 && s.lessonCount > 0);
+  if (studySubjects.length > 0) {
+    out.push({ path: "/study", lastmodMs: null });
+    for (const s of studySubjects) out.push({ path: `/study/${s.slug}`, lastmodMs: null });
   }
 
   // --- public curriculum-overview pages -------------------------------------

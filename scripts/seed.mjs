@@ -541,7 +541,7 @@ await seedCmsPage({
 await seedSimplePage({
   slug: "resources", titleAr: "مكتبة المصادر", titleEn: "Resource library",
   headingAr: "مكتبة المصادر", headingEn: "Resource library",
-  textAr: "ستجد هنا المذكرات والملخصات والملفات المتاحة ضمن الكورسات.",
+  textAr: "ستجد هنا المذكرات والملخصات والملفات المتاحة ضمن الدروس.",
   textEn: "You'll find the notes, summaries and files available within the courses here.",
 });
 await seedSimplePage({
@@ -567,7 +567,10 @@ const existingNav = await DB.prepare("SELECT count(*) AS n FROM menu_items WHERE
 if (!existingNav?.n) {
   const navItems = [
     ["الرئيسية", "Home", "/"],
-    ["الكورسات", "Courses", "/courses"],
+    // Student-facing vocabulary: the content hub is المحتوى التعليمي (/study).
+    // The legacy /courses catalog stays reachable for SEO but is no longer the
+    // default navigation destination (owner brief: no "كورسات" in student UI).
+    ["المحتوى التعليمي", "Learning content", "/study"],
     ["عن المنصة", "About", "/about"],
     ["مكتبة المصادر", "Resources", "/p/resources"],
     ["الأسئلة الشائعة", "FAQ", "/p/faq"],

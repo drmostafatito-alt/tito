@@ -195,14 +195,20 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               </div>
             )}
             <LanguageSwitcher locale={locale} options={localeOptions} />
+            {/* Primary student destination: المحتوى التعليمي (year → grade →
+                subject → term → lesson). Functional navigation, so it is offered
+                to every visitor — an anonymous student must be able to browse the
+                published content before signing in. The legacy /courses catalog
+                stays reachable for SEO but is not the student's front door. */}
+            <Link
+              to="/study"
+              className="hidden min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-medium text-navy-700 hover:bg-navy-50 hover:text-navy-900 md:inline-flex"
+              data-testid="nav-study"
+            >
+              {t(locale, "study.navTitle")}
+            </Link>
             {loaderData.user ? (
               <>
-                {/* Primary student destination: المحتوى التعليمي (year → grade →
-                    subject → term → lesson). The legacy /courses catalog stays
-                    reachable for SEO but is no longer the student's front door. */}
-                <Link to="/study" className="hidden min-h-11 items-center rounded-full px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 md:inline-flex" data-testid="nav-study">
-                  {t(locale, "study.navTitle")}
-                </Link>
                 <Link
                   to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
                   className="inline-flex min-h-11 items-center rounded-full bg-navy-800 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-900"

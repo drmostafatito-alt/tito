@@ -40,8 +40,12 @@ test("manual checkout → admin approval → entitlement unlocks the lesson", as
   await expect(student.locator("body")).toContainText(/under review|قيد المراجعة/i);
 
   // lesson still locked before approval (paid ≠ authorized without fulfillment)
+  // The locked card is the subscriber card (title + body + subscribe/activate
+  // paths), not the generic grant sentence — assert the copy students really see.
   await student.goto(`/learn/${FIXTURES.courseSlug}/${FIXTURES.lesson2Slug}`);
-  await expect(student.locator("body")).toContainText(/requires an access grant|يتطلب صلاحية وصول/i);
+  await expect(student.locator("body")).toContainText(
+    /this content is for subscribers only|هذا المحتوى متاح للمشتركين فقط/i,
+  );
 
   // --- admin context (seeded super admin storage state) ---
   const adminCtx = await browser.newContext({ storageState: ADMIN_STATE });

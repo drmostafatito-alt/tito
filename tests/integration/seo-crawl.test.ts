@@ -4,10 +4,13 @@ import { env } from "cloudflare:test";
 import { sql } from "drizzle-orm";
 import { getDb } from "~server/db/client.server";
 import {
+  createAcademicYear,
   createCourse,
   createGrade,
+  createLesson,
   createProgram,
   createSubject,
+  createTerm,
   createUnit,
   updateNode,
 } from "~server/content/service.server";
@@ -100,6 +103,59 @@ async function seedLiveCatalog() {
   return { program, grade, subject, course, unit, product };
 }
 
+/**
+ * A live study chain: السنة الدراسية → الصف → المادة → الترم → الدرس, exactly as
+ * the Admin dashboard creates it (academic year + term are owner rows, never
+ * hardcoded, and the "term container" is a course bound to year + term).
+ */
+async function seedLiveStudy() {
+  const year = await createAcademicYear(
+    db,
+    { startYear: 2026, endYear: 2027, titleAr: "2026/2027", titleEn: "2026/2027", status: "published", isCurrent: true, sortOrder: 0 },
+    actor,
+  );
+  const term = await createTerm(
+    db,
+    { titleAr: "الترم الأول", titleEn: "Term 1", status: "published", sortOrder: 0 },
+    actor,
+  );
+  const program = await createProgram(
+    db,
+    { titleAr: "المرحلة الثانوية", titleEn: "Secondary", status: "published", sortOrder: 0, descriptionAr: "ب", descriptionEn: "d" },
+    actor,
+  );
+  const grade = await createGrade(
+    db,
+    { programId: program.id, titleAr: "الصف الأول الثانوي", titleEn: "Grade 10", status: "published", sortOrder: 0 },
+    actor,
+  );
+  const subject = await createSubject(
+    db,
+    { gradeId: grade.id, titleAr: "فلسفة ومنطق", titleEn: "Philosophy and Logic", status: "published", sortOrder: 0, descriptionAr: "ب", descriptionEn: "d" },
+    actor,
+  );
+  const course = await createCourse(
+    db,
+    {
+      subjectId: subject.id, academicYearId: year.id, termId: term.id,
+      titleAr: "فلسفة ومنطق — الترم الأول", titleEn: "Philosophy Term 1",
+      status: "published", visibility: "catalog", accessLevel: "entitled", sortOrder: 0,
+    },
+    actor,
+  );
+  const unit = await createUnit(
+    db,
+    { courseId: course.id, titleAr: "الوحدة الأولى", titleEn: "Unit 1", status: "published", sortOrder: 0 },
+    actor,
+  );
+  const lesson = await createLesson(
+    db,
+    { unitId: unit.id, titleAr: "معنى التفكير الإنساني", titleEn: "Meaning of human thinking", accessLevel: "authenticated", freePreview: false, status: "published", sortOrder: 0 },
+    actor,
+  );
+  return { year, term, program, grade, subject, course, unit, lesson };
+}
+
 describe("GET /robots.txt (real route loader)", () => {
   it("returns 200 text/plain with an absolute sitemap URL for the serving origin", async () => {
     const res = (await callLoader(robotsLoader, "/robots.txt")) as Response;
@@ -134,7 +190,7 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     expect(all.length).toBeGreaterThan(0);
     for (const loc of all) {
       // Lesson Phase: unit pages now included (/courses/:slug/units/:id)
-      expect(loc).toMatch(/^https:\/\/app\.test\/(courses|courses\/.+\/units\/.+|courses\/.+|products\/.+|programs|programs\/.+|grades\/.+|subjects\/.+|p\/.+|about|curriculum\/.+)?$/);
+      expect(loc).toMatch(/^https:\/\/app\.test\/(courses|courses\/.+\/units\/.+|courses\/.+|products\/.+|programs|programs\/.+|grades\/.+|subjects\/.+|study|study\/.+|p\/.+|about|curriculum\/.+)?$/);
       expect(loc).not.toContain("?");
     }
     expect(new Set(all).size).toBe(all.length); // no duplicate URLs
@@ -192,6 +248,30 @@ describe("GET /sitemap.xml (real route loader, real D1 state)", () => {
     expect(all).not.toContain(`${ORIGIN}/programs`);
     // unit also disappears when course archived
     expect(all).not.toContain(`${ORIGIN}/courses/${live.course.slug}/units/${live.unit.id}`);
+  });
+
+  it("lists the study hierarchy (المحتوى التعليمي) once real lessons exist — and drops it with the content", async () => {
+    const { subject, course, lesson } = await seedLiveStudy();
+
+    // 1) a published term container + a published lesson → hub + subject page
+    let all = locs(await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text());
+    expect(all).toContain(`${ORIGIN}/study`);
+    expect(all).toContain(`${ORIGIN}/study/${subject.slug}`);
+
+    // 2) the lesson goes back to draft → the subject page has nothing to show,
+    //    so it leaves the sitemap (and the empty hub with it)
+    await updateNode(db, "lesson", lesson.id, { status: "draft" }, actor);
+    all = locs(await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text());
+    expect(all).not.toContain(`${ORIGIN}/study/${subject.slug}`);
+    expect(all).not.toContain(`${ORIGIN}/study`);
+
+    // 3) republish the lesson but put the TERM CONTAINER back to draft: the hub
+    //    query is driven by published containers, so nothing is listed either.
+    await updateNode(db, "lesson", lesson.id, { status: "published" }, actor);
+    await updateNode(db, "course", course.id, { status: "draft" }, actor);
+    all = locs(await ((await callLoader(sitemapLoader, "/sitemap.xml")) as Response).text());
+    expect(all).not.toContain(`${ORIGIN}/study/${subject.slug}`);
+    expect(all).not.toContain(`${ORIGIN}/study`);
   });
 
   it("lists published CMS pages under /p/ but never the home page (it lives at /)", async () => {

@@ -1313,6 +1313,79 @@ export async function academicScopeOptions(db: DB) {
   return { years, terms: termRows, grades: gradeRows, subjects: subjectRows };
 }
 
+/**
+ * Student-facing material vocabulary for a lesson (PART 8/9). Derived ONLY from
+ * real `lesson_items` rows + the referenced file's recorded `kind` — the listing
+ * never guesses a "مذكرة" that the owner did not upload, and it never renders a
+ * legacy internal-exam item (the exam engine lives on the external platform).
+ */
+export const LESSON_CONTENT_KINDS = ["video", "pdf", "doc", "image", "audio", "archive", "file", "practice"] as const;
+export type LessonContentKind = (typeof LESSON_CONTENT_KINDS)[number];
+
+/** File `kind` → material vocabulary; an unrecognised kind stays generic ("file"). */
+export function contentKindForFileKind(kind: string | null | undefined): LessonContentKind {
+  switch (kind) {
+    case "pdf": return "pdf";
+    case "doc": return "doc";
+    case "image": return "image";
+    case "audio": return "audio";
+    case "archive": return "archive";
+    case "video": return "video";
+    default: return "file";
+  }
+}
+
+export interface LessonContentSummary {
+  /** distinct material kinds, in the canonical order of LESSON_CONTENT_KINDS */
+  kinds: LessonContentKind[];
+  itemCount: number;
+}
+
+/**
+ * Material summary for many lessons in at most TWO queries (no N+1): the items
+ * of every lesson, then the referenced files' kinds. Lesson-item rows are only
+ * ever read here — nothing is written, nothing is invented.
+ */
+export async function lessonContentSummaries(
+  db: DB,
+  lessonIds: string[]
+): Promise<Map<string, LessonContentSummary>> {
+  const out = new Map<string, LessonContentSummary>();
+  if (lessonIds.length === 0) return out;
+
+  const itemRows = await db
+    .select({ lessonId: lessonItems.lessonId, itemType: lessonItems.itemType, fileId: lessonItems.fileId, videoId: lessonItems.videoId })
+    .from(lessonItems)
+    .where(inArray(lessonItems.lessonId, lessonIds));
+
+  const fileIds = [...new Set(itemRows.map((r) => r.fileId).filter((id): id is string => Boolean(id)))];
+  const fileKinds = new Map<string, string>();
+  if (fileIds.length > 0) {
+    const fileRows = await db.select({ id: files.id, kind: files.kind }).from(files).where(inArray(files.id, fileIds));
+    for (const f of fileRows) fileKinds.set(f.id, f.kind);
+  }
+
+  for (const id of lessonIds) out.set(id, { kinds: [], itemCount: 0 });
+  for (const row of itemRows) {
+    const entry = out.get(row.lessonId);
+    if (!entry) continue;
+    // Legacy internal-exam items are retained in the DB but never surface to a
+    // student (the external questions platform replaced the internal engine).
+    if (row.itemType === "exam") continue;
+    let kind: LessonContentKind | null = null;
+    if (row.itemType === "video") kind = "video";
+    else if (row.itemType === "link") kind = "practice";
+    else if (row.itemType === "file") kind = row.fileId ? contentKindForFileKind(fileKinds.get(row.fileId)) : null;
+    if (!kind) continue;
+    entry.itemCount += 1;
+    if (!entry.kinds.includes(kind)) entry.kinds.push(kind);
+  }
+  for (const entry of out.values()) {
+    entry.kinds.sort((a, b) => LESSON_CONTENT_KINDS.indexOf(a) - LESSON_CONTENT_KINDS.indexOf(b));
+  }
+  return out;
+}
+
 export interface StudySubjectCard {
   slug: string;
   titleAr: string;
@@ -1327,6 +1400,10 @@ export interface StudySubjectCard {
   /** published term containers, so the card can say how many terms are live */
   termCount: number;
   lessonCount: number;
+  /** published lessons a registered student can open without a subscription */
+  freeLessonCount: number;
+  /** academic years the live term containers belong to (ordered, de-duplicated) */
+  years: Array<{ id: string; titleAr: string; titleEn: string }>;
 }
 
 /**
@@ -1339,6 +1416,7 @@ export async function studyHub(db: DB): Promise<StudySubjectCard[]> {
     .select({
       subjectId: courses.subjectId,
       courseId: courses.id,
+      academicYearId: courses.academicYearId,
     })
     .from(courses)
     .innerJoin(subjects, eq(courses.subjectId, subjects.id))
@@ -1376,9 +1454,25 @@ export async function studyHub(db: DB): Promise<StudySubjectCard[]> {
     .where(and(inArray(subjects.id, subjectIds), eq(subjects.status, "published"), isNull(subjects.deletedAt)))
     .orderBy(asc(programs.sortOrder), asc(grades.sortOrder), asc(subjects.sortOrder));
 
-  const lessonCounts = await publishedLessonCountsBySubject(db, subjectIds);
+  const lessonCounts = await publishedLessonStatsBySubject(db, subjectIds);
   const termCounts = new Map<string, number>();
   for (const c of containers) termCounts.set(c.subjectId, (termCounts.get(c.subjectId) ?? 0) + 1);
+
+  // Academic years the subject's live term containers belong to (ordered by the
+  // owner's year order). IDs + real titles only — the UI never hardcodes a year.
+  const liveYearIds = [...new Set(containers.map((c) => c.academicYearId).filter((id): id is string => Boolean(id)))];
+  const yearRows = await listAcademicYears(db);
+  const yearsById = new Map(yearRows.map((y) => [y.id, { id: y.id, titleAr: y.titleAr, titleEn: y.titleEn }]));
+  const yearsBySubject = new Map<string, Array<{ id: string; titleAr: string; titleEn: string }>>();
+  for (const y of yearRows) {
+    if (!liveYearIds.includes(y.id)) continue;
+    for (const c of containers) {
+      if (c.academicYearId !== y.id) continue;
+      const list = yearsBySubject.get(c.subjectId) ?? [];
+      if (!list.some((x) => x.id === y.id)) list.push(yearsById.get(y.id)!);
+      yearsBySubject.set(c.subjectId, list);
+    }
+  }
 
   return subjectRows.map((r) => ({
     slug: r.subject.slug,
@@ -1392,15 +1486,24 @@ export async function studyHub(db: DB): Promise<StudySubjectCard[]> {
     programTitleAr: r.programTitleAr,
     programTitleEn: r.programTitleEn,
     termCount: termCounts.get(r.subject.id) ?? 0,
-    lessonCount: lessonCounts.get(r.subject.id) ?? 0,
+    lessonCount: lessonCounts.get(r.subject.id)?.total ?? 0,
+    freeLessonCount: lessonCounts.get(r.subject.id)?.free ?? 0,
+    years: yearsBySubject.get(r.subject.id) ?? [],
   }));
 }
 
-/** Published-lesson counts per subject (one query, no N+1). */
-async function publishedLessonCountsBySubject(db: DB, subjectIds: string[]): Promise<Map<string, number>> {
+/** Published-lesson totals per subject + how many need no subscription (one query, no N+1). */
+async function publishedLessonStatsBySubject(
+  db: DB,
+  subjectIds: string[]
+): Promise<Map<string, { total: number; free: number }>> {
   if (subjectIds.length === 0) return new Map();
   const rows = await db
-    .select({ subjectId: subjects.id, n: sql<number>`count(*)` })
+    .select({
+      subjectId: subjects.id,
+      n: sql<number>`count(*)`,
+      free: sql<number>`sum(case when ${lessons.accessLevel} in ('public','authenticated') then 1 else 0 end)`,
+    })
     .from(lessons)
     .innerJoin(units, eq(lessons.unitId, units.id))
     .innerJoin(courses, eq(units.courseId, courses.id))
@@ -1417,7 +1520,7 @@ async function publishedLessonCountsBySubject(db: DB, subjectIds: string[]): Pro
       )
     )
     .groupBy(subjects.id);
-  return new Map(rows.map((r) => [r.subjectId, Number(r.n)]));
+  return new Map(rows.map((r) => [r.subjectId, { total: Number(r.n), free: Number(r.free ?? 0) }]));
 }
 
 export interface StudyTerm {
@@ -1453,6 +1556,8 @@ export interface StudyLesson {
   unitTitleEn: string;
   containerSlug: string;
   itemCount: number;
+  /** material types that REALLY exist on this lesson (video / pdf / practice …) */
+  contentKinds: LessonContentKind[];
   sortOrder: number;
 }
 
@@ -1534,12 +1639,7 @@ export async function subjectStudyView(db: DB, subjectSlug: string): Promise<Sub
     .from(lessons)
     .where(and(inArray(lessons.unitId, unitIds), eq(lessons.status, "published"), isNull(lessons.deletedAt)))
     .orderBy(asc(lessons.sortOrder), asc(lessons.createdAt));
-  const itemRows = lessonRows.length === 0 ? [] : await db
-    .select({ lessonId: lessonItems.lessonId, n: sql<number>`count(*)` })
-    .from(lessonItems)
-    .where(inArray(lessonItems.lessonId, lessonRows.map((l) => l.id)))
-    .groupBy(lessonItems.lessonId);
-  const itemCounts = new Map(itemRows.map((r) => [r.lessonId, Number(r.n)]));
+  const itemRows = await lessonContentSummaries(db, lessonRows.map((l) => l.id));
 
   const termRows = await listTerms(db, { publishedOnly: false });
   const termById = new Map(termRows.map((t) => [t.id, t]));
@@ -1587,7 +1687,8 @@ export async function subjectStudyView(db: DB, subjectSlug: string): Promise<Sub
           unitTitleAr: u.titleAr,
           unitTitleEn: u.titleEn,
           containerSlug: course.slug,
-          itemCount: itemCounts.get(l.id) ?? 0,
+          itemCount: itemRows.get(l.id)?.itemCount ?? 0,
+          contentKinds: itemRows.get(l.id)?.kinds ?? [],
           sortOrder: l.sortOrder,
         }))
     );
