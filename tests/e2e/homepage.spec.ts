@@ -59,16 +59,16 @@ test.describe("homepage public chrome", () => {
   test("locale switcher writes the cookie on localhost HTTP and flips dir", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-    await expect(page.locator("body")).toContainText("كورسات ومراجعات");
+    await expect(page.locator("body")).toContainText("دروس ومراجعات");
     await page.getByRole("button", { name: /english/i }).click();
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     const cookies = await page.context().cookies(BASE);
     expect(cookies.find((c) => c.name === "edu_locale")?.value).toBe("en");
-    await expect(page.locator("body")).toContainText(/Courses & revision/);
+    await expect(page.locator("body")).toContainText(/Lessons & revision/);
     await expect(page.locator("body")).toContainText(/Notes & files/);
-    await expect(page.locator("body")).not.toContainText("كورسات ومراجعات");
+    await expect(page.locator("body")).not.toContainText("دروس ومراجعات");
     await expect(page.getByRole("button", { name: /عربي|arabic/i })).toBeVisible();
   });
 
@@ -81,5 +81,22 @@ test.describe("homepage public chrome", () => {
     await expect(menu).toBeAttached();
     await menu.click();
     await expect(page.locator("nav#mobile-nav")).toBeAttached();
+  });
+
+  test("320px header keeps hamburger and login reachable (not clipped)", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto("/");
+    const header = page.getByTestId("public-header");
+    await expect(header).toBeVisible();
+    const menu = page.getByTestId("public-menu");
+    await expect(menu).toBeVisible();
+    const box = await menu.boundingBox();
+    expect(box, "hamburger must have a box").toBeTruthy();
+    expect(box!.width).toBeGreaterThanOrEqual(40);
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+    await menu.click();
+    await expect(page.locator("nav#mobile-nav")).toBeVisible();
+    await expect(page.locator("nav#mobile-nav").getByRole("link", { name: /تسجيل الدخول|log in/i })).toBeVisible();
   });
 });
