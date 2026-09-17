@@ -12,10 +12,6 @@ import { asSnapshot, parseSeo, rootMetaFrom, seoMeta, siteEntitiesMeta } from "~
 import { PageView } from "~/components/cms/blocks";
 import { WhatsAppFab } from "~/components/WhatsAppFab";
 import { EmptyState } from "~/components/ui/EmptyState";
-import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
-import { DecorHairline } from "~/components/visuals/PhilosophyDecor";
-import { thinkerAlternate, thinkerFor } from "~/lib/thinkers";
-import { studyHub } from "~server/content/service.server";
 import { t, type Locale } from "~/lib/i18n";
 
 /** The floating WhatsApp button is a homepage-only affordance (see WhatsAppFab). */
@@ -48,7 +44,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const snapshot = page && page.status === "published" ? asSnapshot(page.publishedSnapshot) : null;
   const platformTitle = { ar: settings.platform.nameAr, en: settings.platform.nameEn };
   if (!snapshot) {
-    return { sections: [], ctx: null, seo: null, ogImage: null, title: platformTitle, locale, empty: true as const, url: request.url, whatsappFab: fabFrom(settings.platform), discover: [] };
+    return { sections: [], ctx: null, seo: null, ogImage: null, title: platformTitle, locale, empty: true as const, url: request.url, whatsappFab: fabFrom(settings.platform) };
   }
 
   const rendered = await renderSnapshot(db, snapshot, { settings, locale });
@@ -57,10 +53,17 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     ? ((await resolvePublicImageUrls(db, [seo.ogImage]))[seo.ogImage] ?? null)
     : null;
 
-  // Student content discovery: REAL published subjects that actually have
-  // term containers (studyHub). Empty-first — never lists a subject the
-  // admin has not published as learning content.
-  const hub = await studyHub(db);
+  // Subject discovery is no longer a second, hardcoded band appended below the
+  // owner's page: it is the `study_subjects` block inside the CMS composition
+  // (one discovery experience, one visual language — owner brief §12/§13). The
+  // same `studyHub` data reaches it through the block resolver.
+
+  // One floating WhatsApp button, maximum: when the owner has placed a
+  // floating `whatsapp_cta` block on the page, the platform-level floating
+  // button stands down instead of stacking a second bubble in the corner.
+  const floatingCtaOnPage = rendered.sections.some((sec) =>
+    (sec.children ?? []).some((c) => c.type === "whatsapp_cta" && (c.props as Record<string, unknown>)?.style === "floating")
+  );
 
   return {
     sections: rendered.sections,
@@ -71,8 +74,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     locale,
     empty: false as const,
     url: request.url,
-    whatsappFab: fabFrom(settings.platform),
-    discover: hub,
+    whatsappFab: floatingCtaOnPage ? { ...fabFrom(settings.platform), enabled: false } : fabFrom(settings.platform),
   };
 }
 
@@ -184,87 +186,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <>
       {/* CMS hero supplies the visible h1; public layout already provides <main> */}
       <PageView sections={loaderData.sections} ctx={ctx} main={false} />
-      <HomeDiscover subjects={loaderData.discover} locale={loaderData.locale} />
       {fab}
     </>
-  );
-}
-
-/**
- * Student content discovery — additive, below the owner's CMS. Lists REAL
- * published subjects that have live term containers. Renders nothing when
- * empty. Never uses "courses" vocabulary.
- */
-function HomeDiscover({
-  subjects,
-  locale,
-}: {
-  subjects: Array<{
-    slug: string;
-    titleAr: string;
-    titleEn: string;
-    gradeTitleAr: string;
-    gradeTitleEn: string;
-    programTitleAr: string;
-    programTitleEn: string;
-    yearTitleAr: string | null;
-    yearTitleEn: string | null;
-  }>;
-  locale: Locale;
-}) {
-  if (!subjects.length) return null;
-  const ar = locale === "ar";
-  return (
-    <section className="relative isolate mx-auto w-full max-w-5xl overflow-x-hidden px-4 pb-12" aria-labelledby="home-discover-title">
-      <p className="text-sm font-semibold text-gold-700">{t(locale, "study.discoverEyebrow")}</p>
-      <h2 id="home-discover-title" className="mt-1 text-2xl font-extrabold text-navy-900">
-        {t(locale, "study.discoverTitle")}
-      </h2>
-      <DecorHairline className="mt-3 mb-6 max-w-[8rem] text-gold-500" />
-      <div className="grid gap-5 sm:grid-cols-2">
-        {subjects.map((s, i) => {
-          const primary = thinkerFor({
-            slot: "home-discover",
-            slug: s.slug,
-            titleAr: s.titleAr,
-            titleEn: s.titleEn,
-            skip: i > 1,
-          });
-          const thinker = i === 1 ? thinkerAlternate(primary ?? thinkerFor({ slot: "home-discover", slug: s.slug }), s.slug) : primary;
-          return (
-            <article
-              key={s.slug}
-              className="group relative isolate overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-gold-300 hover:shadow-lg"
-            >
-              <ThinkerPortrait thinker={thinker} intensity="subtle" />
-              <Link to={`/study/${s.slug}`} className="relative z-10 flex min-h-[9.5rem] flex-col gap-1.5 p-5 pe-16 sm:p-6 sm:pe-24">
-                <h3 className="text-lg font-extrabold text-navy-900">{ar ? s.titleAr : s.titleEn}</h3>
-                <p className="text-sm text-slate-600">
-                  {t(locale, "study.gradeLabel")}: {ar ? s.gradeTitleAr : s.gradeTitleEn}
-                  {s.programTitleAr || s.programTitleEn
-                    ? ` · ${t(locale, "study.programLabel")}: ${ar ? s.programTitleAr : s.programTitleEn}`
-                    : ""}
-                </p>
-                {(ar ? s.yearTitleAr : s.yearTitleEn) && (
-                  <p className="text-xs font-medium text-navy-500" dir="ltr">
-                    {t(locale, "study.yearLabel")}: {ar ? s.yearTitleAr : s.yearTitleEn}
-                  </p>
-                )}
-                <span className="mt-auto inline-flex min-h-11 w-fit items-center pt-3 text-sm font-semibold text-navy-800 group-hover:text-gold-700">
-                  {t(locale, "study.openSubject")}
-                  <span aria-hidden="true" className="ms-1 rtl:rotate-180">→</span>
-                </span>
-              </Link>
-            </article>
-          );
-        })}
-      </div>
-      <p className="mt-5">
-        <Link to="/study" className="inline-flex min-h-11 items-center text-sm font-semibold text-navy-800 hover:text-gold-700">
-          {t(locale, "study.discoverCta")}
-          <span aria-hidden="true" className="ms-1 rtl:rotate-180">→</span>
-        </Link>
-      </p>
-    </section>
   );
 }

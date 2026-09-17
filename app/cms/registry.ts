@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ICON_IDS } from "./icon-ids";
+import { THINKERS } from "../lib/thinkers";
 import { safeHref } from "./links";
 import { seoSchema, type PageSeo, type PageSnapshot, type SnapshotComponent, type SnapshotSection } from "./seo-schema";
 
@@ -62,8 +63,21 @@ export interface BlockDef {
   labelKey: string;               // i18n key under cms.blocks.*
   group: "layout" | "content" | "media" | "cta" | "social" | "data" | "form";
   section?: boolean;              // top-level container (may hold components)
-  dynamic?: "courses" | "subjects" | "programs" | "free_content" | "featured" | "latest_lessons" | "videos" | "products" | "grades";
+  dynamic?:
+    | "courses" | "subjects" | "programs" | "free_content" | "featured" | "latest_lessons"
+    | "videos" | "products" | "grades" | "study_subjects";
   fields: FieldDef[];
+  /**
+   * Superseded by the current public design language (owner brief §33).
+   *
+   * A deprecated block is NOT removed: its renderer stays in
+   * `app/components/cms/blocks.tsx`, saved snapshots keep rendering exactly as
+   * published, and the type stays valid for validation. It is only hidden from
+   * the builder palette, so nobody can ADD another copy of a duplicated
+   * pattern. Removing the renderer would break the owner's published pages —
+   * which is why this flag exists instead of a deletion.
+   */
+  deprecated?: boolean;
 }
 
 const lstr = (max: number) =>
@@ -134,6 +148,17 @@ export function walkFields(fields: FieldDef[], props: Record<string, unknown>, v
 // ---------------------------------------------------------------------------
 // Shared option sets
 // ---------------------------------------------------------------------------
+/**
+ * The thinker library (app/lib/thinkers.ts) is the single source of truth: the
+ * builder offers exactly the assets that exist, and the renderer resolves the id
+ * back through `thinkerById` — an unknown/legacy id simply renders nothing, so a
+ * saved snapshot can never point at a missing file.
+ */
+const thinkerOpts: FieldOption[] = [
+  { value: "none", labelKey: "cms.thinker.none" },
+  ...THINKERS.map((t) => ({ value: t.id, labelKey: `cms.thinker.${t.id}` })),
+];
+
 const targetOpts: FieldOption[] = [
   { value: "_self", labelKey: "cms.f.targetSelf" },
   { value: "_blank", labelKey: "cms.f.targetBlank" },
@@ -145,7 +170,16 @@ const alignOpts: FieldOption[] = [
 ];
 const iconSizeOpts: FieldOption[] = ["sm", "md", "lg", "xl"].map((v) => ({ value: v, labelKey: `cms.size.${v}` }));
 const colorRoleOpts: FieldOption[] = ["default", "brand", "accent", "success", "warning", "error", "muted"].map((v) => ({ value: v, labelKey: `cms.color.${v}` }));
-const variantOpts: FieldOption[] = ["primary", "secondary", "outline", "ghost"].map((v) => ({ value: v, labelKey: `cms.variant.${v}` }));
+/**
+ * The public button grammar (app/components/cms/blocks.tsx): `gold` is the single
+ * accent button for a closing CTA, `onDark` its companion on a navy band. Both
+ * are real options in the builder so a block can never be silently dropped by
+ * enum validation (a rejected block = a section that vanishes from the page).
+ */
+const variantOpts: FieldOption[] = ["primary", "secondary", "outline", "ghost", "gold", "onDark"].map((v) => ({
+  value: v,
+  labelKey: `cms.variant.${v}`,
+}));
 const badgePosOpts: FieldOption[] = ["top-start", "top-end", "bottom-start", "bottom-end"].map((v) => ({ value: v, labelKey: `cms.badge.${v.replace("-", "_")}` }));
 
 /** Layout fields shared by the section container (spacing/alignment/background/columns). */
@@ -175,6 +209,8 @@ export const BLOCKS: Record<string, BlockDef> = {
 
   hero: {
     labelKey: "cms.blocks.hero", group: "content",
+    /** Superseded by hero_showcase. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
       { name: "subheading", kind: "ltextarea", labelKey: "cms.f.subheading", max: 600 },
@@ -227,6 +263,17 @@ export const BLOCKS: Record<string, BlockDef> = {
           { name: "position", kind: "select", labelKey: "cms.f.badgePos", options: badgePosOpts },
         ],
       },
+      {
+        // One shape knob for CTA rows (the radius itself stays a system token).
+        name: "ctaShape", kind: "select", labelKey: "cms.f.ctaShape",
+        options: ["rounded", "soft", "pill"].map((v) => ({ value: v, labelKey: `cms.ctaShape.${v}` })),
+      },
+      {
+        // The identity plate: the owner's own name/title/photo from Settings →
+        // Identity. A real switch the renderer honours (hero_showcase reads it),
+        // so turning the personal panel off is an option — not a hidden default.
+        name: "useIdentity", kind: "toggle", labelKey: "cms.f.useIdentity",
+      },
     ],
   },
 
@@ -245,6 +292,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   faq: {
     labelKey: "cms.blocks.faq", group: "content",
+    /** Superseded by accordion (one disclosure pattern instead of two). Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [{
       name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.faqItem", maxItems: 20,
       items: [
@@ -275,6 +324,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   countdown: {
     labelKey: "cms.blocks.countdown", group: "content",
+    /** Superseded by manufactured urgency; use announcement with a real date. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "target", kind: "datetime", labelKey: "cms.f.target" },
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
@@ -308,6 +359,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   image_text: {
     labelKey: "cms.blocks.image_text", group: "media",
+    /** Superseded by feature_cards / rich_text. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "fileId", kind: "image", labelKey: "cms.f.image" },
       { name: "alt", kind: "ltext", labelKey: "cms.f.alt", max: 200 },
@@ -354,6 +407,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   // --- cta ---
   buttons: {
     labelKey: "cms.blocks.buttons", group: "cta",
+    /** Superseded by the CTA row of hero_showcase / cta_banner. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       {
         name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.buttonItem", maxItems: 5,
@@ -371,6 +426,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   icon_feature: {
     labelKey: "cms.blocks.icon_feature", group: "content",
+    /** Superseded by feature_cards. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
       { name: "size", kind: "select", labelKey: "cms.f.iconSize", options: iconSizeOpts },
@@ -381,6 +438,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   icon_grid: {
     labelKey: "cms.blocks.icon_grid", group: "content",
+    /** Superseded by feature_cards. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [{
       name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.iconItem", maxItems: 12,
       items: [
@@ -407,6 +466,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   pricing_cards: {
     labelKey: "cms.blocks.pricing_cards", group: "content",
+    /** Superseded by no pricing model is published — never show invented prices. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "style", kind: "select", labelKey: "cms.f.style", options: ["pricing", "package"].map((v) => ({ value: v, labelKey: `cms.style.${v}` })) },
       {
@@ -440,6 +501,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   testimonials: {
     labelKey: "cms.blocks.testimonials", group: "content",
+    /** Superseded by no review pipeline exists — never show invented reviews. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [{
       name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.testimonial", maxItems: 12,
       items: [
@@ -454,6 +517,8 @@ export const BLOCKS: Record<string, BlockDef> = {
     labelKey: "cms.blocks.teacher_profile", group: "content",
     fields: [
       { name: "useIdentity", kind: "toggle", labelKey: "cms.f.useIdentity" },
+      { name: "showPhoto", kind: "toggle", labelKey: "cms.f.showPhoto" },
+      { name: "watermark", kind: "select", labelKey: "cms.f.watermark", options: thinkerOpts },
       { name: "name", kind: "ltext", labelKey: "cms.f.name", max: 120 },
       { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 120 },
       { name: "photo", kind: "image", labelKey: "cms.f.photo" },
@@ -462,6 +527,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   login_cta: {
     labelKey: "cms.blocks.login_cta", group: "cta",
+    /** Superseded by the public header/footer auth entries. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 80 },
       { name: "sublabel", kind: "ltextarea", labelKey: "cms.f.sublabel", max: 300 },
@@ -469,6 +536,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   register_cta: {
     labelKey: "cms.blocks.register_cta", group: "cta",
+    /** Superseded by the public header/footer auth entries. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 80 },
       { name: "sublabel", kind: "ltextarea", labelKey: "cms.f.sublabel", max: 300 },
@@ -478,6 +547,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   // --- social/contact ---
   promo_banner: {
     labelKey: "cms.blocks.promo_banner", group: "cta",
+    /** Superseded by cta_banner (one closing band, one grammar). Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
       { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 600 },
@@ -538,6 +609,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   newsletter_form: {
     labelKey: "cms.blocks.newsletter_form", group: "form",
+    /** Superseded by no newsletter pipeline exists yet. Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "formId", kind: "formRef", labelKey: "cms.f.form" },
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
@@ -559,6 +632,8 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   subject_cards: {
     labelKey: "cms.blocks.subject_cards", group: "data", dynamic: "subjects",
+    /** Superseded by study_subjects (exactly ONE subject-discovery experience). Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
+    deprecated: true,
     fields: [
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
       { name: "source", kind: "select", labelKey: "cms.f.source", options: ["all", "manual"].map((v) => ({ value: v, labelKey: `cms.source.${v}` })) },
@@ -621,8 +696,30 @@ export const BLOCKS: Record<string, BlockDef> = {
       { name: "limit", kind: "number", labelKey: "cms.f.limit", min: 1, max: 12 },
     ],
   },
+  study_subjects: {
+    labelKey: "cms.blocks.study_subjects", group: "data", dynamic: "study_subjects",
+    fields: [
+      { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
+      { name: "subheading", kind: "ltextarea", labelKey: "cms.f.subheading", max: 400 },
+      { name: "limit", kind: "number", labelKey: "cms.f.limit", min: 1, max: 12 },
+      {
+        name: "columns", kind: "select", labelKey: "cms.f.columns",
+        options: ["1", "2", "3"].map((v) => ({ value: v, labelKey: `cms.columns.c${v}` })),
+      },
+      { name: "showJourney", kind: "toggle", labelKey: "cms.f.showJourney" },
+      { name: "allLabel", kind: "ltext", labelKey: "cms.f.allLabel", max: 60 },
+      { name: "allHref", kind: "link", labelKey: "cms.f.allHref" },
+    ],
+  },
   grade_cards: {
     labelKey: "cms.blocks.grade_cards", group: "data", dynamic: "grades",
+    /**
+     * The grade entry of the journey (owner brief: hero → اختر صفك → المحتوى
+     * التعليمي). It is NOT a second subject shelf: every card resolves to /study
+     * (or straight to the grade's only published subject), so choosing a grade and
+     * browsing subjects stay one continuous path. Data-driven and empty-first —
+     * a grade with no published subjects never renders a card.
+     */
     fields: [
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
       { name: "subheading", kind: "ltextarea", labelKey: "cms.f.subheading", max: 400 },
@@ -683,14 +780,30 @@ export const BLOCKS: Record<string, BlockDef> = {
           { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
         ],
       },
+      {
+        // One shape knob for CTA rows (the radius itself stays a system token).
+        name: "ctaShape", kind: "select", labelKey: "cms.f.ctaShape",
+        options: ["rounded", "soft", "pill"].map((v) => ({ value: v, labelKey: `cms.ctaShape.${v}` })),
+      },
     ],
   },
 };
 
 export type BlockType = keyof typeof BLOCKS;
 
-/** Component types the builder offers inside sections (everything except the section itself). */
-export const COMPONENT_TYPES = Object.keys(BLOCKS).filter((k) => !BLOCKS[k].section);
+/**
+ * Every type the CMS accepts — including the deprecated ones, because a saved
+ * snapshot may reference them and they must keep validating and rendering.
+ */
+export const ALL_COMPONENT_TYPES = Object.keys(BLOCKS).filter((k) => !BLOCKS[k].section);
+/**
+ * The builder palette: what the owner may ADD today. Deprecated block types are
+ * filtered out here (the single choke point) rather than deleted, so the public
+ * UI has one language going forward while old pages never break.
+ */
+export const COMPONENT_TYPES = ALL_COMPONENT_TYPES.filter((k) => !BLOCKS[k as BlockType]?.deprecated);
+/** Deprecated types still supported for saved content (docs + tests use this). */
+export const DEPRECATED_TYPES = ALL_COMPONENT_TYPES.filter((k) => BLOCKS[k as BlockType]?.deprecated);
 export const BLOCK_GROUPS = ["content", "media", "cta", "social", "form", "data", "layout"] as const;
 
 // Page SEO schema: seo-schema.ts (public meta must not import this file).
@@ -774,6 +887,16 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.blocks.video_showcase": { ar: "فيديوهات الشرح", en: "Lesson videos" },
   "cms.blocks.product_cards": { ar: "الكتب والمذكرات (منتجات)", en: "Books & notes (products)" },
   "cms.blocks.grade_cards": { ar: "اختيار الصف", en: "Grade picker" },
+  "cms.blocks.study_subjects": { ar: "المحتوى التعليمي (مواد)", en: "Learning content (subjects)" },
+  "cms.f.showJourney": { ar: "إظهار مسار السنة/الصف/المادة", en: "Show the year / grade / subject line" },
+  "cms.f.allLabel": { ar: "نص الرابط الأخير", en: "Footer link label" },
+  "cms.f.allHref": { ar: "وجهة الرابط الأخير", en: "Footer link destination" },
+  "cms.variant.gold": { ar: "ذهبي (إبراز أخير)", en: "Gold (final emphasis)" },
+  "cms.variant.onDark": { ar: "ثانوي على خلفية داكنة", en: "Secondary on dark" },
+  "cms.f.ctaShape": { ar: "شكل أزرار الدعوة", en: "CTA button shape" },
+  "cms.ctaShape.rounded": { ar: "حواف ناعمة (افتراضي)", en: "Rounded (default)" },
+  "cms.ctaShape.soft": { ar: "حواف أنعم", en: "Softer" },
+  "cms.ctaShape.pill": { ar: "كبسولة", en: "Pill" },
   "cms.blocks.exam_platform": { ar: "منصة الامتحانات الخارجية", en: "External exams platform" },
   "cms.blocks.journey_steps": { ar: "خطوات الرحلة الدراسية", en: "Student journey steps" },
   "cms.blocks.benefit_list": { ar: "قائمة المزايا", en: "Benefits list" },
@@ -880,6 +1003,8 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.f.role": { ar: "الصفة", en: "Role" },
   "cms.f.photo": { ar: "الصورة الشخصية", en: "Photo" },
   "cms.f.useIdentity": { ar: "استخدام بيانات المعلم من الهوية", en: "Use site identity values" },
+  "cms.f.showPhoto": { ar: "إظهار صورة المعلم داخل الكرت", en: "Show the teacher photo in this block" },
+  "cms.f.watermark": { ar: "وجه فلسفي خافت خلف النص", en: "Faint thinker portrait behind the text" },
   "cms.f.bio": { ar: "السيرة", en: "Biography" },
   "cms.f.sublabel": { ar: "نص ثانوي", en: "Sublabel" },
   "cms.f.startsAt": { ar: "يبدأ في", en: "Starts at" },
@@ -1197,6 +1322,13 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.f.playbackTtl": { ar: "مدة رمز التشغيل (ثانية، 10–60)", en: "Playback token TTL (seconds, 10–60)" },
   "cms.f.fileTtl": { ar: "مدة رابط الملف الخاص (ثانية، 30–600)", en: "Private file URL TTL (seconds, 30–600)" },
 };
+
+/* Thinker names for the builder — derived, never a second hand-maintained list. */
+Object.assign(CMS_LABELS, {
+  "cms.thinker.none": { ar: "بدون صورة", en: "No portrait" },
+  ...Object.fromEntries(THINKERS.map((t) => [`cms.thinker.${t.id}`, { ar: t.nameAr, en: t.nameEn }])),
+} satisfies Record<string, { ar: string; en: string }>);
+
 
 export function cmsLabel(key: string, locale: "ar" | "en"): string {
   const entry = CMS_LABELS[key];

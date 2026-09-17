@@ -1,4 +1,5 @@
 import { Form, useLocation } from "react-router";
+import { Icon } from "~/cms/icons";
 import { t, type Locale } from "~/lib/i18n";
 
 const ALL: Locale[] = ["ar", "en"];
@@ -12,7 +13,20 @@ const ALL: Locale[] = ["ar", "en"];
  * and already-rendered Arabic/English copy on screen. A real browser
  * navigation re-runs every loader against the new cookie.
  */
-export function LanguageSwitcher({ locale, options }: { locale: Locale; options?: Locale[] }) {
+export function LanguageSwitcher({
+  locale,
+  options,
+  compact = false,
+}: {
+  locale: Locale;
+  options?: Locale[];
+  /**
+   * Phone header mode: the control keeps a 44px target but shows the globe only
+   * (name announced via aria-label), so the 320px header row never has to clip
+   * the brand, the login CTA or this button to fit.
+   */
+  compact?: boolean;
+}) {
   const location = useLocation();
   // Owner-controlled (Appearance → System). With a single offered language there
   // is nothing to switch to, so the control is omitted rather than rendered as a
@@ -26,11 +40,16 @@ export function LanguageSwitcher({ locale, options }: { locale: Locale; options?
       <input type="hidden" name="next" value={location.pathname + location.search} />
       <button
         type="submit"
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pub-pill px-2.5 text-pub-sm font-medium text-pub-muted transition-colors hover:bg-pub-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong ${compact ? "" : "sm:px-3"}`}
         aria-label={next === "ar" ? t("ar", "common.arabic") : t("en", "common.english")}
         data-locale-next={next}
       >
-        {next === "ar" ? t("ar", "common.arabic") : t("en", "common.english")}
+        <Icon name="globe" size="sm" colorRole="default" className="text-current" />
+        {compact ? null : (
+          <span className={compact ? "hidden sm:inline" : undefined}>
+            {next === "ar" ? t("ar", "common.arabic") : t("en", "common.english")}
+          </span>
+        )}
       </button>
     </Form>
   );

@@ -3,11 +3,14 @@
  * background language across the student experience.
  *
  * Rules:
- *  - never shown as a gallery or as primary content
+ *  - never shown as a gallery or as primary content: ONE figure per surface,
+ *    low opacity, cropped, behind the content (owner brief §14–§16)
  *  - assignment is data-driven from the published subject (slug/title), so a
  *    new subject the admin adds later still gets a matching visual family
  *  - some slots intentionally return null so the page does not become noisy
  *  - missing files are skipped at render time (ThinkerPortrait)
+ *  - no new imagery is ever generated: this table only references the masked
+ *    engravings that already ship in `public/visuals/thinkers/`
  */
 
 export type ThinkerFamily = "classical" | "modern" | "arabic" | "psych" | "social";
@@ -19,7 +22,7 @@ export type ThinkerSlot =
   | "term-panel"
   | "lesson-page"
   | "lesson-locked"
-  | "home-discover";
+  | "section-accent";
 
 export interface Thinker {
   id: string;
@@ -51,6 +54,18 @@ export function thinkerById(id: string): Thinker | null {
   return BY_ID.get(id) ?? null;
 }
 
+/**
+ * The single figure that carries the PLATFORM identity (not a subject, not a
+ * page): Aristotle, the founder of logic — the same face the philosophy
+ * landing slot uses, so the hero and /study agree by construction.
+ *
+ * It is one restrained engraving behind the hero plate, never a gallery, never
+ * a headline image, and never a stand-in for a missing owner photo.
+ */
+export function heroIdentityThinker(): Thinker | null {
+  return thinkerById("aristotle");
+}
+
 /** FNV-1a — stable across SSR/client so the same subject always gets the same figure. */
 export function hashKey(input: string): number {
   let h = 2166136261;
@@ -79,12 +94,16 @@ export function familyForSubject(input: { slug?: string; titleAr?: string | null
 const PREFERRED: Record<ThinkerFamily, Partial<Record<ThinkerSlot, string>>> = {
   classical: {
     "landing-hero": "aristotle",
-    "subject-card": "plato",
+    /* The philosophy card carries Aristotle himself (owner brief): the logic
+       founder is the subject, not a stand-in. The hero plate therefore signs
+       itself with Ibn Rushd (see hero_showcase) so one screen never repeats a
+       face, and `subject-hero`/`term-panel` keep the others. */
+    "subject-card": "aristotle",
     "subject-hero": "socrates",
     "term-panel": "aristotle",
     "lesson-page": "nietzsche",
     "lesson-locked": "ibn-rushd",
-    "home-discover": "plato",
+    "section-accent": "aristotle",
   },
   psych: {
     "landing-hero": "jung",
@@ -93,7 +112,7 @@ const PREFERRED: Record<ThinkerFamily, Partial<Record<ThinkerSlot, string>>> = {
     "term-panel": "freud",
     "lesson-page": "jung",
     "lesson-locked": "ibn-rushd",
-    "home-discover": "freud",
+    "section-accent": "freud",
   },
   modern: {
     "landing-hero": "descartes",
@@ -102,7 +121,7 @@ const PREFERRED: Record<ThinkerFamily, Partial<Record<ThinkerSlot, string>>> = {
     "term-panel": "kant",
     "lesson-page": "nietzsche",
     "lesson-locked": "ibn-rushd",
-    "home-discover": "kant",
+    "section-accent": "descartes",
   },
   arabic: {
     "landing-hero": "ibn-rushd",
@@ -111,7 +130,7 @@ const PREFERRED: Record<ThinkerFamily, Partial<Record<ThinkerSlot, string>>> = {
     "term-panel": "ibn-rushd",
     "lesson-page": "ibn-sina",
     "lesson-locked": "al-farabi",
-    "home-discover": "ibn-sina",
+    "section-accent": "ibn-sina",
   },
   social: {
     "landing-hero": "marx",
@@ -120,7 +139,7 @@ const PREFERRED: Record<ThinkerFamily, Partial<Record<ThinkerSlot, string>>> = {
     "term-panel": "kant",
     "lesson-page": "marx",
     "lesson-locked": "ibn-rushd",
-    "home-discover": "marx",
+    "section-accent": "marx",
   },
 };
 

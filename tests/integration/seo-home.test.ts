@@ -12,18 +12,18 @@ import {
   createTerm,
 } from "~server/content/service.server";
 import { loader as homeLoader } from "~/routes/public/home";
+import { studyHub } from "~server/content/service.server";
 
 /**
- * Homepage discovery lists REAL published study subjects (studyHub).
- * Empty-first: with no published term containers the list is [] and HomeDiscover
- * renders nothing. Draft rows never appear.
+ * The homepage lists REAL published study subjects, resolved through studyHub by
+ * the CMS `study_subjects` block. Empty-first: with no published term containers
+ * the list is [] and the section collapses (no placeholder card, no empty band).
+ * Draft rows never appear.
  */
 
 const actor = { userId: "00000000-0000-4000-8000-0000000000a1", role: "super_admin" };
 const routeCtx = { cloudflare: { env, ctx: { waitUntil() {}, passThroughOnException() {} } } };
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
-
-type DiscoverItem = { slug: string; titleAr: string; gradeTitleAr: string };
 
 async function wipe() {
   const db = getDb(env);
@@ -86,28 +86,35 @@ async function seedPublishedStudySubject() {
   return { grade, subject };
 }
 
-describe("homepage discovery lists real published subjects", () => {
-  it("published home with a live term container: discover includes the subject", async () => {
+describe("homepage subject discovery (studyHub → the study_subjects block)", () => {
+  /**
+   * v2 of the public UI removed the second, hardcoded discovery band from
+   * `public/home.tsx`. The homepage now has ONE subject-discovery surface: the
+   * CMS `study_subjects` block, whose rows are resolved from `studyHub`. So the
+   * contract these tests pin is (a) studyHub lists real published subjects and
+   * nothing else, and (b) the home loader no longer carries a `discover` field
+   * that could render a duplicate experience.
+   */
+  it("published home with a live term container: studyHub lists the subject", async () => {
     await publishHome();
     const { subject } = await seedPublishedStudySubject();
+    const hub = await studyHub(getDb(env));
+    expect(hub.map((s) => s.slug)).toContain(subject.slug);
+    expect(hub.find((s) => s.slug === subject.slug)?.titleAr).toBe("الفلسفة");
+
     const data = (await (homeLoader as (a: unknown) => unknown)({
       context: routeCtx,
       request: new Request("https://app.test/", { method: "GET", headers: { "user-agent": UA } }),
-    })) as { discover: DiscoverItem[] };
-    expect(data.discover.map((s) => s.slug)).toContain(subject.slug);
-    expect(data.discover.find((s) => s.slug === subject.slug)?.titleAr).toBe("الفلسفة");
+    })) as Record<string, unknown>;
+    expect(data.discover).toBeUndefined();
   });
 
-  it("no published term containers: discover is an empty list (clean shell)", async () => {
+  it("no published term containers: discovery is empty (clean shell)", async () => {
     await publishHome();
-    const data = (await (homeLoader as (a: unknown) => unknown)({
-      context: routeCtx,
-      request: new Request("https://app.test/", { method: "GET", headers: { "user-agent": UA } }),
-    })) as { discover: unknown };
-    expect(data.discover).toEqual([]);
+    expect(await studyHub(getDb(env))).toEqual([]);
   });
 
-  it("draft subjects never appear in discovery", async () => {
+  it("draft subjects/grades never appear in discovery", async () => {
     const db = getDb(env);
     await publishHome();
     const program = await createProgram(
@@ -120,11 +127,7 @@ describe("homepage discovery lists real published subjects", () => {
       { programId: program.id, titleAr: "مسودة", titleEn: "Draft", status: "draft", sortOrder: 0 },
       actor
     );
-    const data = (await (homeLoader as (a: unknown) => unknown)({
-      context: routeCtx,
-      request: new Request("https://app.test/", { method: "GET", headers: { "user-agent": UA } }),
-    })) as { discover: unknown };
-    expect(data.discover).toEqual([]);
+    expect(await studyHub(db)).toEqual([]);
   });
 
   it("unpublished (draft) home page: empty shell, no discovery cards", async () => {
@@ -134,8 +137,8 @@ describe("homepage discovery lists real published subjects", () => {
     const data = (await (homeLoader as (a: unknown) => unknown)({
       context: routeCtx,
       request: new Request("https://app.test/", { method: "GET", headers: { "user-agent": UA } }),
-    })) as { empty: boolean; discover: unknown };
+    })) as { empty: boolean; discover?: unknown };
     expect(data.empty).toBe(true);
-    expect(data.discover).toEqual([]);
+    expect(data.discover).toBeUndefined();
   });
 });

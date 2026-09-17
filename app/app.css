@@ -27,11 +27,29 @@
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 800; src: url("/fonts/cairo/cairo-ar-800.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFF; }
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 800; src: url("/fonts/cairo/cairo-lat-800.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
-/* ─── Design tokens (docs/ARCHITECTURE §9 — single source for the design system) ─── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   Design tokens — THE single source for the whole design system
+   (docs/ARCHITECTURE.md §9). One system, two clearly separated layers:
+
+   LAYER B · CONSOLE / APPEARANCE  —  `--color-brand-*`, `--color-accent-*` and
+     `--color-page-bg|surface|ink|line`, `--radius-*`, `--shadow-card`,
+     `--density`. Themeable: the /theme.css route re-emits them from the owner's
+     Appearance settings. They drive the ADMIN console and the STUDENT console
+     (that is what their violet/indigo default ramp is for). Public surfaces must
+     not read them — that is exactly how "half the site turns violet" happened.
+
+   LAYER A · PUBLIC IDENTITY  —  `--*-pub-*`, FROZEN.
+     The public platform (home, /study, /curriculum, catalog shells, auth, and
+     every CMS block) reads ONLY these. /theme.css never emits them, so no
+     Appearance change can repaint the public identity. Navy = primary, white =
+     default surface, very light blue = support, gold = minimal accent, and the
+     canvas stays 70–80% light. `--color-navy-*` / `--color-gold-*` are the raw
+     ramps Layer A is built from; prefer the semantic `pub` names in new code.
+   ═══════════════════════════════════════════════════════════════════════════ */
 @theme {
   --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Brand: violet / indigo — premium educational */
+  /* LAYER B · Brand: violet / indigo — CONSOLE ONLY (never a public surface) */
   --color-brand-50: #f5f3ff;
   --color-brand-100: #ede9fe;
   --color-brand-200: #ddd6fe;
@@ -44,7 +62,7 @@
   --color-brand-900: #4c1d95;
   --color-brand-950: #2e1065;
 
-  /* Accent: indigo for CTAs and highlights */
+  /* LAYER B · Accent: indigo — CONSOLE ONLY (never a public surface) */
   --color-accent-50: #eef2ff;
   --color-accent-100: #e0e7ff;
   --color-accent-400: #818cf8;
@@ -84,6 +102,179 @@
   --color-gold-900: #5a3a1b;
 
   --radius-card: 1.25rem;
+
+  /* ─── LAYER A · PUBLIC IDENTITY ───────────────────────────────────────────
+   * The public design system in one place: color, shape, type, rhythm.
+   * Registered here (not in :root) so `bg-pub-*`, `text-pub-ink`,
+   * `border-pub-line`, `rounded-pub-lg`, `shadow-pub-card`, `text-pub-xl` and
+   * `leading-pub-snug` exist as real utilities — no per-component redefinition.
+   * Semantic state colors are tokens too, so a warning can never become a
+   * random amber/emerald/rose again. */
+  --color-pub-bg: #ffffff; /* default public surface — white */
+  --color-pub-surface: #f2f6fc; /* support: very light blue panel (navy-50) */
+  --color-pub-surface-2: #e3ecf8; /* support: one step deeper (navy-100) */
+  --color-pub-tint: #d8e6f6; /* icon chips / pills on a light surface */
+  --color-pub-line: #dbe6f4; /* hairlines on light surfaces */
+  --color-pub-line-strong: #c6d9ef;
+
+  --color-pub-ink: #0f2342; /* primary ink = navy-900 */
+  --color-pub-ink-strong: #08152b; /* display ink = navy-950 */
+  --color-pub-ink-soft: #16305a; /* secondary ink = navy-800 */
+  --color-pub-muted: #2b518f; /* muted copy = navy-600 */
+
+  --color-pub-navy: #0f2342; /* the ONE dark band, rare by design */
+  --color-pub-navy-2: #16305a;
+  --color-pub-on-navy: #e3ecf8; /* ink on a navy field */
+  --color-pub-on-navy-soft: #c6d9ef;
+  --color-pub-on-navy-muted: #9bb9e1;
+
+  --color-pub-accent: #c9932a; /* gold — minimal accent only */
+  --color-pub-accent-strong: #a9741f;
+  --color-pub-accent-soft: #dfae42;
+  --color-pub-accent-bg: #fdf9ed;
+  --color-pub-accent-line: #f2dda1;
+
+  --color-pub-success: #065f46;
+  --color-pub-success-bg: #e8f5ef;
+  --color-pub-warning: #92600a;
+  --color-pub-warning-bg: #fdf4e3;
+  --color-pub-danger: #9f1c1c;
+  --color-pub-danger-bg: #fbeeee;
+
+  /* The ONE documented non-identity hue: WhatsApp's own brand green, used only
+     where the product literally hands the user to WhatsApp (floating contact
+     button, manual-payment CTA). Kept as a token so no raw hex is scattered
+     through the UI and no component invents a slightly different green. */
+  --color-pub-whatsapp: #25d366;
+  --color-pub-whatsapp-strong: #1ebe5b;  --color-pub-info: #16305a;
+  --color-pub-info-bg: #e3ecf8;
+
+  /* shape — one radius scale, one elevation scale */
+  --radius-pub-sm: 0.5rem;
+  --radius-pub-md: 0.75rem;
+  --radius-pub-lg: 1rem;
+  --radius-pub-xl: 1.25rem;
+  --radius-pub-2xl: 1.5rem;
+  --radius-pub-pill: 999px;
+  --radius-btn: 0.75rem; /* keeps ui/Button + admin rounded-[var(--radius-btn)] valid */
+
+  --shadow-pub-sm: 0 1px 2px rgb(8 21 43 / 0.05);
+  --shadow-pub-card: 0 1px 2px rgb(8 21 43 / 0.04), 0 14px 30px -22px rgb(8 21 43 / 0.16);
+  --shadow-pub-md: 0 10px 24px -14px rgb(8 21 43 / 0.18);
+  --shadow-pub-lg: 0 22px 44px -26px rgb(8 21 43 / 0.22);
+
+  /* type — fluid: one step per breakpoint, not two component-specific lists */
+  --font-display: "Cairo", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --text-pub-xs: 0.8125rem;
+  --text-pub-sm: clamp(0.875rem, 0.85rem + 0.14vw, 0.95rem);
+  --text-pub-base: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  --text-pub-md: clamp(1.0625rem, 0.98rem + 0.4vw, 1.3rem);
+  --text-pub-lg: clamp(1.25rem, 1.05rem + 0.9vw, 1.75rem);
+  --text-pub-xl: clamp(1.5rem, 1.15rem + 1.6vw, 2.25rem);
+  --text-pub-2xl: clamp(1.75rem, 1.2rem + 2.4vw, 2.9rem);
+  --leading-pub-tight: 1.32;
+  --leading-pub-snug: 1.55;
+  --leading-pub-normal: 1.8;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+/* The public *rhythm* scale — plain custom properties (never utilities), so
+   section padding / gaps / measure are one decision for every public surface,
+   and mobile is the base value rather than a desktop value with overrides. */
+:root {
+  --pub-gap: clamp(0.75rem, 0.6rem + 0.8vw, 1.5rem);
+  --pub-pad-y: clamp(2rem, 1.35rem + 2.6vw, 4.25rem);
+  --pub-pad-x: clamp(1rem, 0.65rem + 1.4vw, 2rem);
+  --pub-maxw: 74rem;
+  --pub-measure: 46rem;
+  --pub-fab-size: 3.5rem;
+  --pub-fab-inset: 1rem;
+  --pub-fab-clear: calc(var(--pub-fab-size) + var(--pub-fab-inset) * 2);
+}
+
+/* ─── LAYER A bridge · `.pub-root` ─────────────────────────────────────────
+ * Shared primitives (`~/components/ui/Button|Input|Alert`, and anything else
+ * written against LAYER B names) are used by BOTH consoles and by public pages
+ * such as /login, /register and /learn. We do not fork them into a second
+ * button system: the public shell adds one class, and inside that scope the
+ * LAYER B names resolve to the public identity. Two properties of this bridge
+ * matter:
+ *   • it is declared in LAYER A, and /theme.css only ever emits LAYER B on
+ *     :root — a closer ancestor wins for inheritance, so an Appearance change
+ *     (any brand ramp, any radius, any density) can no longer turn the public
+ *     site violet or rounded-square;
+ *   • the public identity stays the single visual language for public routes,
+ *     while the consoles keep the owner's theme.
+ */
+.pub-root {
+  --color-brand-50: var(--color-pub-surface);
+  --color-brand-100: var(--color-pub-surface-2);
+  --color-brand-200: var(--color-pub-line-strong);
+  --color-brand-300: var(--color-navy-300);
+  --color-brand-400: var(--color-navy-400);
+  --color-brand-500: var(--color-navy-500);
+  --color-brand-600: var(--color-pub-navy);
+  --color-brand-700: var(--color-pub-navy-2);
+  --color-brand-800: var(--color-navy-800);
+  --color-brand-900: var(--color-pub-ink);
+  --color-brand-950: var(--color-navy-950);
+  --color-accent-50: var(--color-pub-accent-bg);
+  --color-accent-100: var(--color-pub-accent-line);
+  --color-accent-400: var(--color-pub-accent-soft);
+  --color-accent-500: var(--color-pub-accent);
+  --color-accent-600: var(--color-pub-accent-strong);
+  --color-accent-700: var(--color-gold-700);
+  /* shape + rhythm are identity too: one radius scale, one shadow, no density
+     squeezing on public surfaces */
+  --radius-sm: var(--radius-pub-sm);
+  --radius-md: var(--radius-pub-md);
+  --radius-lg: var(--radius-pub-lg);
+  --radius-xl: var(--radius-pub-xl);
+  --radius-2xl: var(--radius-pub-2xl);
+  --radius-base: var(--radius-pub-md);
+  --radius-btn: var(--radius-pub-md);
+  --radius-card: var(--radius-pub-xl);
+  --shadow-card: var(--shadow-pub-card);
+  --density: 1;
+  /* surfaces + semantic states, so a shared primitive cannot read the owner's
+     console page colour through the public shell */
+  --color-page-bg: var(--color-pub-bg);
+  --color-surface: var(--color-pub-bg);
+  --color-ink: var(--color-pub-ink);
+  --color-ink-muted: var(--color-pub-muted);
+  --color-line: var(--color-pub-line);
+  --color-success: var(--color-pub-success);
+  --color-success-soft: var(--color-pub-success-bg);
+  --color-warning: var(--color-pub-warning);
+  --color-warning-soft: var(--color-pub-warning-bg);
+  --color-error: var(--color-pub-danger);
+  --color-error-soft: var(--color-pub-danger-bg);
 }
 
 @layer base {
@@ -91,11 +282,18 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply font-sans text-slate-900 antialiased;
-    background-color: var(--color-page-bg, #faf8ff);
+    @apply font-sans antialiased;
+    /* PUBLIC canvas: white with navy ink (LAYER A). Consoles paint their own
+       surface (bg-slate-50/100 on their layout roots) and read LAYER B, so the
+       owner's Appearance page background/ink can no longer leak into — or
+       recolor — the public site. `--font-body` is honoured when set: typography
+       is an owner choice, palette and shape are identity. */
+    background-color: var(--color-pub-bg);
+    color: var(--color-pub-ink);
+    font-family: var(--font-body, var(--font-sans));
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-brand-600;
+    @apply outline-2 outline-offset-2 outline-pub-accent-strong;
   }
   /* Forms: never smaller than 16px on iOS to avoid focus zoom */
   input,
@@ -112,13 +310,16 @@
   .cms-richtext h2 { font-size: 1.5rem; font-weight: 800; margin-block: 0 0.5em; }
   .cms-richtext h3 { font-size: 1.25rem; font-weight: 700; margin-block: 0 0.4em; }
   .cms-richtext ul, .cms-richtext ol { padding-inline-start: 1.25rem; margin-block: 0.5em; }
-  .cms-richtext a { color: var(--color-brand-700, #6d28d9); text-decoration: underline; }
-  .cms-richtext .rt-c-brand, .rt-c-brand { color: var(--color-brand-700, #6d28d9); }
-  .cms-richtext .rt-c-accent, .rt-c-accent { color: var(--color-accent-700, #4338ca); }
-  .cms-richtext .rt-c-success, .rt-c-success { color: var(--color-success, #059669); }
-  .cms-richtext .rt-c-warning, .rt-c-warning { color: var(--color-warning, #d97706); }
-  .cms-richtext .rt-c-error, .rt-c-error { color: var(--color-error, #e11d48); }
-  .cms-richtext .rt-c-ink, .rt-c-ink { color: var(--color-ink, #0f172a); }
+  /* Rich text reads LAYER A: the same ink/muted/accent as every other public
+     surface. The rt-c-* names are kept (saved snapshots use them) but their
+     meaning is now public-identity, never the console violet. */
+  .cms-richtext a { color: var(--color-pub-ink-soft); text-decoration: underline; }
+  .cms-richtext .rt-c-brand, .rt-c-brand { color: var(--color-pub-ink-soft); }
+  .cms-richtext .rt-c-accent, .rt-c-accent { color: var(--color-pub-accent-strong); }
+  .cms-richtext .rt-c-success, .rt-c-success { color: var(--color-pub-success); }
+  .cms-richtext .rt-c-warning, .rt-c-warning { color: var(--color-pub-warning); }
+  .cms-richtext .rt-c-error, .rt-c-error { color: var(--color-pub-danger); }
+  .cms-richtext .rt-c-ink, .rt-c-ink { color: var(--color-pub-ink); }
   .cms-richtext .rt-align-start { text-align: start; }
   .cms-richtext .rt-align-center { text-align: center; }
   .cms-richtext .rt-align-end { text-align: end; }
@@ -134,70 +335,164 @@
   padding-top: max(env(safe-area-inset-top), 0.25rem);
 }
 
-/* ─── Decorative identity utilities (owner brief §16) ──────────────────────
- * Pure CSS academic ornamentation — zero image files, zero network cost:
- *   decor-rules   faint concentric rings (SVG-free, gradient-based)
- *   decor-meander classical key/meander band as a repeating gradient
- *   decor-hairline gold hairline rule with a centered diamond
- * All are decorative only: consumers pair them with aria-hidden + nearest
- * stacking context, they carry no content and never capture pointer events. */
-@utility decor-rings {
+/* ─── Decorative identity utilities (owner brief §14–§16) ──────────────────
+ * ONE restrained ornament system, pure CSS (zero image files, zero network
+ * cost), sized for a white-first public surface:
+ *   decor-wash     the single background field — a faint light-blue radial
+ *                  wash that fades to the surface (replaces rings + meander +
+ *                  gold blooms stacking on top of each other)
+ *   decor-hairline the single divider — a line with one centered diamond
+ * Anything heavier is decorative overload: new code must not add another
+ * ornament layer, and every use stays aria-hidden + pointer-events-none. */
+@utility decor-wash {
   background-image:
-    repeating-radial-gradient(circle at center, color-mix(in srgb, var(--color-navy-400, #6792ce) 16%, transparent) 0 1px, transparent 1px 74px);
+    radial-gradient(120% 90% at 85% 0%, var(--color-pub-surface-2) 0%, transparent 55%),
+    radial-gradient(100% 80% at 10% 100%, var(--color-pub-surface) 0%, transparent 60%);
 }
 
-@utility decor-meander {
-  background-image:
-    repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-gold-500, #c9932a) 55%, transparent) 0 10px, transparent 10px 20px),
-    repeating-linear-gradient(90deg, transparent 0 4px, color-mix(in srgb, var(--color-gold-500, #c9932a) 55%, transparent) 4px 6px, transparent 6px 14px, color-mix(in srgb, var(--color-gold-500, #c9932a) 55%, transparent) 14px 16px, transparent 16px 20px);
-  background-size: 20px 100%, 20px 100%;
-  background-position: 0 0, 0 0;
+/* Public layout primitives — the reason every section reads the same.
+   Section rhythm, container measure, grid gap and text measure are decided ONCE
+   here (mobile-first clamp), so a block never re-invents spacing. */
+@utility pub-section {
+  padding-block: var(--pub-pad-y);
+  padding-inline: var(--pub-pad-x);
+}
+@utility pub-container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--pub-maxw);
+}
+@utility pub-grid {
+  display: grid;
+  gap: var(--pub-gap);
+}
+@utility pub-measure {
+  max-width: var(--pub-measure);
 }
 
+/* A real diamond (a filled square turned 45°). It used to be two crossing
+   diagonal strokes, which at 8px reads as a "close" glyph — an icon that means
+   "dismiss", on an ornament. */
 @utility decor-diamond {
-  background-image: linear-gradient(45deg, transparent 46%, color-mix(in srgb, var(--color-gold-500, #c9932a) 70%, transparent) 46% 54%, transparent 54%),
-    linear-gradient(-45deg, transparent 46%, color-mix(in srgb, var(--color-gold-500, #c9932a) 70%, transparent) 46% 54%, transparent 54%);
+  background-color: color-mix(in srgb, var(--color-pub-accent) 70%, transparent);
+  border-radius: 1px;
+  transform: rotate(45deg);
 }
 
-/* Thinker portraits are masked background layers, not thumbnails. They fade
- * into the content side of the frame so titles and CTAs stay readable.
- * Logical sides: LTR portrait sits on the right, RTL on the left. */
+/* ─── Thinker portraits — the ONE decorative identity system (§14–§19) ──────
+ * The assets in public/visuals/thinkers/ are 900×604 photographs: a thinker lit
+ * against a deep-navy field, face at roughly x=65% / y=30% (measured per file —
+ * all twelve share that composition). Two consequences are encoded here rather
+ * than in per-component hacks:
+ *   • the crop must be deliberate, so `object-position` is fixed once;
+ *   • one duotone (navy) turns a colour photograph into platform identity
+ *     instead of a stock photo, and it works on white AND on navy.
+ * Presentations (app/components/visuals/ThinkerPortrait.tsx):
+ *   .thinker-avatar  small legible face for light surfaces
+ *   .thinker-figure  a subject card's own figure: cropped band/column, masked out
+ *                    under the copy (light surfaces only)
+ *   .thinker-plate   the figure fills a navy plate (the homepage hero visual)
+ *   .thinker-portrait a masked watermark, for navy bands only
+ * No opacity is declared here: the component owns strength per breakpoint, and
+ * an unlayered rule would silently beat those utilities.
+ */
+.thinker-avatar,
+.thinker-plate,
 .thinker-portrait {
-  mask-image:
-    linear-gradient(to left, #000 0%, #000 32%, transparent 88%),
-    linear-gradient(to top, #000 0%, #000 62%, transparent 100%);
-  -webkit-mask-image:
-    linear-gradient(to left, #000 0%, #000 32%, transparent 88%),
-    linear-gradient(to top, #000 0%, #000 62%, transparent 100%);
-  mask-composite: intersect;
-  -webkit-mask-composite: source-in;
+  object-fit: cover;
+  object-position: 65% 28%;
+  filter: grayscale(1) sepia(0.55) hue-rotate(186deg) saturate(1.5) brightness(1.02) contrast(1.06);
 }
-[dir="rtl"] .thinker-portrait {
-  mask-image:
-    linear-gradient(to right, #000 0%, #000 32%, transparent 88%),
-    linear-gradient(to top, #000 0%, #000 62%, transparent 100%);
-  -webkit-mask-image:
-    linear-gradient(to right, #000 0%, #000 32%, transparent 88%),
-    linear-gradient(to top, #000 0%, #000 62%, transparent 100%);
-  mask-composite: intersect;
-  -webkit-mask-composite: source-in;
+
+/* The avatar is a shell that clips, because the crop below ZOOMS the photo past
+ * its own box: without a clipping parent a 56px face would paint 106px wide and
+ * spill over the heading beside it (exactly what happened when the transform sat
+ * on the <img> alone). */
+.thinker-avatar-shell {
+  display: inline-block;
+  overflow: hidden;
+  flex: none;
+  border-radius: 9999px;
+  background-color: var(--color-pub-navy);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-pub-line-strong) 70%, transparent);
+}
+.thinker-avatar {
+  /* 56px of a 900×604 photo is otherwise the navy field, not a face: the crop
+     is pinned to the end edge and then zoomed about the face. Measured against
+     all twelve assets (qa-out avatar lab) — every one frames head-and-shoulders
+     with this pair, which is why it lives here instead of per call site. The
+     shell above is what keeps that zoom inside the layout box. */
+  width: 100%;
+  height: 100%;
+  object-position: 100% 24%;
+  transform: scale(1.9);
+  transform-origin: 66% 26%;
+}
+
+/*
+ * The answer to a specific physical fact: a dark navy photograph on a LIGHT
+ * surface. Anything else there reads as a rendering bug, so the subject card's
+ * own figure is `.thinker-figure` — full tonal range, cropped, partially visible,
+ * masked out on the reading side so the title, description and CTA always sit on
+ * clean white. Mobile gets it as a top band instead of a side column. Opacity and
+ * size stay at the call site (an unlayered rule here would beat the utilities).
+ */
+.thinker-figure {
+  object-fit: cover;
+  object-position: 74% 20%;
+  filter: grayscale(1) sepia(0.5) hue-rotate(188deg) saturate(1.35) brightness(1.05) contrast(1.08);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 56%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 56%, transparent 100%);
+}
+@media (min-width: 40rem) {
+  .thinker-figure {
+    mask-image: linear-gradient(to right, transparent 0%, #000 44%, #000 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 44%, #000 100%);
+  }
+  [dir="rtl"] .thinker-figure {
+    mask-image: linear-gradient(to left, transparent 0%, #000 44%, #000 100%);
+    -webkit-mask-image: linear-gradient(to left, transparent 0%, #000 44%, #000 100%);
+  }
+}
+
+/*
+ * The corner signature on a LIGHT panel (the hero identity frame, the teacher
+ * card): the platform's thinker, small and quiet — but quiet ≠ invisible, so it
+ * keeps a full navy duotone and dissolves with a vertical mask instead of being
+ * faded to nothing. Size/opacity stay at the call site, and `--rise` flips the
+ * fade for a bottom-corner element.
+ */
+.thinker-engrave {
+  object-fit: cover;
+  object-position: 66% 22%;
+  filter: grayscale(1) sepia(0.5) hue-rotate(190deg) saturate(1.5) brightness(1.02) contrast(1.35);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 44%, transparent 94%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 44%, transparent 94%);
+}
+.thinker-engrave--rise {
+  mask-image: linear-gradient(to top, #000 0%, #000 44%, transparent 94%);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 44%, transparent 94%);
 }
 @media (max-width: 639px) {
+  /* Phones get a tighter crop (the face, not the shoulder) and a softer fade,
+     so the figure never turns into a full-width poster. */
+  .thinker-plate,
   .thinker-portrait {
-    mask-image:
-      linear-gradient(to left, #000 0%, #000 18%, transparent 72%),
-      linear-gradient(to top, #000 0%, #000 70%, transparent 100%);
-    -webkit-mask-image:
-      linear-gradient(to left, #000 0%, #000 18%, transparent 72%),
-      linear-gradient(to top, #000 0%, #000 70%, transparent 100%);
+    object-position: 66% 20%;
   }
+  /* the avatar keeps its measured crop on phones too — it is a 44–56px face, so
+     a looser crop there loses the person entirely */
+  .thinker-avatar {
+    object-position: 100% 24%;
+  }
+  .thinker-portrait,
   [dir="rtl"] .thinker-portrait {
     mask-image:
-      linear-gradient(to right, #000 0%, #000 18%, transparent 72%),
-      linear-gradient(to top, #000 0%, #000 70%, transparent 100%);
+      linear-gradient(to right, #000 0%, #000 22%, transparent 76%),
+      linear-gradient(to top, #000 0%, #000 66%, transparent 100%);
     -webkit-mask-image:
-      linear-gradient(to right, #000 0%, #000 18%, transparent 72%),
-      linear-gradient(to top, #000 0%, #000 70%, transparent 100%);
+      linear-gradient(to right, #000 0%, #000 22%, transparent 76%),
+      linear-gradient(to top, #000 0%, #000 66%, transparent 100%);
   }
 }
 

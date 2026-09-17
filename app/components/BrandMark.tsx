@@ -11,11 +11,11 @@ export function BrandMark({
    */
   tone?: "onLight" | "onDark";
 }) {
-  const labelCls = tone === "onDark" ? "text-white" : "text-slate-900";
+  const labelCls = tone === "onDark" ? "text-pub-bg" : "text-pub-ink";
   return (
     <span className="inline-flex items-center gap-2.5">
       <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800 text-white shadow-md"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pub-xl bg-pub-navy text-pub-bg shadow-pub-card"
         aria-hidden="true"
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -24,7 +24,13 @@ export function BrandMark({
         </svg>
       </span>
       {!compact && (
-        <span className={`hidden text-base font-bold tracking-tight sm:inline sm:text-lg ${labelCls}`}>{name}</span>
+        /* Arabic glyphs are far wider than the `0` that `ch` measures, so a
+           max-width here used to clip the name away. It is allowed to shrink
+           and ellipsize instead, and it stays hidden only on the narrowest
+           phones, where the header would otherwise cram. */
+        <span className={`hidden min-w-0 truncate align-middle text-sm font-bold tracking-tight whitespace-nowrap min-[380px]:inline min-[380px]:text-base sm:text-lg ${labelCls}`}>
+          {name}
+        </span>
       )}
     </span>
   );

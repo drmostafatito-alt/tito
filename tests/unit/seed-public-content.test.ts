@@ -67,29 +67,46 @@ describe("seed — no fabricated payment destination", () => {
 });
 
 describe("recommended homepage preset — no dead destinations", () => {
-  it("points exam destinations at the resolved Questions Platform, not at a fragment", () => {
-    expect(presetRaw).toContain("exam:external");
+  const preset = JSON.parse(presetRaw) as {
+    sections: Array<{
+      children?: Array<{ type: string; props: { items?: Array<{ title?: { ar?: string }; href?: string }> } }>;
+    }>;
+  };
+  const blocks = preset.sections.flatMap((sec) => sec.children ?? []);
+  const types = blocks.map((b) => b.type);
+
+  it("enters exams through the data-driven exam_platform block, never a fake link", () => {
+    // v2 dropped `exam:external` from the preset: a hard-coded external exam
+    // destination would send students somewhere the owner never configured.
+    // The exam entry is now ONE block that renders only while the Questions
+    // Platform URL is set (server/cms/render.server.ts), and disappears with it.
+    expect(types).toContain("exam_platform");
+    expect(presetRaw).not.toContain("exam:external");
     // A bare "#exams" would be a dead anchor whenever the exams section collapses.
     expect(presetRaw).not.toContain('"#exams"');
   });
 
-  it("no longer sends five different journey steps to the course catalog", () => {
-    const preset = JSON.parse(presetRaw) as {
-      sections: Array<{ children?: Array<{ type: string; props: { items?: Array<{ title?: { ar?: string }; href?: string }> } }> }>;
-    };
-    const steps = preset.sections
-      .flatMap((s) => s.children ?? [])
-      .filter((c) => c.type === "journey_steps")
-      .flatMap((c) => c.props.items ?? []);
+  it("ships exactly one subject-discovery experience", () => {
+    expect(types.filter((t) => t === "study_subjects")).toHaveLength(1);
+    // The grade entry ("اختر صفك" — `grade_cards`, restored for the v3 composition)
+    // is deliberately NOT a second shelf: it appears once, it renders only grades
+    // that actually have published subjects, and its cards resolve to /study (or
+    // straight to the grade's only published subject) — asserted end-to-end in
+    // tests/e2e/homepage.spec.ts. `/grades/:slug` stays a canonical SEO page that
+    // the homepage never advertises.
+    expect(types.filter((t) => t === "grade_cards")).toHaveLength(1);
+    for (const dup of ["course_cards", "subject_cards", "program_cards"]) expect(types).not.toContain(dup);
+  });
 
+  it("sends every journey step to a real destination and never to /courses", () => {
+    const steps = blocks.filter((b) => b.type === "journey_steps").flatMap((b) => b.props?.items ?? []);
     expect(steps.length).toBeGreaterThan(0);
-    const hrefs = steps.map((s) => s.href ?? "");
-    // Each step must have its own destination: at most the two steps that are
-    // genuinely the catalog ("ابدأ الشرح") may repeat /courses.
-    expect(hrefs.filter((h) => h === "/courses").length).toBeLessThanOrEqual(1);
-    // Real in-page anchors and real routes only — no 404s, no invented pages.
+    const hrefs = steps.map((st) => st.href ?? "");
+    // The public journey is السنة → الصف → المادة → الترم → الدرس and it starts at
+    // /study; the legacy catalog stays reachable by URL/SEO, never as a CTA.
+    expect(hrefs.filter((h) => h === "/courses")).toHaveLength(0);
     for (const h of hrefs) {
-      expect(h === "" || h.startsWith("/") || h === "#videos" || h === "#books" || h === "exam:external").toBe(true);
+      expect(h === "" || h.startsWith("/")).toBe(true);
     }
   });
 });

@@ -10,6 +10,7 @@ import { grades, subjects } from "~server/db/schema";
 import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
 import { Card, CardBody } from "~/components/ui/Card";
+import { pubBtnSm } from "~/lib/publicStyles";
 import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~/cms/jsonld";
@@ -116,7 +117,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
         const site = root.siteName ? (l === "ar" ? root.siteName.ar : root.siteName.en) : "";
         let baseDesc: string;
         if (l === "ar") {
-          baseDesc = g ? `${s} — ${g}: كورسات ودروس ومراجعات على منصة ${site}.` : `${s}: كورسات ودروس ومراجعات على منصة ${site}.`;
+          baseDesc = g ? `${s} — ${g}: محتوى تعليمي ودروس ومراجعات على منصة ${site}.` : `${s}: محتوى تعليمي ودروس ومراجعات على منصة ${site}.`;
         } else {
           baseDesc = g ? `${s} — ${g}: courses, lessons and revision on the ${site} platform.` : `${s}: courses, lessons and revision on the ${site} platform.`;
         }
@@ -143,7 +144,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   }
   const crumbs: Array<{ name: string; url?: string | null }> = [
     { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
-    { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+    { name: locale === "ar" ? "المحتوى التعليمي" : "Learning content", url: "/study" },
   ];
   if (loaderData.program.slug && loaderData.program.titleAr) {
     crumbs.push({ name: locale === "ar" ? loaderData.program.titleAr : loaderData.program.titleEn, url: `/programs/${loaderData.program.slug}` });
@@ -191,24 +192,24 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
   const desc = locale === "ar" ? subject.descriptionAr : subject.descriptionEn;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
+    <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+      <nav aria-label="breadcrumb" data-allow-small className="mb-3 text-pub-sm text-pub-muted">
+        <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         {program.slug && program.titleAr && (
           <>
             <span className="mx-1.5" aria-hidden>›</span>
-            <Link to={`/programs/${program.slug}`} className="hover:text-brand-600">{c(program)}</Link>
+            <Link to={`/programs/${program.slug}`} className="hover:text-pub-navy">{c(program)}</Link>
           </>
         )}
         <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{c(subject)}</span>
+        <span className="font-medium text-pub-ink-soft">{c(subject)}</span>
       </nav>
-      <h1 className="text-2xl font-bold">{c(subject)}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink">{c(subject)}</h1>
+      {desc && <p className="mt-2 text-pub-muted">{desc}</p>}
       {grade && (
         <Link
           to={`/grades/${grade.slug}`}
-          className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-300 hover:text-brand-600"
+          className={pubBtnSm("secondary", "mt-3")}
         >
           {c(grade)}
         </Link>
@@ -216,7 +217,7 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
       {buyOption && (
         <Link
           to={`/products/${buyOption.productSlug}`}
-          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+          className={pubBtnSm("primary", "mt-3")}
           data-testid="subject-buy-cta"
         >
           {t(locale, "commerce.buyCta")}
@@ -227,7 +228,7 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {courses.length === 0 ? (
-        <p className="mt-6 text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+        <p className="mt-6 text-pub-muted">{t(locale, "content.catalogEmpty")}</p>
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {courses.map((course: any) => {
@@ -243,12 +244,12 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
                     )}
                     <div className="p-4">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <h2 className="font-semibold text-slate-800 group-hover:text-brand-600">{c(course)}</h2>
+                        <h2 className="text-pub-md font-bold text-pub-ink group-hover:text-pub-navy">{c(course)}</h2>
                         <Badge tone={course.accessLevel === "public" ? "success" : course.accessLevel === "authenticated" ? "brand" : "neutral"}>
                           {t(locale, course.accessLevel === "public" ? "content.accessPublic" : course.accessLevel === "authenticated" ? "content.accessAuthenticated" : "content.accessEntitled")}
                         </Badge>
                       </div>
-                      {meta.length > 0 && <p className="text-sm text-slate-500">{meta.join(" · ")}</p>}
+                      {meta.length > 0 && <p className="text-pub-sm text-pub-muted">{meta.join(" · ")}</p>}
                     </div>
                   </Link>
                 </CardBody>

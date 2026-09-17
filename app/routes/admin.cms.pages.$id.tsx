@@ -271,7 +271,12 @@ export default function AdminCmsPageBuilder({ loaderData }: Route.ComponentProps
   const statusTone = page.status === "published" ? "success" : page.status === "archived" ? "neutral" : "warning";
   const groupedBlocks = BLOCK_GROUPS.map((g) => ({
     group: g,
-    types: Object.entries(BLOCKS).filter(([, def]) => def.group === g && !def.section && g !== "layout").map(([type]) => type),
+    // `deprecated` block types (legacy marketing blocks kept only so saved
+    // snapshots still render) stay OUT of the palette: an owner can never add a
+    // second hero, a duplicate course shelf or a "الكورسات" band by accident.
+    types: Object.entries(BLOCKS)
+      .filter(([, def]) => def.group === g && !def.section && !def.deprecated && g !== "layout")
+      .map(([type]) => type),
   })).filter((g) => g.types.length > 0);
 
   return (

@@ -17,6 +17,7 @@ import {
   users,
   videos,
 } from "../db/schema";
+import { studyHub, type StudySubjectCard } from "../content/service.server";
 import { effectivePriceMinor } from "../commerce/service.server";
 import { formatMoney } from "../commerce/money";
 import { resolveQuestionPlatformUrl } from "../../app/lib/question-platform";
@@ -289,7 +290,10 @@ export async function resolveDynamicBlocks(
     if (r.thumbnailFileId) imageIds.push(r.thumbnailFileId);
     return {
       id: r.id,
-      href: `/courses?subject=${encodeURIComponent(r.slug)}`,
+      // `/study/:subjectSlug` is the single public learning front door; the
+      // legacy `/courses?subject=` catalog filter remains reachable for old
+      // links/SEO but no longer receives the platform's own CTAs.
+      href: `/study/${r.slug}`,
       title: L(r.titleAr, r.titleEn),
       desc: L(r.descriptionAr, r.descriptionEn),
       image: sc.showImage ? r.thumbnailFileId : null,
@@ -301,7 +305,7 @@ export async function resolveDynamicBlocks(
 
   const programCard = (r: (typeof programRows)[number]): CardView => ({
     id: r.id,
-    href: `/courses?program=${encodeURIComponent(r.slug)}`,
+    href: `/study`, // program cards explain the journey; /study starts it
     title: L(r.titleAr, r.titleEn),
     desc: L(r.descriptionAr, r.descriptionEn),
     image: null,
@@ -350,6 +354,10 @@ export async function resolveDynamicBlocks(
           rows = ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is (typeof programRows)[number] => Boolean(r));
         }
         out[req.blockId] = rows.slice(0, limit).map(programCard);
+        break;
+      }
+      case "study_subjects": {
+        out[req.blockId] = await resolveStudySubjectCards(db, limit);
         break;
       }
       case "free_content":
@@ -414,13 +422,26 @@ async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean
   const gradeIds = gradeRows.map((g) => g.id);
 
   const subjectRows = await db
-    .select({ id: subjects.id, gradeId: subjects.gradeId })
+    .select({
+      id: subjects.id,
+      gradeId: subjects.gradeId,
+      slug: subjects.slug,
+      titleAr: subjects.titleAr,
+      titleEn: subjects.titleEn,
+    })
     .from(subjects)
     .where(and(inArray(subjects.gradeId, gradeIds), eq(subjects.status, "published"), isNull(subjects.deletedAt)));
   const subjectIds = subjectRows.map((s) => s.id);
   const gradeBySubject = new Map(subjectRows.map((s) => [s.id, s.gradeId] as const));
   const subjectCount = new Map<string, number>();
-  for (const s of subjectRows) subjectCount.set(s.gradeId, (subjectCount.get(s.gradeId) ?? 0) + 1);
+  /** Real subject names per grade, so a grade card names what is actually inside. */
+  const subjectsByGrade = new Map<string, Array<{ slug: string; titleAr: string; titleEn: string }>>();
+  for (const s of subjectRows) {
+    subjectCount.set(s.gradeId, (subjectCount.get(s.gradeId) ?? 0) + 1);
+    const list = subjectsByGrade.get(s.gradeId) ?? [];
+    list.push({ slug: s.slug, titleAr: s.titleAr, titleEn: s.titleEn });
+    subjectsByGrade.set(s.gradeId, list);
+  }
 
   const courseRows = subjectIds.length
     ? await db
@@ -491,11 +512,18 @@ async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean
     if (vids > 0) chip("home.chipVideos", vids);
     if (gradeWithProduct.has(g.id)) chip("home.chipBooks");
     if (examsConfigured) chip("home.chipExams");
+    const list = subjectsByGrade.get(g.id) ?? [];
+    // Destination is always the learning hub (owner brief: /study is the front
+    // door, `/grades/...` stays alive for SEO only). With exactly one published
+    // subject there is nothing to choose, so the card goes straight to it.
+    const href = list.length === 1 ? `/study/${list[0].slug}` : "/study";
     return {
       id: g.id,
-      href: `/grades/${g.slug}`,
+      href,
       title: L(g.titleAr, g.titleEn),
-      desc: L("", ""),
+      desc: list.length
+        ? L(list.map((x) => x.titleAr).filter(Boolean).join(" · "), list.map((x) => x.titleEn).filter(Boolean).join(" · "))
+        : L("", ""),
       image: null,
       badge: g.programTitleAr || g.programTitleEn ? L(g.programTitleAr, g.programTitleEn) : null,
       meta: null,
@@ -503,6 +531,46 @@ async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean
       chips,
     } satisfies CardView;
   });
+}
+
+/**
+ * The ONE public subject-discovery surface (owner brief §12/§13): the exact
+ * same data as /study (`studyHub`), delivered to a CMS block so the homepage
+ * shows one discovery experience instead of a second hand-built band.
+ *
+ * Empty-first is structural: a subject appears only when it has a published
+ * term container, so a fresh install renders nothing and the section collapses.
+ * Chips are real counts (terms / lessons) — never a marketing claim.
+ */
+async function resolveStudySubjectCards(db: DB, limit: number): Promise<CardView[]> {
+  const rows = await studyHub(db);
+  return rows.slice(0, limit).map((r) => studySubjectCard(r));
+}
+
+function studySubjectCard(r: StudySubjectCard): CardView {
+  const chips: LStr[] = [];
+  if (r.termCount > 0) chips.push({ ar: t("ar", "study.termsCount", { n: r.termCount }), en: t("en", "study.termsCount", { n: r.termCount }) });
+  if (r.lessonCount > 0) chips.push({ ar: t("ar", "study.lessonsCount", { n: r.lessonCount }), en: t("en", "study.lessonsCount", { n: r.lessonCount }) });
+  // Journey line (owner brief §10): السنة الدراسية → الصف → المادة.
+  const journey = (ar: boolean) =>
+    [
+      (ar ? r.yearTitleAr : r.yearTitleEn) ? `${t(ar ? "ar" : "en", "study.yearLabel")}: ${ar ? r.yearTitleAr : r.yearTitleEn}` : "",
+      `${t(ar ? "ar" : "en", "study.gradeLabel")}: ${ar ? r.gradeTitleAr : r.gradeTitleEn}`,
+      (ar ? r.programTitleAr : r.programTitleEn) ? `${t(ar ? "ar" : "en", "study.programLabel")}: ${ar ? r.programTitleAr : r.programTitleEn}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  return {
+    id: r.slug,
+    href: `/study/${r.slug}`,
+    title: L(r.titleAr, r.titleEn),
+    desc: L(r.descriptionAr, r.descriptionEn),
+    image: null,
+    badge: null,
+    meta: { ar: journey(true), en: journey(false) },
+    cta: L(t("ar", "study.openSubject"), t("en", "study.openSubject")),
+    chips,
+  } satisfies CardView;
 }
 
 /**

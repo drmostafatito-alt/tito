@@ -501,7 +501,7 @@ export default function OrderDetailPage({ loaderData }: Route.ComponentProps) {
                       href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer nofollow"
-                      className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#25D366] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1ebe5b]"
+                      className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-pub-pill bg-pub-whatsapp px-4 py-2 text-sm font-semibold text-white hover:bg-pub-whatsapp-strong"
                       data-testid="whatsapp-receipt-link"
                     >
                       {t(locale, "commerce.sendReceiptWhatsapp")}

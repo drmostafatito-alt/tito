@@ -42,6 +42,21 @@ test.describe("homepage public chrome", () => {
     expect(ok).toBe(true);
   });
 
+  test("the grade entry walks into /study and never opens a second catalog", async ({ page }) => {
+    // v3 restores "اختر صفّك" as the FIRST step of the journey, so it must not
+    // become a second discovery surface: every card (and every chip inside it)
+    // resolves to the study hub or to the grade's own published subject.
+    await page.goto("/");
+    const cards = page.locator('section:has(h2:text("اختر")) a');
+    await expect(cards.first()).toBeVisible();
+    const n = await cards.count();
+    expect(n).toBeGreaterThan(0);
+    for (let i = 0; i < n; i++) {
+      const href = (await cards.nth(i).getAttribute("href")) ?? "";
+      expect(href === "/study" || href.startsWith("/study/")).toBe(true);
+    }
+  });
+
   test("hero heading and philosophy/psychology identity are visible", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("h1").first()).toBeAttached();
@@ -57,18 +72,21 @@ test.describe("homepage public chrome", () => {
   });
 
   test("locale switcher writes the cookie on localhost HTTP and flips dir", async ({ page }) => {
+    // Asserted on strings the composition itself owns (CMS copy + identity
+    // tagline), so the test follows the approved public vocabulary instead of
+    // pinning one marketing sentence.
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-    await expect(page.locator("body")).toContainText("دروس ومراجعات");
+    await expect(page.locator("body")).toContainText("كتب ومذكرات");
     await page.getByRole("button", { name: /english/i }).click();
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     const cookies = await page.context().cookies(BASE);
     expect(cookies.find((c) => c.name === "edu_locale")?.value).toBe("en");
-    await expect(page.locator("body")).toContainText(/Lessons & revision/);
-    await expect(page.locator("body")).toContainText(/Notes & files/);
-    await expect(page.locator("body")).not.toContainText("دروس ومراجعات");
+    await expect(page.locator("body")).toContainText(/Books & notes/);
+    await expect(page.locator("body")).toContainText(/Philosophy & Psychology/);
+    await expect(page.locator("body")).not.toContainText("كتب ومذكرات");
     await expect(page.getByRole("button", { name: /عربي|arabic/i })).toBeVisible();
   });
 

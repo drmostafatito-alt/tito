@@ -12,6 +12,7 @@ import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { breadcrumbJsonLd } from "~/cms/jsonld";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
+import { CARD_BODY, CARD_META, PUB_CARD, pubBtnSm } from "~/lib/publicStyles";
 import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
 import { ContentTypeChips } from "~/components/study/ContentTypeChips";
 import { thinkerAlternate, thinkerFor, type StudyItemKind } from "~/lib/thinkers";
@@ -180,23 +181,35 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="relative isolate overflow-x-hidden">
-      <section className="relative isolate overflow-hidden bg-gradient-to-b from-navy-100/70 via-navy-50/30 to-transparent">
+      <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
-        <ThinkerPortrait thinker={heroThinker} intensity="subtle" eager />
-        <div className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:py-12">
-          <nav className="mb-3 flex flex-wrap items-center gap-1 text-sm text-navy-500" aria-label={t(locale, "common.breadcrumb")}>
+        <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
+          <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
             <span aria-hidden="true"> / </span>
             <Link to="/study" className="hover:underline">{t(locale, "study.title")}</Link>
             <span aria-hidden="true"> / </span>
-            <span className="font-medium text-navy-800">{ar ? loaderData.subject.titleAr : loaderData.subject.titleEn}</span>
+            <span className="font-medium text-pub-navy-2">{ar ? loaderData.subject.titleAr : loaderData.subject.titleEn}</span>
           </nav>
 
-          <h1 className="max-w-[18rem] text-3xl font-extrabold tracking-tight text-navy-900 sm:max-w-xl sm:text-4xl">
-            {ar ? loaderData.subject.titleAr : loaderData.subject.titleEn}
-          </h1>
-          <DecorHairline className="mt-3 max-w-[8rem] text-gold-500" />
-          <p className="mt-3 text-sm text-slate-600" data-testid="study-subject-context">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-5">
+            {!loaderData.years.length ? null : (
+              /* Beside the title, never behind it (see /study for the rule). */
+              <ThinkerPortrait
+                thinker={heroThinker}
+                presentation="avatar"
+                eager
+                className="h-14 w-14 shrink-0 sm:h-20 sm:w-20"
+              />
+            )}
+            <div className="min-w-0">
+              <h1 className="max-w-[26ch] text-pub-h2 font-extrabold tracking-tight text-pub-ink sm:text-pub-h1">
+                {ar ? loaderData.subject.titleAr : loaderData.subject.titleEn}
+              </h1>
+              <DecorHairline className="mt-3 max-w-[8rem] text-pub-accent" />
+            </div>
+          </div>
+          <p className="mt-3 text-pub-sm text-pub-muted" data-testid="study-subject-context">
             {[
               loaderData.program ? `${t(locale, "study.programLabel")}: ${pick(loaderData.program)}` : null,
               loaderData.grade ? `${t(locale, "study.gradeLabel")}: ${pick(loaderData.grade)}` : null,
@@ -205,27 +218,29 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
               .join(" · ")}
           </p>
           {(ar ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn) && (
-            <p className="mt-2 max-w-xl text-sm text-slate-600">{ar ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn}</p>
+            <p className="mt-2 max-w-[var(--pub-measure)] text-pub-base leading-pub-normal text-pub-muted">
+              {ar ? loaderData.subject.descriptionAr : loaderData.subject.descriptionEn}
+            </p>
           )}
         </div>
       </section>
 
-      <div className="relative z-10 mx-auto max-w-4xl px-4 pb-16">
+      <div className="relative z-10 mx-auto w-full max-w-[56rem] px-[var(--pub-pad-x)] pb-[var(--pub-pad-y)]">
         {loaderData.years.length === 0 ? (
-          <p className="text-slate-500" data-testid="study-no-terms">{t(locale, "study.noTerms")}</p>
+          <p className="text-pub-muted" data-testid="study-no-terms">{t(locale, "study.noTerms")}</p>
         ) : (
           <div className="space-y-8">
             {loaderData.years.map((year, yi) => (
               <section key={year.id ?? `y-${yi}`} aria-labelledby={`year-${year.id ?? yi}`}>
                 {(year.titleAr || year.titleEn) && (
-                  <h2 id={`year-${year.id ?? yi}`} className="mb-3 text-xs font-semibold uppercase tracking-wide text-navy-500">
+                  <h2 id={`year-${year.id ?? yi}`} className="mb-3 text-pub-xs font-semibold uppercase tracking-wide text-pub-muted">
                     {t(locale, "study.yearLabel")}: <span dir="ltr">{pick(year)}</span>
                   </h2>
                 )}
 
                 {year.terms.length > 1 && (
                   <div className="mb-4" role="tablist" aria-label={t(locale, "study.chooseTerm")}>
-                    <p className="mb-2 text-sm font-medium text-navy-800">{t(locale, "study.chooseTerm")}</p>
+                    <p className="mb-2 text-pub-sm font-medium text-pub-navy-2">{t(locale, "study.chooseTerm")}</p>
                     <div className="flex flex-wrap gap-2">
                       {year.terms.map(({ term }) => {
                         const active = selected?.term.id === term.id;
@@ -235,11 +250,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                             to={`/study/${loaderData.subject.slug}?term=${encodeURIComponent(term.slug)}`}
                             role="tab"
                             aria-selected={active}
-                            className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                              active
-                                ? "bg-navy-900 text-white shadow-sm"
-                                : "border border-navy-200 bg-white text-navy-800 hover:border-gold-300 hover:bg-navy-50"
-                            }`}
+                            className={pubBtnSm(active ? "primary" : "secondary", "rounded-pub-pill px-4 py-2") + " text-pub-sm"}
                           >
                             {pick(term)}
                           </Link>
@@ -274,19 +285,24 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                     <div
                       key={term.id}
                       data-testid={`study-term-${term.slug}`}
-                      className="relative isolate overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white shadow-sm"
+                      className={`${PUB_CARD} isolate rounded-pub-2xl hover:shadow-pub-card`}
                     >
-                      {ti === 0 && <ThinkerPortrait thinker={thinker} intensity="whisper" />}
                       <div className="relative z-10 p-5 sm:p-6">
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                          <h3 className="text-lg font-extrabold text-navy-900">{pick(term)}</h3>
-                          <span className="text-xs text-slate-500">
+                          {/* A dark photograph at 25 % on white reads as a grey smudge,
+                              so the term panel carries the same small cropped avatar the
+                              cards use — legible identity, no wash behind the text. */}
+                          <span className="flex min-w-0 items-center gap-3">
+                            <ThinkerPortrait thinker={thinker} presentation="avatar" />
+                            <h3 className="text-pub-lg font-bold leading-pub-snug text-pub-ink">{pick(term)}</h3>
+                          </span>
+                          <span className={`text-pub-xs ${CARD_META}`}>
                             {t(locale, "study.lessonsCount", { n: lessons.length })}
                           </span>
                         </div>
 
                         {lessons.length === 0 ? (
-                          <p className="text-sm text-slate-500">{t(locale, "study.noLessons")}</p>
+                          <p className={`text-pub-sm ${CARD_BODY}`}>{t(locale, "study.noLessons")}</p>
                         ) : (
                           <ol className="flex flex-col gap-3" data-testid={`study-lessons-${term.slug}`}>
                             {lessons.map((l, idx) => {
@@ -296,23 +312,23 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                               return (
                                 <li
                                   key={l.id}
-                                  className="flex flex-col gap-3 rounded-2xl border border-navy-100 bg-navy-50/40 p-4 sm:flex-row sm:items-center sm:justify-between"
+                                  className="flex flex-col gap-3 rounded-pub-xl border border-pub-line bg-pub-surface p-4 sm:flex-row sm:items-center sm:justify-between"
                                 >
                                   <div className="flex min-w-0 items-start gap-3">
-                                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-navy-900 text-sm font-bold tabular-nums text-gold-300">
+                                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pub-md bg-pub-navy text-pub-sm font-bold tabular-nums text-pub-on-navy">
                                       {padIndex(idx + 1)}
                                     </span>
                                     <div className="min-w-0">
                                       {open ? (
                                         <Link
                                           to={href}
-                                          className="text-base font-semibold text-navy-900 hover:text-gold-700 hover:underline"
+                                          className="inline-flex min-h-11 items-center text-pub-base font-semibold text-pub-ink decoration-pub-accent underline-offset-4 hover:text-pub-accent-strong hover:underline"
                                           data-testid={`study-lesson-${l.slug}`}
                                         >
                                           {ar ? l.titleAr : l.titleEn}
                                         </Link>
                                       ) : (
-                                        <span className="text-base font-semibold text-navy-700" data-testid={`study-lesson-${l.slug}`}>
+                                        <span className="text-pub-base font-semibold text-pub-ink-soft" data-testid={`study-lesson-${l.slug}`}>
                                           {ar ? l.titleAr : l.titleEn}
                                         </span>
                                       )}
@@ -333,7 +349,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                                   {open ? (
                                     <Link
                                       to={href}
-                                      className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-navy-900 px-5 py-2 text-sm font-semibold text-white hover:bg-navy-800"
+                                      className={pubBtnSm("primary", "shrink-0")}
                                     >
                                       {t(locale, "study.startLesson")}
                                     </Link>
@@ -342,18 +358,18 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                                       {offer ? (
                                         <Link
                                           to={`/checkout/${offer.productSlug}`}
-                                          className="inline-flex min-h-11 items-center rounded-full bg-gold-500 px-4 py-2 text-sm font-semibold text-navy-950 hover:bg-gold-400"
+                                          className={pubBtnSm("gold", "")}
                                           data-testid={`study-subscribe-${term.slug}`}
                                         >
                                           {t(locale, "study.subscribeCta")}
-                                          <span dir="ltr" className="ms-1 text-xs">
+                                          <span dir="ltr" className="ms-1 text-pub-xs">
                                             {formatMoney(offer.minPriceMinor, offer.currency)}
                                           </span>
                                         </Link>
                                       ) : (
                                         <Link
                                           to="/activate"
-                                          className="inline-flex min-h-11 items-center rounded-full border border-navy-200 px-4 py-2 text-sm font-semibold text-navy-800 hover:bg-navy-50"
+                                          className={pubBtnSm("secondary", "")}
                                           data-testid={`study-activate-${term.slug}`}
                                         >
                                           {t(locale, "content.lockedActivate")}

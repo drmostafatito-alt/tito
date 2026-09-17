@@ -8,6 +8,7 @@ import { resolvePublicImageUrls } from "~server/cms/render.server";
 import { formatMoney } from "~server/commerce/money";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
+import { pubBtnSm } from "~/lib/publicStyles";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 
@@ -94,27 +95,27 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
   const description = locale === "ar" ? product.descriptionAr : product.descriptionEn;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
-      <nav className="text-xs text-slate-500" aria-label={t(locale, "common.breadcrumb")}>
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
+    <div className="mx-auto w-full max-w-[62rem] space-y-6 px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+      <nav className="text-pub-xs text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
+        <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         <span aria-hidden="true"> › </span>
-        <span className="text-slate-700">{name}</span>
+        <span className="text-pub-ink-soft">{name}</span>
       </nav>
 
       <Card>
         <CardBody className="space-y-4">
           {imageUrl && (
-            <img src={imageUrl} alt="" className="h-44 w-full rounded-xl object-cover" />
+            <img src={imageUrl} alt="" className="h-44 w-full rounded-pub-lg object-cover" />
           )}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-bold">{name}</h1>
+            <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink">{name}</h1>
             <Badge tone="brand">{t(locale, `commerce.kind_${product.kind}` as never)}</Badge>
           </div>
-          {description && <p className="text-sm leading-6 text-slate-600 whitespace-pre-line">{description}</p>}
+          {description && <p className="text-pub-sm leading-6 text-pub-muted whitespace-pre-line">{description}</p>}
 
           <div className="space-y-3 pt-2" data-testid="product-plans">
             {plans.length === 0 && (
-              <p className="text-sm text-slate-500">{t(locale, "commerce.noPlans")}</p>
+              <p className="text-pub-sm text-pub-muted">{t(locale, "commerce.noPlans")}</p>
             )}
             {plans.map((plan) => {
               const label = (locale === "ar" ? plan.labelAr : plan.labelEn) ||
@@ -122,11 +123,11 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
               return (
                 <div
                   key={plan.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-pub-lg border border-pub-line bg-pub-bg p-4"
                 >
                   <div>
                     <p className="font-semibold">{label}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-pub-xs text-pub-muted">
                       {plan.kind === "recurring" ? t(locale, "commerce.recurring") : t(locale, "commerce.oneTime")}
                       {plan.period === "custom" && plan.periodDays
                         ? ` · ${t(locale, "commerce.daysCount").replace("{n}", String(plan.periodDays))}`
@@ -136,19 +137,19 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                   <div className="flex items-center gap-3">
                     <div className="text-end">
                       {plan.compareAtMinor !== null && plan.compareAtMinor > plan.effectiveMinor && (
-                        <p className="text-xs text-slate-500 line-through" dir="ltr">
+                        <p className="text-pub-xs text-pub-muted line-through" dir="ltr">
                           {formatMoney(plan.compareAtMinor, plan.currency)}
                         </p>
                       )}
-                      <p className="text-lg font-bold text-brand-700" dir="ltr" data-testid="plan-price">
+                      <p className="text-pub-md font-bold text-pub-ink" dir="ltr" data-testid="plan-price">
                         {formatMoney(plan.effectiveMinor, plan.currency)}
                       </p>
-                      {plan.promoActive && <p className="text-xs font-semibold text-amber-600">{t(locale, "commerce.promo")}</p>}
+                      {plan.promoActive && <p className="text-pub-xs font-semibold text-pub-warning">{t(locale, "commerce.promo")}</p>}
                     </div>
                     {loggedIn ? (
                       <Link
                         to={`/checkout/${product.slug}?plan=${plan.id}`}
-                        className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                        className={pubBtnSm("primary")}
                         data-testid="buy-cta"
                       >
                         {t(locale, "commerce.buyNow")}
@@ -156,7 +157,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                     ) : (
                       <Link
                         to={`/login?next=/products/${product.slug}`}
-                        className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                        className={pubBtnSm("primary")}
                       >
                         {t(locale, "commerce.loginToBuy")}
                       </Link>
@@ -167,8 +168,8 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
             })}
           </div>
 
-          <p className="text-xs text-slate-500">
-            <Link to="/activate" className="underline hover:text-brand-600">{t(locale, "commerce.haveCode")}</Link>
+          <p className="text-pub-xs text-pub-muted">
+            <Link to="/activate" className="underline hover:text-pub-navy">{t(locale, "commerce.haveCode")}</Link>
           </p>
         </CardBody>
       </Card>
