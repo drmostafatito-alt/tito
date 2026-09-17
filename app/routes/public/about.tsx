@@ -179,7 +179,7 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
         square, never filtered, never replaced.
       */}
       <div className="grid items-start gap-[calc(var(--pub-gap)*1.5)] lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-1">
           {owner.photoUrl && (
             <div className="relative isolate overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
               <span aria-hidden="true" className="pointer-events-none absolute -end-10 -top-12 h-32 w-32 rounded-full bg-pub-tint" />
@@ -235,7 +235,10 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
           )}
         </div>
 
-        <div className="flex min-w-0 flex-col gap-3">
+        {/* On a phone the person comes first, then the picture and the contact
+            details; on a tablet/desktop the framed picture leads and the text
+            follows beside it. */}
+        <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-2">
           <h1 className="text-pub-h1 font-extrabold text-pub-navy [overflow-wrap:anywhere]">{name}</h1>
           {title && <p className="text-pub-md font-medium text-pub-ink-soft">{title}</p>}
           <p className={`${CARD_BODY} pub-measure`}>{t(locale, "seo.aboutBio", { name: siteName, tagline })}</p>
