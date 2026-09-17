@@ -42,6 +42,21 @@ test.describe("homepage public chrome", () => {
     expect(ok).toBe(true);
   });
 
+  test("the grade entry walks into /study and never opens a second catalog", async ({ page }) => {
+    // v3 restores "اختر صفّك" as the FIRST step of the journey, so it must not
+    // become a second discovery surface: every card (and every chip inside it)
+    // resolves to the study hub or to the grade's own published subject.
+    await page.goto("/");
+    const cards = page.locator('section:has(h2:text("اختر")) a');
+    await expect(cards.first()).toBeVisible();
+    const n = await cards.count();
+    expect(n).toBeGreaterThan(0);
+    for (let i = 0; i < n; i++) {
+      const href = (await cards.nth(i).getAttribute("href")) ?? "";
+      expect(href === "/study" || href.startsWith("/study/")).toBe(true);
+    }
+  });
+
   test("hero heading and philosophy/psychology identity are visible", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("h1").first()).toBeAttached();

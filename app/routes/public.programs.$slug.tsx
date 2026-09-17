@@ -135,7 +135,7 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
   return (
     <section className={`${PUB_SECTION} bg-pub-bg`}>
       <div className={PUB_INNER}>
-        <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")}>
+        <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
           <Link to="/programs" className="hover:text-pub-navy">{t(locale, "catalog.programs")}</Link>
           <span aria-hidden="true"> / </span>
           <span className="font-medium text-pub-navy-2">{locale === "ar" ? program.titleAr : program.titleEn}</span>

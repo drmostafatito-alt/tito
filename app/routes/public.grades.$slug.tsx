@@ -188,7 +188,7 @@ export default function GradePage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <nav aria-label="breadcrumb" className="mb-3 text-pub-sm text-pub-muted">
+      <nav aria-label="breadcrumb" data-allow-small className="mb-3 text-pub-sm text-pub-muted">
         <Link to="/programs" className="hover:text-pub-navy">{t(locale, "catalog.programs")}</Link>
         {program && (
           <>

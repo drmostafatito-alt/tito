@@ -11,11 +11,11 @@ export function BrandMark({
    */
   tone?: "onLight" | "onDark";
 }) {
-  const labelCls = tone === "onDark" ? "text-white" : "text-pub-ink";
+  const labelCls = tone === "onDark" ? "text-pub-bg" : "text-pub-ink";
   return (
     <span className="inline-flex items-center gap-2.5">
       <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-pub-navy to-pub-navy text-white shadow-md"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pub-xl bg-pub-navy text-pub-bg shadow-pub-card"
         aria-hidden="true"
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -24,7 +24,9 @@ export function BrandMark({
         </svg>
       </span>
       {!compact && (
-        <span className={`hidden text-base font-bold tracking-tight sm:inline sm:text-lg ${labelCls}`}>{name}</span>
+        <span className={`hidden max-w-[17ch] truncate align-middle text-base font-bold tracking-tight whitespace-nowrap sm:inline sm:text-lg ${labelCls}`}>
+          {name}
+        </span>
       )}
     </span>
   );

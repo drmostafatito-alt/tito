@@ -96,7 +96,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto w-full max-w-[62rem] space-y-6 px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <nav className="text-pub-xs text-pub-muted" aria-label={t(locale, "common.breadcrumb")}>
+      <nav className="text-pub-xs text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
         <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         <span aria-hidden="true"> › </span>
         <span className="text-pub-ink-soft">{name}</span>

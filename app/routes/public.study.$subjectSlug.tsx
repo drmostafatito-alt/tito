@@ -184,7 +184,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
       <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
         <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
-          <nav className="mb-3 flex flex-wrap items-center gap-1 text-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")}>
+          <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
             <span aria-hidden="true"> / </span>
             <Link to="/study" className="hover:underline">{t(locale, "study.title")}</Link>
@@ -240,7 +240,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
 
                 {year.terms.length > 1 && (
                   <div className="mb-4" role="tablist" aria-label={t(locale, "study.chooseTerm")}>
-                    <p className="mb-2 text-sm font-medium text-pub-navy-2">{t(locale, "study.chooseTerm")}</p>
+                    <p className="mb-2 text-pub-sm font-medium text-pub-navy-2">{t(locale, "study.chooseTerm")}</p>
                     <div className="flex flex-wrap gap-2">
                       {year.terms.map(({ term }) => {
                         const active = selected?.term.id === term.id;
@@ -322,7 +322,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                                       {open ? (
                                         <Link
                                           to={href}
-                                          className="text-pub-base font-semibold text-pub-ink decoration-pub-accent underline-offset-4 hover:text-pub-accent-strong hover:underline"
+                                          className="inline-flex min-h-11 items-center text-pub-base font-semibold text-pub-ink decoration-pub-accent underline-offset-4 hover:text-pub-accent-strong hover:underline"
                                           data-testid={`study-lesson-${l.slug}`}
                                         >
                                           {ar ? l.titleAr : l.titleEn}
@@ -362,7 +362,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                                           data-testid={`study-subscribe-${term.slug}`}
                                         >
                                           {t(locale, "study.subscribeCta")}
-                                          <span dir="ltr" className="ms-1 text-xs">
+                                          <span dir="ltr" className="ms-1 text-pub-xs">
                                             {formatMoney(offer.minPriceMinor, offer.currency)}
                                           </span>
                                         </Link>

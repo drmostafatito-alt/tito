@@ -294,7 +294,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="mx-auto w-full max-w-[62rem] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
       {/* Breadcrumbs */}
-      <nav aria-label="breadcrumb" className="mb-3 text-pub-sm text-pub-muted">
+      <nav aria-label="breadcrumb" data-allow-small className="mb-3 text-pub-sm text-pub-muted">
         <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         {subject && (
           <>

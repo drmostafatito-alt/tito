@@ -30,6 +30,7 @@ import { SubmitButton } from "~/components/ui/Button";
 import { ProgressBar } from "~/components/ProgressBar";
 import { Card, CardBody } from "~/components/ui/Card";
 import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
+import { pubBtn } from "~/lib/publicStyles";
 import { thinkerFor } from "~/lib/thinkers";
 import { t, type Locale } from "~/lib/i18n";
 import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
@@ -278,7 +279,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
   return (
     <main className="pub-root relative isolate mx-auto w-full max-w-[56rem] overflow-x-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
       <ThinkerPortrait thinker={thinker} intensity="whisper" />
-      <nav className="mb-2 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")}>
+      <nav className="mb-2 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
         <Link to="/study" className="hover:underline">{t(locale, "study.title")}</Link>
         {study.subjectSlug && (
           <>
@@ -301,7 +302,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
       </div>
       {progress && progress.course.total > 0 && (
         <div className="mb-4" aria-label={t(locale, "progress.courseProgress")}>
-          <div className="mb-1 flex items-center justify-between text-xs text-pub-muted">
+          <div className="mb-1 flex items-center justify-between text-pub-xs text-pub-muted">
             <span>{t(locale, "progress.courseProgress")}</span>
             <span dir="ltr">{progress.course.completed}/{progress.course.total} · {progress.course.pct}%</span>
           </div>
@@ -322,12 +323,12 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
           <CardBody className="relative z-10 space-y-3">
             <div className="flex items-center gap-2">
               <span aria-hidden="true">🔒</span>
-              <h2 className="text-base font-semibold text-pub-ink">{t(locale, "content.lockedTitle")}</h2>
+              <h2 className="text-pub-base font-semibold text-pub-ink">{t(locale, "content.lockedTitle")}</h2>
             </div>
-            <p className="text-sm text-pub-muted">{t(locale, "content.lockedBody")}</p>
+            <p className="text-pub-sm text-pub-muted">{t(locale, "content.lockedBody")}</p>
             {/* The scope this lesson belongs to, so the student knows exactly what
                 they would be subscribing to (year · subject · term). */}
-            <p className="text-xs text-pub-muted" data-testid="lesson-locked-scope">
+            <p className="text-pub-xs text-pub-muted" data-testid="lesson-locked-scope">
               {[
                 study.yearTitleAr || study.yearTitleEn
                   ? `${t(locale, "commerce.scopeYear")}: ${locale === "ar" ? study.yearTitleAr || study.yearTitleEn : study.yearTitleEn || study.yearTitleAr}`
@@ -344,31 +345,31 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
               {study.offer ? (
                 <Link
                   to={`/checkout/${study.offer.productSlug}`}
-                  className="inline-flex min-h-11 items-center rounded-pub-pill bg-gold-500 px-5 py-2 text-sm font-semibold text-navy-950 hover:bg-gold-400"
+                  className={pubBtn("gold", "pill", "px-5 py-2")}
                   data-testid="lesson-subscribe-cta"
                 >
                   {t(locale, "content.lockedSubscribe")}
-                  <span dir="ltr" className="ms-2 text-xs">
+                  <span dir="ltr" className="ms-2 text-pub-xs">
                     {formatMoney(study.offer.minPriceMinor, study.offer.currency)}
                   </span>
                 </Link>
               ) : (
-                <span className="text-sm text-pub-muted" data-testid="lesson-no-offer">
+                <span className="text-pub-sm text-pub-muted" data-testid="lesson-no-offer">
                   {t(locale, "content.lockedNoOffer")}
                 </span>
               )}
             </div>
             <div className="border-t border-slate-100 pt-3">
-              <p className="text-sm text-pub-muted">{t(locale, "content.lockedActivateHint")}</p>
+              <p className="text-pub-sm text-pub-muted">{t(locale, "content.lockedActivateHint")}</p>
               <Link
                 to="/activate"
-                className="mt-2 inline-flex min-h-11 items-center rounded-pub-pill border border-slate-300 px-4 py-2 text-sm font-semibold text-pub-muted hover:bg-pub-surface"
+                className="mt-2 inline-flex min-h-11 items-center rounded-pub-pill border border-slate-300 px-4 py-2 text-pub-sm font-semibold text-pub-muted hover:bg-pub-surface"
                 data-testid="lesson-activate-cta"
               >
                 {t(locale, "content.lockedActivate")}
               </Link>
             </div>
-            <Link to={`/courses/${course.slug}`} className="mt-2 inline-block text-sm text-blue-600 hover:underline">
+            <Link to={`/courses/${course.slug}`} className="mt-2 inline-block text-pub-sm text-blue-600 hover:underline">
               {t(locale, "common.back")}
             </Link>
           </CardBody>
@@ -391,7 +392,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 />
               ) : (
                 <Card key={item.key}>
-                  <CardBody className="text-sm text-pub-muted">
+                  <CardBody className="text-pub-sm text-pub-muted">
                     {t(locale, "content.videoItem")} — {t(locale, `videosAdmin.statusPending`)}…
                   </CardBody>
                 </Card>
@@ -407,17 +408,17 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                 <Card key={item.key}>
                   <CardBody className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-pub-ink">{title}</h3>
+                      <h3 className="text-pub-sm font-semibold text-pub-ink">{title}</h3>
                       {item.required && (
-                        <span className="text-xs text-pub-muted">{t(locale, "content.required")}</span>
+                        <span className="text-pub-xs text-pub-muted">{t(locale, "content.required")}</span>
                       )}
                     </div>
-                    {desc && <p className="text-sm text-pub-muted">{desc}</p>}
+                    {desc && <p className="text-pub-sm text-pub-muted">{desc}</p>}
                     {/* Google Forms sets its own X-Frame-Options for /viewform with
                         ?embedded=true, so the iframe is the supported path. The
                         external link is always offered as well, so the quiz is
                         reachable even where embedding is blocked. */}
-                    <div className="overflow-hidden rounded-lg border border-pub-line" data-testid="external-quiz">
+                    <div className="overflow-hidden rounded-pub-md border border-pub-line" data-testid="external-quiz">
                       <iframe
                         src={item.embedUrl}
                         title={title}
@@ -449,11 +450,11 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-semibold text-pub-ink">{isPdf ? t(locale, "content.pdfItem") : t(locale, "content.fileItem")} · {item.filename}</p>
-                        <p className="text-xs text-pub-muted">
+                        <p className="text-pub-xs text-pub-muted">
                           {Math.max(1, Math.round(item.byteSize / 1024))} KB · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3 text-sm">
+                      <div className="flex items-center gap-3 text-pub-sm">
                         {item.viewUrl && (
                           <a href={item.viewUrl} target="_blank" rel="noopener" className="font-medium text-navy-700 hover:underline">
                             {t(locale, "content.view")}
@@ -467,7 +468,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                       </div>
                     </div>
                     {isPdf && item.viewUrl && (
-                      <div className="overflow-hidden rounded-lg border border-pub-line bg-navy-50">
+                      <div className="overflow-hidden rounded-pub-md border border-pub-line bg-navy-50">
                         <iframe
                           src={item.viewUrl}
                           title={item.filename}
@@ -484,7 +485,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
             // questions/exams platform is now an external standalone product).
             return null;
           })}
-          {items.length === 0 && <p className="text-sm text-pub-muted">—</p>}
+          {items.length === 0 && <p className="text-pub-sm text-pub-muted">—</p>}
           <Form method="post" className="pt-2" data-lesson-id={lessonId}>
             <input type="hidden" name="_action" value="toggle-complete" />
             <input type="hidden" name="completed" value={lessonCompleted ? "0" : "1"} />
@@ -496,7 +497,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {pres.showPrevNext && (
-      <nav className="mt-8 flex justify-between text-sm" aria-label={t(locale, "common.prevNext")}>
+      <nav className="mt-8 flex justify-between text-pub-sm" aria-label={t(locale, "common.prevNext")}>
         {prev ? (
           <Link to={`/learn/${course.slug}/${prev.slug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
             <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>

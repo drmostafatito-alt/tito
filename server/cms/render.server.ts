@@ -422,13 +422,26 @@ async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean
   const gradeIds = gradeRows.map((g) => g.id);
 
   const subjectRows = await db
-    .select({ id: subjects.id, gradeId: subjects.gradeId })
+    .select({
+      id: subjects.id,
+      gradeId: subjects.gradeId,
+      slug: subjects.slug,
+      titleAr: subjects.titleAr,
+      titleEn: subjects.titleEn,
+    })
     .from(subjects)
     .where(and(inArray(subjects.gradeId, gradeIds), eq(subjects.status, "published"), isNull(subjects.deletedAt)));
   const subjectIds = subjectRows.map((s) => s.id);
   const gradeBySubject = new Map(subjectRows.map((s) => [s.id, s.gradeId] as const));
   const subjectCount = new Map<string, number>();
-  for (const s of subjectRows) subjectCount.set(s.gradeId, (subjectCount.get(s.gradeId) ?? 0) + 1);
+  /** Real subject names per grade, so a grade card names what is actually inside. */
+  const subjectsByGrade = new Map<string, Array<{ slug: string; titleAr: string; titleEn: string }>>();
+  for (const s of subjectRows) {
+    subjectCount.set(s.gradeId, (subjectCount.get(s.gradeId) ?? 0) + 1);
+    const list = subjectsByGrade.get(s.gradeId) ?? [];
+    list.push({ slug: s.slug, titleAr: s.titleAr, titleEn: s.titleEn });
+    subjectsByGrade.set(s.gradeId, list);
+  }
 
   const courseRows = subjectIds.length
     ? await db
@@ -499,11 +512,18 @@ async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean
     if (vids > 0) chip("home.chipVideos", vids);
     if (gradeWithProduct.has(g.id)) chip("home.chipBooks");
     if (examsConfigured) chip("home.chipExams");
+    const list = subjectsByGrade.get(g.id) ?? [];
+    // Destination is always the learning hub (owner brief: /study is the front
+    // door, `/grades/...` stays alive for SEO only). With exactly one published
+    // subject there is nothing to choose, so the card goes straight to it.
+    const href = list.length === 1 ? `/study/${list[0].slug}` : "/study";
     return {
       id: g.id,
-      href: `/grades/${g.slug}`,
+      href,
       title: L(g.titleAr, g.titleEn),
-      desc: L("", ""),
+      desc: list.length
+        ? L(list.map((x) => x.titleAr).filter(Boolean).join(" · "), list.map((x) => x.titleEn).filter(Boolean).join(" · "))
+        : L("", ""),
       image: null,
       badge: g.programTitleAr || g.programTitleEn ? L(g.programTitleAr, g.programTitleEn) : null,
       meta: null,

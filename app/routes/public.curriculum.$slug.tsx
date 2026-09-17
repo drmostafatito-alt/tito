@@ -172,7 +172,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
     <div className="relative isolate overflow-hidden">
       <SectionDecor variant="page" />
       <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-        <nav aria-label="breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-pub-muted">
+        <nav aria-label="breadcrumb" data-allow-small className="mb-4 flex flex-wrap items-center gap-1.5 text-pub-sm text-pub-muted">
           <Link to="/" className="hover:text-pub-ink-soft">{t(locale, "common.home")}</Link>
           <span aria-hidden="true" className="text-pub-accent">›</span>
           <Link to="/study" className="hover:text-pub-ink-soft">{t(locale, "curriculum.coursesCrumb")}</Link>
@@ -183,7 +183,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
         {/* Same identity spirit as the homepage hero, without cloning it: small
             gold eyebrow, navy heading, gold hairline ornament. */}
         <header className="rounded-pub-2xl border border-pub-line bg-pub-surface p-5 shadow-pub-card sm:p-8">
-          <p className="inline-flex items-center gap-2 rounded-full bg-pub-accent-bg px-3 py-1 text-xs font-semibold text-pub-accent-strong ring-1 ring-pub-accent-line">
+          <p className="inline-flex items-center gap-2 rounded-full bg-pub-accent-bg px-3 py-1 text-pub-xs font-semibold text-pub-accent-strong ring-1 ring-pub-accent-line">
             {t(locale, "curriculum.overviewEyebrow")}
           </p>
           <h1 className="mt-3 max-w-[26ch] text-pub-h2 font-extrabold tracking-tight text-pub-ink sm:text-pub-h1">
@@ -219,7 +219,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
               <div key={term.titleAr} className="rounded-pub-xl border border-pub-line bg-pub-bg p-5 shadow-pub-card">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-pub-md font-bold text-pub-ink" dir="auto">{term.titleAr}</h3>
-                  <span className="rounded-full bg-pub-surface px-2.5 py-0.5 text-xs font-semibold text-pub-ink-soft ring-1 ring-pub-surface-2">
+                  <span className="rounded-full bg-pub-surface px-2.5 py-0.5 text-pub-xs font-semibold text-pub-ink-soft ring-1 ring-pub-surface-2">
                     {t(locale, "curriculum.lessonsCount", { n: term.lessonCount })}
                   </span>
                 </div>
@@ -228,7 +228,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
                     <li key={unit.titleAr} className="rounded-pub-lg border border-pub-line bg-pub-surface p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h4 className="text-pub-md font-bold text-pub-ink" dir="auto">{unit.titleAr}</h4>
-                        <span className="text-xs font-semibold text-pub-muted">
+                        <span className="text-pub-xs font-semibold text-pub-muted">
                           {t(locale, "curriculum.lessonsCount", { n: unit.lessonCount })}
                         </span>
                       </div>
@@ -237,7 +237,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
                           {unit.chapters.map((chapter) => (
                             <li key={chapter.titleAr} className="flex items-start justify-between gap-2 rounded-pub-md bg-pub-bg px-3 py-2.5 text-pub-sm text-pub-ink-soft ring-1 ring-pub-line">
                               <span dir="auto">{chapter.titleAr}</span>
-                              <span className="shrink-0 text-xs font-semibold text-pub-accent-strong">
+                              <span className="shrink-0 text-pub-xs font-semibold text-pub-accent-strong">
                                 {t(locale, "curriculum.lessonsCount", { n: chapter.lessonCount })}
                               </span>
                             </li>

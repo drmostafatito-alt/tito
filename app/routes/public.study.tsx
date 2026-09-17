@@ -71,7 +71,7 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
       <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
         <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
-          <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")}>
+          <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
             <span aria-hidden="true"> / </span>
             <span className="font-medium text-pub-navy-2">{t(locale, "study.title")}</span>

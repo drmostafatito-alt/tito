@@ -193,7 +193,7 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <nav aria-label="breadcrumb" className="mb-3 text-pub-sm text-pub-muted">
+      <nav aria-label="breadcrumb" data-allow-small className="mb-3 text-pub-sm text-pub-muted">
         <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         {program.slug && program.titleAr && (
           <>

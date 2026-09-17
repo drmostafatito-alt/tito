@@ -88,9 +88,14 @@ describe("recommended homepage preset — no dead destinations", () => {
 
   it("ships exactly one subject-discovery experience", () => {
     expect(types.filter((t) => t === "study_subjects")).toHaveLength(1);
-    // …and no legacy catalog/grade shelves next to it (they would duplicate it).
-    expect(types).not.toContain("course_cards");
-    expect(types).not.toContain("grade_cards");
+    // The grade entry ("اختر صفك" — `grade_cards`, restored for the v3 composition)
+    // is deliberately NOT a second shelf: it appears once, it renders only grades
+    // that actually have published subjects, and its cards resolve to /study (or
+    // straight to the grade's only published subject) — asserted end-to-end in
+    // tests/e2e/homepage.spec.ts. `/grades/:slug` stays a canonical SEO page that
+    // the homepage never advertises.
+    expect(types.filter((t) => t === "grade_cards")).toHaveLength(1);
+    for (const dup of ["course_cards", "subject_cards", "program_cards"]) expect(types).not.toContain(dup);
   });
 
   it("sends every journey step to a real destination and never to /courses", () => {

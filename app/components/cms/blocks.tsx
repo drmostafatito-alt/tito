@@ -190,13 +190,13 @@ function CardGrid({ rows, ctx, ctaFallback, showPlay }: { rows: CardView[]; ctx:
                 />
                 {showPlay && (
                   <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center bg-pub-navy/25">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-pub-navy-2 shadow-md ring-1 ring-pub-accent-soft">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-pub-bg/95 text-pub-navy-2 shadow-pub-card ring-1 ring-pub-accent-soft">
                       <Icon name="play-circle" size="md" colorRole="default" className="text-current" />
                     </span>
                   </span>
                 )}
                 {badge && (
-                  <span className="absolute bottom-3 start-3 rounded-full bg-pub-accent/95 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                  <span className="absolute bottom-3 start-3 rounded-full bg-pub-accent/95 px-3 py-1 text-pub-xs font-semibold text-pub-navy shadow-pub-card">
                     {badge}
                   </span>
                 )}
@@ -206,7 +206,7 @@ function CardGrid({ rows, ctx, ctaFallback, showPlay }: { rows: CardView[]; ctx:
               <div className="flex items-start justify-between gap-2">
                 <h3 className={CARD_TITLE}>{ls(row.title, L)}</h3>
                 {badge && !imgSrc && (
-                  <span className="shrink-0 rounded-full bg-pub-accent-bg px-2.5 py-0.5 text-xs font-semibold text-pub-accent-strong ring-1 ring-pub-accent-line">{badge}</span>
+                  <span className="shrink-0 rounded-full bg-pub-accent-bg px-2.5 py-0.5 text-pub-xs font-semibold text-pub-accent-strong ring-1 ring-pub-accent-line">{badge}</span>
                 )}
               </div>
               {ls(row.desc, L) && <p className={`line-clamp-2 ${CARD_BODY}`}>{ls(row.desc, L)}</p>}
@@ -258,11 +258,11 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
   ];
   return (
     <div className="flex flex-col items-center gap-3">
-      {str(props, "heading", L) && <p className="text-lg font-semibold">{str(props, "heading", L)}</p>}
+      {str(props, "heading", L) && <p className="text-pub-md font-semibold">{str(props, "heading", L)}</p>}
       <div className="flex gap-3" dir="ltr" suppressHydrationWarning>
         {cells.map(([value, label], i) => (
-          <div key={i} className="flex min-w-16 flex-col items-center rounded-pub-xl bg-pub-ink px-3 py-2 text-white">
-            <span className="text-2xl font-bold tabular-nums">{value ?? "--"}</span>
+          <div key={i} className="flex min-w-16 flex-col items-center rounded-pub-xl bg-pub-ink px-3 py-2 text-pub-bg">
+            <span className="text-pub-h2 font-bold tabular-nums">{value ?? "--"}</span>
             <span className="text-[11px] text-pub-line-strong">{label}</span>
           </div>
         ))}
@@ -274,19 +274,19 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
 function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; compact?: boolean }) {
   const L = ctx.locale;
   const result = ctx.formResults[form.slug];
-  const input = "w-full rounded-pub-md border border-pub-line-strong bg-white px-3 py-2.5 text-sm text-pub-ink placeholder:text-pub-muted/70 focus:border-pub-navy focus:outline-none";
+  const input = "w-full rounded-pub-md border border-pub-line-strong bg-pub-bg px-3 py-2.5 text-pub-sm text-pub-ink placeholder:text-pub-muted/70 focus:border-pub-navy focus:outline-none";
   return (
     <form method="post" className={`flex flex-col gap-4 ${compact ? "" : "mx-auto w-full max-w-xl"}`} noValidate>
       <input type="hidden" name="_cmsForm" value={form.slug} />
       {result && (
-        <p role="status" className={`rounded-pub-md px-4 py-3 text-sm ${result.ok ? "bg-pub-success-bg text-pub-success" : "bg-pub-danger-bg text-pub-danger"}`}>
+        <p role="status" className={`rounded-pub-md px-4 py-3 text-pub-sm ${result.ok ? "bg-pub-success-bg text-pub-success" : "bg-pub-danger-bg text-pub-danger"}`}>
           {result.ok ? ls(form.success, L) : ls(form.failure, L) || t(L, "common.cmsFormFailed")}
         </p>
       )}
       {form.fields.map((f) => {
         const err = result && !result.ok ? result.errors[f.name] : undefined;
         const label = (
-          <label htmlFor={`cmsf-${form.slug}-${f.name}`} className="mb-1 block text-sm font-medium text-pub-ink-soft">
+          <label htmlFor={`cmsf-${form.slug}-${f.name}`} className="mb-1 block text-pub-sm font-medium text-pub-ink-soft">
             {ls(f.label, L)}{f.required && <span className="text-pub-danger"> *</span>}
           </label>
         );
@@ -315,7 +315,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             control = (
               <div className="flex flex-wrap gap-3" role="radiogroup" aria-labelledby={`cmsf-${form.slug}-${f.name}-legend`}>
                 {f.options.map((o) => (
-                  <label key={o.value} className="inline-flex min-h-11 items-center gap-2 text-sm text-pub-ink-soft">
+                  <label key={o.value} className="inline-flex min-h-11 items-center gap-2 text-pub-sm text-pub-ink-soft">
                     <input type="radio" name={f.name} value={o.value} className="h-4 w-4" />
                     {ls(o.label, L)}
                   </label>
@@ -325,7 +325,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             break;
           case "checkbox":
             control = (
-              <label className="inline-flex min-h-11 items-center gap-2 text-sm text-pub-ink-soft">
+              <label className="inline-flex min-h-11 items-center gap-2 text-pub-sm text-pub-ink-soft">
                 <input type="checkbox" id={`cmsf-${form.slug}-${f.name}`} name={f.name} value="on" className="h-4 w-4" />
                 {ls(f.label, L)}
               </label>
@@ -348,20 +348,20 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
         return (
           <div key={f.name}>
             {f.type !== "checkbox" && f.type !== "radio" && label}
-            {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-sm font-medium text-pub-ink-soft">{ls(f.label, L)}{f.required && <span className="text-pub-danger"> *</span>}</span>}
+            {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-pub-sm font-medium text-pub-ink-soft">{ls(f.label, L)}{f.required && <span className="text-pub-danger"> *</span>}</span>}
             {control}
-            {ls(f.help, L) && <p className="mt-1 text-xs text-pub-muted">{ls(f.help, L)}</p>}
-            {err && <p className="mt-1 text-xs text-pub-danger">{err}</p>}
+            {ls(f.help, L) && <p className="mt-1 text-pub-xs text-pub-muted">{ls(f.help, L)}</p>}
+            {err && <p className="mt-1 text-pub-xs text-pub-danger">{err}</p>}
           </div>
         );
       })}
       {form.consentRequired && (
-        <label className="inline-flex min-h-11 items-start gap-2 text-sm text-pub-muted">
+        <label className="inline-flex min-h-11 items-start gap-2 text-pub-sm text-pub-muted">
           <input type="checkbox" name="__consent" value="on" className="mt-1 h-4 w-4" />
           <span>{ls(form.consent, L)}{result && !result.ok && result.errors.__consent && <span className="text-pub-danger"> *</span>}</span>
         </label>
       )}
-      <button type="submit" className={`inline-flex min-h-11 items-center justify-center rounded-pub-md bg-pub-navy px-6 py-3 text-base font-semibold text-white hover:bg-pub-ink-soft ${compact ? "shrink-0" : "self-start"}`}>
+      <button type="submit" className={`inline-flex min-h-11 items-center justify-center rounded-pub-md bg-pub-navy px-6 py-3 text-pub-base font-semibold text-pub-bg hover:bg-pub-ink-soft ${compact ? "shrink-0" : "self-start"}`}>
         {t(L, "common.cmsFormSubmit")}
       </button>
     </form>
@@ -392,10 +392,10 @@ function VideoCta({ videoId, label }: { videoId: string; label: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={open ? `hero-video-${videoId}` : undefined}
-        className="inline-flex min-h-12 items-center gap-3 rounded-full px-1 py-1 text-start text-sm font-semibold text-pub-ink hover:bg-white/70"
+        className="inline-flex min-h-12 items-center gap-3 rounded-full px-1 py-1 text-start text-pub-sm font-semibold text-pub-ink hover:bg-pub-bg/70"
       >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pub-navy text-white shadow-md shadow-pub-navy/30">
-          <Icon name="play-circle" size="md" colorRole="invert" className="text-white" />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pub-navy text-pub-bg shadow-pub-card shadow-pub-navy/30">
+          <Icon name="play-circle" size="md" colorRole="invert" className="text-pub-bg" />
         </span>
         <span className="max-w-[10rem] leading-snug">{label}</span>
       </button>
@@ -474,6 +474,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       // as uploaded (R2 via /files/:id) — never replaced, never a stand-in, and
       // never used when the block's identity display is switched off.
       const platePhoto = showIdentity ? ownerPhoto : null;
+      const tagline = idn ? ls(idn.tagline, L) : "";
+      const heroThinker = heroIdentityThinker();
+      // (The light panel carries no watermark: the owner's picture already fills
+      // it, and a second figure under it is a stacked ornament.)
       if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !cmsSrc && !showIdentity) return null;
       const imageAlt = str(p, "imageAlt", L) || heading;
       return (
@@ -548,57 +552,54 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                     className="aspect-[4/3] w-full object-cover"
                   />
                 </div>
-              ) : (
-                <div className="relative isolate flex flex-col overflow-hidden rounded-pub-2xl bg-pub-navy text-pub-on-navy shadow-pub-md">
-                  {/* The identity plate: the thinker portrait carries the mood, a
-                      navy scrim keeps the caption legible, and the face stays in
-                      the upper end half — the figure is never over the text and
-                      the text is never over the figure. */}
-                  {platePhoto ? (
-                    <img
-                      src={platePhoto}
-                      alt={ownerName || ""}
-                      data-hero-visual="true"
-                      width={900}
-                      height={675}
-                      loading="eager"
-                      decoding="async"
-                      fetchPriority="high"
-                      className="absolute inset-0 z-0 h-full w-full select-none object-cover object-top"
-                    />
-                  ) : (
-                    <ThinkerPortrait thinker={heroIdentityThinker()} presentation="plate" eager heroVisual />
-                  )}
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-pub-navy via-pub-navy/75 to-transparent"
+              ) : platePhoto ? (
+                /*
+                 * The teacher's own picture is the hero. It already carries its own
+                 * art, so the panel only FRAMES it — light surface, one gold hairline,
+                 * one soft shadow, a caption. Never a filter, never a crop that cuts
+                 * the identity, never a second ornament over the first (owner brief
+                 * §15/§20): allowed treatments are container, background, border,
+                 * shadow and crop container, and that is all this does.
+                 */
+                <div className="relative isolate overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
+                  <span aria-hidden="true" className="pointer-events-none absolute -end-12 -top-14 h-44 w-44 rounded-full bg-pub-tint" />
+                  <span aria-hidden="true" className="pointer-events-none absolute -start-10 -bottom-16 h-40 w-40 rounded-full bg-pub-surface-2" />
+                  <img
+                    src={platePhoto}
+                    alt={ownerName || ""}
+                    width={1191}
+                    height={1321}
+                    data-hero-visual="true"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                    className="relative z-[1] mx-auto block max-h-[15rem] w-full px-3 pt-4 object-contain object-bottom sm:max-h-[21rem] sm:px-6"
                   />
+                  {(ownerName || ownerTitle || tagline) && (
+                    <div className="relative z-[1] mt-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-pub-line bg-pub-bg px-4 py-3 ltr:border-s-4 ltr:border-s-pub-accent rtl:border-e-4 rtl:border-e-pub-accent">
+                      {ownerName && (
+                        <span dir="auto" className="min-w-0 text-pub-md font-extrabold text-pub-navy [overflow-wrap:anywhere]">{ownerName}</span>
+                      )}
+                      {ownerTitle && <span dir="auto" className={`${CARD_META} min-w-0 flex-1 sm:text-end`}>{ownerTitle}</span>}
+                      {tagline && <p dir="auto" className="w-full text-pub-sm leading-pub-normal text-pub-muted">{tagline}</p>}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* No photo published yet: the navy identity plate keeps the slot
+                   complete — the thinker carries the mood, the caption stays in
+                   white, and nothing is invented in place of the teacher. */
+                <div className="relative isolate flex flex-col overflow-hidden rounded-pub-2xl bg-pub-navy text-pub-on-navy shadow-pub-md">
+                  <ThinkerPortrait thinker={heroThinker} presentation="plate" eager heroVisual />
                   <div className="relative mt-auto flex min-h-[15rem] flex-col justify-end gap-3 p-5 sm:min-h-[19rem] sm:p-7">
-                    {showIdentity && (
-                      <div className="flex items-center gap-3">
-                        {/* Shown only when the photo is NOT already the plate
-                            itself — the same face never appears twice. */}
-                        {ownerPhoto && !platePhoto && (
-                          <img
-                            src={ownerPhoto}
-                            alt={ownerName}
-                            width={160}
-                            height={160}
-                            loading="lazy"
-                            decoding="async"
-                            className="h-14 w-14 shrink-0 rounded-pub-lg border border-pub-on-navy/25 bg-pub-navy-2 object-cover object-top sm:h-16 sm:w-16"
-                          />
-                        )}
-                        <span className="flex min-w-0 flex-col">
-                          {ownerName && <span className="text-pub-base font-extrabold text-pub-on-navy">{ownerName}</span>}
-                          {ownerTitle && <span className="text-pub-xs leading-pub-snug text-pub-on-navy-muted">{ownerTitle}</span>}
-                        </span>
-                      </div>
+                    {showIdentity && (ownerName || ownerTitle) && (
+                      <span className="flex min-w-0 flex-col">
+                        {ownerName && <span className="text-pub-base font-extrabold text-pub-on-navy">{ownerName}</span>}
+                        {ownerTitle && <span className="text-pub-xs leading-pub-snug text-pub-on-navy-muted">{ownerTitle}</span>}
+                      </span>
                     )}
-                    {idn && ls(idn.tagline, L) ? (
-                      <p className="max-w-[30ch] text-pub-sm leading-pub-normal text-pub-on-navy-soft">
-                        {ls(idn.tagline, L)}
-                      </p>
+                    {tagline ? (
+                      <p className="max-w-[30ch] text-pub-sm leading-pub-normal text-pub-on-navy-soft">{tagline}</p>
                     ) : null}
                   </div>
                 </div>
@@ -644,7 +645,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const imgEl = hasImage ? <CmsImage fileId={raw(p, "fileId")} alt={str(p, "alt", L)} ctx={ctx} aspect="4:3" rounded /> : null;
       const textEl = (
         <div className="flex flex-col items-start gap-3">
-          {heading && <h3 className="text-2xl font-bold text-pub-ink">{heading}</h3>}
+          {heading && <h3 className="text-pub-h2 font-bold text-pub-ink">{heading}</h3>}
           {text && <p className="whitespace-pre-line text-pub-muted">{text}</p>}
           {str(p, "ctaLabel", L) && raw(p, "href") && (
             <CtaButton label={str(p, "ctaLabel", L)} href={raw(p, "href")} variant="primary" />
@@ -671,7 +672,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!items.length && !str(p, "heading", L)) return null;
       return (
         <div className="flex flex-col items-center gap-5">
-          {str(p, "heading", L) && <p className="text-sm font-medium text-pub-muted">{str(p, "heading", L)}</p>}
+          {str(p, "heading", L) && <p className="text-pub-sm font-medium text-pub-muted">{str(p, "heading", L)}</p>}
           {items.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-6">
               {items.map((item, idx) => (
@@ -690,7 +691,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
           <Suspense fallback={<div className="h-40 rounded-xl bg-pub-surface-2" />}>
             <VideoPlayer videoId={videoId} title={str(p, "caption", L) || undefined} />
           </Suspense>
-          {str(p, "caption", L) && <p className="mt-2 text-center text-sm text-pub-muted">{str(p, "caption", L)}</p>}
+          {str(p, "caption", L) && <p className="mt-2 text-center text-pub-sm text-pub-muted">{str(p, "caption", L)}</p>}
         </div>
       );
     }
@@ -729,7 +730,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               {raw(item, "icon") && <Icon name={raw(item, "icon")} size="md" colorRole="brand" />}
               <span className="flex flex-col gap-1">
                 {str(item, "title", L) && <span className="font-semibold text-pub-ink">{str(item, "title", L)}</span>}
-                {str(item, "text", L) && <span className="text-sm text-pub-muted">{str(item, "text", L)}</span>}
+                {str(item, "text", L) && <span className="text-pub-sm text-pub-muted">{str(item, "text", L)}</span>}
               </span>
             </SmartLink>
           ))}
@@ -780,16 +781,16 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const features = str(item, "features", L).split("\n").map((s) => s.trim()).filter(Boolean);
             const highlighted = bool(item, "highlighted");
             return (
-              <div key={idx} className={`flex flex-col gap-4 rounded-pub-xl border p-6 ${highlighted ? "border-pub-navy bg-pub-surface/50 ring-1 ring-pub-navy" : "border-pub-line bg-white"}`}>
+              <div key={idx} className={`flex flex-col gap-4 rounded-pub-xl border p-6 ${highlighted ? "border-pub-navy bg-pub-surface/50 ring-1 ring-pub-navy" : "border-pub-line bg-pub-bg"}`}>
                 <div>
-                  <h3 className="text-lg font-bold text-pub-ink">{str(item, "name", L)}</h3>
-                  <p className="mt-2 text-3xl font-extrabold text-pub-ink" dir="auto">{raw(item, "price")}</p>
-                  {str(item, "period", L) && <p className="text-sm text-pub-muted">{str(item, "period", L)}</p>}
+                  <h3 className="text-pub-md font-bold text-pub-ink">{str(item, "name", L)}</h3>
+                  <p className="mt-2 text-pub-h1 font-extrabold text-pub-ink" dir="auto">{raw(item, "price")}</p>
+                  {str(item, "period", L) && <p className="text-pub-sm text-pub-muted">{str(item, "period", L)}</p>}
                 </div>
                 {features.length > 0 && (
                   <ul className="flex flex-col gap-2">
                     {features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-pub-muted">
+                      <li key={i} className="flex items-start gap-2 text-pub-sm text-pub-muted">
                         <Icon name="check" size="sm" colorRole="success" className="mt-0.5" />
                         <span>{f}</span>
                       </li>
@@ -862,16 +863,16 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, idx) => (
-            <figure key={idx} className="flex flex-col gap-3 rounded-pub-xl border border-pub-line bg-white p-6">
+            <figure key={idx} className="flex flex-col gap-3 rounded-pub-xl border border-pub-line bg-pub-bg p-6">
               <Icon name="quote" size="md" colorRole="brand" />
-              <blockquote className="text-sm leading-relaxed text-pub-ink-soft">{str(item, "quote", L)}</blockquote>
+              <blockquote className="text-pub-sm leading-pub-normal text-pub-ink-soft">{str(item, "quote", L)}</blockquote>
               <figcaption className="mt-auto flex items-center gap-3">
                 {raw(item, "image") && ctx.images[raw(item, "image")] && (
                   <img src={ctx.images[raw(item, "image")]} alt={str(item, "name", L)} loading="lazy" decoding="async" className="h-10 w-10 rounded-full object-cover" />
                 )}
                 <span className="flex flex-col">
-                  {str(item, "name", L) && <span className="text-sm font-semibold text-pub-ink">{str(item, "name", L)}</span>}
-                  {str(item, "role", L) && <span className="text-xs text-pub-muted">{str(item, "role", L)}</span>}
+                  {str(item, "name", L) && <span className="text-pub-sm font-semibold text-pub-ink">{str(item, "name", L)}</span>}
+                  {str(item, "role", L) && <span className="text-pub-xs text-pub-muted">{str(item, "role", L)}</span>}
                 </span>
               </figcaption>
             </figure>
@@ -885,12 +886,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
           {items.map((item, idx) => (
-            <details key={idx} className="group rounded-pub-xl border border-pub-line bg-white px-5 py-1 open:pb-4">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-semibold text-pub-ink [&::-webkit-details-marker]:hidden">
+            <details key={idx} className="group rounded-pub-xl border border-pub-line bg-pub-bg px-5 py-1 open:pb-4">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-pub-sm font-semibold text-pub-ink [&::-webkit-details-marker]:hidden">
                 {str(item, "q", L)}
                 <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
               </summary>
-              <p className="whitespace-pre-line pb-2 text-sm leading-relaxed text-pub-muted">{str(item, "a", L)}</p>
+              <p className="whitespace-pre-line pb-2 text-pub-sm leading-pub-normal text-pub-muted">{str(item, "a", L)}</p>
             </details>
           ))}
         </div>
@@ -902,12 +903,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
           {items.map((item, idx) => (
-            <details key={idx} className="group rounded-pub-xl border border-pub-line bg-white px-5 py-1 open:pb-4">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-semibold text-pub-ink [&::-webkit-details-marker]:hidden">
+            <details key={idx} className="group rounded-pub-xl border border-pub-line bg-pub-bg px-5 py-1 open:pb-4">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-pub-sm font-semibold text-pub-ink [&::-webkit-details-marker]:hidden">
                 {str(item, "title", L)}
                 <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
               </summary>
-              <RichText html={str(item, "content", L)} className="pb-2 text-sm leading-relaxed text-pub-muted" />
+              <RichText html={str(item, "content", L)} className="pb-2 text-pub-sm leading-pub-normal text-pub-muted" />
             </details>
           ))}
         </div>
@@ -918,7 +919,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!text) return null;
       const tone = { info: "bg-pub-surface-2 text-pub-ink", success: "bg-pub-success-bg text-pub-success", warning: "bg-pub-warning-bg text-pub-warning", brand: "bg-pub-surface text-pub-navy" }[raw(p, "tone")] ?? "bg-pub-surface-2 text-pub-ink";
       return (
-        <div className={`flex flex-wrap items-center justify-center gap-3 rounded-pub-xl px-5 py-3 text-sm font-medium ${tone}`}>
+        <div className={`flex flex-wrap items-center justify-center gap-3 rounded-pub-xl px-5 py-3 text-pub-sm font-medium ${tone}`}>
           {raw(p, "icon") && <Icon name={raw(p, "icon")} size="sm" colorRole="default" className="text-current" />}
           <span>{text}</span>
           {str(p, "ctaLabel", L) && raw(p, "href") && (
@@ -960,13 +961,30 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const photoUrl = bool(p, "useIdentity") ? idn.ownerPhoto : (raw(p, "photo") ? ctx.images[raw(p, "photo")] ?? null : null);
       const bio = str(p, "bio", L);
       if (!name && !photoUrl && !bio) return null;
+      // `showPhoto: false` keeps the picture for ONE place per page: the homepage
+      // hero already frames it, so the about block here stays text-only while the
+      // /about page keeps the framed photo. Unset means show (older snapshots).
+      const framed = photoUrl && p.showPhoto !== false;
       return (
-        <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
-          {photoUrl && <img src={photoUrl} alt={name} loading="lazy" decoding="async" className="h-40 w-40 shrink-0 rounded-pub-xl object-cover md:h-52 md:w-52" />}
-          <div className="flex flex-col items-center gap-2 md:items-start">
-            {name && <h3 className="text-2xl font-bold text-pub-ink">{name}</h3>}
-            {title && <p className="font-medium text-pub-ink-soft">{title}</p>}
-            {bio && <RichText html={bio} className="text-sm leading-relaxed text-pub-muted" />}
+        <div className={`grid items-start gap-[calc(var(--pub-gap)*1.5)] ${framed ? "md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]" : ""}`}>
+          {framed && (
+            /* Same frame as the hero panel — one container, one gold hairline, one
+               shadow. The picture itself is never re-styled or re-cropped. */
+            <div className="relative isolate overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
+              <span aria-hidden="true" className="pointer-events-none absolute -end-10 -top-12 h-32 w-32 rounded-full bg-pub-tint" />
+              <img
+                src={photoUrl}
+                alt={name}
+                loading="lazy"
+                decoding="async"
+                className="relative z-[1] mx-auto block max-h-[19rem] w-full px-4 py-4 object-contain object-bottom"
+              />
+            </div>
+          )}
+          <div className="flex min-w-0 flex-col items-center gap-2 text-center md:items-start md:text-start">
+            {name && <h3 className="text-pub-h2 font-bold text-pub-ink">{name}</h3>}
+            {title && <p className="text-pub-md font-medium text-pub-ink-soft">{title}</p>}
+            {bio && <RichText html={bio} className={`${CARD_BODY} pub-measure`} />}
           </div>
         </div>
       );
@@ -976,8 +994,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = block.type === "login_cta" ? "/login" : "/register";
       const label = str(p, "label", L) || (block.type === "login_cta" ? (L === "ar" ? "تسجيل الدخول" : "Log in") : L === "ar" ? "إنشاء حساب" : "Create account");
       return (
-        <div className="flex flex-col items-center gap-4 rounded-[1.75rem] bg-gradient-to-b from-pub-surface to-white p-10 text-center ring-1 ring-pub-surface-2">
-          {str(p, "sublabel", L) && <p className="max-w-md text-lg text-pub-muted">{str(p, "sublabel", L)}</p>}
+        <div className={`${PUB_CARD} gap-4 p-6 text-center sm:p-8`}>
+          {str(p, "sublabel", L) && <p className="max-w-md text-pub-md text-pub-muted">{str(p, "sublabel", L)}</p>}
           <CtaButton label={label} href={href} variant="primary" />
         </div>
       );
@@ -992,7 +1010,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const network = raw(item, "network");
             const label = str(item, "label", L);
             return asButtons ? (
-              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center gap-2 rounded-pub-md border border-pub-line-strong px-4 py-2.5 text-sm font-medium text-pub-ink-soft hover:bg-pub-surface">
+              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center gap-2 rounded-pub-md border border-pub-line-strong px-4 py-2.5 text-pub-sm font-medium text-pub-ink-soft hover:bg-pub-surface">
                 <Icon name={network} size="sm" colorRole="default" className="text-current" />
                 {label || network}
               </a>
@@ -1016,7 +1034,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <ul className="flex flex-col gap-3">
           {rows.map(([icon, value], idx) => (
-            <li key={idx} className="flex items-center gap-3 text-sm text-pub-ink-soft">
+            <li key={idx} className="flex items-center gap-3 text-pub-sm text-pub-ink-soft">
               <Icon name={icon} size="sm" colorRole="brand" />
               <span dir={icon === "phone" || icon === "mail" ? "ltr" : undefined}>{value}</span>
             </li>
@@ -1031,14 +1049,14 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = `https://wa.me/${phone}`;
       if (raw(p, "style") === "floating") {
         return (
-          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-pub-navy text-white shadow-lg hover:bg-pub-success ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
-            <Icon name="whatsapp" size="lg" colorRole="default" className="text-white" />
+          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-[var(--pub-fab-inset)] end-[var(--pub-fab-inset)] z-40 inline-flex h-[var(--pub-fab-size)] w-[var(--pub-fab-size)] items-center justify-center rounded-pub-pill bg-pub-whatsapp text-pub-bg shadow-pub-lg hover:bg-pub-whatsapp-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-navy">
+            <Icon name="whatsapp" size="lg" colorRole="default" className="text-pub-bg" />
           </a>
         );
       }
       return (
-        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-pub-md bg-pub-navy px-6 py-3 text-base font-semibold text-white hover:bg-pub-success">
-          <Icon name="whatsapp" size="sm" colorRole="default" className="text-white" />
+        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-pub-md bg-pub-navy px-6 py-3 text-pub-base font-semibold text-pub-bg hover:bg-pub-whatsapp-strong">
+          <Icon name="whatsapp" size="sm" colorRole="default" className="text-pub-bg" />
           {label}
         </a>
       );
@@ -1049,14 +1067,14 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const label = str(p, "label", L) || (L === "ar" ? "انضم إلى تليجرام" : "Join on Telegram");
       if (raw(p, "style") === "floating") {
         return (
-          <a href={url} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-24 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-pub-info text-white shadow-lg hover:bg-pub-info ltr:right-5 rtl:left-5 max-sm:bottom-[calc(6rem+env(safe-area-inset-bottom))]">
-            <Icon name="telegram" size="lg" colorRole="default" className="text-white" />
+          <a href={url} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-[calc(var(--pub-fab-inset)+var(--pub-fab-clear))] end-[var(--pub-fab-inset)] z-40 inline-flex h-[var(--pub-fab-size)] w-[var(--pub-fab-size)] items-center justify-center rounded-pub-pill bg-pub-navy text-pub-bg shadow-pub-lg hover:bg-pub-navy-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong">
+            <Icon name="telegram" size="lg" colorRole="default" className="text-pub-bg" />
           </a>
         );
       }
       return (
-        <a href={url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-pub-md bg-pub-info px-6 py-3 text-base font-semibold text-white hover:bg-pub-info">
-          <Icon name="telegram" size="sm" colorRole="default" className="text-white" />
+        <a href={url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-pub-md bg-pub-navy px-6 py-3 text-pub-base font-semibold text-pub-bg hover:bg-pub-navy-2">
+          <Icon name="telegram" size="sm" colorRole="default" className="text-pub-bg" />
           {label}
         </a>
       );
@@ -1069,7 +1087,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!form) return null; // form deleted/disabled → block disappears (no crash)
       return (
         <div className="flex flex-col gap-4">
-          {heading && <h3 className="text-center text-2xl font-bold text-pub-ink">{heading}</h3>}
+          {heading && <h3 className="text-center text-pub-h2 font-bold text-pub-ink">{heading}</h3>}
           {text && <p className="text-center text-pub-muted">{text}</p>}
           <CmsForm form={form} ctx={ctx} compact={block.type === "newsletter_form"} />
         </div>
@@ -1133,14 +1151,19 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               const thinker = idx > 0 ? thinkerAlternate(primary, row.id) : primary;
               return (
                 <li key={row.id} className="h-full min-w-0">
-                  <SmartLink href={row.href} ariaLabel={`${cta} — ${title}`} className={`${PUB_CARD} min-h-[10.5rem] gap-3 p-5 sm:p-6`}>
-                    <span className="relative z-10 flex min-w-0 flex-1 flex-col gap-2">
-                      <span className="flex min-w-0 items-start gap-3">
-                        {/* The subject's own thinker, cropped into the avatar the card
-                            needs on a phone and can afford to grow on desktop. */}
-                        <ThinkerPortrait thinker={thinker} presentation="avatar" />
-                        <h3 className={`${CARD_TITLE} min-w-0 flex-1 text-pub-lg [overflow-wrap:anywhere]`}>{title}</h3>
-                      </span>
+                  <SmartLink href={row.href} ariaLabel={`${cta} — ${title}`} className={`${PUB_CARD} min-h-[13rem] gap-3 p-5 pt-[7rem] sm:p-6 sm:pt-6`}>
+                    {/* The subject's own thinker, INSIDE the card: a top band on a
+                        phone and a cropped column from sm up. Masked toward the
+                        reading side (see .thinker-figure) so the title, description
+                        and CTA never sit on top of a face. */}
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-x-0 top-0 h-24 overflow-hidden sm:inset-x-auto sm:inset-y-0 sm:end-0 sm:h-auto sm:w-[44%] sm:max-w-[13rem]"
+                    >
+                      <ThinkerPortrait thinker={thinker} presentation="figure" className="h-full w-full" />
+                    </span>
+                    <span className="relative z-10 flex min-w-0 flex-1 flex-col gap-2 sm:pe-[46%]">
+                      <h3 className={`${CARD_TITLE} min-w-0 text-pub-lg [overflow-wrap:anywhere]`}>{title}</h3>
                       {meta && <p className={CARD_META}>{meta}</p>}
                       {desc && <p className={`line-clamp-2 ${CARD_BODY}`}>{desc}</p>}
                       {chips.length > 0 && (
@@ -1172,41 +1195,43 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const rows = (ctx.dynamic[block.id] ?? []).filter((r) => ls(r.title, L));
       if (!rows.length) return null;
       return (
-        <div className="grid w-full gap-5 sm:grid-cols-2">
+        <div className="grid w-full gap-[var(--pub-gap)] sm:grid-cols-2">
           {rows.map((row) => {
+            const title = ls(row.title, L);
+            const desc = ls(row.desc, L);
+            const badge = row.badge ? ls(row.badge, L) : "";
             const chips = (row.chips ?? []).map((c) => ls(c, L)).filter(Boolean);
-            const ctaLabel = (row.cta && ls(row.cta, L)) || ls(row.title, L);
+            const ctaLabel = (row.cta && ls(row.cta, L)) || title;
             return (
-              <article
+              <SmartLink
                 key={row.id}
-                className="group relative isolate flex flex-col gap-3 overflow-hidden rounded-[1.75rem] border border-pub-surface-2 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-pub-accent-soft hover:shadow-lg sm:p-7"
+                href={row.href}
+                ariaLabel={`${ctaLabel} — ${title}`}
+                className={`${PUB_CARD} min-h-[11.5rem] gap-2.5 p-5 sm:p-6`}
               >
-                <SectionDecor variant="page" />
-                {row.badge && ls(row.badge, L) && (
-                  <span className="w-fit rounded-full bg-pub-surface px-3 py-1 text-xs font-semibold text-pub-ink-soft ring-1 ring-pub-surface-2">
-                    {ls(row.badge, L)}
+                {badge && (
+                  <span className="inline-flex w-fit items-center rounded-pub-pill bg-pub-surface-2 px-2.5 py-1 text-pub-xs font-bold text-pub-ink-soft">
+                    {badge}
                   </span>
                 )}
-                <h3 className="text-xl font-extrabold text-pub-navy sm:text-2xl">{ls(row.title, L)}</h3>
-                <DecorHairline className="max-w-[8rem] text-pub-accent" />
+                <h3 className={`${CARD_TITLE} text-pub-lg [overflow-wrap:anywhere]`}>{title}</h3>
+                {desc && <p className={CARD_BODY}>{desc}</p>}
                 {chips.length > 0 && (
-                  <ul className="flex flex-wrap gap-2">
+                  <ul className="mt-1 flex flex-wrap gap-1.5">
                     {chips.map((chip) => (
-                      <li key={chip} className="rounded-full bg-pub-accent-bg px-3 py-1 text-xs font-medium text-pub-accent-strong ring-1 ring-pub-accent-line">
+                      <li key={chip} className={CHIP}>
                         {chip}
                       </li>
                     ))}
                   </ul>
                 )}
-                <SmartLink
-                  href={row.href}
-                  ariaLabel={`${ctaLabel} — ${ls(row.title, L)}`}
-                  className="mt-auto inline-flex min-h-12 w-fit items-center gap-2 rounded-full bg-pub-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pub-navy-2"
-                >
+                <span className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-2 text-pub-sm font-bold text-pub-ink-soft">
                   {ctaLabel}
-                  <span aria-hidden="true" className="rtl:rotate-180">→</span>
-                </SmartLink>
-              </article>
+                  <span aria-hidden="true" className={CARD_ARROW}>
+                    →
+                  </span>
+                </span>
+              </SmartLink>
             );
           })}
         </div>
@@ -1272,7 +1297,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               <li key={idx} className="h-full">
                 <span aria-hidden="true" className="block h-0.5 w-10 rounded-full bg-pub-accent" />
                 {href ? (
-                  <SmartLink href={href} ariaLabel={title} className={`${cls} transition-colors hover:border-pub-accent-soft hover:shadow-md`}>
+                  <SmartLink href={href} ariaLabel={title} className={`${cls} transition-colors hover:border-pub-accent-soft hover:shadow-pub-card`}>
                     {body}
                   </SmartLink>
                 ) : (
@@ -1327,7 +1352,17 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                   // This replaces `!bg-gold-500 !text-navy-950`, which overrode the
                   // button grammar with !important — the exact "third button system"
                   // symptom the rebuild removes.
-                  variant={raw(cta, "variant") || (idx === 0 ? "gold" : "onDark")}
+                  // The band is navy, so the variants are resolved FOR a dark
+                  // surface: `outline`/`ghost` (built for white) would render an
+                  // invisible label, exactly the "blank button" bug that made the
+                  // old UI look broken. One mapping, at the band that needs it.
+                  variant={((): string => {
+                    const want = raw(cta, "variant");
+                    if (!want) return idx === 0 ? "gold" : "onDark";
+                    if (want === "outline" || want === "ghost" || want === "secondary") return "onDark";
+                    if (want === "primary") return idx === 0 ? "gold" : "onDark";
+                    return want;
+                  })()}
                   icon={raw(cta, "icon")}
                   shape={raw(p, "ctaShape") || "pill"}
                   className="max-sm:w-full"
@@ -1342,7 +1377,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "divider": {
       const variant = raw(p, "variant") || "line";
       if (variant === "dots") return <div className="flex justify-center gap-2 py-2" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="h-1.5 w-1.5 rounded-full bg-pub-line-strong" />)}</div>;
-      if (variant === "gradient") return <hr className="border-0 bg-gradient-to-r from-transparent via-pub-line-strong to-transparent h-px" aria-hidden="true" />;
+      if (variant === "gradient") return <hr className="h-px border-0 bg-pub-line-strong" aria-hidden="true" />;
       return <hr className="h-px border-0 bg-pub-line" aria-hidden="true" />;
     }
     case "spacer": {
@@ -1415,10 +1450,41 @@ const DATA_DRIVEN_BLOCKS = new Set([
   "featured_content", "latest_lessons", "video_showcase", "product_cards", "grade_cards",
 ]);
 
-function blockIsEmpty(type: string, blockId: string, ctx: CmsRenderCtx): boolean {
-  if (DATA_DRIVEN_BLOCKS.has(type)) return (ctx.dynamic[blockId] ?? []).length === 0;
+function blockIsEmpty(block: RenderBlock, ctx: CmsRenderCtx): boolean {
+  const type = block.type;
+  if (DATA_DRIVEN_BLOCKS.has(type)) return (ctx.dynamic[block.id] ?? []).length === 0;
   // External exams entry: hidden while the platform is disabled/unconfigured.
   if (type === "exam_platform") return !ctx.questionPlatformUrl;
+  /**
+   * Identity/settings-driven blocks read the owner's OWN fields (Settings →
+   * Identity, Appearance) — an unset field means there is nothing to show, so
+   * the section has to collapse with it. Without this rule a fresh install
+   * would render a padded "contact" band with no contact details in it.
+   */
+  if (type === "contact_info") {
+    const p = block.props;
+    const idn = ctx.identity;
+    if (!idn) return true;
+    return !(
+      (bool(p, "showPhone") && idn.contactPhone) ||
+      (bool(p, "showEmail") && idn.contactEmail) ||
+      (bool(p, "showAddress") && (str(p, "addressOverride", ctx.locale) || ls(idn.contactAddress, ctx.locale)))
+    );
+  }
+  if (type === "social_links") {
+    return !arr(block.props, "items").some((i) => raw(i, "url"));
+  }
+  if (type === "teacher_profile") {
+    const p = block.props;
+    if (bool(p, "useIdentity") && ctx.identity) {
+      if (ls(ctx.identity.ownerName, ctx.locale) || ctx.identity.ownerPhoto) return false;
+    }
+    return !(
+      str(p, "name", ctx.locale) ||
+      str(p, "bio", ctx.locale) ||
+      (raw(p, "photo") && ctx.images[raw(p, "photo")])
+    );
+  }
   return false;
 }
 
@@ -1436,7 +1502,7 @@ function renderedAnchorIds(sections: RenderBlock[], ctx: CmsRenderCtx): Set<stri
   for (const s of sections) {
     if (!s.visible) continue;
     const children = (s.children ?? []).filter((c) => c.visible);
-    if (children.length > 0 && children.every((c) => blockIsEmpty(c.type, c.id, ctx))) continue;
+    if (children.length > 0 && children.every((c) => blockIsEmpty(c, ctx))) continue;
     const anchor = raw(s.props, "anchor");
     if (ANCHOR_ID_RE.test(anchor)) ids.add(anchor);
   }
@@ -1449,7 +1515,7 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
   if (!section.visible) return null;
   const children = (section.children ?? []).filter((c) => c.visible);
   // Section collapse rule (see DATA_DRIVEN_BLOCKS above).
-  if (children.length > 0 && children.every((c) => blockIsEmpty(c.type, c.id, ctx))) return null;
+  if (children.length > 0 && children.every((c) => blockIsEmpty(c, ctx))) return null;
   const heading = str(p, "heading", L);
   const subheading = str(p, "subheading", L);
   const bg = raw(p, "bg") || "default";
@@ -1488,7 +1554,7 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
         </>
       )}
       <div className={`relative mx-auto w-full px-[var(--pub-pad-x)] ${SECTION_CONTAINER[raw(p, "container") || "normal"] ?? SECTION_CONTAINER.normal}`}>
-        {hasBgImage && !SECTION_BG[bg] ? <div className="text-white">{headingEl}</div> : headingEl}
+        {hasBgImage && !SECTION_BG[bg] ? <div className="text-pub-bg">{headingEl}</div> : headingEl}
         {children.length > 0 && (
           <div className={`grid ${SECTION_GRID[columns] ?? SECTION_GRID["1"]} ${SECTION_GAP[raw(p, "gap") || "md"] ?? SECTION_GAP.md} ${align === "center" ? "justify-items-center" : ""} ${columns === "1" && align === "center" ? "[&>*]:mx-auto" : ""}`}>
             {children.map((child) => (

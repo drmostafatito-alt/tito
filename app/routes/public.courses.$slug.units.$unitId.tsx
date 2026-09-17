@@ -273,7 +273,7 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto w-full max-w-[62rem] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <nav aria-label="breadcrumb" className="mb-1 text-pub-sm text-pub-muted">
+      <nav aria-label="breadcrumb" data-allow-small className="mb-1 text-pub-sm text-pub-muted">
         <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         <span className="mx-1.5" aria-hidden>›</span>
         <Link to={`/courses/${course.slug}`} className="hover:text-pub-navy">

@@ -370,9 +370,13 @@
   max-width: var(--pub-measure);
 }
 
+/* A real diamond (a filled square turned 45°). It used to be two crossing
+   diagonal strokes, which at 8px reads as a "close" glyph — an icon that means
+   "dismiss", on an ornament. */
 @utility decor-diamond {
-  background-image: linear-gradient(45deg, transparent 46%, color-mix(in srgb, var(--color-pub-accent) 65%, transparent) 46% 54%, transparent 54%),
-    linear-gradient(-45deg, transparent 46%, color-mix(in srgb, var(--color-pub-accent) 65%, transparent) 46% 54%, transparent 54%);
+  background-color: color-mix(in srgb, var(--color-pub-accent) 70%, transparent);
+  border-radius: 1px;
+  transform: rotate(45deg);
 }
 
 /* ─── Thinker portraits — the ONE decorative identity system (§14–§19) ──────
@@ -385,6 +389,8 @@
  *     instead of a stock photo, and it works on white AND on navy.
  * Presentations (app/components/visuals/ThinkerPortrait.tsx):
  *   .thinker-avatar  small legible face for light surfaces
+ *   .thinker-figure  a subject card's own figure: cropped band/column, masked out
+ *                    under the copy (light surfaces only)
  *   .thinker-plate   the figure fills a navy plate (the homepage hero visual)
  *   .thinker-portrait a masked watermark, for navy bands only
  * No opacity is declared here: the component owns strength per breakpoint, and
@@ -423,13 +429,30 @@
   transform-origin: 66% 26%;
 }
 
-/* The hero plate: the face stays clear of the caption, which always sits at the
- * block's inline start / bottom. The fade is on the plate's own edge, never
- * across the features. */
-.thinker-plate {
-  object-position: 68% 24%;
-  mask-image: radial-gradient(115% 92% at 78% 18%, #000 42%, transparent 92%);
-  -webkit-mask-image: radial-gradient(115% 92% at 78% 18%, #000 42%, transparent 92%);
+/*
+ * The answer to a specific physical fact: a dark navy photograph on a LIGHT
+ * surface. Anything else there reads as a rendering bug, so the subject card's
+ * own figure is `.thinker-figure` — full tonal range, cropped, partially visible,
+ * masked out on the reading side so the title, description and CTA always sit on
+ * clean white. Mobile gets it as a top band instead of a side column. Opacity and
+ * size stay at the call site (an unlayered rule here would beat the utilities).
+ */
+.thinker-figure {
+  object-fit: cover;
+  object-position: 74% 20%;
+  filter: grayscale(1) sepia(0.5) hue-rotate(188deg) saturate(1.35) brightness(1.05) contrast(1.08);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 56%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 56%, transparent 100%);
+}
+@media (min-width: 40rem) {
+  .thinker-figure {
+    mask-image: linear-gradient(to right, transparent 0%, #000 44%, #000 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 44%, #000 100%);
+  }
+  [dir="rtl"] .thinker-figure {
+    mask-image: linear-gradient(to left, transparent 0%, #000 44%, #000 100%);
+    -webkit-mask-image: linear-gradient(to left, transparent 0%, #000 44%, #000 100%);
+  }
 }
 
 /* Watermark on a navy band: fades into the surface on the reading side and at

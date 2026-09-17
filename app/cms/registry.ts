@@ -256,6 +256,12 @@ export const BLOCKS: Record<string, BlockDef> = {
         name: "ctaShape", kind: "select", labelKey: "cms.f.ctaShape",
         options: ["rounded", "soft", "pill"].map((v) => ({ value: v, labelKey: `cms.ctaShape.${v}` })),
       },
+      {
+        // The identity plate: the owner's own name/title/photo from Settings →
+        // Identity. A real switch the renderer honours (hero_showcase reads it),
+        // so turning the personal panel off is an option — not a hidden default.
+        name: "useIdentity", kind: "toggle", labelKey: "cms.f.useIdentity",
+      },
     ],
   },
 
@@ -499,6 +505,7 @@ export const BLOCKS: Record<string, BlockDef> = {
     labelKey: "cms.blocks.teacher_profile", group: "content",
     fields: [
       { name: "useIdentity", kind: "toggle", labelKey: "cms.f.useIdentity" },
+      { name: "showPhoto", kind: "toggle", labelKey: "cms.f.showPhoto" },
       { name: "name", kind: "ltext", labelKey: "cms.f.name", max: 120 },
       { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 120 },
       { name: "photo", kind: "image", labelKey: "cms.f.photo" },
@@ -693,8 +700,13 @@ export const BLOCKS: Record<string, BlockDef> = {
   },
   grade_cards: {
     labelKey: "cms.blocks.grade_cards", group: "data", dynamic: "grades",
-    /** Superseded by study_subjects + /study (the journey starts once). Renderer KEPT (saved snapshots must still render); hidden from the builder palette so it can never be re-added. */
-    deprecated: true,
+    /**
+     * The grade entry of the journey (owner brief: hero → اختر صفك → المحتوى
+     * التعليمي). It is NOT a second subject shelf: every card resolves to /study
+     * (or straight to the grade's only published subject), so choosing a grade and
+     * browsing subjects stay one continuous path. Data-driven and empty-first —
+     * a grade with no published subjects never renders a card.
+     */
     fields: [
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
       { name: "subheading", kind: "ltextarea", labelKey: "cms.f.subheading", max: 400 },
@@ -978,6 +990,7 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.f.role": { ar: "الصفة", en: "Role" },
   "cms.f.photo": { ar: "الصورة الشخصية", en: "Photo" },
   "cms.f.useIdentity": { ar: "استخدام بيانات المعلم من الهوية", en: "Use site identity values" },
+  "cms.f.showPhoto": { ar: "إظهار صورة المعلم داخل الكرت", en: "Show the teacher photo in this block" },
   "cms.f.bio": { ar: "السيرة", en: "Biography" },
   "cms.f.sublabel": { ar: "نص ثانوي", en: "Sublabel" },
   "cms.f.startsAt": { ar: "يبدأ في", en: "Starts at" },

@@ -24,7 +24,7 @@ import type { Thinker } from "~/lib/thinkers";
  * every other portrait is `loading=lazy` + `fetchPriority=low` so decoration
  * never wins the browser's priority race.
  */
-export type PortraitPresentation = "avatar" | "watermark" | "plate";
+export type PortraitPresentation = "avatar" | "figure" | "watermark" | "plate";
 
 export function ThinkerPortrait({
   thinker,
@@ -37,6 +37,7 @@ export function ThinkerPortrait({
   thinker: Thinker | null | undefined;
   /**
    * `avatar`    small cropped face for white / light-blue surfaces (default)
+   * `figure`    the subject card's own figure: cropped, masked, never over text
    * `watermark` edge-anchored figure for navy bands, faded into the surface
    * `plate`     the figure IS the plate: fills a navy panel, hero use only
    */
@@ -52,7 +53,7 @@ export function ThinkerPortrait({
   if (!thinker) return null;
 
   const opacity =
-    presentation === "plate"
+    presentation === "plate" || presentation === "figure"
       ? ""
       : presentation === "watermark"
         ? intensity === "whisper"
@@ -79,6 +80,22 @@ export function ThinkerPortrait({
           className="thinker-avatar"
         />
       </span>
+    );
+  }
+
+  if (presentation === "figure") {
+    return (
+      <img
+        src={thinker.src}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        fetchPriority="low"
+        width={900}
+        height={604}
+        className={`thinker-figure h-full w-full select-none ${className}`}
+      />
     );
   }
 
