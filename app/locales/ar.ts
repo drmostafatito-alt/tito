@@ -431,7 +431,7 @@ export const ar = {
   },
   home: {
     chipSubjects: "{n} مواد",
-    chipCourses: "{n} دورة",
+    chipCourses: "{n} محتوى تعليمي",
     chipVideos: "{n} فيديو",
     chipBooks: "كتب ومذكرات",
     chipExams: "تدريبات وامتحانات",
@@ -470,7 +470,7 @@ export const ar = {
     freePreview: "معاينة مجانية",
     lessonsCount: "{n} درس",
     durationMinutes: "{n} دقيقة",
-    coursesCount: "{n} دورة",
+    coursesCount: "{n} محتوى تعليمي",
     locked: "هذا المحتوى يتطلب صلاحية وصول.",
     lockedTitle: "هذا المحتوى متاح للمشتركين فقط",
     lockedBody: "اشترك الآن لفتح الدرس، أو أدخل كود التفعيل إذا كان لديك كود.",

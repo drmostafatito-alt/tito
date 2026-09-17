@@ -4,11 +4,32 @@ import { getDb } from "~server/db/client.server";
 import { getSettings } from "~server/settings/service.server";
 
 /**
- * Design-token stylesheet (owner brief §THEME SYSTEM).
+ * Design-token stylesheet (owner brief §THEME SYSTEM) — LAYER B: CONSOLE.
  * Admin-controlled, VALIDATED tokens only (hex colors, bounded radii, enum
  * presets — see themeSettingsSchema). NO arbitrary CSS injection is possible:
  * every value re-serialized here is regex/enum-checked by zod on write AND
  * re-validated on output. Same-origin stylesheet → allowed by CSP style-src 'self'.
+ *
+ * WHY THERE IS NO `body` RULE ANYMORE (owner brief §6)
+ * ---------------------------------------------------
+ * This stylesheet used to emit
+ *     body{background-color:var(--color-page-bg);color:var(--color-ink);}
+ * unlayered — and unlayered CSS beats `@layer` rules, so the owner's Appearance
+ * background/ink were applied to EVERY page, public site included. Combined with
+ * `--color-brand-*` (violet by default) that is how "half the site turns violet /
+ * unrelated to the rest" happened: the public identity was themeable by accident.
+ *
+ * The split is now explicit:
+ *   • Palette + shape of the PUBLIC platform  → frozen `--*-pub-*` tokens in
+ *     app/app.css (LAYER A). Nothing here writes them; nothing here can recolor
+ *     the public site.
+ *   • Owner typography (fonts, font-size scale)  → still global: it is a
+ *     legibility preference, not brand identity, and the public fluid type
+ *     clamps keep it inside the approved scale.
+ *   • Owner colors/radius/density/shadow        → still emitted for the ADMIN and
+ *     STUDENT consoles, whose layout roots paint their own surface
+ *     (`bg-slate-100` / `bg-slate-50`), so removing the body rule changes
+ *     nothing there.
  */
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -79,14 +100,15 @@ export async function loader({ context }: Route.LoaderArgs) {
     `--color-warning-soft:${toHex(mix(hexToRgb(t.warning), WHITE, 0.88))};`,
     `--color-error:${t.error};`,
     `--color-error-soft:${toHex(mix(hexToRgb(t.error), WHITE, 0.88))};`,
-    `--radius-base:${t.radiusBase}px;`,
-    `--radius-btn:${t.radiusButton}px;`,
-    `--radius-card:${t.radiusCard}px;`,
-    `--shadow-card:${SHADOWS[t.shadow] ?? SHADOWS.sm};`,
-    `--density:${DENSITY[t.density] ?? "1"};`,
     "}",
+    // Shape / density are CONSOLE-scoped: they are emitted on `.console` (the
+    // admin + student layout roots) instead of `:root`, so even a shared
+    // primitive that reads `var(--radius-card)` resolves to the frozen public
+    // default on the public site. The public palette never reads these at all.
+    `:where(.console){--radius-base:${t.radiusBase}px;--radius-btn:${t.radiusButton}px;--radius-card:${t.radiusCard}px;--shadow-card:${SHADOWS[t.shadow] ?? SHADOWS.sm};--density:${DENSITY[t.density] ?? "1"};}`,
+    // Global legibility controls (owner choice, not brand identity): the public
+    // type scale is fluid and clamped, so these stay effective everywhere.
     `html{font-size:${FONT_SCALE[t.fontScale] ?? "100%"};}`,
-    "body{background-color:var(--color-page-bg);color:var(--color-ink);}",
   ];
   const FONT_STACK: Record<string, string> = {
     cairo: '"Cairo", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif',

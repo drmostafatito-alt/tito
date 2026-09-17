@@ -6,7 +6,7 @@ import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
 import { catalogCourses } from "~server/content/service.server";
 import { grades, subjects } from "~server/db/schema";
-import { Card, CardBody } from "~/components/ui/Card";
+import { PUB_CARD, pubBtn, pubBtnSm } from "~/lib/publicStyles";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, itemListJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { SectionDecor } from "~/components/visuals/PhilosophyDecor";
@@ -87,6 +87,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       slug: r.course.slug,
       titleAr: r.course.titleAr,
       titleEn: r.course.titleEn,
+      // The public journey always lands on a SUBJECT (/study/:subjectSlug) — a
+      // curriculum overview never sends a student to the legacy /courses index.
+      subjectSlug: r.subjectSlug,
     })),
   };
 }
@@ -142,7 +145,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
       "script:ld+json": breadcrumbJsonLd({
         items: [
           { name: root.locale === "ar" ? "الرئيسية" : "Home", url: "/" },
-          { name: root.locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+          { name: root.locale === "ar" ? "المحتوى التعليمي" : "Learning content", url: "/study" },
           { name: `${root.locale === "ar" ? subjectLine.ar : subjectLine.en}` },
         ],
         origin: originOf(loaderData.url),
@@ -168,38 +171,38 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="relative isolate overflow-hidden">
       <SectionDecor variant="page" />
-      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
-        <nav aria-label="breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
-          <Link to="/" className="hover:text-navy-700">{t(locale, "common.home")}</Link>
-          <span aria-hidden="true" className="text-gold-500">›</span>
-          <Link to="/study" className="hover:text-navy-700">{t(locale, "curriculum.coursesCrumb")}</Link>
-          <span aria-hidden="true" className="text-gold-500">›</span>
-          <span className="font-medium text-navy-800" dir="auto">{subjectLine}</span>
+      <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+        <nav aria-label="breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-pub-muted">
+          <Link to="/" className="hover:text-pub-ink-soft">{t(locale, "common.home")}</Link>
+          <span aria-hidden="true" className="text-pub-accent">›</span>
+          <Link to="/study" className="hover:text-pub-ink-soft">{t(locale, "curriculum.coursesCrumb")}</Link>
+          <span aria-hidden="true" className="text-pub-accent">›</span>
+          <span className="font-medium text-pub-navy-2" dir="auto">{subjectLine}</span>
         </nav>
 
         {/* Same identity spirit as the homepage hero, without cloning it: small
             gold eyebrow, navy heading, gold hairline ornament. */}
-        <header className="rounded-[var(--radius-card)] border border-navy-100 bg-gradient-to-b from-navy-50 via-white to-white p-6 shadow-sm sm:p-8">
-          <p className="inline-flex items-center gap-2 rounded-full bg-gold-50 px-3 py-1 text-xs font-semibold text-gold-700 ring-1 ring-gold-200">
+        <header className="rounded-pub-2xl border border-pub-line bg-pub-surface p-5 shadow-pub-card sm:p-8">
+          <p className="inline-flex items-center gap-2 rounded-full bg-pub-accent-bg px-3 py-1 text-xs font-semibold text-pub-accent-strong ring-1 ring-pub-accent-line">
             {t(locale, "curriculum.overviewEyebrow")}
           </p>
-          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-navy-900 sm:text-3xl">
+          <h1 className="mt-3 max-w-[26ch] text-pub-h2 font-extrabold tracking-tight text-pub-ink sm:text-pub-h1">
             {t(locale, "curriculum.overviewTitle")}
           </h1>
-          <p className="mt-2 text-lg font-bold text-navy-700" dir="auto">{subjectLine}</p>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">
+          <p className="mt-2 text-pub-md font-bold text-pub-ink-soft" dir="auto">{subjectLine}</p>
+          <p className="mt-3 max-w-[var(--pub-measure)] text-pub-base leading-pub-normal text-pub-muted">
             {curriculumSummaryText(page, locale)}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              to="/courses"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-navy-800 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500"
+              to="/study"
+              className={pubBtn("primary") + " w-full sm:w-auto"}
             >
               {t(locale, "curriculum.exploreCta")}
             </Link>
             <Link
               to="/"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-navy-200 bg-white px-5 text-sm font-semibold text-navy-800 transition-colors hover:border-gold-300 hover:text-gold-700"
+              className={pubBtn("secondary") + " w-full sm:w-auto"}
             >
               {t(locale, "curriculum.homeCta")}
             </Link>
@@ -208,33 +211,33 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
 
         {/* Structure: terms → units → chapters, straight from the curriculum source. */}
         <section className="mt-10" aria-labelledby="curriculum-outline">
-          <h2 id="curriculum-outline" className="text-xl font-extrabold text-navy-900 sm:text-2xl">
+          <h2 id="curriculum-outline" className="text-pub-h3 font-extrabold tracking-tight text-pub-ink sm:text-pub-h2">
             {t(locale, "curriculum.outlineTitle")}
           </h2>
           <div className="mt-5 flex flex-col gap-6">
             {page.terms.map((term) => (
-              <div key={term.titleAr} className="rounded-[var(--radius-card)] border border-navy-100 bg-white p-5 shadow-sm">
+              <div key={term.titleAr} className="rounded-pub-xl border border-pub-line bg-pub-bg p-5 shadow-pub-card">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-base font-extrabold text-navy-800" dir="auto">{term.titleAr}</h3>
-                  <span className="rounded-full bg-navy-50 px-2.5 py-0.5 text-xs font-semibold text-navy-700 ring-1 ring-navy-100">
+                  <h3 className="text-pub-md font-bold text-pub-ink" dir="auto">{term.titleAr}</h3>
+                  <span className="rounded-full bg-pub-surface px-2.5 py-0.5 text-xs font-semibold text-pub-ink-soft ring-1 ring-pub-surface-2">
                     {t(locale, "curriculum.lessonsCount", { n: term.lessonCount })}
                   </span>
                 </div>
                 <ul className="mt-4 flex flex-col gap-4">
                   {term.units.map((unit) => (
-                    <li key={unit.titleAr} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                    <li key={unit.titleAr} className="rounded-pub-lg border border-pub-line bg-pub-surface p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h4 className="text-sm font-bold text-navy-900 sm:text-base" dir="auto">{unit.titleAr}</h4>
-                        <span className="text-xs font-semibold text-slate-500">
+                        <h4 className="text-pub-md font-bold text-pub-ink" dir="auto">{unit.titleAr}</h4>
+                        <span className="text-xs font-semibold text-pub-muted">
                           {t(locale, "curriculum.lessonsCount", { n: unit.lessonCount })}
                         </span>
                       </div>
                       {unit.chapters.length > 0 && (
                         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                           {unit.chapters.map((chapter) => (
-                            <li key={chapter.titleAr} className="flex items-start justify-between gap-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-100">
+                            <li key={chapter.titleAr} className="flex items-start justify-between gap-2 rounded-pub-md bg-pub-bg px-3 py-2.5 text-pub-sm text-pub-ink-soft ring-1 ring-pub-line">
                               <span dir="auto">{chapter.titleAr}</span>
-                              <span className="shrink-0 text-xs font-semibold text-gold-700">
+                              <span className="shrink-0 text-xs font-semibold text-pub-accent-strong">
                                 {t(locale, "curriculum.lessonsCount", { n: chapter.lessonCount })}
                               </span>
                             </li>
@@ -253,7 +256,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
             catalog is empty. */}
         {(courses.length > 0 || matchedSubjects.length > 0 || gradeLinks.length > 0) && (
           <section className="mt-10" aria-labelledby="curriculum-available">
-            <h2 id="curriculum-available" className="text-xl font-extrabold text-navy-900 sm:text-2xl">
+            <h2 id="curriculum-available" className="text-pub-h3 font-extrabold tracking-tight text-pub-ink sm:text-pub-h2">
               {t(locale, "curriculum.availableTitle")}
             </h2>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -261,7 +264,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
                 <Link
                   key={g.slug}
                   to={`/grades/${g.slug}`}
-                  className="inline-flex min-h-9 items-center rounded-full border border-navy-200 px-3 text-sm text-navy-700 hover:border-gold-300 hover:text-gold-700"
+                  className="inline-flex min-h-11 items-center rounded-pub-pill border border-pub-line-strong bg-pub-bg px-4 text-pub-sm text-pub-ink-soft transition-colors hover:border-pub-line-strong hover:bg-pub-surface hover:text-pub-ink"
                 >
                   {locale === "ar" ? g.titleAr : g.titleEn}
                 </Link>
@@ -270,34 +273,37 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
                 <Link
                   key={s.slug}
                   to={`/subjects/${s.slug}`}
-                  className="inline-flex min-h-9 items-center rounded-full border border-navy-200 px-3 text-sm text-navy-700 hover:border-gold-300 hover:text-gold-700"
+                  className="inline-flex min-h-11 items-center rounded-pub-pill border border-pub-line-strong bg-pub-bg px-4 text-pub-sm text-pub-ink-soft transition-colors hover:border-pub-line-strong hover:bg-pub-surface hover:text-pub-ink"
                 >
                   {locale === "ar" ? s.titleAr : s.titleEn}
                 </Link>
               ))}
             </div>
             {courses.length > 0 && (
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="mt-5 grid gap-[var(--pub-gap)] sm:grid-cols-2">
                 {courses.map((c) => (
-                  <Card key={c.slug}>
-                    <CardBody>
-                      <Link
-                        to={`/courses/${c.slug}`}
-                        className="text-sm font-bold text-navy-800 hover:text-gold-700"
-                        dir="auto"
-                      >
+                  <div key={c.slug} className={PUB_CARD}>
+                    <div className="flex flex-col gap-1.5 p-5">
+                      <span className="text-pub-md font-bold leading-pub-snug text-pub-ink" dir="auto">
                         {locale === "ar" ? c.titleAr : c.titleEn}
+                      </span>
+                      <p className="text-pub-xs text-pub-muted">{t(locale, "curriculum.courseLinkHint")}</p>
+                      <Link
+                        to={`/study/${c.subjectSlug}`}
+                        className={pubBtnSm("primary", "mt-2 self-start")}
+                        data-testid="curriculum-open-subject"
+                      >
+                        {t(locale, "study.openSubject")}
                       </Link>
-                      <p className="mt-1 text-xs text-slate-500">{t(locale, "curriculum.courseLinkHint")}</p>
-                    </CardBody>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </section>
         )}
 
-        <p className="mt-10 rounded-xl border border-gold-200 bg-gold-50/60 p-4 text-sm leading-relaxed text-slate-700">
+        <p className="mt-10 rounded-pub-lg border border-pub-accent-line bg-pub-accent-bg p-4 text-pub-sm leading-pub-normal text-pub-ink-soft">
           {t(locale, "curriculum.honestyNote")}
         </p>
       </div>

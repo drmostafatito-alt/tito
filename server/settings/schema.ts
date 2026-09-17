@@ -280,8 +280,11 @@ export const presentationSettingsSchema = z.object({
     showLessonCount: z.boolean().default(true),
     showSubject: z.boolean().default(true),
     showBadge: z.boolean().default(true),
-    ctaLabelAr: z.string().max(60).default("عرض الكورس"),
-    ctaLabelEn: z.string().max(60).default("View course"),
+    // Public vocabulary is «المحتوى التعليمي» (owner brief §10): the card's
+    // label never sells a separate "course" product, and the destination is the
+    // study surface (see server/cms/render.server.ts). Owner can still edit it.
+    ctaLabelAr: z.string().max(60).default("افتح المحتوى"),
+    ctaLabelEn: z.string().max(60).default("Open content"),
     layout: z.enum(["standard", "compact", "wide"]).default("standard"),
   }).prefault({}),
   subjectCard: z.object({

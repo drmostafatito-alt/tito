@@ -432,7 +432,7 @@ export const en: Dictionary = {
   },
   home: {
     chipSubjects: "{n} subjects",
-    chipCourses: "{n} courses",
+    chipCourses: "{n} learning items",
     chipVideos: "{n} videos",
     chipBooks: "Books & notes",
     chipExams: "Practice & exams",
@@ -471,7 +471,7 @@ export const en: Dictionary = {
     freePreview: "Free preview",
     lessonsCount: "{n} lessons",
     durationMinutes: "{n} min",
-    coursesCount: "{n} courses",
+    coursesCount: "{n} learning items",
     locked: "This content requires an access grant.",
     lockedTitle: "This content is for subscribers only",
     lockedBody: "Subscribe now to open this lesson, or enter an activation code if you already have one.",

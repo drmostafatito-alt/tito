@@ -5,7 +5,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { catalogCourses } from "~server/content/service.server";
 import { programs, grades, subjects } from "~server/db/schema";
-import { Card, CardBody } from "~/components/ui/Card";
+import { CARD_BODY, CARD_META, CARD_TITLE, PUB_CARD, PUB_INNER, PUB_SECTION } from "~/lib/publicStyles";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
@@ -130,48 +130,50 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
   const desc = locale === "ar" ? program.descriptionAr : program.descriptionEn;
   const hasSubjects = grades.some((g) => g.subjects.length > 0);
 
+  // Legacy SEO surface, rebuilt on the shared public grammar (same rhythm, card,
+  // type and focus rules as /study) so the site never shows two visual languages.
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/programs" className="hover:text-brand-600">{t(locale, "catalog.programs")}</Link>
-        <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{locale === "ar" ? program.titleAr : program.titleEn}</span>
-      </nav>
-      <h1 className="text-2xl font-bold">{locale === "ar" ? program.titleAr : program.titleEn}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+    <section className={`${PUB_SECTION} bg-pub-bg`}>
+      <div className={PUB_INNER}>
+        <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")}>
+          <Link to="/programs" className="hover:text-pub-navy">{t(locale, "catalog.programs")}</Link>
+          <span aria-hidden="true"> / </span>
+          <span className="font-medium text-pub-navy-2">{locale === "ar" ? program.titleAr : program.titleEn}</span>
+        </nav>
+        <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink sm:text-pub-h1">
+          {locale === "ar" ? program.titleAr : program.titleEn}
+        </h1>
+        {desc && <p className={`pub-measure mt-3 ${CARD_BODY}`}>{desc}</p>}
 
-      {!hasSubjects ? (
-        <p className="mt-6 text-slate-500">{t(locale, "catalog.noSubjects")}</p>
-      ) : (
-        <div className="mt-6 space-y-6">
-          {grades.map((g) =>
-            g.subjects.length === 0 ? null : (
-              <section key={g.id}>
-                <h2 className="mb-3 text-lg font-semibold text-slate-700">
-                  <Link to={`/grades/${g.slug}`} className="hover:text-brand-600">{locale === "ar" ? g.titleAr : g.titleEn}</Link>
-                </h2>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {g.subjects.map((s) => (
-                    <Card key={s.slug}>
-                      <CardBody>
-                        <Link to={`/subjects/${s.slug}`} className="group block">
-                          <h3 className="flex items-center gap-2 font-medium text-slate-800 group-hover:text-brand-600">
-                            <Icon name="book-open" className="h-4.5 w-4.5 shrink-0 text-brand-500" aria-hidden />
-                            {locale === "ar" ? s.titleAr : s.titleEn}
-                          </h3>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {t(locale, "content.coursesCount", { n: s.courseCount })}
-                          </p>
-                        </Link>
-                      </CardBody>
-                    </Card>
-                  ))}
+        {!hasSubjects ? (
+          <p className={`pub-measure mt-6 ${CARD_BODY}`}>{t(locale, "catalog.noSubjects")}</p>
+        ) : (
+          <div className="mt-8 flex flex-col gap-8">
+            {grades.map((g) =>
+              g.subjects.length === 0 ? null : (
+                <div key={g.id}>
+                  <h2 className="mb-4 text-pub-md font-bold text-pub-ink">
+                    <Link to={`/grades/${g.slug}`} className="inline-flex min-h-11 items-center gap-1.5 text-pub-navy hover:underline">
+                      {locale === "ar" ? g.titleAr : g.titleEn}
+                    </Link>
+                  </h2>
+                  <div className="pub-grid sm:grid-cols-2 lg:grid-cols-3">
+                    {g.subjects.map((s) => (
+                      <Link key={s.slug} to={`/subjects/${s.slug}`} className={`${PUB_CARD} min-h-[6.5rem] gap-2 p-5`}>
+                        <h3 className={`flex items-center gap-2 ${CARD_TITLE}`}>
+                          <Icon name="book-open" className="h-5 w-5 shrink-0 text-pub-navy" aria-hidden />
+                          <span className="min-w-0">{locale === "ar" ? s.titleAr : s.titleEn}</span>
+                        </h3>
+                        <p className={`mt-auto ${CARD_META}`}>{t(locale, "content.coursesCount", { n: s.courseCount })}</p>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </section>
-            )
-          )}
-        </div>
-      )}
-    </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

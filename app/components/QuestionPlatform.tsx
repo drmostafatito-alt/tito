@@ -41,7 +41,7 @@ function ExternalArrow({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-const focusCls = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600";
+const focusCls = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-navy";
 
 /**
  * Dashboard feature block. Renders nothing when `url` is null (caller may also
@@ -55,13 +55,13 @@ export function QuestionPlatformCard({ url, locale }: { url: string | null; loca
   return (
     <section
       data-testid="question-platform-card"
-      className="relative isolate overflow-hidden rounded-[var(--radius-card)] border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-white shadow-sm"
+      className="relative isolate overflow-hidden rounded-pub-xl border border-pub-line-strong bg-gradient-to-br from-pub-surface via-white to-white shadow-sm"
     >
       {/* Soft decorative washes — purely ambient, pointer-safe, hidden on small
           screens to keep the mobile card calm and content-first. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0 hidden sm:block">
-        <div className="absolute -top-20 end-8 h-52 w-52 rounded-full bg-brand-200/30 blur-3xl" />
-        <div className="absolute -bottom-24 start-1/4 h-48 w-48 rounded-full bg-amber-100/40 blur-3xl" />
+        <div className="absolute -top-20 end-8 h-52 w-52 rounded-full bg-pub-line-strong/30 blur-3xl" />
+        <div className="absolute -bottom-24 start-1/4 h-48 w-48 rounded-full bg-pub-warning-bg/40 blur-3xl" />
       </div>
 
       <div className="relative grid gap-5 p-5 sm:gap-6 sm:p-7 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-8 lg:p-8">
@@ -74,7 +74,7 @@ export function QuestionPlatformCard({ url, locale }: { url: string | null; loca
             />
             <span
               aria-hidden="true"
-              className="relative flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-600/25"
+              className="relative flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-pub-navy to-pub-ink-soft text-white shadow-lg shadow-pub-navy/25"
             >
               <PlatformGlyph className="h-8 w-8 sm:h-9 sm:w-9" />
             </span>
@@ -83,14 +83,14 @@ export function QuestionPlatformCard({ url, locale }: { url: string | null; loca
 
         {/* Copy */}
         <div className="min-w-0 text-center lg:text-start">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-700 sm:text-xs">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-pub-warning-bg bg-pub-warning-bg px-3 py-1 text-[11px] font-bold text-pub-warning sm:text-xs">
             <ExternalArrow className="h-3 w-3 rtl:-scale-x-100" />
             {t(locale, "questionPlatform.externalTag")}
           </span>
-          <h2 className="mt-3 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
+          <h2 className="mt-3 text-xl font-extrabold tracking-tight text-pub-ink sm:text-2xl">
             {t(locale, "questionPlatform.title")}
           </h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-[15px] lg:mx-0">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-pub-muted sm:text-[15px] lg:mx-0">
             {t(locale, "questionPlatform.description")}
           </p>
         </div>
@@ -103,12 +103,12 @@ export function QuestionPlatformCard({ url, locale }: { url: string | null; loca
             rel="noopener noreferrer"
             data-testid="question-platform-cta"
             aria-label={t(locale, "questionPlatform.ctaAria")}
-            className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-bold text-white shadow-md shadow-brand-600/25 transition-colors hover:bg-brand-700 sm:w-auto sm:px-7 sm:text-base ${focusCls}`}
+            className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pub-navy px-6 text-sm font-bold text-white shadow-md shadow-pub-navy/25 transition-colors hover:bg-pub-ink-soft sm:w-auto sm:px-7 sm:text-base ${focusCls}`}
           >
             {t(locale, "questionPlatform.cta")}
             <ExternalArrow className="h-4 w-4 shrink-0 rtl:-scale-x-100" />
           </a>
-          <span className="flex items-center justify-center gap-1 text-[11px] font-medium text-slate-500 lg:justify-end">
+          <span className="flex items-center justify-center gap-1 text-[11px] font-medium text-pub-muted lg:justify-end">
             <ExternalArrow className="h-3 w-3 rtl:-scale-x-100" />
             {t(locale, "questionPlatform.newTabHint")}
           </span>
@@ -146,7 +146,7 @@ export function QuestionPlatformNavLink({
       data-testid={testId}
       aria-label={t(locale, "questionPlatform.navAria")}
       className={[
-        "inline-flex min-h-11 shrink-0 items-center gap-2 border border-brand-200 bg-brand-50 font-bold text-brand-700 transition-colors hover:bg-brand-100 hover:text-brand-800",
+        "inline-flex min-h-11 shrink-0 items-center gap-2 border border-pub-line-strong bg-pub-surface font-bold text-pub-ink-soft transition-colors hover:bg-pub-surface-2 hover:text-pub-navy",
         block ? "w-full justify-start rounded-xl px-3.5 py-2.5" : "justify-center rounded-full px-3.5 py-2",
         focusCls,
       ].join(" ")}

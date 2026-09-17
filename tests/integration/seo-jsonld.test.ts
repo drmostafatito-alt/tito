@@ -240,9 +240,11 @@ describe("course page: Course + BreadcrumbList", () => {
     expect(bc).toBeDefined();
     const items = bc!.itemListElement as Array<Record<string, unknown>>;
     // Lesson Phase: full topical hierarchy program → grade → subject → course
-    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "الكورسات", "الثانوية العامة", "الصف الثالث", "الفيزياء", "مراجعة شاملة"]);
+    // The parent crumb is the public learning hub — the legacy "الكورسات" label
+    // and its /courses parent were dropped from the public UI (owner brief §10).
+    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "المحتوى التعليمي", "الثانوية العامة", "الصف الثالث", "الفيزياء", "مراجعة شاملة"]);
     expect(items[0].item).toBe(`${BASE}/`);
-    expect(items[1].item).toBe(`${BASE}/courses`);
+    expect(items[1].item).toBe(`${BASE}/study`);
     expect(items[2].item).toBe(`${BASE}/programs/${program.slug}`);
     expect(items[3].item).toBe(`${BASE}/grades/${grade.slug}`);
     expect(items[4].item).toBe(`${BASE}/subjects/${subject.slug}`);
@@ -297,7 +299,7 @@ describe("catalog index: ItemList of the published courses shown on the page", (
 });
 
 describe("subject + program pages: WebPage + BreadcrumbList", () => {
-  it("subject page: CollectionPage WebPage, trail Home → Courses → Program → Subject", async () => {
+  it("subject page: CollectionPage WebPage, trail Home → Learning content → Program → Subject", async () => {
     const { subject, program } = await seedCatalog();
     const data = await call(subjectLoader, get(`/subjects/${subject.slug}`), { slug: subject.slug });
     const meta = await metaOf(subjectMeta, data, "ar");
@@ -310,7 +312,7 @@ describe("subject + program pages: WebPage + BreadcrumbList", () => {
     expect(page!.description).toBe("وصف المادة");
 
     const items = (findLd(meta, "BreadcrumbList")!.itemListElement as Array<Record<string, unknown>>);
-    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "الكورسات", "الثانوية العامة", "الفيزياء"]);
+    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "المحتوى التعليمي", "الثانوية العامة", "الفيزياء"]);
     expect(items[2].item).toBe(`${BASE}/programs/${program.slug}`);
     expect(items[3].item).toBeUndefined();
     expectSiteEntities(meta);
@@ -335,7 +337,7 @@ describe("subject + program pages: WebPage + BreadcrumbList", () => {
 });
 
 describe("unit page: WebPage + BreadcrumbList", () => {
-  it("trail Home → Courses → Program → Grade → Subject → Course → Unit, with a factual description", async () => {
+  it("trail Home → Learning content → Program → Grade → Subject → Course → Unit, with a factual description", async () => {
     const db = getDb(env);
     const { course, program, grade, subject } = await seedCatalog();
     const unit = await createUnit(db, { courseId: course.id, titleAr: "الوحدة الأولى", titleEn: "Unit One", status: "published", sortOrder: 0 }, actor);
@@ -351,7 +353,7 @@ describe("unit page: WebPage + BreadcrumbList", () => {
 
     const items = (findLd(meta, "BreadcrumbList")!.itemListElement as Array<Record<string, unknown>>);
     // Lesson Phase: full hierarchy
-    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "الكورسات", "الثانوية العامة", "الصف الثالث", "الفيزياء", "مراجعة شاملة", "الوحدة الأولى"]);
+    expect(items.map((i) => i.name)).toEqual(["الرئيسية", "المحتوى التعليمي", "الثانوية العامة", "الصف الثالث", "الفيزياء", "مراجعة شاملة", "الوحدة الأولى"]);
     expect(items[2].item).toBe(`${BASE}/programs/${program.slug}`);
     expect(items[3].item).toBe(`${BASE}/grades/${grade.slug}`);
     expect(items[4].item).toBe(`${BASE}/subjects/${subject.slug}`);

@@ -156,7 +156,7 @@ export function WhatsAppFab({
       tabIndex={dodging ? -1 : 0}
       data-testid="whatsapp-fab"
       data-dodging={dodging ? "true" : "false"}
-      className={`fixed bottom-4 end-4 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-opacity duration-200 hover:bg-[#1ebe5b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${
+      className={`fixed bottom-[var(--pub-fab-inset)] end-[var(--pub-fab-inset)] z-40 inline-flex h-[var(--pub-fab-size)] w-[var(--pub-fab-size)] items-center justify-center rounded-pub-pill bg-pub-whatsapp text-white shadow-pub-lg transition-opacity duration-200 hover:bg-pub-whatsapp-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-navy ${
         dodging ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
     >

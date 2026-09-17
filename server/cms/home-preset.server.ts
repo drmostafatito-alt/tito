@@ -31,11 +31,12 @@ import {
  *   - the pre-existing draft/published content is preserved as a page version
  *     first, so "Restore version" in the builder rolls the change back.
  *
- * HONESTY RULES (unchanged): the preset contains copy and links only. All
- * content-bearing sections (courses, videos, books/products, grades, exams) are
- * data-driven blocks that render real published rows and collapse when a table
- * is empty — the preset can never invent a course, a book, a statistic or an
- * exam.
+ * HONESTY RULES (unchanged): the preset contains copy and links only. Every
+ * content-bearing section — the ONE subject shelf (`study_subjects`), videos,
+ * books/notes, free lessons, exams — is a data-driven block that renders real
+ * published rows and collapses when its table is empty. So the preset can never
+ * invent a subject, a book, a statistic or an exam, and a fresh install shows a
+ * short, honest page instead of empty bands.
  */
 
 interface PresetComponent {

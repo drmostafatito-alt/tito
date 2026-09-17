@@ -11,11 +11,11 @@ export function BrandMark({
    */
   tone?: "onLight" | "onDark";
 }) {
-  const labelCls = tone === "onDark" ? "text-white" : "text-slate-900";
+  const labelCls = tone === "onDark" ? "text-white" : "text-pub-ink";
   return (
     <span className="inline-flex items-center gap-2.5">
       <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800 text-white shadow-md"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-pub-navy to-pub-navy text-white shadow-md"
         aria-hidden="true"
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

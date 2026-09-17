@@ -4,7 +4,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { programs, grades, subjects } from "~server/db/schema";
-import { Card, CardBody } from "~/components/ui/Card";
+import { CARD_BODY, CARD_META, PUB_CARD, PUB_INNER, PUB_SECTION } from "~/lib/publicStyles";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
@@ -75,34 +75,38 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
 
+  // Legacy SEO surface: same section rhythm, card grammar and type scale as the
+  // rest of the public UI — one language, no separate "old pages" stylesheet.
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">{t(locale, "catalog.programs")}</h1>
-      {loaderData.programs.length === 0 ? (
-        <p className="text-slate-500">{t(locale, "catalog.noPrograms")}</p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {loaderData.programs.map((p) => {
-            const desc = locale === "ar" ? p.descriptionAr : p.descriptionEn;
-            return (
-              <Card key={p.slug}>
-                <CardBody>
-                  <Link to={`/programs/${p.slug}`} className="group block">
-                    <h2 className="flex items-center gap-2 font-semibold text-slate-800 group-hover:text-brand-600">
-                      <Icon name="graduation-cap" className="h-5 w-5 text-brand-500" aria-hidden />
-                      {locale === "ar" ? p.titleAr : p.titleEn}
-                    </h2>
-                    {desc && <p className="mt-1.5 text-sm text-slate-600">{desc}</p>}
-                    <p className="mt-2 text-sm text-slate-500">
-                      {t(locale, "catalog.subjects")}: <span className="tabular-nums">{p.subjectCount}</span>
-                    </p>
-                  </Link>
-                </CardBody>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <section className={`${PUB_SECTION} bg-pub-bg`}>
+      <div className={PUB_INNER}>
+        <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink">{t(locale, "catalog.programs")}</h1>
+        {loaderData.programs.length === 0 ? (
+          <p className={`pub-measure mt-4 ${CARD_BODY}`}>{t(locale, "catalog.noPrograms")}</p>
+        ) : (
+          <div className="pub-grid mt-6 sm:grid-cols-2">
+            {loaderData.programs.map((p) => {
+              const desc = locale === "ar" ? p.descriptionAr : p.descriptionEn;
+              return (
+                <Link
+                  key={p.slug}
+                  to={`/programs/${p.slug}`}
+                  className={`${PUB_CARD} min-h-[7rem] gap-2 p-5 sm:p-6`}
+                >
+                  <h2 className="flex items-center gap-2 text-pub-md font-bold leading-pub-snug text-pub-ink">
+                    <Icon name="graduation-cap" className="h-5 w-5 shrink-0 text-pub-navy" aria-hidden />
+                    <span className="min-w-0">{locale === "ar" ? p.titleAr : p.titleEn}</span>
+                  </h2>
+                  {desc && <p className={CARD_BODY}>{desc}</p>}
+                  <p className={`mt-auto ${CARD_META}`}>
+                    {t(locale, "catalog.subjects")}: <span className="tabular-nums">{p.subjectCount}</span>
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
