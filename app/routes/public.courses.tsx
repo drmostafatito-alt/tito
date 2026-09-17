@@ -6,6 +6,7 @@ import { getSettings } from "~server/settings/service.server";
 import { catalogCourses } from "~server/content/service.server";
 import { lessonCounts, resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
 import { Card, CardBody } from "~/components/ui/Card";
+import { CARD_BODY, pubBtnSm } from "~/lib/publicStyles";
 import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, itemListJsonLd } from "~/cms/jsonld";
@@ -112,10 +113,10 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
   const cta = locale === "ar" ? pres.ctaLabelAr : pres.ctaLabelEn;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">{t(locale, "content.catalogTitle")}</h1>
+    <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+      <h1 className="mb-6 text-pub-h2 font-extrabold tracking-tight text-pub-ink">{t(locale, "content.catalogTitle")}</h1>
       {loaderData.courses.length === 0 ? (
-        <p className="text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+        <p className="text-pub-muted">{t(locale, "content.catalogEmpty")}</p>
       ) : (
         <div className={`grid gap-4 ${LAYOUT_GRID[pres.layout as keyof typeof LAYOUT_GRID] ?? LAYOUT_GRID.standard}`}>
           {loaderData.courses.map((course) => {
@@ -141,12 +142,12 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
                       {course.visibility === "featured" && <Badge tone="warning">★</Badge>}
                     </div>
                   )}
-                  <h2 className="text-lg font-semibold">
+                  <h2 className="text-pub-md font-bold text-pub-ink">
                     <Link to={`/courses/${course.slug}`} className="hover:underline">{c(course)}</Link>
                   </h2>
-                  {meta.length > 0 && <p className="mt-1 text-sm text-slate-500">{meta.join(" · ")}</p>}
+                  {meta.length > 0 && <p className={`mt-1 ${CARD_BODY}`}>{meta.join(" · ")}</p>}
                   {cta && (
-                    <Link to={`/courses/${course.slug}`} className="mt-3 inline-flex min-h-9 items-center text-sm font-semibold text-brand-700 hover:text-brand-800">
+                    <Link to={`/courses/${course.slug}`} className={pubBtnSm("ghost", "mt-3 self-start")}>
                       {cta}
                       <span aria-hidden="true" className="ms-1 rtl:rotate-180">→</span>
                     </Link>

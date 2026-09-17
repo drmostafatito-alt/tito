@@ -57,18 +57,21 @@ test.describe("homepage public chrome", () => {
   });
 
   test("locale switcher writes the cookie on localhost HTTP and flips dir", async ({ page }) => {
+    // Asserted on strings the composition itself owns (CMS copy + identity
+    // tagline), so the test follows the approved public vocabulary instead of
+    // pinning one marketing sentence.
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-    await expect(page.locator("body")).toContainText("دروس ومراجعات");
+    await expect(page.locator("body")).toContainText("كتب ومذكرات");
     await page.getByRole("button", { name: /english/i }).click();
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     const cookies = await page.context().cookies(BASE);
     expect(cookies.find((c) => c.name === "edu_locale")?.value).toBe("en");
-    await expect(page.locator("body")).toContainText(/Lessons & revision/);
-    await expect(page.locator("body")).toContainText(/Notes & files/);
-    await expect(page.locator("body")).not.toContainText("دروس ومراجعات");
+    await expect(page.locator("body")).toContainText(/Books & notes/);
+    await expect(page.locator("body")).toContainText(/Philosophy & Psychology/);
+    await expect(page.locator("body")).not.toContainText("كتب ومذكرات");
     await expect(page.getByRole("button", { name: /عربي|arabic/i })).toBeVisible();
   });
 

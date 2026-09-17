@@ -146,10 +146,10 @@ export default function ResetPassword({ loaderData }: Route.ComponentProps) {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-6 text-2xl font-bold text-slate-900">{t(locale, "auth.resetTitle")}</h1>
+        <h1 className="mb-6 text-2xl font-bold text-pub-ink">{t(locale, "auth.resetTitle")}</h1>
 
         {exchangeState === "checking" && (
-          <p role="status" className="text-sm text-slate-600">{t(locale, "common.loading")}</p>
+          <p role="status" className="text-sm text-pub-muted">{t(locale, "common.loading")}</p>
         )}
         {exchangeState === "invalid" && (
           <Alert kind="error">{t(locale, "auth.resetInvalid")}</Alert>

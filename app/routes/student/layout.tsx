@@ -112,7 +112,7 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
   ];
 
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50">
+    <div className="console flex min-h-dvh flex-col bg-slate-50">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white pt-safe">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-4">

@@ -521,12 +521,14 @@ if (!heroFileId && existsSync(heroPath)) {
 // published rows only and collapse while their tables are empty — the preset
 // itself contains copy and links, never invented content or numbers.
 const homePreset = JSON.parse(readFileSync("server/cms/home-preset.json", "utf8"));
-// The preset carries copy + layout only; the uploaded hero visual (identity
-// asset, not invented content) is injected here when the file exists.
-if (heroFileId) {
-  const presetHero = homePreset.sections.flatMap((s) => s.children ?? []).find((c) => c.type === "hero_showcase");
-  if (presetHero) presetHero.props.image = heroFileId;
-}
+// PUBLIC REBUILD (owner brief §19): the hero no longer receives any
+// auto-injected illustration. `public/hero-philosophy.webp` stays registered in
+// `files` so the owner can STILL choose it in the CMS image picker, but a fresh
+// homepage renders the platform's own CSS identity plate (light wash + masked
+// engraving + the owner's name/photo from Settings → Identity). The old
+// "violet fallback art" was the single loudest symptom of the previous design.
+// Nothing is injected here anymore: `homePreset.sections[0]` keeps `image: ""`.
+void heroFileId;
 
 await seedCmsPage({
   slug: homePreset.page.slug,

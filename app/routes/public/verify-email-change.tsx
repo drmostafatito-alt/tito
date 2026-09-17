@@ -95,7 +95,7 @@ export default function VerifyEmailChange() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-16">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-3 text-2xl font-bold text-slate-900">{t(locale, "verifyEmail.title")}</h1>
+        <h1 className="mb-3 text-2xl font-bold text-pub-ink">{t(locale, "verifyEmail.title")}</h1>
         <div aria-live="polite">
           {pending && (
             <Alert kind="info">
@@ -123,7 +123,7 @@ export default function VerifyEmailChange() {
           </noscript>
         </div>
         <div className="mt-5">
-          <Link to="/" className="font-medium text-brand-700 hover:underline">
+          <Link to="/" className="font-medium text-pub-ink-soft hover:underline">
             {t(locale, "verifyEmail.goHome")}
           </Link>
         </div>

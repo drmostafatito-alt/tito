@@ -5,7 +5,7 @@ import { getEnv } from "~server/cf.server";
 import { studyHub } from "~server/content/service.server";
 import { getSettings } from "~server/settings/service.server";
 import { resolvePublicImageUrls } from "~server/cms/render.server";
-import { Badge } from "~/components/ui/Badge";
+import { CARD_BODY, CARD_META, CHIP, PUB_CARD, pubBtnSm } from "~/lib/publicStyles";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
@@ -66,19 +66,39 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="relative isolate overflow-x-hidden">
-      <section className="relative isolate overflow-hidden bg-gradient-to-b from-navy-100/70 via-navy-50/30 to-transparent">
+      {/* One restrained opening band: light-blue support surface, a whisper
+          portrait and the journey line. No dark hero, no stacked ornament. */}
+      <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
-        {!empty && <ThinkerPortrait thinker={heroThinker} intensity="whisper" eager />}
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:py-12">
-          <nav className="mb-3 flex items-center gap-1 text-sm text-navy-500" aria-label={t(locale, "common.breadcrumb")}>
+        <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
+          <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")}>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
             <span aria-hidden="true"> / </span>
-            <span className="font-medium text-navy-800">{t(locale, "study.title")}</span>
+            <span className="font-medium text-pub-navy-2">{t(locale, "study.title")}</span>
           </nav>
-          <h1 className="text-3xl font-extrabold tracking-tight text-navy-900 sm:text-4xl">{t(locale, "study.title")}</h1>
-          <DecorHairline className="mt-3 max-w-[10rem] text-gold-500" />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-5">
+            {!empty ? (
+              /* Subject identity sits BESIDE the title — the same grammar as the
+                 cards below, and never behind text, so a long description can never
+                 collide with the portrait at phone widths. */
+              <ThinkerPortrait
+                thinker={heroThinker}
+                presentation="avatar"
+                eager
+                className="h-14 w-14 shrink-0 sm:h-20 sm:w-20"
+              />
+            ) : null}
+            <div className="min-w-0">
+              <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink sm:text-pub-h1">
+                {t(locale, "study.title")}
+              </h1>
+              <DecorHairline className="mt-3 max-w-[10rem] text-pub-accent" />
+            </div>
+          </div>
           {!empty && (
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">{t(locale, "study.subtitle")}</p>
+            <p className="mt-3 max-w-[var(--pub-measure)] text-pub-base leading-pub-normal text-pub-muted">
+              {t(locale, "study.subtitle")}
+            </p>
           )}
 
           {loaderData.ownerPhotoUrl && (
@@ -88,33 +108,30 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
                 alt={ownerName || t(locale, "study.ownerPhotoSlot")}
                 width={72}
                 height={72}
-                className="relative z-10 h-16 w-16 rounded-2xl object-cover ring-2 ring-white shadow-md sm:h-[4.5rem] sm:w-[4.5rem]"
+                className="relative z-10 h-16 w-16 rounded-pub-xl object-cover shadow-pub-md ring-2 ring-pub-bg sm:h-[4.5rem] sm:w-[4.5rem]"
               />
             </div>
           )}
         </div>
       </section>
 
-      <div className="relative z-10 mx-auto max-w-5xl px-4 pb-16">
+      <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] pb-[var(--pub-pad-y)]">
         {empty ? (
           <div
-            className="relative isolate mt-1 overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white p-6 shadow-sm sm:p-8"
+            className="relative isolate mt-1 overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-bg p-6 shadow-pub-card sm:p-8"
             data-testid="study-empty"
           >
-            <ThinkerPortrait thinker={heroThinker} intensity="subtle" eager />
-            <div className="relative z-10 max-w-md">
-              <h2 className="text-lg font-extrabold text-navy-900">{t(locale, "study.emptyTitle")}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">{t(locale, "study.empty")}</p>
-              <Link
-                to="/register"
-                className="mt-5 inline-flex min-h-11 items-center rounded-full bg-navy-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-800"
-              >
+            <ThinkerPortrait thinker={heroThinker} presentation="avatar" eager className="mt-1" />
+            <div className="relative z-10 max-w-[var(--pub-measure)]">
+              <h2 className="text-pub-md font-extrabold text-pub-ink">{t(locale, "study.emptyTitle")}</h2>
+              <p className="mt-2 text-pub-base leading-pub-normal text-pub-muted">{t(locale, "study.empty")}</p>
+              <Link to="/register" className={`mt-5 ${pubBtnSm("primary", "px-5")}`}>
                 {t(locale, "common.register")}
               </Link>
             </div>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2" data-testid="study-subjects">
+          <div className="grid gap-[var(--pub-gap)] sm:grid-cols-2" data-testid="study-subjects">
             {loaderData.subjects.map((s, i) => {
               const primary = thinkerFor({
                 slot: "subject-card",
@@ -126,40 +143,40 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
               const thinker = i === 1 ? thinkerAlternate(thinkerFor({ slot: "subject-card", slug: s.slug, titleAr: s.titleAr, titleEn: s.titleEn }), s.slug) : primary;
               const year = ar ? s.yearTitleAr : s.yearTitleEn;
               return (
-                <article
-                  key={s.slug}
-                  className="group relative isolate overflow-hidden rounded-[1.5rem] border border-navy-100 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-gold-300 hover:shadow-lg"
-                >
-                  <ThinkerPortrait thinker={thinker} intensity="subtle" />
+                <article key={s.slug} className={`${PUB_CARD} isolate rounded-pub-2xl`}>
                   <Link
                     to={`/study/${s.slug}`}
-                    className="relative z-10 flex min-h-[11rem] flex-col gap-2 p-5 pe-16 sm:p-6 sm:pe-24"
+                    className="relative z-10 flex min-h-[11rem] flex-col gap-2 p-5 sm:p-6"
                     data-testid={`study-subject-${s.slug}`}
                   >
-                    <h2 className="text-xl font-extrabold text-navy-900 group-hover:text-navy-800">
-                      {ar ? s.titleAr : s.titleEn}
-                    </h2>
-                    <p className="text-sm text-slate-600">
+                    <span className="flex min-w-0 items-start gap-3">
+                      {/* subject identity, cropped small — legible on a phone */}
+                      <ThinkerPortrait thinker={thinker} presentation="avatar" />
+                      <h2 className="min-w-0 flex-1 text-pub-lg font-bold leading-pub-snug text-pub-ink group-hover:text-pub-navy-2">
+                        {ar ? s.titleAr : s.titleEn}
+                      </h2>
+                    </span>
+                    <p className={`text-pub-sm ${CARD_BODY}`}>
                       {t(locale, "study.gradeLabel")}: {ar ? s.gradeTitleAr : s.gradeTitleEn}
                       {s.programTitleAr || s.programTitleEn
                         ? ` · ${t(locale, "study.programLabel")}: ${ar ? s.programTitleAr : s.programTitleEn}`
                         : ""}
                     </p>
                     {year && (
-                      <p className="text-xs font-medium text-navy-500" dir="ltr">
+                      <p className={`text-pub-xs ${CARD_META}`} dir="ltr">
                         {t(locale, "study.yearLabel")}: {year}
                       </p>
                     )}
                     {(ar ? s.descriptionAr : s.descriptionEn) && (
-                      <p className="line-clamp-2 text-sm text-slate-500">{ar ? s.descriptionAr : s.descriptionEn}</p>
+                      <p className={`line-clamp-2 text-pub-sm ${CARD_BODY}`}>{ar ? s.descriptionAr : s.descriptionEn}</p>
                     )}
-                    <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 text-xs text-slate-500">
-                      <Badge tone="neutral">{t(locale, "study.termsCount", { n: s.termCount })}</Badge>
-                      <Badge tone="neutral">{t(locale, "study.lessonsCount", { n: s.lessonCount })}</Badge>
+                    <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
+                      <span className={CHIP}>{t(locale, "study.termsCount", { n: s.termCount })}</span>
+                      <span className={CHIP}>{t(locale, "study.lessonsCount", { n: s.lessonCount })}</span>
                     </div>
-                    <span className="mt-3 inline-flex min-h-11 w-fit items-center gap-1.5 rounded-full bg-navy-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors group-hover:bg-navy-800">
+                    <span className={pubBtnSm("primary", "mt-3 w-fit group-hover:bg-pub-navy-2")}>
                       {t(locale, "study.openSubject")}
-                      <Icon name="arrow-right" size="sm" colorRole="invert" className="text-white rtl:rotate-180" />
+                      <Icon name="arrow-right" size="sm" colorRole="invert" className="text-pub-bg rtl:rotate-180" />
                     </span>
                   </Link>
                 </article>

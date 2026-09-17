@@ -17,6 +17,7 @@ import {
   users,
   videos,
 } from "../db/schema";
+import { studyHub, type StudySubjectCard } from "../content/service.server";
 import { effectivePriceMinor } from "../commerce/service.server";
 import { formatMoney } from "../commerce/money";
 import { resolveQuestionPlatformUrl } from "../../app/lib/question-platform";
@@ -289,7 +290,10 @@ export async function resolveDynamicBlocks(
     if (r.thumbnailFileId) imageIds.push(r.thumbnailFileId);
     return {
       id: r.id,
-      href: `/courses?subject=${encodeURIComponent(r.slug)}`,
+      // `/study/:subjectSlug` is the single public learning front door; the
+      // legacy `/courses?subject=` catalog filter remains reachable for old
+      // links/SEO but no longer receives the platform's own CTAs.
+      href: `/study/${r.slug}`,
       title: L(r.titleAr, r.titleEn),
       desc: L(r.descriptionAr, r.descriptionEn),
       image: sc.showImage ? r.thumbnailFileId : null,
@@ -301,7 +305,7 @@ export async function resolveDynamicBlocks(
 
   const programCard = (r: (typeof programRows)[number]): CardView => ({
     id: r.id,
-    href: `/courses?program=${encodeURIComponent(r.slug)}`,
+    href: `/study`, // program cards explain the journey; /study starts it
     title: L(r.titleAr, r.titleEn),
     desc: L(r.descriptionAr, r.descriptionEn),
     image: null,
@@ -350,6 +354,10 @@ export async function resolveDynamicBlocks(
           rows = ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is (typeof programRows)[number] => Boolean(r));
         }
         out[req.blockId] = rows.slice(0, limit).map(programCard);
+        break;
+      }
+      case "study_subjects": {
+        out[req.blockId] = await resolveStudySubjectCards(db, limit);
         break;
       }
       case "free_content":
@@ -503,6 +511,46 @@ async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean
       chips,
     } satisfies CardView;
   });
+}
+
+/**
+ * The ONE public subject-discovery surface (owner brief §12/§13): the exact
+ * same data as /study (`studyHub`), delivered to a CMS block so the homepage
+ * shows one discovery experience instead of a second hand-built band.
+ *
+ * Empty-first is structural: a subject appears only when it has a published
+ * term container, so a fresh install renders nothing and the section collapses.
+ * Chips are real counts (terms / lessons) — never a marketing claim.
+ */
+async function resolveStudySubjectCards(db: DB, limit: number): Promise<CardView[]> {
+  const rows = await studyHub(db);
+  return rows.slice(0, limit).map((r) => studySubjectCard(r));
+}
+
+function studySubjectCard(r: StudySubjectCard): CardView {
+  const chips: LStr[] = [];
+  if (r.termCount > 0) chips.push({ ar: t("ar", "study.termsCount", { n: r.termCount }), en: t("en", "study.termsCount", { n: r.termCount }) });
+  if (r.lessonCount > 0) chips.push({ ar: t("ar", "study.lessonsCount", { n: r.lessonCount }), en: t("en", "study.lessonsCount", { n: r.lessonCount }) });
+  // Journey line (owner brief §10): السنة الدراسية → الصف → المادة.
+  const journey = (ar: boolean) =>
+    [
+      (ar ? r.yearTitleAr : r.yearTitleEn) ? `${t(ar ? "ar" : "en", "study.yearLabel")}: ${ar ? r.yearTitleAr : r.yearTitleEn}` : "",
+      `${t(ar ? "ar" : "en", "study.gradeLabel")}: ${ar ? r.gradeTitleAr : r.gradeTitleEn}`,
+      (ar ? r.programTitleAr : r.programTitleEn) ? `${t(ar ? "ar" : "en", "study.programLabel")}: ${ar ? r.programTitleAr : r.programTitleEn}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  return {
+    id: r.slug,
+    href: `/study/${r.slug}`,
+    title: L(r.titleAr, r.titleEn),
+    desc: L(r.descriptionAr, r.descriptionEn),
+    image: null,
+    badge: null,
+    meta: { ar: journey(true), en: journey(false) },
+    cta: L(t("ar", "study.openSubject"), t("en", "study.openSubject")),
+    chips,
+  } satisfies CardView;
 }
 
 /**

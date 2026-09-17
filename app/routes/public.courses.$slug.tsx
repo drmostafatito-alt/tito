@@ -11,6 +11,7 @@ import { courseProgress, lessonProgressMap } from "~server/progress/service.serv
 import { videos, lessonItems, subjects, grades, programs } from "~server/db/schema";
 import { Badge } from "~/components/ui/Badge";
 import { Card, CardBody } from "~/components/ui/Card";
+import { CARD_BODY, pubBtnSm } from "~/lib/publicStyles";
 import { ProgressBar } from "~/components/ProgressBar";
 import { purchasableFor } from "~server/commerce/service.server";
 import { formatMoney } from "~server/commerce/money";
@@ -213,7 +214,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   const siteName = locale === "ar" ? root.siteName?.ar ?? "" : root.siteName?.en ?? "";
   const crumbs: Array<{ name: string; url?: string | null }> = [
     { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
-    { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+    { name: locale === "ar" ? "المحتوى التعليمي" : "Learning content", url: "/study" },
   ];
   if (loaderData.program) {
     crumbs.push({
@@ -291,24 +292,24 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto w-full max-w-[62rem] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
       {/* Breadcrumbs */}
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
+      <nav aria-label="breadcrumb" className="mb-3 text-pub-sm text-pub-muted">
+        <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         {subject && (
           <>
             <span className="mx-1.5" aria-hidden>›</span>
-            <Link to={`/subjects/${subject.slug}`} className="hover:text-brand-600">
+            <Link to={`/subjects/${subject.slug}`} className="hover:text-pub-navy">
               {locale === "ar" ? subject.titleAr : subject.titleEn}
             </Link>
           </>
         )}
         <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{title}</span>
+        <span className="font-medium text-pub-ink-soft">{title}</span>
       </nav>
 
       {course.thumbnail && (
-        <img src={course.thumbnail} alt="" className="mb-4 h-40 w-full rounded-lg object-cover sm:h-52" />
+        <img src={course.thumbnail} alt="" className="mb-4 h-40 w-full rounded-pub-lg object-cover sm:h-52" />
       )}
 
       <div className="mb-2 flex items-center gap-2">
@@ -316,14 +317,14 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           {t(locale, course.accessLevel === "public" ? "content.accessPublic" : course.accessLevel === "authenticated" ? "content.accessAuthenticated" : "content.accessEntitled")}
         </Badge>
         {!verdict.allowed && course.status !== "published" && (
-          <span className="text-sm text-slate-500">{t(locale, "content.notAvailable")}</span>
+          <span className="text-pub-sm text-pub-muted">{t(locale, "content.notAvailable")}</span>
         )}
       </div>
-      <h1 className="text-2xl font-bold">{title}</h1>
-      {desc && <p className="mt-2 text-slate-600">{desc}</p>}
+      <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink">{title}</h1>
+      {desc && <p className="mt-2 text-pub-muted">{desc}</p>}
 
       {/* Meta row: teacher · lessons · duration */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-pub-sm text-pub-muted">
         {course.teacherName && (
           <span className="inline-flex items-center gap-1.5">
             <Icon name="user" className="h-4 w-4" aria-hidden />
@@ -349,9 +350,9 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
       {progress && progress.course.total > 0 && (
         <Card className="mt-4">
           <CardBody>
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-medium text-slate-700">{t(locale, "progress.courseProgress")}</span>
-              <span className="tabular-nums text-slate-500">
+            <div className="flex items-center justify-between gap-3 text-pub-sm">
+              <span className="font-medium text-pub-ink-soft">{t(locale, "progress.courseProgress")}</span>
+              <span className="tabular-nums text-pub-muted">
                 {progress.course.completed}/{progress.course.total} · {progress.course.pct}%
               </span>
             </div>
@@ -363,11 +364,11 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
       {gated && prereqLock.missing.length > 0 && (
         <Card className="mt-4">
           <CardBody>
-            <p className="text-sm font-medium text-slate-700">{t(locale, "content.prereqRequired")}</p>
+            <p className="text-pub-sm font-medium text-pub-ink-soft">{t(locale, "content.prereqRequired")}</p>
             <ul className="mt-2 space-y-1">
               {prereqLock.missing.map((m) => (
                 <li key={m.courseId}>
-                  <Link to={`/courses/${m.slug}`} className="text-sm text-blue-600 hover:underline">
+                  <Link to={`/courses/${m.slug}`} className="text-pub-sm text-pub-navy hover:underline">
                     {locale === "ar" ? m.titleAr : m.titleEn}
                   </Link>
                 </li>
@@ -380,9 +381,9 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
       {!gated && !verdict.allowed && (
         <Card className="mt-4">
           <CardBody>
-            <p className="text-sm text-slate-600">
+            <p className="text-pub-sm text-pub-muted">
               {verdict.reason === "anon" ? (
-                <Link to="/login" className="font-medium text-blue-600 hover:underline">
+                <Link to="/login" className="font-medium text-pub-navy hover:underline">
                   {t(locale, "content.loginToContinue")}
                 </Link>
               ) : (
@@ -392,7 +393,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
             {buyOption && (
               <Link
                 to={`/products/${buyOption.productSlug}`}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                className={pubBtnSm("primary", "mt-3")}
                 data-testid="course-buy-cta"
               >
                 {t(locale, "commerce.buyCta")}
@@ -410,11 +411,11 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           <Card key={unit.id}>
             <CardBody>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-semibold">
+                <h2 className="font-bold text-pub-ink">
                   {ui + 1}. {locale === "ar" ? unit.titleAr : unit.titleEn}
                 </h2>
                 {!gated && verdict.allowed && (
-                  <Link to={`/courses/${course.slug}/units/${unit.id}`} className="text-sm text-blue-600 hover:underline">
+                  <Link to={`/courses/${course.slug}/units/${unit.id}`} className="text-pub-sm text-pub-navy hover:underline">
                     {t(locale, "content.openUnit")}
                   </Link>
                 )}
@@ -424,21 +425,21 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                   const lessonLocked = lessonLockedFor(lesson.id);
                   const lp = progress?.lesson[lesson.id];
                   return (
-                    <li key={lesson.slug} className="flex items-center gap-2 text-sm">
+                    <li key={lesson.slug} className="flex items-center gap-2 text-pub-sm">
                       {lp?.status === "completed" && (
-                        <Icon name="check-circle" className="h-4 w-4 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
+                        <Icon name="check-circle" className="h-4 w-4 shrink-0 text-pub-ok" aria-label={t(locale, "progress.completed")} />
                       )}
                       {lp && lp.status !== "completed" && (
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400" aria-hidden />
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-pub-navy-2" aria-hidden />
                       )}
-                      {!lp && !lessonLocked && <span className="h-2 w-2 shrink-0 rounded-full bg-slate-300" aria-hidden />}
+                      {!lp && !lessonLocked && <span className="h-2 w-2 shrink-0 rounded-full bg-pub-surface-2" aria-hidden />}
                       {lessonLocked ? (
-                        <span className="inline-flex items-center gap-1.5 text-slate-500">
+                        <span className="inline-flex items-center gap-1.5 text-pub-muted">
                           <Icon name="lock" className="h-4 w-4 shrink-0" aria-hidden />
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </span>
                       ) : (
-                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="inline-flex min-h-6 items-center text-blue-700 hover:underline">
+                        <Link to={`/learn/${course.slug}/${lesson.slug}`} className="inline-flex min-h-6 items-center text-pub-navy-2 hover:underline">
                           {locale === "ar" ? lesson.titleAr : lesson.titleEn}
                         </Link>
                       )}
@@ -446,12 +447,12 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
                     </li>
                   );
                 })}
-                {unit.lessons.length === 0 && <li className="text-sm text-slate-500">—</li>}
+                {unit.lessons.length === 0 && <li className="text-pub-sm text-pub-muted">—</li>}
               </ol>
             </CardBody>
           </Card>
         ))}
-        {units.length === 0 && <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>}
+        {units.length === 0 && <p className="text-pub-sm text-pub-muted">{t(locale, "content.catalogEmpty")}</p>}
       </div>
     </div>
   );

@@ -66,7 +66,7 @@ export default function Register() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
-        <h1 className="mb-6 text-2xl font-bold text-slate-900">{t(locale, "common.register")}</h1>
+        <h1 className="mb-6 text-2xl font-bold text-pub-ink">{t(locale, "common.register")}</h1>
 
         {actionData?.error && (
           <div className="mb-4">
@@ -115,9 +115,9 @@ export default function Register() {
           </SubmitButton>
         </Form>
 
-        <p className="mt-4 text-sm text-slate-500">
+        <p className="mt-4 text-sm text-pub-muted">
           {t(locale, "auth.haveAccount")}{" "}
-          <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`} className="font-medium text-brand-700 hover:underline">
+          <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`} className="font-medium text-pub-ink-soft hover:underline">
             {t(locale, "common.login")}
           </Link>
         </p>

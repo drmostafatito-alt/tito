@@ -182,7 +182,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   const { email, fullName } = loaderData.admin;
 
   return (
-    <div className="flex min-h-dvh bg-slate-100">
+    <div className="console flex min-h-dvh bg-slate-100">
       {/* Desktop sidebar */}
       <aside
         className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-slate-800 bg-slate-900 pt-safe transition-[width] duration-200 lg:flex ${

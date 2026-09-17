@@ -187,33 +187,33 @@ export default function GradePage({ loaderData }: Route.ComponentProps) {
   const c = (row: { titleAr: string; titleEn: string }) => (locale === "ar" ? row.titleAr : row.titleEn);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/programs" className="hover:text-brand-600">{t(locale, "catalog.programs")}</Link>
+    <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+      <nav aria-label="breadcrumb" className="mb-3 text-pub-sm text-pub-muted">
+        <Link to="/programs" className="hover:text-pub-navy">{t(locale, "catalog.programs")}</Link>
         {program && (
           <>
             <span className="mx-1.5" aria-hidden>›</span>
-            <Link to={`/programs/${program.slug}`} className="hover:text-brand-600">{c(program)}</Link>
+            <Link to={`/programs/${program.slug}`} className="hover:text-pub-navy">{c(program)}</Link>
           </>
         )}
         <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{c(grade)}</span>
+        <span className="font-medium text-pub-ink-soft">{c(grade)}</span>
       </nav>
-      <h1 className="text-2xl font-bold">{c(grade)}</h1>
+      <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink">{c(grade)}</h1>
 
       {subjectRows.length === 0 ? (
-        <p className="mt-6 text-slate-500">{t(locale, "catalog.noSubjects")}</p>
+        <p className="mt-6 text-pub-muted">{t(locale, "catalog.noSubjects")}</p>
       ) : (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {subjectRows.map((s: any) => (
             <Card key={s.slug}>
               <CardBody>
                 <Link to={`/subjects/${s.slug}`} className="group block">
-                  <h2 className="flex items-center gap-2 font-medium text-slate-800 group-hover:text-brand-600">
-                    <Icon name="book-open" className="h-4.5 w-4.5 shrink-0 text-brand-500" aria-hidden />
+                  <h2 className="flex items-center gap-2 font-medium text-pub-ink group-hover:text-pub-navy">
+                    <Icon name="book-open" className="h-4.5 w-4.5 shrink-0 text-pub-navy" aria-hidden />
                     {c(s)}
                   </h2>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-pub-sm text-pub-muted">
                     {t(locale, "content.coursesCount", { n: s.courseCount })}
                   </p>
                 </Link>

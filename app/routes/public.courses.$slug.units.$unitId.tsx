@@ -148,7 +148,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
       siteName: root.siteName,
       fallbackDescription: (loc) =>
         loc === "ar"
-          ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
+          ? `الوحدة "${loaderData.unit.titleAr}" من محتوى ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
           : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
     },
   );
@@ -167,7 +167,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   // Breadcrumb chain for topical authority
   const crumbs: Array<{ name: string; url?: string | null }> = [
     { name: locale === "ar" ? "الرئيسية" : "Home", url: "/" },
-    { name: locale === "ar" ? "الكورسات" : "Courses", url: "/courses" },
+    { name: locale === "ar" ? "المحتوى التعليمي" : "Learning content", url: "/study" },
   ];
   if (loaderData.program) {
     crumbs.push({
@@ -202,7 +202,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
       url: absUrl(origin, pathname),
       description:
         locale === "ar"
-          ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
+          ? `الوحدة "${loaderData.unit.titleAr}" من محتوى ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
           : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
       educationalLevel,
       teaches: teaches.length > 0 ? teaches : undefined,
@@ -239,7 +239,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
         url: absUrl(origin, pathname),
         description:
           locale === "ar"
-            ? `الوحدة "${loaderData.unit.titleAr}" من كورس ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
+            ? `الوحدة "${loaderData.unit.titleAr}" من محتوى ${loaderData.course.titleAr} — ${n} ${n === 1 ? "درس" : "دروس"}.`
             : `"${loaderData.unit.titleEn}" — a unit in ${loaderData.course.titleEn} (${n} lesson${n === 1 ? "" : "s"}).`,
         isPartOf: absUrl(origin, "/"),
         additionalType: "https://schema.org/CollectionPage",
@@ -272,36 +272,36 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
   const { course, unit, lessons, courseAllowed } = loaderData;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-1 text-sm text-slate-500">
-        <Link to="/courses" className="hover:text-brand-600">{t(locale, "content.catalogTitle")}</Link>
+    <div className="mx-auto w-full max-w-[62rem] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+      <nav aria-label="breadcrumb" className="mb-1 text-pub-sm text-pub-muted">
+        <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         <span className="mx-1.5" aria-hidden>›</span>
-        <Link to={`/courses/${course.slug}`} className="hover:text-brand-600">
+        <Link to={`/courses/${course.slug}`} className="hover:text-pub-navy">
           {locale === "ar" ? course.titleAr : course.titleEn}
         </Link>
         <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
+        <span className="font-medium text-pub-ink-soft">{locale === "ar" ? unit.titleAr : unit.titleEn}</span>
       </nav>
-      <h1 className="mb-6 text-2xl font-bold">{locale === "ar" ? unit.titleAr : unit.titleEn}</h1>
+      <h1 className="mb-6 text-pub-h2 font-extrabold tracking-tight text-pub-ink">{locale === "ar" ? unit.titleAr : unit.titleEn}</h1>
       <ol className="space-y-2">
         {lessons.map((l, i) => (
           <li key={l.slug}>
             <Card>
               <CardBody className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="text-sm text-slate-500">{i + 1}.</span>
+                  <span className="text-pub-sm text-pub-muted">{i + 1}.</span>
                   {l.progress?.status === "completed" && (
-                    <Icon name="check-circle" className="h-4 w-4 shrink-0 text-emerald-600" aria-label={t(locale, "progress.completed")} />
+                    <Icon name="check-circle" className="h-4 w-4 shrink-0 text-pub-success" aria-label={t(locale, "progress.completed")} />
                   )}
                   {l.progress && l.progress.status !== "completed" && (
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400" aria-hidden />
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-pub-muted" aria-hidden />
                   )}
                   {l.allowed ? (
-                    <Link to={`/learn/${course.slug}/${l.slug}`} className="truncate font-medium text-blue-700 hover:underline">
+                    <Link to={`/learn/${course.slug}/${l.slug}`} className="truncate font-medium text-pub-ink-soft hover:underline">
                       {locale === "ar" ? l.titleAr : l.titleEn}
                     </Link>
                   ) : (
-                    <span className="inline-flex min-w-0 items-center gap-1.5 text-slate-500">
+                    <span className="inline-flex min-w-0 items-center gap-1.5 text-pub-muted">
                       <Icon name="lock" className="h-4 w-4 shrink-0" aria-hidden />
                       <span className="truncate">{locale === "ar" ? l.titleAr : l.titleEn}</span>
                     </span>
@@ -311,7 +311,7 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
                 {l.allowed && l.progress?.status !== "completed" && (
                   <Link
                     to={`/learn/${course.slug}/${l.slug}`}
-                    className="shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
+                    className="shrink-0 rounded-pub-md px-3 py-2 text-pub-sm font-medium text-pub-ink-soft hover:bg-pub-surface"
                   >
                     {l.progress ? t(locale, "progress.resume") : t(locale, "content.openLesson")}
                   </Link>
@@ -320,10 +320,10 @@ export default function UnitPage({ loaderData }: Route.ComponentProps) {
             </Card>
           </li>
         ))}
-        {lessons.length === 0 && <p className="text-sm text-slate-500">—</p>}
+        {lessons.length === 0 && <p className="text-pub-sm text-pub-muted">—</p>}
       </ol>
       {!courseAllowed && (
-        <p className="mt-4 text-sm text-slate-500">{t(locale, "content.locked")}</p>
+        <p className="mt-4 text-pub-sm text-pub-muted">{t(locale, "content.locked")}</p>
       )}
     </div>
   );

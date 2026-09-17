@@ -166,10 +166,10 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <nav aria-label="breadcrumb" className="mb-3 text-sm text-slate-500">
-        <Link to="/" className="hover:text-brand-600">{locale === "ar" ? "الرئيسية" : "Home"}</Link>
+      <nav aria-label="breadcrumb" className="mb-3 text-sm text-pub-muted">
+        <Link to="/" className="hover:text-pub-navy">{locale === "ar" ? "الرئيسية" : "Home"}</Link>
         <span className="mx-1.5" aria-hidden>›</span>
-        <span className="font-medium text-slate-700">{t(locale, "seo.about")}</span>
+        <span className="font-medium text-pub-ink-soft">{t(locale, "seo.about")}</span>
       </nav>
 
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -178,8 +178,8 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
         )}
         <div>
           <h1 className="text-2xl font-bold">{name}</h1>
-          {title && <p className="mt-1 font-medium text-brand-700">{title}</p>}
-          <p className="mt-3 leading-relaxed text-slate-600">
+          {title && <p className="mt-1 font-medium text-pub-ink-soft">{title}</p>}
+          <p className="mt-3 leading-relaxed text-pub-muted">
             {t(locale, "seo.aboutBio", { name: siteName, tagline })}
           </p>
         </div>
@@ -191,14 +191,14 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
 
       {subjects.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-3 text-lg font-semibold text-slate-700">{t(locale, "seo.aboutSubjects")}</h2>
+          <h2 className="mb-3 text-lg font-semibold text-pub-ink-soft">{t(locale, "seo.aboutSubjects")}</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {subjects.map((s) => (
               <Card key={s.slug}>
                 <CardBody>
                   <Link to={`/subjects/${s.slug}`} className="group block">
-                    <h3 className="flex items-center gap-2 font-medium text-slate-800 group-hover:text-brand-600">
-                      <Icon name="book-open" className="h-4.5 w-4.5 shrink-0 text-brand-500" aria-hidden />
+                    <h3 className="flex items-center gap-2 font-medium text-pub-ink group-hover:text-pub-navy">
+                      <Icon name="book-open" className="h-4.5 w-4.5 shrink-0 text-pub-navy" aria-hidden />
                       {c(s)}
                     </h3>
                   </Link>
@@ -211,16 +211,16 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
 
       {(contact.phone || contact.email || contact.socials.length > 0 || contact.addressAr || contact.addressEn) && (
         <section className="mt-10">
-          <h2 className="mb-3 text-lg font-semibold text-slate-700">{t(locale, "seo.aboutContact")}</h2>
-          <div className="space-y-1.5 text-slate-600">
+          <h2 className="mb-3 text-lg font-semibold text-pub-ink-soft">{t(locale, "seo.aboutContact")}</h2>
+          <div className="space-y-1.5 text-pub-muted">
             {contact.phone && (
               <p dir="ltr" className="text-right">
-                <a href={`tel:${contact.phone}`} className="hover:text-brand-600">{contact.phone}</a>
+                <a href={`tel:${contact.phone}`} className="hover:text-pub-navy">{contact.phone}</a>
               </p>
             )}
             {contact.email && (
               <p>
-                <a href={`mailto:${contact.email}`} className="hover:text-brand-600">{contact.email}</a>
+                <a href={`mailto:${contact.email}`} className="hover:text-pub-navy">{contact.email}</a>
               </p>
             )}
             {(locale === "ar" ? contact.addressAr : contact.addressEn) && (
@@ -229,7 +229,7 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
             {contact.socials.length > 0 && (
               <div className="flex flex-wrap gap-3 pt-1">
                 {contact.socials.map((s, i) => (
-                  <a key={i} href={safeHref(s.url)} target="_blank" rel="noopener noreferrer" className="hover:text-brand-600">
+                  <a key={i} href={safeHref(s.url)} target="_blank" rel="noopener noreferrer" className="hover:text-pub-navy">
                     {locale === "ar" ? s.labelAr || s.url : s.labelEn || s.url}
                   </a>
                 ))}
