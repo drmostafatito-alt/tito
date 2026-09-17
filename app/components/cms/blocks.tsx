@@ -6,6 +6,23 @@ import { t } from "~/lib/i18n";
 import { socialIconName } from "~/cms/social";
 import { ANCHOR_ID_RE, fragmentId, resolveCmsHref, type CmsHrefContext } from "~/cms/links";
 import { SectionDecor, DecorHairline } from "~/components/visuals/PhilosophyDecor";
+import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
+import {
+  BTN_SHAPE,
+  BTN_VARIANT,
+  CARD_ARROW,
+  CARD_BODY,
+  CARD_LINK,
+  CARD_META,
+  CARD_TITLE,
+  CHIP,
+  PUB_BAND,
+  PUB_BTN,
+  PUB_CARD,
+  CARD_SURFACE,
+  TINT_CHIP,
+} from "~/lib/publicStyles";
+import { heroIdentityThinker, thinkerAlternate, thinkerFor } from "~/lib/thinkers";
 import type { CardView, CmsRenderCtx, FormView } from "~/cms/render-types";
 
 const VideoPlayer = lazy(() => import("~/components/player/VideoPlayer").then((m) => ({ default: m.VideoPlayer })));
@@ -75,21 +92,34 @@ function SmartLink({ href, className, children, ariaLabel }: { href: string; cla
   );
 }
 
-const BUTTON_VARIANT = {
-  primary: "bg-brand-600 text-white shadow-md shadow-brand-600/20 hover:bg-brand-700",
-  secondary: "bg-white text-slate-800 border border-slate-200 shadow-sm hover:bg-slate-50",
-  outline: "border border-slate-300 text-slate-800 hover:bg-slate-50",
-  ghost: "text-brand-700 hover:bg-brand-50",
-} as const;
-
-/** Temporary abstract philosophy/psychology visual — CMS image replaces this. */
-const FALLBACK_HERO_SRC = "/hero-philosophy.webp";
-
-function CtaButton({ label, href, target, variant, icon, className = "" }: { label: string; href: string; target?: string; variant?: string; icon?: string; className?: string }) {
+/**
+ * Buttons and cards on public surfaces are composed in ~/lib/publicStyles.ts —
+ * the same module the /study, curriculum and auth routes read, so a CTA can
+ * never grow a second personality.
+ */
+function CtaButton({
+  label,
+  href,
+  target,
+  variant,
+  icon,
+  shape,
+  className = "",
+}: {
+  label: string;
+  href: string;
+  target?: string;
+  variant?: string;
+  icon?: string;
+  shape?: string;
+  className?: string;
+}) {
   if (!label && !href) return null; // nothing configured → render nothing
   const nav = useContext(CmsNavContext);
   const resolved = resolveCmsHref(href, nav);
-  const base = `inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-7 py-3 text-base font-semibold transition-colors ${BUTTON_VARIANT[(variant ?? "primary") as keyof typeof BUTTON_VARIANT] ?? BUTTON_VARIANT.primary} ${className}`;
+  const v = BTN_VARIANT[variant ?? "primary"] ?? BTN_VARIANT.primary;
+  // `!` in a className means a block is overriding the system — never needed now.
+  const base = `${PUB_BTN} ${BTN_SHAPE[shape ?? ""] ?? ""} ${v} ${className}`.replace(/\s+/g, " ").trim();
   const iconEl = icon ? <Icon name={icon} size="sm" colorRole="default" className="text-current" /> : null;
   if (fragmentId(resolved)) {
     // Same-document jump — never target/rel (that would open a second tab).
@@ -127,7 +157,7 @@ function CmsImage({ fileId, alt, ctx, className = "", fit = "cover", aspect = "a
       alt={alt}
       loading={eager ? "eager" : "lazy"}
       decoding="async"
-      className={`${aspectClass} w-full ${fit === "contain" ? "object-contain" : "object-cover"} ${rounded ? "rounded-[var(--radius-card)]" : ""} ${className}`}
+      className={`${aspectClass} w-full ${fit === "contain" ? "object-contain" : "object-cover"} ${rounded ? "rounded-pub-xl" : ""} ${className}`}
     />
   );
 }
@@ -142,14 +172,15 @@ function CardGrid({ rows, ctx, ctaFallback, showPlay }: { rows: CardView[]; ctx:
         const imgSrc = (row.imageUrl && /^https:\/\//i.test(row.imageUrl) ? row.imageUrl : null) ?? (row.image ? ctx.images[row.image] : null);
         const badge = row.badge ? ls(row.badge, L) : "";
         const chips = (row.chips ?? []).map((c) => ls(c, L)).filter(Boolean);
-        const ctaLabel = (row.cta && ls(row.cta, L)) || (ctaFallback ? ls(ctaFallback, L) : "") || ls(row.title, L);
+        // A card whose CTA repeats its own title reads as a bug, so the fallback
+        // is the system verb for opening a lesson ("ابدأ الدرس").
+        const title = ls(row.title, L);
+        const rawCta = (row.cta && ls(row.cta, L)) || (ctaFallback ? ls(ctaFallback, L) : "");
+        const ctaLabel = rawCta && rawCta !== title ? rawCta : t(L, "study.openLesson");
         return (
-          <article
-            key={row.id}
-            className="group flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-navy-100 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-gold-300 hover:shadow-lg"
-          >
+          <article key={row.id} className={PUB_CARD}>
             {imgSrc && (
-              <div className="relative aspect-video overflow-hidden bg-navy-50">
+              <div className="relative aspect-video overflow-hidden bg-pub-surface">
                 <img
                   src={imgSrc}
                   alt={ls(row.title, L)}
@@ -158,14 +189,14 @@ function CardGrid({ rows, ctx, ctaFallback, showPlay }: { rows: CardView[]; ctx:
                   className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                 />
                 {showPlay && (
-                  <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center bg-navy-950/25">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-navy-800 shadow-md ring-1 ring-gold-300">
+                  <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center bg-pub-navy/25">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-pub-navy-2 shadow-md ring-1 ring-pub-accent-soft">
                       <Icon name="play-circle" size="md" colorRole="default" className="text-current" />
                     </span>
                   </span>
                 )}
                 {badge && (
-                  <span className="absolute bottom-3 start-3 rounded-full bg-gold-500/95 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                  <span className="absolute bottom-3 start-3 rounded-full bg-pub-accent/95 px-3 py-1 text-xs font-semibold text-white shadow-sm">
                     {badge}
                   </span>
                 )}
@@ -173,30 +204,26 @@ function CardGrid({ rows, ctx, ctaFallback, showPlay }: { rows: CardView[]; ctx:
             )}
             <div className="flex flex-1 flex-col gap-2 p-5">
               <div className="flex items-start justify-between gap-2">
-                <h3 className="text-base font-bold leading-snug text-navy-900">{ls(row.title, L)}</h3>
+                <h3 className={CARD_TITLE}>{ls(row.title, L)}</h3>
                 {badge && !imgSrc && (
-                  <span className="shrink-0 rounded-full bg-gold-50 px-2.5 py-0.5 text-xs font-semibold text-gold-700 ring-1 ring-gold-200">{badge}</span>
+                  <span className="shrink-0 rounded-full bg-pub-accent-bg px-2.5 py-0.5 text-xs font-semibold text-pub-accent-strong ring-1 ring-pub-accent-line">{badge}</span>
                 )}
               </div>
-              {ls(row.desc, L) && <p className="line-clamp-2 text-sm leading-relaxed text-slate-600">{ls(row.desc, L)}</p>}
+              {ls(row.desc, L) && <p className={`line-clamp-2 ${CARD_BODY}`}>{ls(row.desc, L)}</p>}
               {row.meta && ls(row.meta, L) && (
-                <p className="text-xs font-medium text-navy-500" dir="auto">{ls(row.meta, L)}</p>
+                <p className={CARD_META} dir="auto">{ls(row.meta, L)}</p>
               )}
               {chips.length > 0 && (
                 <ul className="mt-1 flex flex-wrap gap-1.5">
                   {chips.map((chip) => (
-                    <li key={chip} className="rounded-full bg-navy-50 px-2.5 py-1 text-[11px] font-medium text-navy-700 ring-1 ring-navy-100">
+                    <li key={chip} className={CHIP}>
                       {chip}
                     </li>
                   ))}
                 </ul>
               )}
               <div className="mt-auto pt-3">
-                <SmartLink
-                  href={row.href}
-                  ariaLabel={`${ctaLabel} — ${ls(row.title, L)}`}
-                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-navy-700 transition-colors hover:text-gold-700"
-                >
+                <SmartLink href={row.href} ariaLabel={`${ctaLabel} — ${title}`} className={CARD_LINK}>
                   {ctaLabel}
                   <span aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5 rtl:rotate-180">→</span>
                 </SmartLink>
@@ -234,9 +261,9 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
       {str(props, "heading", L) && <p className="text-lg font-semibold">{str(props, "heading", L)}</p>}
       <div className="flex gap-3" dir="ltr" suppressHydrationWarning>
         {cells.map(([value, label], i) => (
-          <div key={i} className="flex min-w-16 flex-col items-center rounded-[var(--radius-card)] bg-slate-900 px-3 py-2 text-white">
+          <div key={i} className="flex min-w-16 flex-col items-center rounded-pub-xl bg-pub-ink px-3 py-2 text-white">
             <span className="text-2xl font-bold tabular-nums">{value ?? "--"}</span>
-            <span className="text-[11px] text-slate-300">{label}</span>
+            <span className="text-[11px] text-pub-line-strong">{label}</span>
           </div>
         ))}
       </div>
@@ -247,20 +274,20 @@ function Countdown({ props, ctx }: { props: P; ctx: CmsRenderCtx }) {
 function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; compact?: boolean }) {
   const L = ctx.locale;
   const result = ctx.formResults[form.slug];
-  const input = "w-full rounded-[var(--radius-btn)] border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none";
+  const input = "w-full rounded-pub-md border border-pub-line-strong bg-white px-3 py-2.5 text-sm text-pub-ink placeholder:text-pub-muted/70 focus:border-pub-navy focus:outline-none";
   return (
     <form method="post" className={`flex flex-col gap-4 ${compact ? "" : "mx-auto w-full max-w-xl"}`} noValidate>
       <input type="hidden" name="_cmsForm" value={form.slug} />
       {result && (
-        <p role="status" className={`rounded-[var(--radius-btn)] px-4 py-3 text-sm ${result.ok ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
+        <p role="status" className={`rounded-pub-md px-4 py-3 text-sm ${result.ok ? "bg-pub-success-bg text-pub-success" : "bg-pub-danger-bg text-pub-danger"}`}>
           {result.ok ? ls(form.success, L) : ls(form.failure, L) || t(L, "common.cmsFormFailed")}
         </p>
       )}
       {form.fields.map((f) => {
         const err = result && !result.ok ? result.errors[f.name] : undefined;
         const label = (
-          <label htmlFor={`cmsf-${form.slug}-${f.name}`} className="mb-1 block text-sm font-medium text-slate-700">
-            {ls(f.label, L)}{f.required && <span className="text-rose-600"> *</span>}
+          <label htmlFor={`cmsf-${form.slug}-${f.name}`} className="mb-1 block text-sm font-medium text-pub-ink-soft">
+            {ls(f.label, L)}{f.required && <span className="text-pub-danger"> *</span>}
           </label>
         );
         const ph = ls(f.placeholder, L) || undefined;
@@ -288,7 +315,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             control = (
               <div className="flex flex-wrap gap-3" role="radiogroup" aria-labelledby={`cmsf-${form.slug}-${f.name}-legend`}>
                 {f.options.map((o) => (
-                  <label key={o.value} className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700">
+                  <label key={o.value} className="inline-flex min-h-11 items-center gap-2 text-sm text-pub-ink-soft">
                     <input type="radio" name={f.name} value={o.value} className="h-4 w-4" />
                     {ls(o.label, L)}
                   </label>
@@ -298,7 +325,7 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
             break;
           case "checkbox":
             control = (
-              <label className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700">
+              <label className="inline-flex min-h-11 items-center gap-2 text-sm text-pub-ink-soft">
                 <input type="checkbox" id={`cmsf-${form.slug}-${f.name}`} name={f.name} value="on" className="h-4 w-4" />
                 {ls(f.label, L)}
               </label>
@@ -321,20 +348,20 @@ function CmsForm({ form, ctx, compact }: { form: FormView; ctx: CmsRenderCtx; co
         return (
           <div key={f.name}>
             {f.type !== "checkbox" && f.type !== "radio" && label}
-            {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-sm font-medium text-slate-700">{ls(f.label, L)}{f.required && <span className="text-rose-600"> *</span>}</span>}
+            {f.type === "radio" && <span id={`cmsf-${form.slug}-${f.name}-legend`} className="mb-1 block text-sm font-medium text-pub-ink-soft">{ls(f.label, L)}{f.required && <span className="text-pub-danger"> *</span>}</span>}
             {control}
-            {ls(f.help, L) && <p className="mt-1 text-xs text-slate-500">{ls(f.help, L)}</p>}
-            {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
+            {ls(f.help, L) && <p className="mt-1 text-xs text-pub-muted">{ls(f.help, L)}</p>}
+            {err && <p className="mt-1 text-xs text-pub-danger">{err}</p>}
           </div>
         );
       })}
       {form.consentRequired && (
-        <label className="inline-flex min-h-11 items-start gap-2 text-sm text-slate-600">
+        <label className="inline-flex min-h-11 items-start gap-2 text-sm text-pub-muted">
           <input type="checkbox" name="__consent" value="on" className="mt-1 h-4 w-4" />
-          <span>{ls(form.consent, L)}{result && !result.ok && result.errors.__consent && <span className="text-rose-600"> *</span>}</span>
+          <span>{ls(form.consent, L)}{result && !result.ok && result.errors.__consent && <span className="text-pub-danger"> *</span>}</span>
         </label>
       )}
-      <button type="submit" className={`inline-flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] bg-brand-600 px-6 py-3 text-base font-semibold text-white hover:bg-brand-700 ${compact ? "shrink-0" : "self-start"}`}>
+      <button type="submit" className={`inline-flex min-h-11 items-center justify-center rounded-pub-md bg-pub-navy px-6 py-3 text-base font-semibold text-white hover:bg-pub-ink-soft ${compact ? "shrink-0" : "self-start"}`}>
         {t(L, "common.cmsFormSubmit")}
       </button>
     </form>
@@ -353,42 +380,6 @@ const BADGE_POS: Record<string, string> = {
   "bottom-end": "lg:bottom-6 lg:end-6",
 };
 
-/** Icon chip surface — always white so the icon colour (navy/gold) reads clearly. */
-const TINT_CHIP: Record<string, string> = {
-  default: "bg-white ring-1 ring-navy-100",
-  brand: "bg-white ring-1 ring-navy-100",
-  accent: "bg-white ring-1 ring-gold-200",
-  success: "bg-white ring-1 ring-navy-100",
-  warning: "bg-white ring-1 ring-gold-200",
-  error: "bg-white ring-1 ring-slate-200",
-  muted: "bg-white ring-1 ring-navy-100",
-};
-
-/**
- * Card surfaces use ONLY the approved identity palette — navy, gold, light blue
- * and neutral (owner brief §1: "لا تستخدم ألوان كثيرة"). The registry's tint
- * field stays owner-editable; every tint maps into the same four families.
- */
-const CARD_SURFACE: Record<string, string> = {
-  default: "bg-navy-50 ring-navy-100",
-  brand: "bg-navy-50 ring-navy-100",
-  accent: "bg-gold-50 ring-gold-200",
-  success: "bg-sky-50 ring-sky-100",
-  warning: "bg-gold-50 ring-gold-200",
-  error: "bg-slate-50 ring-slate-200",
-  muted: "bg-sky-50 ring-sky-100",
-};
-
-/** Tint → the icon colour role actually rendered (navy or gold only). */
-const TINT_ICON_ROLE: Record<string, string> = {
-  default: "brand",
-  brand: "brand",
-  accent: "accent",
-  success: "brand",
-  warning: "accent",
-  error: "muted",
-  muted: "accent",
-};
 
 /** Hero intro-video CTA: a real button that reveals the server-minted player. */
 function VideoCta({ videoId, label }: { videoId: string; label: string }) {
@@ -401,16 +392,16 @@ function VideoCta({ videoId, label }: { videoId: string; label: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={open ? `hero-video-${videoId}` : undefined}
-        className="inline-flex min-h-12 items-center gap-3 rounded-full px-1 py-1 text-start text-sm font-semibold text-slate-800 hover:bg-white/70"
+        className="inline-flex min-h-12 items-center gap-3 rounded-full px-1 py-1 text-start text-sm font-semibold text-pub-ink hover:bg-white/70"
       >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow-md shadow-brand-600/30">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pub-navy text-white shadow-md shadow-pub-navy/30">
           <Icon name="play-circle" size="md" colorRole="invert" className="text-white" />
         </span>
         <span className="max-w-[10rem] leading-snug">{label}</span>
       </button>
       {open && (
         <div id={`hero-video-${videoId}`} className="w-full max-w-xl">
-          <Suspense fallback={<div className="h-40 rounded-xl bg-slate-100" />}>
+          <Suspense fallback={<div className="h-40 rounded-xl bg-pub-surface-2" />}>
             <VideoPlayer videoId={videoId} />
           </Suspense>
         </div>
@@ -430,20 +421,24 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const bgId = raw(p, "image");
       const hasBg = Boolean(bgId && ctx.images[bgId]);
       if (!heading && !subheading && !ctas.length && !hasBg) return null;
-      const height = { sm: "py-[calc(2rem*var(--density,1))]", md: "py-[calc(4.5rem*var(--density,1))]", lg: "py-[calc(7rem*var(--density,1))]" }[raw(p, "height")] ?? "py-[calc(4.5rem*var(--density,1))]";
+      const height = {
+        sm: "py-[calc(var(--pub-pad-y)*0.8)]",
+        md: "py-[calc(var(--pub-pad-y)*1.4)]",
+        lg: "py-[calc(var(--pub-pad-y)*2)]",
+      }[raw(p, "height")] ?? "py-[calc(var(--pub-pad-y)*1.4)]";
       const align = raw(p, "align") || "center";
       const alignCls = align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start";
       const justify = align === "center" ? "justify-center" : align === "end" ? "justify-end" : "justify-start";
       return (
-        <div className={`relative isolate -mx-4 overflow-hidden ${hasBg ? "" : "bg-slate-900"} ${height} flex ${alignCls} flex-col gap-4 px-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:px-10`}>
+        <div className={`relative isolate -mx-4 overflow-hidden ${hasBg ? "" : "bg-pub-ink"} ${height} flex ${alignCls} flex-col gap-4 px-4 sm:mx-0 sm:rounded-pub-xl sm:px-10`}>
           {hasBg && (
             <>
               <img src={ctx.images[bgId]} alt="" aria-hidden="true" decoding="async" className="absolute inset-0 -z-10 h-full w-full object-cover" />
-              <div className="absolute inset-0 -z-10 bg-slate-900/60" aria-hidden="true" />
+              <div className="absolute inset-0 -z-10 bg-pub-ink/60" aria-hidden="true" />
             </>
           )}
-          {heading && <h1 className="max-w-3xl text-3xl font-extrabold leading-tight text-white sm:text-5xl">{heading}</h1>}
-          {subheading && <p className="max-w-2xl whitespace-pre-line text-lg text-slate-200">{subheading}</p>}
+          {heading && <h1 className="max-w-3xl text-pub-xl font-extrabold leading-pub-tight text-pub-on-navy">{heading}</h1>}
+          {subheading && <p className="pub-measure whitespace-pre-line text-pub-base leading-pub-normal text-pub-on-navy-soft">{subheading}</p>}
           {ctas.length > 0 && (
             <div className={`mt-2 flex w-full flex-wrap gap-3 ${justify} max-sm:flex-col max-sm:items-stretch`}>
               {ctas.map((cta, idx) => (
@@ -463,77 +458,149 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const videoId = raw(p, "videoId");
       const imageId = raw(p, "image");
       const cmsSrc = imageId && ctx.images[imageId] ? ctx.images[imageId] : null;
-      const visualSrc = cmsSrc || FALLBACK_HERO_SRC;
       const badges = arr(p, "badges").filter((b) => raw(b, "icon") || str(b, "title", L) || str(b, "text", L));
-      if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !visualSrc) return null;
+      // Identity plate: the owner's own name/photo, straight from Settings →
+      // Identity, resolved through the same R2 file registry as every other
+      // image. Nothing here invents or substitutes a picture: with no owner
+      // photo the plate still shows the name (or nothing at all), never a
+      // stand-in, and never the old abstract illustration fallback.
+      const idn = ctx.identity;
+      const ownerName = idn ? ls(idn.ownerName, L) : "";
+      const ownerTitle = idn ? ls(idn.ownerTitle, L) : "";
+      const ownerPhoto = idn?.ownerPhoto ?? null;
+      const showIdentity = p.useIdentity !== false && Boolean(ownerName || ownerPhoto);
+      // When the owner published their own photo, that photo IS the plate: this
+      // platform's identity is the teacher, not an illustration. It stays exactly
+      // as uploaded (R2 via /files/:id) — never replaced, never a stand-in, and
+      // never used when the block's identity display is switched off.
+      const platePhoto = showIdentity ? ownerPhoto : null;
+      if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !cmsSrc && !showIdentity) return null;
       const imageAlt = str(p, "imageAlt", L) || heading;
-      const badgeChips = badges.map((b, idx) => (
-        <div key={idx} className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white p-3 shadow-lg shadow-slate-900/5">
-          {raw(b, "icon") && (
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
-              <Icon name={raw(b, "icon")} size="md" colorRole="brand" />
-            </span>
-          )}
-          <span className="flex min-w-0 flex-col">
-            {str(b, "title", L) && <span className="text-sm font-bold text-slate-900">{str(b, "title", L)}</span>}
-            {str(b, "text", L) && <span className="text-xs leading-snug text-slate-500">{str(b, "text", L)}</span>}
-          </span>
-        </div>
-      ));
       return (
-        <div className="relative isolate overflow-hidden bg-gradient-to-b from-navy-100/70 via-navy-50/40 to-[var(--color-page-bg,#f7f9fc)]">
-          <SectionDecor variant="hero" />
-          <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-[calc(2.5rem*var(--density,1))] sm:gap-10 lg:grid-cols-2 lg:gap-12 lg:py-[calc(4rem*var(--density,1))]">
-            <div className="flex flex-col items-start gap-4 sm:gap-5">
+        <div className="bg-pub-bg">
+          <div className="pub-section pub-container grid items-center gap-[calc(var(--pub-gap)*2)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-[calc(var(--pub-gap)*3)]">
+            <div className="flex min-w-0 flex-col items-start gap-4">
               {eyebrow && (
-                <span className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white/90 px-4 py-1.5 text-sm font-semibold text-navy-700 shadow-sm">
-                  <Icon name="sparkles" size="sm" colorRole="accent" />
+                <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-pub-line bg-pub-surface px-3.5 text-pub-xs font-bold text-pub-ink-soft">
+                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-pub-accent" />
                   {eyebrow}
                 </span>
               )}
               {heading && (
-                <h1 className="text-3xl font-extrabold leading-[1.2] tracking-tight text-navy-900 sm:text-5xl xl:text-6xl">
+                <h1 className="max-w-[34ch] text-pub-2xl font-extrabold leading-pub-tight tracking-tight text-pub-ink [overflow-wrap:anywhere]">
                   {heading}
-                  <span aria-hidden="true" className="mt-3 block h-1 w-24 rounded-full bg-gradient-to-r from-gold-400 to-gold-200" />
                 </h1>
               )}
-              {subtitleHtml && <RichText html={subtitleHtml} className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg" />}
+              {subtitleHtml && <RichText html={subtitleHtml} className="pub-measure text-pub-base leading-pub-normal text-pub-muted" />}
               {(ctas.length > 0 || (videoLabel && videoId)) && (
-                <div className="mt-1 flex w-full flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="flex w-full flex-wrap items-center gap-3 max-sm:flex-col max-sm:items-stretch [&>*]:max-sm:w-full">
                   {ctas.map((cta, idx) => (
-                    <CtaButton key={idx} label={str(cta, "label", L)} href={raw(cta, "href")} target={raw(cta, "target")} variant={raw(cta, "variant") || "primary"} icon={raw(cta, "icon")} className="max-sm:w-full" />
+                    <CtaButton
+                      key={idx}
+                      label={str(cta, "label", L)}
+                      href={raw(cta, "href")}
+                      target={raw(cta, "target")}
+                      variant={raw(cta, "variant") || "primary"}
+                      icon={raw(cta, "icon")}
+                      shape={raw(p, "ctaShape")}
+                    />
                   ))}
                   {videoLabel && videoId && <VideoCta videoId={videoId} label={videoLabel} />}
                 </div>
               )}
+              {/* Trust badges are real chips in the reading flow — they used to be
+                  absolutely positioned over the visual, which stacked ornaments and
+                  broke first on small screens. */}
+              {badges.length > 0 && (
+                <ul className="pub-grid w-full grid-cols-1 sm:grid-cols-2">
+                  {badges.map((b, idx) => (
+                    <li key={idx} className="flex min-w-0 items-start gap-2.5 rounded-pub-lg border border-pub-line bg-pub-bg p-3 shadow-pub-sm">
+                      {raw(b, "icon") && (
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pub-md bg-pub-tint text-pub-ink-soft">
+                          <Icon name={raw(b, "icon")} size="md" colorRole="default" className="text-current" />
+                        </span>
+                      )}
+                      <span className="flex min-w-0 flex-col">
+                        {str(b, "title", L) && <span className="text-pub-sm font-bold text-pub-ink">{str(b, "title", L)}</span>}
+                        {str(b, "text", L) && <span className="text-pub-xs leading-pub-snug text-pub-muted">{str(b, "text", L)}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
-            <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
-              <div aria-hidden="true" className="absolute -end-4 -top-6 h-28 w-28 rounded-full bg-gold-200/70 blur-[2px] lg:h-36 lg:w-36" />
-              <div aria-hidden="true" className="absolute -bottom-3 -start-6 h-24 w-24 rounded-full bg-navy-200/60 blur-[1px]" />
-              <div aria-hidden="true" className="absolute inset-x-6 -bottom-3 h-px bg-gradient-to-r from-transparent via-gold-400/70 to-transparent" />
-              <img
-                data-hero-visual="true"
-                src={visualSrc}
-                // Owner-provided image → real alt (owner alt or the heading).
-                // The platform's DEFAULT illustration (no owner image) is
-                // decorative: empty alt + aria-hidden so assistive tech and
-                // image search never see a generic asset presented as content.
-                alt={cmsSrc ? imageAlt : ""}
-                aria-hidden={cmsSrc ? undefined : "true"}
-                width={900}
-                height={1205}
-                decoding="async"
-                fetchPriority="high"
-                className="relative z-10 mx-auto max-h-[19rem] w-full object-contain drop-shadow-sm sm:max-h-[26rem] lg:max-h-[32rem]"
-              />
-              {badges.length > 0 && (
-                <div className="relative z-20 mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:pointer-events-none lg:absolute lg:inset-0 lg:mt-0 lg:block">
-                  {badges.map((b, idx) => (
-                    <div key={idx} className={`lg:pointer-events-auto lg:absolute ${BADGE_POS[raw(b, "position")] ?? "lg:bottom-6 lg:start-6"}`}>
-                      {badgeChips[idx]}
-                    </div>
-                  ))}
+            {/* Visual column — exactly one figure, restrained, behind/next to the
+                copy: the owner's own image when published, otherwise the platform
+                plate (CSS wash + masked engraving + identity). */}
+            <div className="relative mx-auto w-full max-w-[34rem]">
+              {cmsSrc ? (
+                <div className="overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
+                  <img
+                    data-hero-visual="true"
+                    src={cmsSrc}
+                    alt={imageAlt}
+                    width={900}
+                    height={675}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="relative isolate flex flex-col overflow-hidden rounded-pub-2xl bg-pub-navy text-pub-on-navy shadow-pub-md">
+                  {/* The identity plate: the thinker portrait carries the mood, a
+                      navy scrim keeps the caption legible, and the face stays in
+                      the upper end half — the figure is never over the text and
+                      the text is never over the figure. */}
+                  {platePhoto ? (
+                    <img
+                      src={platePhoto}
+                      alt={ownerName || ""}
+                      data-hero-visual="true"
+                      width={900}
+                      height={675}
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
+                      className="absolute inset-0 z-0 h-full w-full select-none object-cover object-top"
+                    />
+                  ) : (
+                    <ThinkerPortrait thinker={heroIdentityThinker()} presentation="plate" eager heroVisual />
+                  )}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-pub-navy via-pub-navy/75 to-transparent"
+                  />
+                  <div className="relative mt-auto flex min-h-[15rem] flex-col justify-end gap-3 p-5 sm:min-h-[19rem] sm:p-7">
+                    {showIdentity && (
+                      <div className="flex items-center gap-3">
+                        {/* Shown only when the photo is NOT already the plate
+                            itself — the same face never appears twice. */}
+                        {ownerPhoto && !platePhoto && (
+                          <img
+                            src={ownerPhoto}
+                            alt={ownerName}
+                            width={160}
+                            height={160}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-14 w-14 shrink-0 rounded-pub-lg border border-pub-on-navy/25 bg-pub-navy-2 object-cover object-top sm:h-16 sm:w-16"
+                          />
+                        )}
+                        <span className="flex min-w-0 flex-col">
+                          {ownerName && <span className="text-pub-base font-extrabold text-pub-on-navy">{ownerName}</span>}
+                          {ownerTitle && <span className="text-pub-xs leading-pub-snug text-pub-on-navy-muted">{ownerTitle}</span>}
+                        </span>
+                      </div>
+                    )}
+                    {idn && ls(idn.tagline, L) ? (
+                      <p className="max-w-[30ch] text-pub-sm leading-pub-normal text-pub-on-navy-soft">
+                        {ls(idn.tagline, L)}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               )}
             </div>
@@ -542,7 +609,13 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       );
     }
     case "text": {
-      const size = { body: "text-base text-slate-600", lead: "text-lg text-slate-600", h3: "text-xl font-bold text-slate-900", h2: "text-2xl font-bold text-slate-900", h1: "text-3xl font-extrabold text-slate-900 sm:text-4xl" }[raw(p, "size")] ?? "text-base text-slate-600";
+      const size = {
+        body: "text-pub-base text-pub-muted",
+        lead: "text-pub-md text-pub-muted",
+        h3: "text-pub-h3 font-bold text-pub-ink",
+        h2: "text-pub-h2 font-bold text-pub-ink",
+        h1: "text-pub-h1 font-extrabold text-pub-ink",
+      }[raw(p, "size")] ?? "text-pub-base text-pub-muted";
       const text = str(p, "content", L);
       if (!text) return null;
       const align = raw(p, "align") || "start";
@@ -571,8 +644,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const imgEl = hasImage ? <CmsImage fileId={raw(p, "fileId")} alt={str(p, "alt", L)} ctx={ctx} aspect="4:3" rounded /> : null;
       const textEl = (
         <div className="flex flex-col items-start gap-3">
-          {heading && <h3 className="text-2xl font-bold text-slate-900">{heading}</h3>}
-          {text && <p className="whitespace-pre-line text-slate-600">{text}</p>}
+          {heading && <h3 className="text-2xl font-bold text-pub-ink">{heading}</h3>}
+          {text && <p className="whitespace-pre-line text-pub-muted">{text}</p>}
           {str(p, "ctaLabel", L) && raw(p, "href") && (
             <CtaButton label={str(p, "ctaLabel", L)} href={raw(p, "href")} variant="primary" />
           )}
@@ -586,7 +659,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((item, idx) => (
-            <SmartLink key={idx} href={raw(item, "href")} className="block overflow-hidden rounded-[var(--radius-card)]">
+            <SmartLink key={idx} href={raw(item, "href")} className="block overflow-hidden rounded-pub-xl">
               <CmsImage fileId={raw(item, "fileId")} alt={str(item, "alt", L)} ctx={ctx} aspect="1:1" />
             </SmartLink>
           ))}
@@ -598,7 +671,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!items.length && !str(p, "heading", L)) return null;
       return (
         <div className="flex flex-col items-center gap-5">
-          {str(p, "heading", L) && <p className="text-sm font-medium text-slate-500">{str(p, "heading", L)}</p>}
+          {str(p, "heading", L) && <p className="text-sm font-medium text-pub-muted">{str(p, "heading", L)}</p>}
           {items.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-6">
               {items.map((item, idx) => (
@@ -614,10 +687,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!videoId) return null;
       return (
         <div className="mx-auto w-full max-w-3xl">
-          <Suspense fallback={<div className="h-40 rounded-xl bg-slate-100" />}>
+          <Suspense fallback={<div className="h-40 rounded-xl bg-pub-surface-2" />}>
             <VideoPlayer videoId={videoId} title={str(p, "caption", L) || undefined} />
           </Suspense>
-          {str(p, "caption", L) && <p className="mt-2 text-center text-sm text-slate-500">{str(p, "caption", L)}</p>}
+          {str(p, "caption", L) && <p className="mt-2 text-center text-sm text-pub-muted">{str(p, "caption", L)}</p>}
         </div>
       );
     }
@@ -642,7 +715,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className={`flex flex-col gap-2 ${ALIGN[align as keyof typeof ALIGN] ?? ALIGN.center}`}>
           {icon && <Icon name={icon} size={raw(p, "size") || "lg"} colorRole={raw(p, "colorRole") || "brand"} />}
-          {label && <p className="font-medium text-slate-700">{label}</p>}
+          {label && <p className="font-medium text-pub-ink-soft">{label}</p>}
         </div>
       );
     }
@@ -652,11 +725,11 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, idx) => (
-            <SmartLink key={idx} href={raw(item, "href")} className="flex items-start gap-3 rounded-[var(--radius-card)] border border-slate-200 bg-white p-5 hover:border-brand-200">
+            <SmartLink key={idx} href={raw(item, "href")} className={`${PUB_CARD} flex-row items-start gap-3 p-5`}>
               {raw(item, "icon") && <Icon name={raw(item, "icon")} size="md" colorRole="brand" />}
               <span className="flex flex-col gap-1">
-                {str(item, "title", L) && <span className="font-semibold text-slate-900">{str(item, "title", L)}</span>}
-                {str(item, "text", L) && <span className="text-sm text-slate-600">{str(item, "text", L)}</span>}
+                {str(item, "title", L) && <span className="font-semibold text-pub-ink">{str(item, "title", L)}</span>}
+                {str(item, "text", L) && <span className="text-sm text-pub-muted">{str(item, "text", L)}</span>}
               </span>
             </SmartLink>
           ))}
@@ -677,23 +750,19 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             return (
               <div
                 key={idx}
-                className={`group flex flex-col items-start gap-3 rounded-[1.5rem] p-6 ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${CARD_SURFACE[tint] ?? CARD_SURFACE.brand}`}
+                className={`${PUB_CARD} items-start gap-3 p-5 ring-1 sm:p-6 ${CARD_SURFACE[tint] ?? CARD_SURFACE.default}`}
               >
                 {raw(item, "icon") && (
-                  <span className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ${TINT_CHIP[tint] ?? TINT_CHIP.brand}`}>
-                    <Icon name={raw(item, "icon")} size="md" colorRole={(TINT_ICON_ROLE[tint] ?? "brand") as never} />
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-pub-md ${TINT_CHIP[tint] ?? TINT_CHIP.default}`}>
+                    <Icon name={raw(item, "icon")} size="md" colorRole="default" className="text-current" />
                   </span>
                 )}
-                {title && <h3 className="text-lg font-bold text-navy-900">{title}</h3>}
-                {str(item, "text", L) && <p className="text-sm leading-relaxed text-slate-600">{str(item, "text", L)}</p>}
+                {title && <h3 className={CARD_TITLE}>{title}</h3>}
+                {str(item, "text", L) && <p className={CARD_BODY}>{str(item, "text", L)}</p>}
                 {href && (
-                  <SmartLink
-                    href={href}
-                    ariaLabel={cta || title || str(item, "text", L)}
-                    className="mt-auto inline-flex min-h-11 items-center gap-2 pt-1 text-sm font-semibold text-navy-700 transition-colors hover:text-gold-700"
-                  >
+                  <SmartLink href={href} ariaLabel={cta || title || str(item, "text", L)} className={`mt-auto ${CARD_LINK}`}>
                     <span>{cta || title}</span>
-                    <span aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5 rtl:rotate-180">→</span>
+                    <span aria-hidden="true" className={CARD_ARROW}>→</span>
                   </SmartLink>
                 )}
               </div>
@@ -711,16 +780,16 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const features = str(item, "features", L).split("\n").map((s) => s.trim()).filter(Boolean);
             const highlighted = bool(item, "highlighted");
             return (
-              <div key={idx} className={`flex flex-col gap-4 rounded-[var(--radius-card)] border p-6 ${highlighted ? "border-brand-500 bg-brand-50/50 ring-1 ring-brand-500" : "border-slate-200 bg-white"}`}>
+              <div key={idx} className={`flex flex-col gap-4 rounded-pub-xl border p-6 ${highlighted ? "border-pub-navy bg-pub-surface/50 ring-1 ring-pub-navy" : "border-pub-line bg-white"}`}>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">{str(item, "name", L)}</h3>
-                  <p className="mt-2 text-3xl font-extrabold text-slate-900" dir="auto">{raw(item, "price")}</p>
-                  {str(item, "period", L) && <p className="text-sm text-slate-500">{str(item, "period", L)}</p>}
+                  <h3 className="text-lg font-bold text-pub-ink">{str(item, "name", L)}</h3>
+                  <p className="mt-2 text-3xl font-extrabold text-pub-ink" dir="auto">{raw(item, "price")}</p>
+                  {str(item, "period", L) && <p className="text-sm text-pub-muted">{str(item, "period", L)}</p>}
                 </div>
                 {features.length > 0 && (
                   <ul className="flex flex-col gap-2">
                     {features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                      <li key={i} className="flex items-start gap-2 text-sm text-pub-muted">
                         <Icon name="check" size="sm" colorRole="success" className="mt-0.5" />
                         <span>{f}</span>
                       </li>
@@ -742,9 +811,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const style = raw(p, "style") || "cards";
       if (style === "bar") {
         return (
-          <div className="relative isolate overflow-hidden rounded-[1.75rem] bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 px-3 py-4 shadow-lg shadow-navy-900/15 sm:px-4">
-            <span aria-hidden="true" className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-gold-400/60 to-transparent" />
-            <div className="grid grid-cols-2 lg:grid-cols-4">
+          <div className={`${PUB_BAND} px-3 py-4 sm:px-4`}>
+            <div className="pub-grid grid-cols-2 gap-0 lg:grid-cols-4">
               {items.map((item, idx) => {
                 const label = str(item, "label", L);
                 const value = str(item, "value", L);
@@ -753,19 +821,19 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 const inner = (
                   <span className="flex items-center gap-3">
                     {icon && (
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-gold-300 ring-1 ring-white/15">
-                        <Icon name={icon} size="md" colorRole="invert" className="text-gold-300" />
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pub-md bg-pub-on-navy/10 text-pub-accent-soft">
+                        <Icon name={icon} size="md" colorRole="invert" className="text-pub-accent-soft" />
                       </span>
                     )}
                     <span className="flex min-w-0 flex-col">
-                      {value && <span className="text-base font-extrabold text-white sm:text-lg" dir="auto">{value}</span>}
-                      {label && <span className="text-sm text-navy-200">{label}</span>}
+                      {value && <span className="text-pub-md font-extrabold text-pub-on-navy" dir="auto">{value}</span>}
+                      {label && <span className="text-pub-xs leading-pub-snug text-pub-on-navy-soft">{label}</span>}
                     </span>
                   </span>
                 );
-                const wrapCls = `flex min-h-16 items-center px-4 py-3 ${idx < items.length - 1 ? "lg:border-e lg:border-white/10" : ""}`;
+                const wrapCls = `flex min-h-16 items-center px-3 py-3 sm:px-4 ${idx < items.length - 1 ? "lg:border-e lg:border-pub-on-navy/15" : ""}`;
                 return href ? (
-                  <SmartLink key={idx} href={href} className={`${wrapCls} rounded-2xl transition-colors hover:bg-white/5`}>
+                  <SmartLink key={idx} href={href} className={`${wrapCls} rounded-pub-lg transition-colors hover:bg-pub-on-navy/5`}>
                     {inner}
                   </SmartLink>
                 ) : (
@@ -779,10 +847,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
           {items.map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center gap-1 rounded-[var(--radius-card)] border border-navy-100 bg-white p-5 text-center shadow-sm">
+            <div key={idx} className={`${PUB_CARD} items-center gap-1 p-5 text-center`}>
               {raw(item, "icon") && <Icon name={raw(item, "icon")} size="md" colorRole="accent" />}
-              <span className="text-2xl font-extrabold text-navy-900" dir="auto">{str(item, "value", L)}</span>
-              {str(item, "label", L) && <span className="text-sm text-slate-500">{str(item, "label", L)}</span>}
+              <span className="text-pub-lg font-extrabold text-pub-ink" dir="auto">{str(item, "value", L)}</span>
+              {str(item, "label", L) && <span className={CARD_BODY}>{str(item, "label", L)}</span>}
             </div>
           ))}
         </div>
@@ -794,16 +862,16 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, idx) => (
-            <figure key={idx} className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-slate-200 bg-white p-6">
+            <figure key={idx} className="flex flex-col gap-3 rounded-pub-xl border border-pub-line bg-white p-6">
               <Icon name="quote" size="md" colorRole="brand" />
-              <blockquote className="text-sm leading-relaxed text-slate-700">{str(item, "quote", L)}</blockquote>
+              <blockquote className="text-sm leading-relaxed text-pub-ink-soft">{str(item, "quote", L)}</blockquote>
               <figcaption className="mt-auto flex items-center gap-3">
                 {raw(item, "image") && ctx.images[raw(item, "image")] && (
                   <img src={ctx.images[raw(item, "image")]} alt={str(item, "name", L)} loading="lazy" decoding="async" className="h-10 w-10 rounded-full object-cover" />
                 )}
                 <span className="flex flex-col">
-                  {str(item, "name", L) && <span className="text-sm font-semibold text-slate-900">{str(item, "name", L)}</span>}
-                  {str(item, "role", L) && <span className="text-xs text-slate-500">{str(item, "role", L)}</span>}
+                  {str(item, "name", L) && <span className="text-sm font-semibold text-pub-ink">{str(item, "name", L)}</span>}
+                  {str(item, "role", L) && <span className="text-xs text-pub-muted">{str(item, "role", L)}</span>}
                 </span>
               </figcaption>
             </figure>
@@ -817,12 +885,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
           {items.map((item, idx) => (
-            <details key={idx} className="group rounded-[var(--radius-card)] border border-slate-200 bg-white px-5 py-1 open:pb-4">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+            <details key={idx} className="group rounded-pub-xl border border-pub-line bg-white px-5 py-1 open:pb-4">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-semibold text-pub-ink [&::-webkit-details-marker]:hidden">
                 {str(item, "q", L)}
                 <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
               </summary>
-              <p className="whitespace-pre-line pb-2 text-sm leading-relaxed text-slate-600">{str(item, "a", L)}</p>
+              <p className="whitespace-pre-line pb-2 text-sm leading-relaxed text-pub-muted">{str(item, "a", L)}</p>
             </details>
           ))}
         </div>
@@ -834,12 +902,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
           {items.map((item, idx) => (
-            <details key={idx} className="group rounded-[var(--radius-card)] border border-slate-200 bg-white px-5 py-1 open:pb-4">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+            <details key={idx} className="group rounded-pub-xl border border-pub-line bg-white px-5 py-1 open:pb-4">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-semibold text-pub-ink [&::-webkit-details-marker]:hidden">
                 {str(item, "title", L)}
                 <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
               </summary>
-              <RichText html={str(item, "content", L)} className="pb-2 text-sm leading-relaxed text-slate-600" />
+              <RichText html={str(item, "content", L)} className="pb-2 text-sm leading-relaxed text-pub-muted" />
             </details>
           ))}
         </div>
@@ -848,9 +916,9 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "announcement": {
       const text = str(p, "text", L);
       if (!text) return null;
-      const tone = { info: "bg-slate-100 text-slate-800", success: "bg-emerald-50 text-emerald-800", warning: "bg-amber-50 text-amber-800", brand: "bg-brand-50 text-brand-800" }[raw(p, "tone")] ?? "bg-slate-100 text-slate-800";
+      const tone = { info: "bg-pub-surface-2 text-pub-ink", success: "bg-pub-success-bg text-pub-success", warning: "bg-pub-warning-bg text-pub-warning", brand: "bg-pub-surface text-pub-navy" }[raw(p, "tone")] ?? "bg-pub-surface-2 text-pub-ink";
       return (
-        <div className={`flex flex-wrap items-center justify-center gap-3 rounded-[var(--radius-card)] px-5 py-3 text-sm font-medium ${tone}`}>
+        <div className={`flex flex-wrap items-center justify-center gap-3 rounded-pub-xl px-5 py-3 text-sm font-medium ${tone}`}>
           {raw(p, "icon") && <Icon name={raw(p, "icon")} size="sm" colorRole="default" className="text-current" />}
           <span>{text}</span>
           {str(p, "ctaLabel", L) && raw(p, "href") && (
@@ -869,12 +937,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const text = str(p, "text", L);
       if (!heading && !text) return null;
       return (
-        <div className="grid items-center gap-6 overflow-hidden rounded-[var(--radius-card)] bg-slate-900 md:grid-cols-2">
-          <div className="flex flex-col items-start gap-3 p-7 text-white sm:p-10">
-            {heading && <h3 className="text-2xl font-bold">{heading}</h3>}
-            {text && <p className="whitespace-pre-line text-slate-300">{text}</p>}
+        <div className="grid items-center gap-6 overflow-hidden rounded-pub-2xl bg-pub-navy md:grid-cols-2">
+          <div className="flex flex-col items-start gap-3 p-5 sm:p-8">
+            {heading && <h3 className="text-pub-lg font-extrabold leading-pub-tight text-pub-on-navy">{heading}</h3>}
+            {text && <p className="whitespace-pre-line text-pub-sm leading-pub-normal text-pub-on-navy-soft">{text}</p>}
             {str(p, "ctaLabel", L) && raw(p, "ctaHref") && (
-              <CtaButton label={str(p, "ctaLabel", L)} href={raw(p, "ctaHref")} variant="primary" />
+              <CtaButton label={str(p, "ctaLabel", L)} href={raw(p, "ctaHref")} variant="gold" shape="pill" />
             )}
           </div>
           {raw(p, "image") && ctx.images[raw(p, "image")] && (
@@ -894,11 +962,11 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!name && !photoUrl && !bio) return null;
       return (
         <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
-          {photoUrl && <img src={photoUrl} alt={name} loading="lazy" decoding="async" className="h-40 w-40 shrink-0 rounded-[var(--radius-card)] object-cover md:h-52 md:w-52" />}
+          {photoUrl && <img src={photoUrl} alt={name} loading="lazy" decoding="async" className="h-40 w-40 shrink-0 rounded-pub-xl object-cover md:h-52 md:w-52" />}
           <div className="flex flex-col items-center gap-2 md:items-start">
-            {name && <h3 className="text-2xl font-bold text-slate-900">{name}</h3>}
-            {title && <p className="font-medium text-brand-700">{title}</p>}
-            {bio && <RichText html={bio} className="text-sm leading-relaxed text-slate-600" />}
+            {name && <h3 className="text-2xl font-bold text-pub-ink">{name}</h3>}
+            {title && <p className="font-medium text-pub-ink-soft">{title}</p>}
+            {bio && <RichText html={bio} className="text-sm leading-relaxed text-pub-muted" />}
           </div>
         </div>
       );
@@ -908,8 +976,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = block.type === "login_cta" ? "/login" : "/register";
       const label = str(p, "label", L) || (block.type === "login_cta" ? (L === "ar" ? "تسجيل الدخول" : "Log in") : L === "ar" ? "إنشاء حساب" : "Create account");
       return (
-        <div className="flex flex-col items-center gap-4 rounded-[1.75rem] bg-gradient-to-b from-brand-50 to-white p-10 text-center ring-1 ring-brand-100">
-          {str(p, "sublabel", L) && <p className="max-w-md text-lg text-slate-600">{str(p, "sublabel", L)}</p>}
+        <div className="flex flex-col items-center gap-4 rounded-[1.75rem] bg-gradient-to-b from-pub-surface to-white p-10 text-center ring-1 ring-pub-surface-2">
+          {str(p, "sublabel", L) && <p className="max-w-md text-lg text-pub-muted">{str(p, "sublabel", L)}</p>}
           <CtaButton label={label} href={href} variant="primary" />
         </div>
       );
@@ -924,12 +992,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const network = raw(item, "network");
             const label = str(item, "label", L);
             return asButtons ? (
-              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-btn)] border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center gap-2 rounded-pub-md border border-pub-line-strong px-4 py-2.5 text-sm font-medium text-pub-ink-soft hover:bg-pub-surface">
                 <Icon name={network} size="sm" colorRole="default" className="text-current" />
                 {label || network}
               </a>
             ) : (
-              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" aria-label={label || network} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
+              <a key={idx} href={raw(item, "url")} target="_blank" rel="noopener noreferrer nofollow" aria-label={label || network} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-pub-line text-pub-muted hover:bg-pub-surface">
                 <Icon name={network} size="md" colorRole="default" className="text-current" />
               </a>
             );
@@ -948,7 +1016,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <ul className="flex flex-col gap-3">
           {rows.map(([icon, value], idx) => (
-            <li key={idx} className="flex items-center gap-3 text-sm text-slate-700">
+            <li key={idx} className="flex items-center gap-3 text-sm text-pub-ink-soft">
               <Icon name={icon} size="sm" colorRole="brand" />
               <span dir={icon === "phone" || icon === "mail" ? "ltr" : undefined}>{value}</span>
             </li>
@@ -963,13 +1031,13 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const href = `https://wa.me/${phone}`;
       if (raw(p, "style") === "floating") {
         return (
-          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
+          <a href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-pub-navy text-white shadow-lg hover:bg-pub-success ltr:right-5 rtl:left-5 max-sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))]">
             <Icon name="whatsapp" size="lg" colorRole="default" className="text-white" />
           </a>
         );
       }
       return (
-        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-emerald-500 px-6 py-3 text-base font-semibold text-white hover:bg-emerald-600">
+        <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-pub-md bg-pub-navy px-6 py-3 text-base font-semibold text-white hover:bg-pub-success">
           <Icon name="whatsapp" size="sm" colorRole="default" className="text-white" />
           {label}
         </a>
@@ -981,13 +1049,13 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const label = str(p, "label", L) || (L === "ar" ? "انضم إلى تليجرام" : "Join on Telegram");
       if (raw(p, "style") === "floating") {
         return (
-          <a href={url} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-24 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg hover:bg-sky-600 ltr:right-5 rtl:left-5 max-sm:bottom-[calc(6rem+env(safe-area-inset-bottom))]">
+          <a href={url} target="_blank" rel="noopener noreferrer nofollow" aria-label={label} className="fixed bottom-24 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-pub-info text-white shadow-lg hover:bg-pub-info ltr:right-5 rtl:left-5 max-sm:bottom-[calc(6rem+env(safe-area-inset-bottom))]">
             <Icon name="telegram" size="lg" colorRole="default" className="text-white" />
           </a>
         );
       }
       return (
-        <a href={url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-sky-500 px-6 py-3 text-base font-semibold text-white hover:bg-sky-600">
+        <a href={url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-pub-md bg-pub-info px-6 py-3 text-base font-semibold text-white hover:bg-pub-info">
           <Icon name="telegram" size="sm" colorRole="default" className="text-white" />
           {label}
         </a>
@@ -1001,8 +1069,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       if (!form) return null; // form deleted/disabled → block disappears (no crash)
       return (
         <div className="flex flex-col gap-4">
-          {heading && <h3 className="text-center text-2xl font-bold text-slate-900">{heading}</h3>}
-          {text && <p className="text-center text-slate-600">{text}</p>}
+          {heading && <h3 className="text-center text-2xl font-bold text-pub-ink">{heading}</h3>}
+          {text && <p className="text-center text-pub-muted">{text}</p>}
           <CmsForm form={form} ctx={ctx} compact={block.type === "newsletter_form"} />
         </div>
       );
@@ -1024,6 +1092,82 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const rows = ctx.dynamic[block.id] ?? [];
       return <CardGrid rows={rows} ctx={ctx} />;
     }
+    /**
+     * The ONE subject-discovery experience on a page (owner brief §12/§13) —
+     * the surface that replaced the hardcoded homepage band. Rows come from
+     * `studyHub` via the render resolver, so a card exists only when a subject
+     * has a published term container: nothing to show → nothing renders and the
+     * whole section collapses.
+     *
+     * These are the most important cards on the site, so they get the plainest
+     * possible treatment: white surface, hairline border, one soft shadow, navy
+     * type, the subject's thinker engraving behind the text (decorative, low
+     * opacity, cropped), and the whole card is a single 44px+ touch target.
+     */
+    case "study_subjects": {
+      const rows = ctx.dynamic[block.id] ?? [];
+      if (!rows.length) return null;
+      const cols = {
+        "1": "grid-cols-1",
+        "2": "grid-cols-1 lg:grid-cols-2",
+        "3": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+      }[raw(p, "columns")] ?? "grid-cols-1 lg:grid-cols-2";
+      const showJourney = p.showJourney !== false;
+      const allLabel = str(p, "allLabel", L);
+      const allHref = raw(p, "allHref");
+      return (
+        <div className="flex w-full flex-col gap-[calc(var(--pub-gap)*1.4)]">
+          <ul className={`pub-grid ${cols}`}>
+            {rows.map((row, idx) => {
+              const titleAr = ls(row.title, "ar");
+              const titleEn = ls(row.title, "en");
+              const title = L === "ar" ? titleAr || titleEn : titleEn || titleAr;
+              const meta = showJourney ? ls(row.meta, L) : "";
+              const desc = ls(row.desc, L);
+              const cta = ls(row.cta, L) || title;
+              const chips = (row.chips ?? []).map((c) => ls(c, L)).filter(Boolean);
+              // One figure per card, chosen from the subject itself (philosophy →
+              // classical thinkers, psychology → Freud/Jung), alternating so two
+              // cards of the same family never share a face.
+              const primary = thinkerFor({ slot: "subject-card", slug: row.id, titleAr, titleEn });
+              const thinker = idx > 0 ? thinkerAlternate(primary, row.id) : primary;
+              return (
+                <li key={row.id} className="h-full min-w-0">
+                  <SmartLink href={row.href} ariaLabel={`${cta} — ${title}`} className={`${PUB_CARD} min-h-[10.5rem] gap-3 p-5 sm:p-6`}>
+                    <span className="relative z-10 flex min-w-0 flex-1 flex-col gap-2">
+                      <span className="flex min-w-0 items-start gap-3">
+                        {/* The subject's own thinker, cropped into the avatar the card
+                            needs on a phone and can afford to grow on desktop. */}
+                        <ThinkerPortrait thinker={thinker} presentation="avatar" />
+                        <h3 className={`${CARD_TITLE} min-w-0 flex-1 text-pub-lg [overflow-wrap:anywhere]`}>{title}</h3>
+                      </span>
+                      {meta && <p className={CARD_META}>{meta}</p>}
+                      {desc && <p className={`line-clamp-2 ${CARD_BODY}`}>{desc}</p>}
+                      {chips.length > 0 && (
+                        <ul className="mt-1 flex flex-wrap gap-1.5">
+                          {chips.map((chip) => (
+                            <li key={chip} className={CHIP}>{chip}</li>
+                          ))}
+                        </ul>
+                      )}
+                      <span className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-2 text-pub-sm font-bold text-pub-ink-soft">
+                        {cta}
+                        <span aria-hidden="true" className={CARD_ARROW}>→</span>
+                      </span>
+                    </span>
+                  </SmartLink>
+                </li>
+              );
+            })}
+          </ul>
+          {allLabel && allHref && (
+            <p>
+              <CtaButton label={allLabel} href={allHref} variant="secondary" />
+            </p>
+          )}
+        </div>
+      );
+    }
     case "grade_cards": {
       const rows = (ctx.dynamic[block.id] ?? []).filter((r) => ls(r.title, L));
       if (!rows.length) return null;
@@ -1035,20 +1179,20 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             return (
               <article
                 key={row.id}
-                className="group relative isolate flex flex-col gap-3 overflow-hidden rounded-[1.75rem] border border-navy-100 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-gold-300 hover:shadow-lg sm:p-7"
+                className="group relative isolate flex flex-col gap-3 overflow-hidden rounded-[1.75rem] border border-pub-surface-2 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-pub-accent-soft hover:shadow-lg sm:p-7"
               >
                 <SectionDecor variant="page" />
                 {row.badge && ls(row.badge, L) && (
-                  <span className="w-fit rounded-full bg-navy-50 px-3 py-1 text-xs font-semibold text-navy-700 ring-1 ring-navy-100">
+                  <span className="w-fit rounded-full bg-pub-surface px-3 py-1 text-xs font-semibold text-pub-ink-soft ring-1 ring-pub-surface-2">
                     {ls(row.badge, L)}
                   </span>
                 )}
-                <h3 className="text-xl font-extrabold text-navy-900 sm:text-2xl">{ls(row.title, L)}</h3>
-                <DecorHairline className="max-w-[8rem] text-gold-500" />
+                <h3 className="text-xl font-extrabold text-pub-navy sm:text-2xl">{ls(row.title, L)}</h3>
+                <DecorHairline className="max-w-[8rem] text-pub-accent" />
                 {chips.length > 0 && (
                   <ul className="flex flex-wrap gap-2">
                     {chips.map((chip) => (
-                      <li key={chip} className="rounded-full bg-gold-50 px-3 py-1 text-xs font-medium text-gold-800 ring-1 ring-gold-200">
+                      <li key={chip} className="rounded-full bg-pub-accent-bg px-3 py-1 text-xs font-medium text-pub-accent-strong ring-1 ring-pub-accent-line">
                         {chip}
                       </li>
                     ))}
@@ -1057,7 +1201,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 <SmartLink
                   href={row.href}
                   ariaLabel={`${ctaLabel} — ${ls(row.title, L)}`}
-                  className="mt-auto inline-flex min-h-12 w-fit items-center gap-2 rounded-full bg-navy-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-800"
+                  className="mt-auto inline-flex min-h-12 w-fit items-center gap-2 rounded-full bg-pub-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pub-navy-2"
                 >
                   {ctaLabel}
                   <span aria-hidden="true" className="rtl:rotate-180">→</span>
@@ -1076,28 +1220,28 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const cta = str(p, "ctaLabel", L) || t(L, "home.examCta");
       const note = str(p, "note", L);
       return (
-        <div className="relative isolate overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 p-6 text-white shadow-lg shadow-navy-900/20 sm:p-10">
+        <div className={`${PUB_BAND} p-5 sm:p-8`}>
           <SectionDecor variant="band" />
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
             <div className="flex max-w-2xl flex-col gap-2">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-gold-200 ring-1 ring-white/15">
-                <Icon name="external-link" size="sm" colorRole="invert" className="text-gold-200" />
+              <span className="inline-flex min-h-8 w-fit items-center gap-2 rounded-full bg-pub-on-navy/10 px-3 py-1 text-pub-xs font-semibold text-pub-accent-line">
+                <Icon name="external-link" size="sm" colorRole="invert" className="text-pub-accent-line" />
                 {t(L, "home.externalTag")}
               </span>
-              {headingText && <h2 className="text-2xl font-extrabold text-white sm:text-3xl">{headingText}</h2>}
-              {text && <p className="text-sm leading-relaxed text-navy-100 sm:text-base">{text}</p>}
+              {headingText && <h2 className="text-pub-lg font-extrabold leading-pub-tight text-pub-on-navy">{headingText}</h2>}
+              {text && <p className="text-pub-sm leading-pub-normal text-pub-on-navy-soft">{text}</p>}
             </div>
             <div className="flex flex-col items-start gap-2 sm:items-end">
               <a
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="inline-flex min-h-12 items-center gap-2 rounded-full bg-gold-500 px-6 py-3 text-base font-bold text-navy-950 shadow-md transition-colors hover:bg-gold-400 max-sm:w-full max-sm:justify-center"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-pub-pill bg-pub-accent px-6 py-3 text-pub-base font-bold text-pub-navy transition-colors hover:bg-pub-accent-strong hover:text-pub-bg max-sm:w-full"
               >
                 {cta}
-                <Icon name="external-link" size="sm" colorRole="default" className="text-navy-900" />
+                <Icon name="external-link" size="sm" colorRole="default" className="text-pub-navy" />
               </a>
-              {note && <p className="text-xs text-navy-200 max-sm:w-full">{note}</p>}
+              {note && <p className="text-pub-xs text-pub-on-navy-muted max-sm:w-full">{note}</p>}
             </div>
           </div>
         </div>
@@ -1114,21 +1258,21 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const body = (
               <>
                 <span className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-navy-900 text-sm font-bold tabular-nums text-gold-300">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pub-navy text-pub-sm font-bold tabular-nums text-pub-on-navy">
                     {idx + 1}
                   </span>
                   {raw(item, "icon") && <Icon name={raw(item, "icon")} size="md" colorRole="accent" />}
                 </span>
-                {title && <h3 className="text-base font-bold text-navy-900">{title}</h3>}
-                {str(item, "text", L) && <p className="text-sm leading-relaxed text-slate-600">{str(item, "text", L)}</p>}
+                {title && <h3 className={CARD_TITLE}>{title}</h3>}
+                {str(item, "text", L) && <p className={CARD_BODY}>{str(item, "text", L)}</p>}
               </>
             );
-            const cls = "relative flex h-full flex-col gap-3 rounded-[var(--radius-card)] border border-navy-100 bg-white p-5 shadow-sm";
+            const cls = `${PUB_CARD} h-full p-5`;
             return (
               <li key={idx} className="h-full">
-                <span aria-hidden="true" className="mb-2 block h-0.5 w-10 rounded-full bg-gold-300" />
+                <span aria-hidden="true" className="block h-0.5 w-10 rounded-full bg-pub-accent" />
                 {href ? (
-                  <SmartLink href={href} ariaLabel={title} className={`${cls} transition-colors hover:border-gold-300 hover:shadow-md`}>
+                  <SmartLink href={href} ariaLabel={title} className={`${cls} transition-colors hover:border-pub-accent-soft hover:shadow-md`}>
                     {body}
                   </SmartLink>
                 ) : (
@@ -1147,12 +1291,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
         <ul className="grid w-full gap-x-8 gap-y-5 sm:grid-cols-2">
           {items.map((item, idx) => (
             <li key={idx} className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold-50 text-gold-600 ring-1 ring-gold-200">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-pub-md bg-pub-tint text-pub-ink-soft">
                 <Icon name={raw(item, "icon") || "check"} size="sm" colorRole="accent" />
               </span>
               <span className="flex min-w-0 flex-col gap-1">
-                {str(item, "title", L) && <span className="font-bold text-navy-900">{str(item, "title", L)}</span>}
-                {str(item, "text", L) && <span className="text-sm leading-relaxed text-slate-600">{str(item, "text", L)}</span>}
+                {str(item, "title", L) && <span className="text-pub-base font-bold text-pub-ink">{str(item, "title", L)}</span>}
+                {str(item, "text", L) && <span className={CARD_BODY}>{str(item, "text", L)}</span>}
               </span>
             </li>
           ))}
@@ -1166,11 +1310,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const ctas = arr(p, "ctas").filter((i) => str(i, "label", L) || raw(i, "href"));
       if (!headingText && !text && !ctas.length) return null;
       return (
-        <div className="relative isolate overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 px-6 py-12 text-center text-white shadow-lg shadow-navy-900/20 sm:px-10 sm:py-14">
+        <div className={`${PUB_BAND} px-5 py-10 text-center sm:px-10 sm:py-12`}>
           <SectionDecor variant="cta" />
-          <DecorHairline className="mx-auto mb-6 max-w-xs text-gold-400" />
-          {headingText && <h2 className="text-2xl font-extrabold text-white sm:text-4xl">{headingText}</h2>}
-          {text && <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-navy-100 sm:text-base">{text}</p>}
+          {headingText && <h2 className="text-pub-xl font-extrabold leading-pub-tight text-pub-on-navy">{headingText}</h2>}
+          {text && <p className="pub-measure mx-auto mt-3 text-pub-sm leading-pub-normal text-pub-on-navy-soft">{text}</p>}
           {ctas.length > 0 && (
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 max-sm:flex-col max-sm:items-stretch">
               {ctas.map((cta, idx) => (
@@ -1179,22 +1322,28 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                   label={str(cta, "label", L)}
                   href={raw(cta, "href")}
                   target={raw(cta, "target")}
-                  variant={raw(cta, "variant") || "primary"}
+                  // On the dark band the system's own variants are used: the first
+                  // CTA is the single gold accent, the rest are the dark secondary.
+                  // This replaces `!bg-gold-500 !text-navy-950`, which overrode the
+                  // button grammar with !important — the exact "third button system"
+                  // symptom the rebuild removes.
+                  variant={raw(cta, "variant") || (idx === 0 ? "gold" : "onDark")}
                   icon={raw(cta, "icon")}
-                  className={`max-sm:w-full ${idx === 0 ? "!bg-gold-500 !text-navy-950 hover:!bg-gold-400" : "!border-white/30 !bg-white/5 !text-white hover:!bg-white/10"}`}
+                  shape={raw(p, "ctaShape") || "pill"}
+                  className="max-sm:w-full"
                 />
               ))}
             </div>
           )}
-          {note && <p className="mt-5 text-xs text-navy-200">{note}</p>}
+          {note && <p className="mt-5 text-pub-xs text-pub-on-navy-muted">{note}</p>}
         </div>
       );
     }
     case "divider": {
       const variant = raw(p, "variant") || "line";
-      if (variant === "dots") return <div className="flex justify-center gap-2 py-2" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="h-1.5 w-1.5 rounded-full bg-slate-300" />)}</div>;
-      if (variant === "gradient") return <hr className="border-0 bg-gradient-to-r from-transparent via-slate-300 to-transparent h-px" aria-hidden="true" />;
-      return <hr className="h-px border-0 bg-slate-200" aria-hidden="true" />;
+      if (variant === "dots") return <div className="flex justify-center gap-2 py-2" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="h-1.5 w-1.5 rounded-full bg-pub-line-strong" />)}</div>;
+      if (variant === "gradient") return <hr className="border-0 bg-gradient-to-r from-transparent via-pub-line-strong to-transparent h-px" aria-hidden="true" />;
+      return <hr className="h-px border-0 bg-pub-line" aria-hidden="true" />;
     }
     case "spacer": {
       const size = { sm: "h-4", md: "h-8", lg: "h-14", xl: "h-24" }[raw(p, "size")] ?? "h-8";
@@ -1209,34 +1358,47 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
 // Section + page composition
 // ---------------------------------------------------------------------------
 
+/**
+ * Section chrome, expressed in LAYER A only. `brand`/`dark` both become the same
+ * flat navy band (the two used to differ by themeable tokens, which is how a
+ * saved page could end up violet on one band and navy on the next); `default`,
+ * `surface` and `muted` are the light steps that carry 70–80% of the page.
+ */
 const SECTION_BG: Record<string, string> = {
-  default: "",
-  surface: "bg-[var(--color-surface)]",
-  muted: "bg-slate-100",
-  brand: "bg-brand-600 text-white",
-  dark: "bg-slate-900 text-slate-100",
-  image: "",
+  default: "bg-pub-bg",
+  surface: "bg-pub-surface",
+  muted: "bg-pub-surface-2",
+  brand: "bg-pub-navy text-pub-on-navy",
+  dark: "bg-pub-navy text-pub-on-navy",
+  image: "bg-pub-bg",
 };
+/** One rhythm (mobile-first clamp in app.css) instead of density-scaled px. */
 const SECTION_PAD: Record<string, string> = {
   none: "",
-  sm: "py-[calc(1rem*var(--density,1))]",
-  md: "py-[calc(2.5rem*var(--density,1))]",
-  lg: "py-[calc(4rem*var(--density,1))]",
-  xl: "py-[calc(6rem*var(--density,1))]",
+  sm: "py-[calc(var(--pub-pad-y)*0.55)]",
+  md: "py-[var(--pub-pad-y)]",
+  lg: "py-[calc(var(--pub-pad-y)*1.35)]",
+  xl: "py-[calc(var(--pub-pad-y)*1.7)]",
 };
 const SECTION_CONTAINER: Record<string, string> = {
-  narrow: "max-w-3xl",
-  normal: "max-w-6xl",
-  wide: "max-w-7xl",
+  narrow: "max-w-[var(--pub-measure)]",
+  normal: "max-w-[var(--pub-maxw)]",
+  wide: "max-w-[calc(var(--pub-maxw)+4rem)]",
   full: "max-w-none",
 };
+/** Every grid declares its mobile column count — no implicit desktop-first grids. */
 const SECTION_GRID: Record<string, string> = {
   "1": "grid-cols-1",
   "2": "grid-cols-1 sm:grid-cols-2",
   "3": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-  "4": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+  "4": "grid-cols-2 lg:grid-cols-4",
 };
-const SECTION_GAP: Record<string, string> = { none: "gap-0", sm: "gap-3", md: "gap-6", lg: "gap-10" };
+const SECTION_GAP: Record<string, string> = {
+  none: "gap-0",
+  sm: "gap-[calc(var(--pub-gap)*0.6)]",
+  md: "gap-[var(--pub-gap)]",
+  lg: "gap-[calc(var(--pub-gap)*1.6)]",
+};
 
 export interface RenderBlock { id: string; type: string; props: P; visible: boolean; children?: RenderBlock[] }
 
@@ -1249,7 +1411,7 @@ export interface RenderBlock { id: string; type: string; props: P; visible: bool
  * announces content the platform does not have yet.
  */
 const DATA_DRIVEN_BLOCKS = new Set([
-  "course_cards", "subject_cards", "program_cards", "free_content",
+  "study_subjects", "course_cards", "subject_cards", "program_cards", "free_content",
   "featured_content", "latest_lessons", "video_showcase", "product_cards", "grade_cards",
 ]);
 
@@ -1295,10 +1457,17 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
   const hasBgImage = Boolean(bgImageId && ctx.images[bgImageId]);
   const align = raw(p, "align") || "start";
   const columns = raw(p, "columns") || "1";
+  const onDark = bg === "brand" || bg === "dark";
   const headingEl = heading || subheading ? (
-    <div className={`mb-8 flex flex-col gap-2 ${align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start"}`}>
-      {heading && <h2 className={`text-2xl font-extrabold tracking-tight sm:text-3xl ${bg === "brand" || bg === "dark" ? "text-white" : "text-navy-900"}`}>{heading}</h2>}
-      {subheading && <p className={`max-w-2xl ${bg === "brand" || bg === "dark" ? "text-slate-300" : "text-slate-600"}`}>{subheading}</p>}
+    <div className={`mb-[calc(var(--pub-gap)*1.8)] flex flex-col gap-2 ${align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start"}`}>
+      {heading && (
+        <h2 className={`text-pub-xl font-extrabold leading-pub-tight tracking-tight ${onDark ? "text-pub-on-navy" : "text-pub-ink"}`}>
+          {heading}
+        </h2>
+      )}
+      {subheading && (
+        <p className={`pub-measure text-pub-sm leading-pub-normal ${onDark ? "text-pub-on-navy-soft" : "text-pub-muted"}`}>{subheading}</p>
+      )}
     </div>
   ) : null;
 
@@ -1308,16 +1477,17 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
   return (
     <section
       id={anchorId}
-      className={`relative isolate scroll-mt-24 overflow-hidden ${SECTION_BG[bg] ?? ""} ${SECTION_PAD[raw(p, "padding") || "md"] ?? SECTION_PAD.md} ${bool(p, "hideMobile") ? "max-md:hidden" : ""}`}
+      className={`relative isolate scroll-mt-24 overflow-hidden ${SECTION_BG[bg] ?? "bg-pub-bg"} ${SECTION_PAD[raw(p, "padding") || "md"] ?? SECTION_PAD.md} ${bool(p, "hideMobile") ? "max-md:hidden" : ""}`}
     >
       {(bg === "dark" || bg === "brand") && <SectionDecor variant="band" />}
+      {(bg === "default" || bg === "surface") && <span aria-hidden="true" className="decor-wash pointer-events-none absolute inset-0 -z-10 opacity-60" />}
       {hasBgImage && (
         <>
           <img src={ctx.images[bgImageId]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-slate-900/60" aria-hidden="true" />
+          <div className="absolute inset-0 bg-pub-navy/70" aria-hidden="true" />
         </>
       )}
-      <div className={`relative mx-auto w-full px-4 ${SECTION_CONTAINER[raw(p, "container") || "normal"] ?? SECTION_CONTAINER.normal}`}>
+      <div className={`relative mx-auto w-full px-[var(--pub-pad-x)] ${SECTION_CONTAINER[raw(p, "container") || "normal"] ?? SECTION_CONTAINER.normal}`}>
         {hasBgImage && !SECTION_BG[bg] ? <div className="text-white">{headingEl}</div> : headingEl}
         {children.length > 0 && (
           <div className={`grid ${SECTION_GRID[columns] ?? SECTION_GRID["1"]} ${SECTION_GAP[raw(p, "gap") || "md"] ?? SECTION_GAP.md} ${align === "center" ? "justify-items-center" : ""} ${columns === "1" && align === "center" ? "[&>*]:mx-auto" : ""}`}>
