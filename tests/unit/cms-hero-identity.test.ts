@@ -96,14 +96,17 @@ describe("CMS hero identity plate", () => {
       const html = renderHero(photo);
       const heroImgs = html.match(/<img[^>]*data-hero-visual="true"[^>]*>/g) ?? [];
       expect(heroImgs).toHaveLength(1);
+      const hero = String(heroImgs[0]);
       // React SSR keeps the camelCase spelling of the fetch-priority hint.
-      expect(heroImgs[0]).toContain('fetchPriority="high"');
-      expect(heroImgs[0]).toContain('loading="eager"');
+      expect(hero).toContain('fetchPriority="high"');
+      expect(hero).toContain('loading="eager"');
       // …and the matching preload is emitted for the SAME url, so the LCP
       // element is the first byte the browser asks for (decorative portraits are
       // never preloaded).
+      const heroSrc = String(hero.match(/src="([^"]+)"/)?.[1]);
+      expect(heroSrc.length).toBeGreaterThan(0);
       const preloads = html.match(/<link rel="preload" as="image"[^>]*>/g) ?? [];
-      for (const link of preloads) expect(link).toContain(heroImgs[0].match(/src="([^"]+)"/)![1]);
+      for (const link of preloads) expect(link).toContain(heroSrc);
     }
   });
 
