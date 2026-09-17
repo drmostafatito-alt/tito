@@ -94,7 +94,11 @@ export function familyForSubject(input: { slug?: string; titleAr?: string | null
 const PREFERRED: Record<ThinkerFamily, Partial<Record<ThinkerSlot, string>>> = {
   classical: {
     "landing-hero": "aristotle",
-    "subject-card": "plato",
+    /* The philosophy card carries Aristotle himself (owner brief): the logic
+       founder is the subject, not a stand-in. The hero plate therefore signs
+       itself with Ibn Rushd (see hero_showcase) so one screen never repeats a
+       face, and `subject-hero`/`term-panel` keep the others. */
+    "subject-card": "aristotle",
     "subject-hero": "socrates",
     "term-panel": "aristotle",
     "lesson-page": "nietzsche",

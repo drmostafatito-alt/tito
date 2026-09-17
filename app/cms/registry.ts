@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ICON_IDS } from "./icon-ids";
+import { THINKERS } from "../lib/thinkers";
 import { safeHref } from "./links";
 import { seoSchema, type PageSeo, type PageSnapshot, type SnapshotComponent, type SnapshotSection } from "./seo-schema";
 
@@ -147,6 +148,17 @@ export function walkFields(fields: FieldDef[], props: Record<string, unknown>, v
 // ---------------------------------------------------------------------------
 // Shared option sets
 // ---------------------------------------------------------------------------
+/**
+ * The thinker library (app/lib/thinkers.ts) is the single source of truth: the
+ * builder offers exactly the assets that exist, and the renderer resolves the id
+ * back through `thinkerById` — an unknown/legacy id simply renders nothing, so a
+ * saved snapshot can never point at a missing file.
+ */
+const thinkerOpts: FieldOption[] = [
+  { value: "none", labelKey: "cms.thinker.none" },
+  ...THINKERS.map((t) => ({ value: t.id, labelKey: `cms.thinker.${t.id}` })),
+];
+
 const targetOpts: FieldOption[] = [
   { value: "_self", labelKey: "cms.f.targetSelf" },
   { value: "_blank", labelKey: "cms.f.targetBlank" },
@@ -506,6 +518,7 @@ export const BLOCKS: Record<string, BlockDef> = {
     fields: [
       { name: "useIdentity", kind: "toggle", labelKey: "cms.f.useIdentity" },
       { name: "showPhoto", kind: "toggle", labelKey: "cms.f.showPhoto" },
+      { name: "watermark", kind: "select", labelKey: "cms.f.watermark", options: thinkerOpts },
       { name: "name", kind: "ltext", labelKey: "cms.f.name", max: 120 },
       { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 120 },
       { name: "photo", kind: "image", labelKey: "cms.f.photo" },
@@ -991,6 +1004,7 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.f.photo": { ar: "الصورة الشخصية", en: "Photo" },
   "cms.f.useIdentity": { ar: "استخدام بيانات المعلم من الهوية", en: "Use site identity values" },
   "cms.f.showPhoto": { ar: "إظهار صورة المعلم داخل الكرت", en: "Show the teacher photo in this block" },
+  "cms.f.watermark": { ar: "وجه فلسفي خافت خلف النص", en: "Faint thinker portrait behind the text" },
   "cms.f.bio": { ar: "السيرة", en: "Biography" },
   "cms.f.sublabel": { ar: "نص ثانوي", en: "Sublabel" },
   "cms.f.startsAt": { ar: "يبدأ في", en: "Starts at" },
@@ -1308,6 +1322,13 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.f.playbackTtl": { ar: "مدة رمز التشغيل (ثانية، 10–60)", en: "Playback token TTL (seconds, 10–60)" },
   "cms.f.fileTtl": { ar: "مدة رابط الملف الخاص (ثانية، 30–600)", en: "Private file URL TTL (seconds, 30–600)" },
 };
+
+/* Thinker names for the builder — derived, never a second hand-maintained list. */
+Object.assign(CMS_LABELS, {
+  "cms.thinker.none": { ar: "بدون صورة", en: "No portrait" },
+  ...Object.fromEntries(THINKERS.map((t) => [`cms.thinker.${t.id}`, { ar: t.nameAr, en: t.nameEn }])),
+} satisfies Record<string, { ar: string; en: string }>);
+
 
 export function cmsLabel(key: string, locale: "ar" | "en"): string {
   const entry = CMS_LABELS[key];

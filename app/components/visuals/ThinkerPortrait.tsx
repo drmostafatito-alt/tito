@@ -24,7 +24,7 @@ import type { Thinker } from "~/lib/thinkers";
  * every other portrait is `loading=lazy` + `fetchPriority=low` so decoration
  * never wins the browser's priority race.
  */
-export type PortraitPresentation = "avatar" | "figure" | "watermark" | "plate";
+export type PortraitPresentation = "avatar" | "figure" | "engrave" | "watermark" | "plate";
 
 export function ThinkerPortrait({
   thinker,
@@ -38,6 +38,7 @@ export function ThinkerPortrait({
   /**
    * `avatar`    small cropped face for white / light-blue surfaces (default)
    * `figure`    the subject card's own figure: cropped, masked, never over text
+   * `engrave`   corner signature on a LIGHT panel: duotone, masked, kept quiet
    * `watermark` edge-anchored figure for navy bands, faded into the surface
    * `plate`     the figure IS the plate: fills a navy panel, hero use only
    */
@@ -53,7 +54,7 @@ export function ThinkerPortrait({
   if (!thinker) return null;
 
   const opacity =
-    presentation === "plate" || presentation === "figure"
+    presentation === "plate" || presentation === "figure" || presentation === "engrave"
       ? ""
       : presentation === "watermark"
         ? intensity === "whisper"
@@ -83,7 +84,7 @@ export function ThinkerPortrait({
     );
   }
 
-  if (presentation === "figure") {
+  if (presentation === "figure" || presentation === "engrave") {
     return (
       <img
         src={thinker.src}
@@ -94,7 +95,7 @@ export function ThinkerPortrait({
         fetchPriority="low"
         width={900}
         height={604}
-        className={`thinker-figure h-full w-full select-none ${className}`}
+        className={`${presentation === "engrave" ? "thinker-engrave" : "thinker-figure"} h-full w-full select-none ${className}`}
       />
     );
   }

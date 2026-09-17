@@ -42,18 +42,18 @@
               "en": "Philosophy & Logic · Psychology"
             },
             "heading": {
-              "ar": "منصّة لدراسة الفلسفة والمنطق وعلم النفس",
-              "en": "Study philosophy, logic and psychology in one place"
+              "ar": "تعلّم الفلسفة والمنطق وعلم النفس بطريقة أبسط",
+              "en": "Learn philosophy, logic and psychology the simple way"
             },
             "subtitle": {
-              "ar": "<p>تختار <strong>السنة الدراسية</strong> و<strong>الصف</strong> و<strong>المادة</strong>، وتصل مباشرة إلى ما تحتاجه: شرح مرتّب، فيديوهات، كتب ومذكرات، وتدريبات وامتحانات — كل ذلك في مكان واحد.</p>",
-              "en": "<p>Pick the <strong>academic year</strong>, your <strong>grade</strong> and the <strong>subject</strong>, and go straight to what you need: structured explanations, videos, books and notes, drills and exams — all in one place.</p>"
+              "ar": "<p>كل ما يخصّ مادتك في مكان واحد: <strong>شرح مرتّب</strong> للدروس، <strong>فيديوهات</strong>، <strong>كتب ومذكرات</strong>، و<strong>تدريبات وامتحانات</strong>. تختار السنة والصف والمادة، وتصل إلى الدرس مباشرة.</p>",
+              "en": "<p>Everything your subject needs in one place: structured <strong>explanations</strong>, <strong>videos</strong>, <strong>books &amp; notes</strong>, and <strong>drills &amp; exams</strong>. Pick the year, grade and subject, and land on the lesson itself.</p>"
             },
             "ctas": [
               {
                 "label": {
-                  "ar": "افتح المحتوى التعليمي",
-                  "en": "Open the learning content"
+                  "ar": "المحتوى التعليمي",
+                  "en": "Learning content"
                 },
                 "href": "/study",
                 "target": "_self",
@@ -62,13 +62,13 @@
               },
               {
                 "label": {
-                  "ar": "تواصل معنا",
-                  "en": "Contact us"
+                  "ar": "إنشاء حساب",
+                  "en": "Create an account"
                 },
-                "href": "/p/contact",
+                "href": "/register",
                 "target": "_self",
-                "variant": "outline",
-                "icon": "message-circle"
+                "variant": "secondary",
+                "icon": "user"
               }
             ],
             "videoLabel": {
@@ -582,7 +582,8 @@
               "ar": "",
               "en": ""
             },
-            "showPhoto": false
+            "showPhoto": false,
+            "watermark": "marx"
           }
         }
       ]

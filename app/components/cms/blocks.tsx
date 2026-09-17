@@ -22,7 +22,7 @@ import {
   CARD_SURFACE,
   TINT_CHIP,
 } from "~/lib/publicStyles";
-import { heroIdentityThinker, thinkerAlternate, thinkerFor } from "~/lib/thinkers";
+import { heroIdentityThinker, thinkerAlternate, thinkerById, thinkerFor } from "~/lib/thinkers";
 import type { CardView, CmsRenderCtx, FormView } from "~/cms/render-types";
 
 const VideoPlayer = lazy(() => import("~/components/player/VideoPlayer").then((m) => ({ default: m.VideoPlayer })));
@@ -476,6 +476,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       const platePhoto = showIdentity ? ownerPhoto : null;
       const tagline = idn ? ls(idn.tagline, L) : "";
       const heroThinker = heroIdentityThinker();
+      // The corner signature of the light identity panel (see the frame below).
+      const heroSignature = thinkerById("ibn-rushd");
       // (The light panel carries no watermark: the owner's picture already fills
       // it, and a second figure under it is a stacked ornament.)
       if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !cmsSrc && !showIdentity) return null;
@@ -564,6 +566,16 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 <div className="relative isolate overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
                   <span aria-hidden="true" className="pointer-events-none absolute -end-12 -top-14 h-44 w-44 rounded-full bg-pub-tint" />
                   <span aria-hidden="true" className="pointer-events-none absolute -start-10 -bottom-16 h-40 w-40 rounded-full bg-pub-surface-2" />
+                  {/* The platform's own signature in the corner of the frame — a
+                      masked engraving, not a second portrait: it sits behind the
+                      picture, bleeds off one edge, and never touches the caption.
+                      Deliberately NOT Aristotle: the philosophy subject card is his
+                      (app/lib/thinkers.ts), and one screen never repeats a face. */}
+                  {heroSignature && (
+                    <span aria-hidden="true" className="pointer-events-none absolute end-0 top-0 z-0 block h-28 w-[4.5rem] opacity-[0.34] sm:h-40 sm:w-[8.5rem]">
+                      <ThinkerPortrait thinker={heroSignature} presentation="engrave" />
+                    </span>
+                  )}
                   <img
                     src={platePhoto}
                     alt={ownerName || ""}
@@ -965,6 +977,23 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       // hero already frames it, so the about block here stays text-only while the
       // /about page keeps the framed photo. Unset means show (older snapshots).
       const framed = photoUrl && p.showPhoto !== false;
+      // Owner-chosen corner portrait (Marx for a knowledge/about surface, per the
+      // site identity). `none`/unknown id → no portrait at all: the block never
+      // picks a face by itself, and a legacy snapshot can point at a missing file.
+      const wmId = raw(p, "watermark");
+      const watermark = wmId && wmId !== "none" ? thinkerById(wmId) : null;
+      const tagline = ctx.identity ? ls(ctx.identity.tagline, L) : "";
+      const lines = (
+        <>
+          {name && <h3 className="text-pub-h2 font-bold text-pub-ink">{name}</h3>}
+          {title && <p className="text-pub-md font-medium text-pub-ink-soft">{title}</p>}
+          {/* The platform line from Settings → Identity (not a claim invented
+              here): with no bio written yet the block still says what the
+              teacher teaches, which is what this section exists for. */}
+          {!title && tagline && <p className="text-pub-md font-medium text-pub-ink-soft">{tagline}</p>}
+          {bio && <RichText html={bio} className={`${CARD_BODY} pub-measure`} />}
+        </>
+      );
       return (
         <div className={`grid items-start gap-[calc(var(--pub-gap)*1.5)] ${framed ? "md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]" : ""}`}>
           {framed && (
@@ -981,11 +1010,25 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               />
             </div>
           )}
-          <div className="flex min-w-0 flex-col items-center gap-2 text-center md:items-start md:text-start">
-            {name && <h3 className="text-pub-h2 font-bold text-pub-ink">{name}</h3>}
-            {title && <p className="text-pub-md font-medium text-pub-ink-soft">{title}</p>}
-            {bio && <RichText html={bio} className={`${CARD_BODY} pub-measure`} />}
-          </div>
+          {framed ? (
+            <div className="flex min-w-0 flex-col items-center gap-2 text-center md:items-start md:text-start">{lines}</div>
+          ) : (
+            /* Without a picture the block owns its own surface: the SAME light frame
+               as the hero, with the thinker engraving clipped inside it. A portrait
+               that floats outside a container reads as a rendering artifact, and a
+               text-only card must not grow a second style. */
+            <div className="relative isolate flex min-h-[8.5rem] overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface p-5 shadow-pub-md sm:min-h-[9.5rem] sm:p-6">
+              {watermark && (
+                /* The face sits in the upper third of the crop, which is exactly
+                   where the mask keeps it dense: it dissolves downward into the
+                   surface instead of being faded to nothing. */
+                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 end-0 z-0 block w-24 opacity-[0.4] sm:w-40">
+                  <ThinkerPortrait thinker={watermark} presentation="engrave" />
+                </span>
+              )}
+              <div className={`relative z-[1] flex min-w-0 flex-col justify-center gap-2 ${watermark ? "sm:pe-[8rem]" : ""}`}>{lines}</div>
+            </div>
+          )}
         </div>
       );
     }

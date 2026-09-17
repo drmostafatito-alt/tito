@@ -455,27 +455,24 @@
   }
 }
 
-/* Watermark on a navy band: fades into the surface on the reading side and at
- * the top, so it is noticeable at the edge and never behind the copy. */
-.thinker-portrait {
-  mask-image:
-    linear-gradient(to left, #000 0%, #000 38%, transparent 92%),
-    linear-gradient(to top, #000 0%, #000 58%, transparent 100%);
-  -webkit-mask-image:
-    linear-gradient(to left, #000 0%, #000 38%, transparent 92%),
-    -webkit-linear-gradient(top, #000 0%, #000 58%, transparent 100%);
-  mask-composite: intersect;
-  -webkit-mask-composite: source-in;
+/*
+ * The corner signature on a LIGHT panel (the hero identity frame, the teacher
+ * card): the platform's thinker, small and quiet — but quiet ≠ invisible, so it
+ * keeps a full navy duotone and dissolves with a vertical mask instead of being
+ * faded to nothing. Size/opacity stay at the call site, and `--rise` flips the
+ * fade for a bottom-corner element.
+ */
+.thinker-engrave {
+  object-fit: cover;
+  object-position: 66% 22%;
+  filter: grayscale(1) sepia(0.5) hue-rotate(190deg) saturate(1.5) brightness(1.02) contrast(1.35);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 44%, transparent 94%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 44%, transparent 94%);
 }
-[dir="rtl"] .thinker-portrait {
-  mask-image:
-    linear-gradient(to right, #000 0%, #000 38%, transparent 92%),
-    linear-gradient(to top, #000 0%, #000 58%, transparent 100%);
-  -webkit-mask-image:
-    linear-gradient(to right, #000 0%, #000 38%, transparent 92%),
-    linear-gradient(to top, #000 0%, #000 58%, transparent 100%);
+.thinker-engrave--rise {
+  mask-image: linear-gradient(to top, #000 0%, #000 44%, transparent 94%);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 44%, transparent 94%);
 }
-
 @media (max-width: 639px) {
   /* Phones get a tighter crop (the face, not the shoulder) and a softer fade,
      so the figure never turns into a full-width poster. */

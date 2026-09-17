@@ -24,7 +24,11 @@ export function BrandMark({
         </svg>
       </span>
       {!compact && (
-        <span className={`hidden max-w-[17ch] truncate align-middle text-base font-bold tracking-tight whitespace-nowrap sm:inline sm:text-lg ${labelCls}`}>
+        /* Arabic glyphs are far wider than the `0` that `ch` measures, so a
+           max-width here used to clip the name away. It is allowed to shrink
+           and ellipsize instead, and it stays hidden only on the narrowest
+           phones, where the header would otherwise cram. */
+        <span className={`hidden min-w-0 truncate align-middle text-sm font-bold tracking-tight whitespace-nowrap min-[380px]:inline min-[380px]:text-base sm:text-lg ${labelCls}`}>
           {name}
         </span>
       )}
