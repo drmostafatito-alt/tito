@@ -3,22 +3,22 @@ import { hashKey, sectionBackdropThinker, type Thinker } from "~/lib/thinkers";
 /**
  * The platform's ONE thinker renderer (owner brief §14–§19, restyled 2026-09).
  *
- * What the assets are NOW: the platform's own flat-cartoon philosophers
+ * What the assets are: the platform's own flat-cartoon philosophers
  * (owner-chosen style C) on transparent WebP, square 1:1 canvases —
- * `<id>.webp` 900×900 for desktop and `<id>-sm.webp` 420×420 for phones. They
- * replaced the photographic engravings, which never matched this identity.
- * Transparency is the whole point: a figure can now sit BEHIND a section or
- * AROUND the owner-photo frame and dissolve into the surface with plain
- * opacity — no duotone filter, no crop gymnastics, no grey smudge.
+ * `<id>.webp` 900×900 for desktop and `<id>-sm.webp` 420×420 for phones.
  *
- * Presentations:
- *   • `avatar`  small legible character chip for light surfaces (cards, hubs)
+ * The owner's reference design (his live question-platform hero) fixed the
+ * grammar: philosophers are PEOPLE, not icons — a large semi-transparent
+ * "statue" standing beside/behind the teacher's photo, plus a whisper figure
+ * behind every section. Presentations:
+ *   • `statue`  a legible semi-transparent figure (light-blue duotone, like a
+ *               marble bust tinted by the brand): hero stage, hub openings,
+ *               card corners — never a circular chip
  *   • `figure`  a subject card's own figure, masked out under the copy
  *   • `engrave` corner signature on a LIGHT panel, dissolved by a mask
- *   • `wash`    the transparent background figure of a whole section/band —
- *               anchored to a bottom corner, masked away from the reading
- *               side, whisper-opacity on light surfaces and a pale ghost on
- *               navy, smaller + quieter on phones so copy always wins
+ *   • `wash`    the transparent backdrop figure of a whole section/band —
+ *               corner-anchored, masked away from the reading side, whisper
+ *               opacity on light surfaces and a pale ghost on navy
  *
  * Everything here is decorative: `alt=""` + `aria-hidden="true"`, never a
  * gallery, never the main content, never over text or a control.
@@ -27,18 +27,18 @@ import { hashKey, sectionBackdropThinker, type Thinker } from "~/lib/thinkers";
  * fetchPriority=high; React 19 then preloads exactly that URL). Every other
  * portrait is lazy + low priority so decoration never wins the priority race.
  */
-export type PortraitPresentation = "avatar" | "figure" | "engrave" | "wash";
+export type PortraitPresentation = "statue" | "figure" | "engrave" | "wash";
 
 export function ThinkerPortrait({
   thinker,
-  presentation = "avatar",
+  presentation = "statue",
   eager = false,
   heroVisual = false,
   className = "",
 }: {
   thinker: Thinker | null | undefined;
   presentation?: PortraitPresentation;
-  /** Above-the-fold portraits are fetched eagerly (the hero frame figure). */
+  /** Above-the-fold portraits are fetched eagerly (the hero visual). */
   eager?: boolean;
   /** Marks this element as the page hero visual (data-hero-visual). */
   heroVisual?: boolean;
@@ -46,25 +46,22 @@ export function ThinkerPortrait({
 }) {
   if (!thinker) return null;
 
-  if (presentation === "avatar") {
+  if (presentation === "statue") {
     return (
-      <span
+      <img
+        src={thinker.src}
+        srcSet={`${thinker.srcSmall} 420w, ${thinker.src} 900w`}
+        sizes="(max-width: 40rem) 34vw, 22vw"
+        alt=""
         aria-hidden="true"
-        className={`thinker-avatar-shell h-12 w-12 shrink-0 sm:h-14 sm:w-14 ${className}`}
-      >
-        <img
-          src={thinker.srcSmall}
-          srcSet={`${thinker.srcSmall} 420w, ${thinker.src} 900w`}
-          sizes="56px"
-          alt=""
-          loading={eager ? "eager" : "lazy"}
-          decoding="async"
-          width={48}
-          height={48}
-          fetchPriority="low"
-          className="thinker-avatar"
-        />
-      </span>
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
+        fetchPriority={heroVisual ? "high" : "low"}
+        data-hero-visual={heroVisual ? "true" : undefined}
+        width={900}
+        height={900}
+        className={`thinker-statue pointer-events-none select-none ${className}`}
+      />
     );
   }
 
@@ -109,7 +106,7 @@ export function ThinkerPortrait({
 
 /**
  * One-call section backdrop: picks the deterministic figure for a seed and
- * anchors it to a bottom corner of the (isolated) section, behind the content.
+ * anchors it to a corner of the (isolated) band, behind the content.
  *
  * Callers must sit inside a `relative isolate overflow-hidden` band whose copy
  * wrapper is positioned (`relative`), which every public section already is.

@@ -399,24 +399,40 @@
  * races the call-site utilities.
  */
 
-/* The avatar shell clips the square art into a circle; the tint (not navy)
-   lets the cartoon's own palette breathe at 48–56px. */
-.thinker-avatar-shell {
-  display: inline-block;
-  overflow: hidden;
-  flex: none;
-  border-radius: 9999px;
-  background-color: var(--color-pub-tint);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-pub-line-strong) 60%, transparent);
+/* The statue is a LEGIBLE semi-transparent person (owner reference: a marble
+   bust tinted by the brand beside the teacher's photo), never a circular icon
+   chip: full figure, light-blue duotone, standing on the baseline. Strength is
+   a variable so a quiet slot can dial down without fighting the cascade. */
+.thinker-statue {
+  object-fit: contain;
+  object-position: 50% 100%;
+  filter: grayscale(1) sepia(0.45) hue-rotate(188deg) saturate(1.55) brightness(1.14) contrast(0.98);
+  opacity: var(--thinker-statue-o, 0.5);
 }
-.thinker-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  /* square canvas ⇒ head-and-shoulders sit in the upper third; zoom about it */
-  object-position: 50% 14%;
-  transform: scale(1.7);
-  transform-origin: 50% 20%;
+.thinker-statue--quiet {
+  --thinker-statue-o: 0.34;
+}
+@media (max-width: 40rem) {
+  .thinker-statue {
+    --thinker-statue-o: 0.4;
+  }
+  .thinker-statue--quiet {
+    --thinker-statue-o: 0.28;
+  }
+}
+
+/* ─── The hero stage (owner reference design, 2026-09) ─────────────────────
+ * The teacher's photo floats — no frame, no card — over ONE organic brand
+ * blob, with three quiet ornaments (gold disc, tint dot, dashed orbit) and the
+ * semi-transparent philosophers standing behind it. Pure CSS: zero assets. */
+.hero-blob {
+  background:
+    radial-gradient(85% 70% at 32% 18%, color-mix(in srgb, var(--color-pub-navy) 46%, #ffffff) 0%, transparent 62%),
+    linear-gradient(155deg, color-mix(in srgb, var(--color-pub-navy) 86%, #ffffff) 0%, var(--color-pub-navy-2) 100%);
+  border-radius: 56% 44% 60% 40% / 46% 58% 42% 54%;
+}
+.hero-orbit {
+  border: 2px dashed color-mix(in srgb, var(--color-pub-accent) 65%, transparent);
 }
 
 /*

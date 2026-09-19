@@ -13,9 +13,9 @@ import type { CmsRenderCtx } from "~/cms/render-types";
  *      never filled with a stand-in, and the same face never renders twice;
  *   2. with the slot empty, NOTHING stands in for the teacher: no photo, no
  *      abstract illustration, and no philosopher posing as the portrait. The
- *      panel is an honest identity card whose transparent cartoon philosophers
- *      sit AROUND the reserved slot (owner request), and the old navy
- *      photo-plate must never come back;
+ *      hero is the owner's reference stage — one organic brand blob with the
+ *      semi-transparent philosophers standing behind the RESERVED empty slot
+ *      (owner request), and the old navy photo-plate must never come back;
  *   3. there is still exactly ONE eager hero visual on the page either way
  *      (the photo, or the frame's start figure), so React preloads one URL.
  */
@@ -87,17 +87,18 @@ describe("CMS hero identity plate", () => {
     expect(count(html, `src="${PHOTO_URL}"`)).toBe(1);
   });
 
-  it("keeps an empty slot empty — transparent philosophers frame it, nothing stands in", () => {
+  it("keeps an empty slot empty — the stage stands ready, nothing stands in", () => {
     const html = renderHero(null);
     // no photo, no abstract illustration, and no philosopher posing as one:
-    // the platform's cartoon figures only appear as the transparent frame
+    // the semi-transparent statues only stand BEHIND the reserved slot
     expect(html).not.toContain("/files/");
     expect(html).not.toContain("hero-philosophy");
     expect(html).not.toContain("thinker-plate");
-    expect(html).toContain("thinker-wash--frame");
-    // …the frame figures are real /visuals/thinkers/ assets, behind the copy
+    expect(html).toContain("thinker-statue");
+    expect(html).toContain("hero-blob");
+    // …the statues are real /visuals/thinkers/ assets
     expect(html).toContain("/visuals/thinkers/");
-    // …and the identity card still carries the REAL name from Settings
+    // …and the identity chip still carries the REAL name from Settings
     expect(html).toContain("د/ مصطفى تيتو");
   });
 

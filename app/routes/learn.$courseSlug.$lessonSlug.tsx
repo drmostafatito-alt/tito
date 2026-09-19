@@ -317,8 +317,8 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
         <Card data-testid="lesson-locked" className="relative isolate overflow-hidden border-pub-line">
           <ThinkerPortrait
             thinker={thinkerFor({ slot: "lesson-locked", slug: study.subjectSlug ?? "locked" })}
-            presentation="avatar"
-            className="absolute end-4 top-4 h-10 w-10"
+            presentation="statue"
+            className="thinker-statue--quiet absolute bottom-0 end-2 h-24 w-20"
           />
           <CardBody className="relative z-10 space-y-3">
             <div className="flex items-center gap-2">

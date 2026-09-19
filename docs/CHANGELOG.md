@@ -2,6 +2,20 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.13.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
+
+### Changed — hero stage per the owner's reference design + philosophers as people, not icons
+
+The owner shared screenshots of his question-platform hero as the visual target: the teacher's photo FLOATS over one organic brand blob with quiet ornaments, and a semi-transparent philosopher statue stands beside it. The public hero and every philosopher placement now follow that grammar.
+
+- **Hero stage (`hero_showcase`)**: no card frame anymore. One organic navy blob (`.hero-blob`, pure CSS), a gold disc, a tint dot and a dashed orbit (`.hero-orbit`); the owner's photo renders as a floating cutout with a soft ground shadow when published, and the reserved slot stays honestly empty when it is not. Two semi-transparent philosophers (`.thinker-statue`, light-blue duotone at ~50%/40% mobile) stand BEHIND the slot — people, not icon chips. Signature chip + tagline bubble complete the reference composition.
+- **New `statue` presentation replaces `avatar` everywhere** (study hub title + empty card + subject cards, subject hub title + term panels, locked-lesson card): philosophers always appear as legible standing figures with appropriate transparency; the circular icon chip is gone from the codebase.
+- Section backdrop `wash` figures unchanged (whisper behind copy); `statue` is the legible tier for slots that own a figure.
+
+### Verification
+- `tsc --noEmit` clean; unit **455/455** including the updated hero contract (stage blob + statues, empty slot carries no stand-in, exactly one eager hero visual in both states).
+- Real-browser screenshots: hero with a temporary R2 photo (floating cutout over the blob) and after reverting it (empty reserved slot), desktop 1440 + mobile 390, plus `/study`.
+
 ## [0.12.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
 
 ### Changed — cartoon philosopher identity + transparent section backdrops (owner request)

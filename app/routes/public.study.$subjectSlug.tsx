@@ -199,9 +199,9 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
               /* Beside the title, never behind it (see /study for the rule). */
               <ThinkerPortrait
                 thinker={heroThinker}
-                presentation="avatar"
+                presentation="statue"
                 eager
-                className="h-14 w-14 shrink-0 sm:h-20 sm:w-20"
+                className="h-24 w-20 shrink-0 sm:h-32 sm:w-28"
               />
             )}
             <div className="min-w-0">
@@ -291,11 +291,10 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                     >
                       <div className="relative z-10 p-5 sm:p-6">
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                          {/* A dark photograph at 25 % on white reads as a grey smudge,
-                              so the term panel carries the same small cropped avatar the
-                              cards use — legible identity, no wash behind the text. */}
+                          {/* The term's philosopher as a small standing figure —
+                              legible identity, quiet enough to never fight the text. */}
                           <span className="flex min-w-0 items-center gap-3">
-                            <ThinkerPortrait thinker={thinker} presentation="avatar" />
+                            <ThinkerPortrait thinker={thinker} presentation="statue" className="thinker-statue--quiet h-16 w-12 shrink-0 sm:h-20 sm:w-16" />
                             <h3 className="text-pub-lg font-bold leading-pub-snug text-pub-ink">{pick(term)}</h3>
                           </span>
                           <span className={`text-pub-xs ${CARD_META}`}>
