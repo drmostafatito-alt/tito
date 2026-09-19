@@ -10,7 +10,8 @@ The owner shared screenshots of his question-platform hero as the visual target:
 
 - **Hero stage (`hero_showcase`)**: no card frame anymore. One organic navy blob (`.hero-blob`, pure CSS), a gold disc, a tint dot and a dashed orbit (`.hero-orbit`); the owner's photo renders as a floating cutout with a soft ground shadow when published, and the reserved slot stays honestly empty when it is not. Two semi-transparent philosophers (`.thinker-statue`, light-blue duotone at ~50%/40% mobile) stand BEHIND the slot — people, not icon chips. Signature chip + tagline bubble complete the reference composition.
 - **New `statue` presentation replaces `avatar` everywhere** (study hub title + empty card + subject cards, subject hub title + term panels, locked-lesson card): philosophers always appear as legible standing figures with appropriate transparency; the circular icon chip is gone from the codebase.
-- Section backdrop `wash` figures unchanged (whisper behind copy); `statue` is the legible tier for slots that own a figure.
+- Section backdrop `wash` figures unchanged in role (whisper behind copy); `statue` is the legible tier for slots that own a figure.
+- **Coloured, not monochrome (owner follow-up)**: every duotone/grayscale filter is gone — statues keep the cartoons' own palette at 90% (85% mobile), quiet slots 55%/45%, and the navy-band wash is a coloured ghost (22%/16%) instead of a white stencil.
 
 ### Verification
 - `tsc --noEmit` clean; unit **455/455** including the updated hero contract (stage blob + statues, empty slot carries no stand-in, exactly one eager hero visual in both states).

@@ -406,18 +406,19 @@
 .thinker-statue {
   object-fit: contain;
   object-position: 50% 100%;
-  filter: grayscale(1) sepia(0.45) hue-rotate(188deg) saturate(1.55) brightness(1.14) contrast(0.98);
-  opacity: var(--thinker-statue-o, 0.5);
+  /* NO duotone: the platform's cartoons keep their own palette (owner:
+     coloured, not black-and-white). Transparency alone places them. */
+  opacity: var(--thinker-statue-o, 0.9);
 }
 .thinker-statue--quiet {
-  --thinker-statue-o: 0.34;
+  --thinker-statue-o: 0.55;
 }
 @media (max-width: 40rem) {
   .thinker-statue {
-    --thinker-statue-o: 0.4;
+    --thinker-statue-o: 0.85;
   }
   .thinker-statue--quiet {
-    --thinker-statue-o: 0.28;
+    --thinker-statue-o: 0.45;
   }
 }
 
@@ -510,18 +511,16 @@
   -webkit-mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
 }
 .thinker-wash--light.thinker-wash--wash {
-  opacity: 0.1;
+  opacity: 0.12;
 }
 .thinker-wash--navy.thinker-wash--wash {
-  opacity: 0.16;
-  filter: grayscale(1) brightness(2.05) contrast(0.92);
+  opacity: 0.22;
 }
 .thinker-wash--light.thinker-wash--frame {
   opacity: 0.22;
 }
 .thinker-wash--navy.thinker-wash--frame {
   opacity: 0.3;
-  filter: grayscale(1) brightness(2.05) contrast(0.92);
 }
 /* The frame pair is fully legible (no mask) and sized by the PANEL's height, so
    a short identity card never crops a head: two small companions standing in
@@ -570,7 +569,7 @@
     opacity: 0.1;
   }
   .thinker-wash--navy.thinker-wash--wash {
-    opacity: 0.12;
+    opacity: 0.16;
   }
   .thinker-wash--light.thinker-wash--frame {
     opacity: 0.18;
