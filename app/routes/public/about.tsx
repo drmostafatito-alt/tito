@@ -8,6 +8,8 @@ import { resolveSocialLinks } from "~/cms/social";
 import { subjects } from "~server/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { CARD_BODY, CARD_LINK, CARD_META, CARD_TITLE, PUB_CARD } from "~/lib/publicStyles";
+import { ThinkerPortrait, ThinkerWash } from "~/components/visuals/ThinkerPortrait";
+import { heroFrameThinkers } from "~/lib/thinkers";
 import { Icon } from "~/cms/icons";
 import { rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, personJsonLd, safeHttpsUrl, webPageJsonLd } from "~/cms/jsonld";
@@ -164,8 +166,11 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
   const tagline = locale === "ar" ? site.taglineAr : site.taglineEn;
   const c = (row: { titleAr: string; titleEn: string }) => (locale === "ar" ? row.titleAr : row.titleEn);
 
+  const [frameStart, frameEnd] = heroFrameThinkers();
+
   return (
-    <div className="pub-section pub-container flex flex-col gap-[calc(var(--pub-gap)*2)]">
+    <div className="pub-section pub-container relative isolate flex flex-col gap-[calc(var(--pub-gap)*2)] overflow-hidden">
+      <ThinkerWash seed="page:about" anchor="top" />
       <nav aria-label="breadcrumb" data-allow-small className={`${CARD_META} flex items-center gap-1.5`}>
         <Link to="/" className="hover:text-pub-navy">{locale === "ar" ? "الرئيسية" : "Home"}</Link>
         <span aria-hidden>›</span>
@@ -182,7 +187,14 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
         <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-1">
           {owner.photoUrl && (
             <div className="relative isolate overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
-              <span aria-hidden="true" className="pointer-events-none absolute -end-10 -top-12 h-32 w-32 rounded-full bg-pub-tint" />
+              {/* Transparent philosophers AROUND the teacher's picture (owner
+                  request): bottom corners, masked inward, behind the photo. */}
+              {frameStart && (
+                <ThinkerPortrait thinker={frameStart} presentation="wash" className="thinker-wash--light thinker-wash--frame thinker-wash--start" />
+              )}
+              {frameEnd && (
+                <ThinkerPortrait thinker={frameEnd} presentation="wash" className="thinker-wash--light thinker-wash--frame thinker-wash--end" />
+              )}
               <img
                 src={owner.photoUrl}
                 alt={name}

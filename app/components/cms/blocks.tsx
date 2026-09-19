@@ -6,7 +6,7 @@ import { t } from "~/lib/i18n";
 import { socialIconName } from "~/cms/social";
 import { ANCHOR_ID_RE, fragmentId, resolveCmsHref, type CmsHrefContext } from "~/cms/links";
 import { SectionDecor, DecorHairline } from "~/components/visuals/PhilosophyDecor";
-import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
+import { ThinkerPortrait, ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import {
   BTN_SHAPE,
   BTN_VARIANT,
@@ -22,10 +22,21 @@ import {
   CARD_SURFACE,
   TINT_CHIP,
 } from "~/lib/publicStyles";
-import { heroIdentityThinker, thinkerAlternate, thinkerById, thinkerFor } from "~/lib/thinkers";
+import { heroFrameThinkers, thinkerAlternate, thinkerById, thinkerFor } from "~/lib/thinkers";
 import type { CardView, CmsRenderCtx, FormView } from "~/cms/render-types";
 
 const VideoPlayer = lazy(() => import("~/components/player/VideoPlayer").then((m) => ({ default: m.VideoPlayer })));
+
+/** Block types that render a thinker of their own — a section containing one
+ *  of these keeps exactly that face and gets no backdrop philosopher. */
+const THINKER_BLOCK_TYPES = new Set([
+  "hero_showcase",
+  "teacher_profile",
+  "subject_cards",
+  "course_cards",
+  "program_cards",
+  "free_content",
+]);
 
 /**
  * CMS block renderers (Phase 3). STRUCTURE ONLY — every visible string, image,
@@ -475,11 +486,11 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       // never used when the block's identity display is switched off.
       const platePhoto = showIdentity ? ownerPhoto : null;
       const tagline = idn ? ls(idn.tagline, L) : "";
-      const heroThinker = heroIdentityThinker();
-      // The corner signature of the light identity panel (see the frame below).
-      const heroSignature = thinkerById("ibn-rushd");
-      // (The light panel carries no watermark: the owner's picture already fills
-      // it, and a second figure under it is a stacked ornament.)
+      // The two transparent philosophers that frame the identity panel from its
+      // bottom corners — AROUND the owner photo slot, never inside it (owner
+      // request, 2026-09). Neither is Aristotle, whom the philosophy subject
+      // card owns, so one screen never repeats a face.
+      const [heroFrameStart, heroFrameEnd] = heroFrameThinkers();
       if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !cmsSrc && !showIdentity) return null;
       const imageAlt = str(p, "imageAlt", L) || heading;
       return (
@@ -536,9 +547,13 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               )}
             </div>
 
-            {/* Visual column — exactly one figure, restrained, behind/next to the
-                copy: the owner's own image when published, otherwise the platform
-                plate (CSS wash + masked engraving + identity). */}
+            {/* Visual column — the owner's reference stage (2026-09): the
+                teacher's photo FLOATS — no frame, no card — over ONE organic
+                brand blob while semi-transparent philosophers stand behind it
+                and three quiet ornaments orbit. With no published photo the
+                stage keeps the same composition and the reserved slot stays
+                honestly empty: nothing stands in for the teacher (Admin →
+                Appearance → Identity uploads the real picture). */}
             <div className="relative mx-auto w-full max-w-[34rem]">
               {cmsSrc ? (
                 <div className="overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
@@ -554,66 +569,72 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                     className="aspect-[4/3] w-full object-cover"
                   />
                 </div>
-              ) : platePhoto ? (
-                /*
-                 * The teacher's own picture is the hero. It already carries its own
-                 * art, so the panel only FRAMES it — light surface, one gold hairline,
-                 * one soft shadow, a caption. Never a filter, never a crop that cuts
-                 * the identity, never a second ornament over the first (owner brief
-                 * §15/§20): allowed treatments are container, background, border,
-                 * shadow and crop container, and that is all this does.
-                 */
-                <div className="relative isolate overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
-                  <span aria-hidden="true" className="pointer-events-none absolute -end-12 -top-14 h-44 w-44 rounded-full bg-pub-tint" />
-                  <span aria-hidden="true" className="pointer-events-none absolute -start-10 -bottom-16 h-40 w-40 rounded-full bg-pub-surface-2" />
-                  {/* The platform's own signature in the corner of the frame — a
-                      masked engraving, not a second portrait: it sits behind the
-                      picture, bleeds off one edge, and never touches the caption.
-                      Deliberately NOT Aristotle: the philosophy subject card is his
-                      (app/lib/thinkers.ts), and one screen never repeats a face. */}
-                  {heroSignature && (
-                    <span aria-hidden="true" className="pointer-events-none absolute end-0 top-0 z-0 block h-28 w-[4.5rem] opacity-[0.34] sm:h-40 sm:w-[8.5rem]">
-                      <ThinkerPortrait thinker={heroSignature} presentation="engrave" />
-                    </span>
+              ) : (
+                <div className="relative isolate flex min-h-[24rem] items-end justify-center pb-2 sm:min-h-[28rem]">
+                  {/* one organic brand blob — a stage, not a card */}
+                  <span aria-hidden="true" className="hero-blob absolute inset-x-2 bottom-6 top-0 -z-20 sm:inset-x-6" />
+                  {/* quiet ornaments: gold disc, tint dot, dashed orbit */}
+                  <span aria-hidden="true" className="absolute -start-1 top-10 h-11 w-11 rounded-full bg-pub-accent opacity-90" />
+                  <span aria-hidden="true" className="absolute start-12 top-3 h-5 w-5 rounded-full bg-pub-tint" />
+                  <span aria-hidden="true" className="hero-orbit absolute -end-3 top-14 h-24 w-24 rounded-full opacity-60 sm:h-28 sm:w-28" />
+                  {/* the philosophers: PEOPLE standing behind the teacher,
+                      semi-transparent — never icon chips (owner reference) */}
+                  {heroFrameStart && (
+                    <ThinkerPortrait
+                      thinker={heroFrameStart}
+                      presentation="statue"
+                      eager={!platePhoto}
+                      heroVisual={!platePhoto}
+                      className="absolute -start-4 bottom-4 -z-10 h-[58%] w-auto sm:-start-8 sm:h-[64%]"
+                    />
                   )}
-                  <img
-                    src={platePhoto}
-                    alt={ownerName || ""}
-                    width={1191}
-                    height={1321}
-                    data-hero-visual="true"
-                    loading="eager"
-                    decoding="async"
-                    fetchPriority="high"
-                    className="relative z-[1] mx-auto block max-h-[15rem] w-full px-3 pt-4 object-contain object-bottom sm:max-h-[21rem] sm:px-6"
-                  />
-                  {(ownerName || ownerTitle || tagline) && (
-                    <div className="relative z-[1] mt-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-pub-line bg-pub-bg px-4 py-3 ltr:border-s-4 ltr:border-s-pub-accent rtl:border-e-4 rtl:border-e-pub-accent">
+                  {heroFrameEnd && (
+                    <ThinkerPortrait
+                      thinker={heroFrameEnd}
+                      presentation="statue"
+                      className="absolute bottom-14 end-0 -z-10 h-[36%] w-auto sm:end-2 sm:h-[40%]"
+                    />
+                  )}
+                  {platePhoto ? (
+                    /* The teacher's own picture IS the hero: a floating cutout
+                       with a soft ground shadow — never re-cropped, never
+                       filtered, never boxed (owner brief §15/§20). */
+                    <img
+                      src={platePhoto}
+                      alt={ownerName || ""}
+                      width={1191}
+                      height={1321}
+                      data-hero-visual="true"
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
+                      className="relative z-[1] block max-h-[21rem] w-auto max-w-[78%] object-contain drop-shadow-[0_16px_24px_rgba(15,23,42,0.28)] sm:max-h-[25rem]"
+                    />
+                  ) : (
+                    /* Reserved slot — deliberately empty space where the owner's
+                       photo will float once uploaded. The start statue above is
+                       this state's single eager hero visual. */
+                    <div className="relative z-[1] h-[16rem] w-full max-w-[22rem] sm:h-[19rem]" />
+                  )}
+                  {/* signature chip + tagline bubble, as in the reference */}
+                  {showIdentity && (ownerName || ownerTitle) && (
+                    <div className="absolute bottom-8 end-0 z-[2] max-w-[11rem] rounded-pub-md border border-pub-line bg-pub-surface/95 px-3 py-2 text-start shadow-pub-sm">
                       {ownerName && (
-                        <span dir="auto" className="min-w-0 text-pub-md font-extrabold text-pub-navy [overflow-wrap:anywhere]">{ownerName}</span>
+                        <span dir="auto" className="block text-pub-sm font-extrabold text-pub-navy [overflow-wrap:anywhere]">
+                          {ownerName}
+                        </span>
                       )}
-                      {ownerTitle && <span dir="auto" className={`${CARD_META} min-w-0 flex-1 sm:text-end`}>{ownerTitle}</span>}
-                      {tagline && <p dir="auto" className="w-full text-pub-sm leading-pub-normal text-pub-muted">{tagline}</p>}
+                      {ownerTitle && <span dir="auto" className="block text-pub-xs leading-pub-snug text-pub-muted">{ownerTitle}</span>}
                     </div>
                   )}
-                </div>
-              ) : (
-                /* No photo published yet: the navy identity plate keeps the slot
-                   complete — the thinker carries the mood, the caption stays in
-                   white, and nothing is invented in place of the teacher. */
-                <div className="relative isolate flex flex-col overflow-hidden rounded-pub-2xl bg-pub-navy text-pub-on-navy shadow-pub-md">
-                  <ThinkerPortrait thinker={heroThinker} presentation="plate" eager heroVisual />
-                  <div className="relative mt-auto flex min-h-[15rem] flex-col justify-end gap-3 p-5 sm:min-h-[19rem] sm:p-7">
-                    {showIdentity && (ownerName || ownerTitle) && (
-                      <span className="flex min-w-0 flex-col">
-                        {ownerName && <span className="text-pub-base font-extrabold text-pub-on-navy">{ownerName}</span>}
-                        {ownerTitle && <span className="text-pub-xs leading-pub-snug text-pub-on-navy-muted">{ownerTitle}</span>}
-                      </span>
-                    )}
-                    {tagline ? (
-                      <p className="max-w-[30ch] text-pub-sm leading-pub-normal text-pub-on-navy-soft">{tagline}</p>
-                    ) : null}
-                  </div>
+                  {tagline && (
+                    <p
+                      dir="auto"
+                      className="absolute -end-1 top-4 z-[2] max-w-[9.5rem] rounded-pub-lg rounded-ee-none border border-pub-line bg-pub-surface/95 px-3 py-2 text-pub-sm font-bold leading-pub-snug text-pub-navy shadow-pub-sm"
+                    >
+                      {tagline}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -1567,6 +1588,10 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
   const align = raw(p, "align") || "start";
   const columns = raw(p, "columns") || "1";
   const onDark = bg === "brand" || bg === "dark";
+  // ONE figure per surface (owner brief §14–§16): blocks that already carry a
+  // thinker (hero, teacher card, subject/course cards) keep their own face, so
+  // only the remaining sections get the transparent backdrop philosopher.
+  const sectionHasThinker = children.some((c) => THINKER_BLOCK_TYPES.has(c.type));
   const headingEl = heading || subheading ? (
     <div className={`mb-[calc(var(--pub-gap)*1.8)] flex flex-col gap-2 ${align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start"}`}>
       {heading && (
@@ -1590,6 +1615,13 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
     >
       {(bg === "dark" || bg === "brand") && <SectionDecor variant="band" />}
       {(bg === "default" || bg === "surface") && <span aria-hidden="true" className="decor-wash pointer-events-none absolute inset-0 -z-10 opacity-60" />}
+      {/* The transparent philosopher behind every section that carries no
+          figure of its own (owner request, 2026-09): bottom-corner anchored and
+          masked away from the copy, so headings/cards/CTAs always sit on clean
+          surface. Deterministic per section id → SSR and client agree. */}
+      {!hasBgImage && !sectionHasThinker && (
+        <ThinkerWash seed={`section:${section.id}`} surface={onDark ? "navy" : "light"} />
+      )}
       {hasBgImage && (
         <>
           <img src={ctx.images[bgImageId]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />

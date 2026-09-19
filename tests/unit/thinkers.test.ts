@@ -3,9 +3,12 @@ import {
   collectItemKinds,
   familyForSubject,
   hashKey,
+  heroFrameThinkers,
+  sectionBackdropThinker,
   thinkerAlternate,
   thinkerById,
   thinkerFor,
+  THINKERS,
 } from "~/lib/thinkers";
 
 describe("thinker visual assignment", () => {
@@ -62,5 +65,32 @@ describe("lesson item kinds (real types only)", () => {
 
   it("returns an empty list when the lesson has no items", () => {
     expect(collectItemKinds([])).toEqual([]);
+  });
+});
+
+describe("section backdrop assignment (transparent cartoon wash)", () => {
+  it("is deterministic per seed and skips the avoided face", () => {
+    const a = sectionBackdropThinker("section:abc");
+    const b = sectionBackdropThinker("section:abc");
+    expect(a).not.toBeNull();
+    expect(a?.id).toBe(b?.id);
+    expect(sectionBackdropThinker("section:abc", a?.id ?? null)?.id).not.toBe(a?.id);
+  });
+
+  it("spreads across the catalog so adjacent sections differ", () => {
+    const ids = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"].map((s) => sectionBackdropThinker(s)?.id);
+    expect(new Set(ids).size).toBeGreaterThan(3);
+  });
+
+  it("frames the hero with two distinct philosophers, never the subject card's Aristotle", () => {
+    const [start, end] = heroFrameThinkers();
+    expect(start?.id).toBe("ibn-rushd");
+    expect(end?.id).toBe("plato");
+  });
+
+  it("ships a phone rendition next to every desktop asset", () => {
+    for (const t of THINKERS) {
+      expect(t.srcSmall).toMatch(new RegExp(`/${t.id}-sm\\.webp$`));
+    }
   });
 });
