@@ -13,7 +13,7 @@ import {
   resetPassword,
   validateResetToken,
 } from "~server/auth/service.server";
-import { passwordResetTokens, securityEvents, sessions, users } from "~server/db/schema";
+import { devices, passwordResetTokens, securityEvents, sessions, users } from "~server/db/schema";
 import { resolveAuth } from "~server/auth/session.server";
 import { clearEmailCaptures, capturedEmails } from "~server/email/provider";
 
@@ -140,22 +140,30 @@ describe("registration + login", () => {
   });
 });
 
-describe("device policy (default: 1 device)", () => {
-  it("second distinct device is blocked with a clear code", async () => {
+describe("device policy (default: 3 devices, replace oldest)", () => {
+  it("a 4th distinct device evicts the oldest instead of blocking the login", async () => {
     const email = uniqueEmail();
     await registerUser(env, { email, fullName: "A B", password: "Str0ngPass!x" }, makeRequest({ ip: "4.4.4.4" }));
 
-    const first = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "4.4.4.4" }));
-    expect(first.ok).toBe(true);
-
-    // same user-agent but no device cookie = a different device
-    const second = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "5.5.5.5" }));
-    expect(second.ok).toBe(false);
-    if (!second.ok) expect(second.code).toBe("device_limit");
+    // registerUser does NOT auto-login (the route does); each cookie-less login
+    // is a distinct device, so the 4th login must evict the oldest.
+    let userId = "";
+    for (const ip of ["4.4.4.4", "5.5.5.5", "6.6.6.6", "7.7.7.7"]) {
+      const r = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip }));
+      expect(r.ok).toBe(true);
+      if (r.ok) userId = r.user.id;
+    }
 
     const db = getDb(env);
-    const blocks = await db.select().from(securityEvents).where(eq(securityEvents.type, "device_limit_block"));
-    expect(blocks.length).toBe(1);
+    const rows = await db.select().from(devices).where(eq(devices.userId, userId));
+    expect(rows.filter((d) => d.status === "active")).toHaveLength(3);
+    expect(rows.filter((d) => d.status === "revoked")).toHaveLength(1);
+
+    const evictions = await db
+      .select()
+      .from(securityEvents)
+      .where(eq(securityEvents.type, "device_evicted"));
+    expect(evictions.length).toBe(1);
   });
 
   it("the SAME device (cookie replayed) logs in again freely", async () => {

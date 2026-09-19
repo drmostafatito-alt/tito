@@ -44,3 +44,6 @@ MUX_PLAYBACK_RESTRICTION_ID=
 
 # Phase 6 — HMAC secret for the MOCK payment gateway webhooks (TEST-ONLY; do NOT set in production)
 MOCK_PAYMENTS_SECRET=change-me-long-random
+# Embedded/cross-site previews (iframes) refuse Lax cookies; set None there so sessions stick.
+# Production keeps the Lax default. Accepted: Lax | Strict | None
+# COOKIE_SAMESITE=None

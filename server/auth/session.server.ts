@@ -2,7 +2,7 @@ import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import type { DB } from "../db/client.server";
 import { devices, sessions, users } from "../db/schema";
 import { sha256Hex } from "../http/rate-limit.server";
-import { parseCookieHeader, serializeCookie } from "./cookies.server";
+import { cookieSameSite, parseCookieHeader, serializeCookie } from "./cookies.server";
 
 // __Host- cookies cannot be planted from a sibling subdomain: browsers require
 // Secure, Path=/, and no Domain attribute. serializeCookie enforces that shape.
@@ -123,6 +123,7 @@ export async function resolveAuth(
       .where(and(eq(sessions.id, row.session.id), isNull(sessions.revokedAt)));
     refreshCookie = serializeCookie(SESSION_COOKIE, token, {
       maxAgeSeconds: Math.max(0, Math.floor((newExpiry - now) / 1000)),
+      sameSite: cookieSameSite(env),
     });
     resolvedExpiry = newExpiry;
   }

@@ -3,7 +3,7 @@ import { Form, Link, useActionData, useNavigation, useSearchParams } from "react
 import { redirect } from "react-router";
 import { getEnv, getWaitUntil } from "~server/cf.server";
 import { login, registerUser } from "~server/auth/service.server";
-import { serializeCookie } from "~server/auth/cookies.server";
+import { cookieSameSite, serializeCookie } from "~server/auth/cookies.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
@@ -51,7 +51,10 @@ export async function action({ context, request }: Route.ActionArgs) {
   }
   const headers = new Headers();
   for (const c of result.cookies) {
-    headers.append("Set-Cookie", serializeCookie(c.name, c.value, { maxAgeSeconds: c.maxAgeSeconds }));
+    headers.append(
+      "Set-Cookie",
+      serializeCookie(c.name, c.value, { maxAgeSeconds: c.maxAgeSeconds, sameSite: cookieSameSite(env) }),
+    );
   }
   return redirect("/dashboard", { headers });
 }

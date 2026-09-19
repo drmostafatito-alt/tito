@@ -2,6 +2,33 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.14.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
+
+### Fixed — "maximum devices reached" lockout on register/login (owner-reported)
+
+The owner could not log in after registering: every attempt answered
+«تم الوصول للحد الأقصى للأجهزة المسموح بها». Two root causes, both fixed:
+
+- **Session/device cookies were `SameSite=Lax`.** Embedded/cross-site preview
+  contexts refuse Lax cookies, so the browser never replayed the device key and
+  every login registered as a brand-new device. New optional `COOKIE_SAMESITE`
+  deployment var (`None` in the sandbox preview; production keeps the Lax
+  default) — applied to the session cookie, the device cookie, the sliding
+  refresh cookie and the locale cookie.
+- **The default device policy was 1 device + hard block.** Defaults are now
+  owner-friendly: **3 devices, `replace_oldest`** (the 4th distinct device
+  evicts the oldest instead of locking the account out), monthly change limit
+  unlimited by default. Policy stays fully tunable from Admin settings; the
+  integration test now asserts eviction + `device_evicted` audit event.
+- Local preview DB: stale device/session rows cleared so existing accounts
+  (including the owner's) can sign in again immediately.
+
+### Verification
+- Unit 455/455, integration 321/321 (device-policy test rewritten for eviction).
+- Real HTTP flow: register → cookies carry `SameSite=None; Secure`; re-login
+  with the same jar = same device; four brand-new jars (distinct devices) all
+  sign in — no block, oldest evicted on the 4th.
+
 ## [0.13.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
 
 ### Changed — hero stage per the owner's reference design + philosophers as people, not icons

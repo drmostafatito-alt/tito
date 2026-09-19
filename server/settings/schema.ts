@@ -67,10 +67,13 @@ export const localeSettingsSchema = z
 export type LocaleSettings = z.infer<typeof localeSettingsSchema>;
 
 export const deviceSettingsSchema = z.object({
-  maxPerStudent: z.number().int().min(1).max(10).default(1),
-  onLimit: z.enum(["block", "replace_oldest"]).default("block"),
+  // Owner-friendly defaults: a learner (or the owner testing around) commonly
+  // uses phone + laptop + preview browser. Hitting the cap evicts the OLDEST
+  // device instead of hard-blocking the login (ADR-005 policy stays tunable).
+  maxPerStudent: z.number().int().min(1).max(10).default(3),
+  onLimit: z.enum(["block", "replace_oldest"]).default("replace_oldest"),
   /** 0 = unlimited device changes */
-  changeLimitPer30d: z.number().int().min(0).max(100).default(2),
+  changeLimitPer30d: z.number().int().min(0).max(100).default(0),
 });
 export type DeviceSettings = z.infer<typeof deviceSettingsSchema>;
 
