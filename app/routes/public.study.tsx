@@ -9,6 +9,7 @@ import { CARD_BODY, CARD_META, CHIP, PUB_CARD, pubBtnSm } from "~/lib/publicStyl
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
+import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
 import { thinkerAlternate, thinkerFor } from "~/lib/thinkers";
 import { t, type Locale } from "~/lib/i18n";
@@ -70,6 +71,7 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
           portrait and the journey line. No dark hero, no stacked ornament. */}
       <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
+        <ThinkerWash seed="page:study" anchor="top" />
         <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
           <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
@@ -78,14 +80,15 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
           </nav>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-5">
             {!empty ? (
-              /* Subject identity sits BESIDE the title — the same grammar as the
-                 cards below, and never behind text, so a long description can never
-                 collide with the portrait at phone widths. */
+              /* Subject identity sits BESIDE the title as a legible
+                 semi-transparent statue — a person, not an icon chip (owner
+                 reference design) — and never behind text, so a long
+                 description can never collide with it at phone widths. */
               <ThinkerPortrait
                 thinker={heroThinker}
-                presentation="avatar"
+                presentation="statue"
                 eager
-                className="h-14 w-14 shrink-0 sm:h-20 sm:w-20"
+                className="h-24 w-20 shrink-0 sm:h-32 sm:w-28"
               />
             ) : null}
             <div className="min-w-0">
@@ -121,8 +124,13 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
             className="relative isolate mt-1 overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-bg p-6 shadow-pub-card sm:p-8"
             data-testid="study-empty"
           >
-            <ThinkerPortrait thinker={heroThinker} presentation="avatar" eager className="mt-1" />
-            <div className="relative z-10 max-w-[var(--pub-measure)]">
+            <ThinkerPortrait
+              thinker={heroThinker}
+              presentation="statue"
+              eager
+              className="thinker-statue--quiet absolute bottom-0 end-0 h-28 w-24 sm:h-36 sm:w-32"
+            />
+            <div className="relative z-10 max-w-[var(--pub-measure)] sm:pe-24">
               <h2 className="text-pub-md font-extrabold text-pub-ink">{t(locale, "study.emptyTitle")}</h2>
               <p className="mt-2 text-pub-base leading-pub-normal text-pub-muted">{t(locale, "study.empty")}</p>
               <Link to="/register" className={`mt-5 ${pubBtnSm("primary", "px-5")}`}>
@@ -150,8 +158,8 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
                     data-testid={`study-subject-${s.slug}`}
                   >
                     <span className="flex min-w-0 items-start gap-3">
-                      {/* subject identity, cropped small — legible on a phone */}
-                      <ThinkerPortrait thinker={thinker} presentation="avatar" />
+                      {/* subject identity as a small standing figure */}
+                      <ThinkerPortrait thinker={thinker} presentation="statue" className="thinker-statue--quiet h-16 w-12 shrink-0 sm:h-20 sm:w-16" />
                       <h2 className="min-w-0 flex-1 text-pub-lg font-bold leading-pub-snug text-pub-ink group-hover:text-pub-navy-2">
                         {ar ? s.titleAr : s.titleEn}
                       </h2>

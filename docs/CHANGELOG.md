@@ -2,6 +2,86 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.15.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
+
+### Fixed — silent login bounce in embedded previews ("the button does nothing")
+
+Owner report: submitting login gave NO reaction. Root cause found and reproduced:
+the login itself succeeds (202 → /dashboard), but browsers that refuse cookies in
+the embedded preview window drop the session cookie, so /dashboard bounces back
+to `/login?next=…` with no error at all — an invisible loop.
+
+- New `SessionStorageNotice` on /login and /register: probes cookie storage
+  client-side and, when cookies are blocked (or a submit just bounced back),
+  shows an honest Arabic/English alert explaining exactly that, plus a
+  **«فتح في تبويب كامل»** escape link (`target=_top`) where cookies are
+  first-party and login persists. In-frame but cookies-fine shows a gentle hint.
+- Auth forms mark their submit in sessionStorage so a bounce-back is diagnosed
+  as "login succeeded but the session was not kept here", not a wrong password.
+
+### Verification
+- Simulated cookie-refusing browser (HTTP + JS cookies): bounce now surfaces the
+  alert + escape link instead of silence; normal browser: no alert, straight to
+  /dashboard. Unit 455/455 (locale parity kept ar/en).
+
+## [0.14.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
+
+### Fixed — "maximum devices reached" lockout on register/login (owner-reported)
+
+The owner could not log in after registering: every attempt answered
+«تم الوصول للحد الأقصى للأجهزة المسموح بها». Two root causes, both fixed:
+
+- **Session/device cookies were `SameSite=Lax`.** Embedded/cross-site preview
+  contexts refuse Lax cookies, so the browser never replayed the device key and
+  every login registered as a brand-new device. New optional `COOKIE_SAMESITE`
+  deployment var (`None` in the sandbox preview; production keeps the Lax
+  default) — applied to the session cookie, the device cookie, the sliding
+  refresh cookie and the locale cookie.
+- **The default device policy was 1 device + hard block.** Defaults are now
+  owner-friendly: **3 devices, `replace_oldest`** (the 4th distinct device
+  evicts the oldest instead of locking the account out), monthly change limit
+  unlimited by default. Policy stays fully tunable from Admin settings; the
+  integration test now asserts eviction + `device_evicted` audit event.
+- Local preview DB: stale device/session rows cleared so existing accounts
+  (including the owner's) can sign in again immediately.
+
+### Verification
+- Unit 455/455, integration 321/321 (device-policy test rewritten for eviction).
+- Real HTTP flow: register → cookies carry `SameSite=None; Secure`; re-login
+  with the same jar = same device; four brand-new jars (distinct devices) all
+  sign in — no block, oldest evicted on the 4th.
+
+## [0.13.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
+
+### Changed — hero stage per the owner's reference design + philosophers as people, not icons
+
+The owner shared screenshots of his question-platform hero as the visual target: the teacher's photo FLOATS over one organic brand blob with quiet ornaments, and a semi-transparent philosopher statue stands beside it. The public hero and every philosopher placement now follow that grammar.
+
+- **Hero stage (`hero_showcase`)**: no card frame anymore. One organic navy blob (`.hero-blob`, pure CSS), a gold disc, a tint dot and a dashed orbit (`.hero-orbit`); the owner's photo renders as a floating cutout with a soft ground shadow when published, and the reserved slot stays honestly empty when it is not. Two semi-transparent philosophers (`.thinker-statue`, light-blue duotone at ~50%/40% mobile) stand BEHIND the slot — people, not icon chips. Signature chip + tagline bubble complete the reference composition.
+- **New `statue` presentation replaces `avatar` everywhere** (study hub title + empty card + subject cards, subject hub title + term panels, locked-lesson card): philosophers always appear as legible standing figures with appropriate transparency; the circular icon chip is gone from the codebase.
+- Section backdrop `wash` figures unchanged in role (whisper behind copy); `statue` is the legible tier for slots that own a figure.
+- **Coloured, not monochrome (owner follow-up)**: every duotone/grayscale filter is gone — statues keep the cartoons' own palette at 90% (85% mobile), quiet slots 55%/45%, and the navy-band wash is a coloured ghost (22%/16%) instead of a white stencil.
+
+### Verification
+- `tsc --noEmit` clean; unit **455/455** including the updated hero contract (stage blob + statues, empty slot carries no stand-in, exactly one eager hero visual in both states).
+- Real-browser screenshots: hero with a temporary R2 photo (floating cutout over the blob) and after reverting it (empty reserved slot), desktop 1440 + mobile 390, plus `/study`.
+
+## [0.12.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
+
+### Changed — cartoon philosopher identity + transparent section backdrops (owner request)
+
+The photographic thinker engravings never matched this platform's identity. They are replaced by the platform's OWN flat-cartoon philosophers (owner-chosen style C: friendly modern flat characters on the navy/gold/sand palette), shipped as **transparent WebP** in two renditions — `public/visuals/thinkers/<id>.webp` (900×900, desktop) and `<id>-sm.webp` (420×420, phones) — so a backdrop figure never costs desktop bytes on a phone.
+
+- **New `wash` presentation + `ThinkerWash`** (`app/components/visuals/ThinkerPortrait.tsx`): ONE transparent figure per band, anchored to a bottom corner (tall CMS sections) or a top corner (short page openings), masked radially FROM that corner so it dissolves before reaching copy — headings, cards and CTAs always sit on clean surface, at any width, in RTL and LTR. Whisper opacity on light surfaces (10%, 8–10% on phones), pale ghost on navy; `pointer-events-none` + `aria-hidden` + lazy/low-priority as before.
+- **Every section / page band is covered**: all CMS sections (`blocks.tsx`, skipped automatically when a section already carries its own figure — hero, teacher card, subject/course cards — keeping the "one figure per surface" rule), plus the openings of `/about`, `/study`, `/study/:subject`, `/programs(.:slug)`, `/grades/:slug`, `/subjects/:slug`, `/courses(.:slug)`, `/curriculum/:slug`, `/products/:slug` and the lesson page.
+- **Owner photo slot stays honest**: with no published photo the hero no longer shows a navy photo-plate stand-in. It is an empty identity card (real name/title/tagline from Settings → Identity only) with two transparent philosophers (Ibn Rushd + Plato, `heroFrameThinkers()`) standing in its bottom corners — AROUND the slot, never inside it. The same pair frames the photo once the owner uploads it (Admin → Appearance → Identity), on the homepage and `/about`.
+- **CSS system rewritten** (`app/app.css`): no duotone filter or photo-crop gymnastics remain; transparency + corner masks do the work. New modifiers `--wash/--frame/--start/--end/--top` with phone-specific size/opacity.
+- **Freud & Jung** complete the set of twelve cartoon portraits (same style C, same transparent pipeline); no photographic asset remains anywhere in `public/visuals/thinkers/`.
+
+### Verification
+- `tsc --noEmit` clean; `lint:imports` clean; unit **455/455** (39 files) including the rewritten hero-identity contract (empty slot ⇒ no `/files/`, no `hero-philosophy`, no `thinker-plate`, exactly one eager hero visual either way) and new backdrop-assignment tests.
+- Real-browser screenshots (packaged Chromium): home AR desktop + mobile, `/about`, `/study` — figures sit behind copy at every viewport, identity card frames the reserved photo slot.
+
 ## [0.11.0] — 2026-09-14 (branch `arena/01a0a125-tito`)
 
 ### Added — SEO Master Phase (audit → design → implementation → QA → documentation)

@@ -12,6 +12,7 @@ import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { breadcrumbJsonLd } from "~/cms/jsonld";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
+import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { CARD_BODY, CARD_META, PUB_CARD, pubBtnSm } from "~/lib/publicStyles";
 import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
 import { ContentTypeChips } from "~/components/study/ContentTypeChips";
@@ -183,6 +184,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
     <div className="relative isolate overflow-x-hidden">
       <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
+        <ThinkerWash seed={`page:study:${loaderData.subject.slug}`} anchor="top" />
         <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
           <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
@@ -197,9 +199,9 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
               /* Beside the title, never behind it (see /study for the rule). */
               <ThinkerPortrait
                 thinker={heroThinker}
-                presentation="avatar"
+                presentation="statue"
                 eager
-                className="h-14 w-14 shrink-0 sm:h-20 sm:w-20"
+                className="h-24 w-20 shrink-0 sm:h-32 sm:w-28"
               />
             )}
             <div className="min-w-0">
@@ -289,11 +291,10 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                     >
                       <div className="relative z-10 p-5 sm:p-6">
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                          {/* A dark photograph at 25 % on white reads as a grey smudge,
-                              so the term panel carries the same small cropped avatar the
-                              cards use — legible identity, no wash behind the text. */}
+                          {/* The term's philosopher as a small standing figure —
+                              legible identity, quiet enough to never fight the text. */}
                           <span className="flex min-w-0 items-center gap-3">
-                            <ThinkerPortrait thinker={thinker} presentation="avatar" />
+                            <ThinkerPortrait thinker={thinker} presentation="statue" className="thinker-statue--quiet h-16 w-12 shrink-0 sm:h-20 sm:w-16" />
                             <h3 className="text-pub-lg font-bold leading-pub-snug text-pub-ink">{pick(term)}</h3>
                           </span>
                           <span className={`text-pub-xs ${CARD_META}`}>

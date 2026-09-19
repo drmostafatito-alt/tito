@@ -90,7 +90,7 @@ const defaults = {
     // tiktok/twitter/linkedin/telegram, copyrightAr/En — intentionally empty.
   },
   locale: { default: "ar", enabled: ["ar", "en"] },
-  devices: { maxPerStudent: 1, onLimit: "block", changeLimitPer30d: 2 },
+  devices: { maxPerStudent: 3, onLimit: "replace_oldest", changeLimitPer30d: 0 },
   security: { sessionDays: 30, resetTokenMinutes: 30, rateLimits: { loginPerMinute: 10, registerPerHour: 5, forgotPerHour: 5, forgotPerAccountHour: 3, resetAttemptsPer15Minutes: 10, resetEmailsPerDay: 80, emailChangePerHour: 5 } },
 };
 for (const [key, value] of Object.entries(defaults)) {

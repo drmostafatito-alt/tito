@@ -4,7 +4,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
 import { LOCALE_COOKIE } from "~server/settings/locale.server";
-import { serializeCookie } from "~server/auth/cookies.server";
+import { cookieSameSite, serializeCookie } from "~server/auth/cookies.server";
 import { safeLocalRedirect } from "~server/http/redirect.server";
 import { isLocale } from "~/lib/i18n";
 
@@ -30,7 +30,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     serializeCookie(LOCALE_COOKIE, lang, {
       maxAgeSeconds: 31536000,
       httpOnly: true,
-      sameSite: "Lax",
+      sameSite: cookieSameSite(getEnv(context)),
       secure: url.protocol === "https:",
     }),
   );

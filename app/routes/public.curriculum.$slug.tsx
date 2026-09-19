@@ -10,6 +10,7 @@ import { PUB_CARD, pubBtn, pubBtnSm } from "~/lib/publicStyles";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, itemListJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { SectionDecor } from "~/components/visuals/PhilosophyDecor";
+import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { t, type Locale } from "~/lib/i18n";
 import { curriculumPageBySlug } from "~server/seo/curriculum-pages.server";
 import { curriculumSummaryText } from "~/lib/curriculum-format";
@@ -171,6 +172,7 @@ export default function CurriculumPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="relative isolate overflow-hidden">
       <SectionDecor variant="page" />
+      <ThinkerWash seed="page:curriculum" anchor="top" />
       <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
         <nav aria-label="breadcrumb" data-allow-small className="mb-4 flex flex-wrap items-center gap-1.5 text-pub-sm text-pub-muted">
           <Link to="/" className="hover:text-pub-ink-soft">{t(locale, "common.home")}</Link>

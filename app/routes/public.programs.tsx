@@ -5,6 +5,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { programs, grades, subjects } from "~server/db/schema";
 import { CARD_BODY, CARD_META, PUB_CARD, PUB_INNER, PUB_SECTION } from "~/lib/publicStyles";
+import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
@@ -78,8 +79,9 @@ export default function ProgramsPage({ loaderData }: Route.ComponentProps) {
   // Legacy SEO surface: same section rhythm, card grammar and type scale as the
   // rest of the public UI — one language, no separate "old pages" stylesheet.
   return (
-    <section className={`${PUB_SECTION} bg-pub-bg`}>
-      <div className={PUB_INNER}>
+    <section className={`relative isolate overflow-hidden ${PUB_SECTION} bg-pub-bg`}>
+      <ThinkerWash seed="page:programs" anchor="top" />
+      <div className={`relative ${PUB_INNER}`}>
         <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink">{t(locale, "catalog.programs")}</h1>
         {loaderData.programs.length === 0 ? (
           <p className={`pub-measure mt-4 ${CARD_BODY}`}>{t(locale, "catalog.noPrograms")}</p>

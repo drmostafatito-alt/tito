@@ -9,8 +9,12 @@
  *    new subject the admin adds later still gets a matching visual family
  *  - some slots intentionally return null so the page does not become noisy
  *  - missing files are skipped at render time (ThinkerPortrait)
- *  - no new imagery is ever generated: this table only references the masked
- *    engravings that already ship in `public/visuals/thinkers/`
+ *  - the assets are the platform's OWN flat-cartoon illustrations (owner-chosen
+ *    style C: friendly modern flat characters on the navy/gold/sand palette)
+ *    shipped as TRANSPARENT WebP in `public/visuals/thinkers/` — `<id>.webp`
+ *    (900×900, desktop) plus `<id>-sm.webp` (420×420, phones) so a background
+ *    figure never costs desktop bytes on a phone. They replace the earlier
+ *    photographic engravings, which never matched this identity.
  */
 
 export type ThinkerFamily = "classical" | "modern" | "arabic" | "psych" | "social";
@@ -27,6 +31,8 @@ export type ThinkerSlot =
 export interface Thinker {
   id: string;
   src: string;
+  /** Phone rendition of the same transparent figure (420×420 WebP). */
+  srcSmall: string;
   family: ThinkerFamily;
   /** Internal only — never rendered as page copy. Used by tests/docs. */
   nameEn: string;
@@ -34,18 +40,18 @@ export interface Thinker {
 }
 
 export const THINKERS: readonly Thinker[] = [
-  { id: "socrates", src: "/visuals/thinkers/socrates.webp", family: "classical", nameEn: "Socrates", nameAr: "سقراط" },
-  { id: "plato", src: "/visuals/thinkers/plato.webp", family: "classical", nameEn: "Plato", nameAr: "أفلاطون" },
-  { id: "aristotle", src: "/visuals/thinkers/aristotle.webp", family: "classical", nameEn: "Aristotle", nameAr: "أرسطو" },
-  { id: "descartes", src: "/visuals/thinkers/descartes.webp", family: "modern", nameEn: "Descartes", nameAr: "ديكارت" },
-  { id: "kant", src: "/visuals/thinkers/kant.webp", family: "modern", nameEn: "Kant", nameAr: "كانط" },
-  { id: "nietzsche", src: "/visuals/thinkers/nietzsche.webp", family: "modern", nameEn: "Nietzsche", nameAr: "نيتشه" },
-  { id: "ibn-rushd", src: "/visuals/thinkers/ibn-rushd.webp", family: "arabic", nameEn: "Ibn Rushd", nameAr: "ابن رشد" },
-  { id: "ibn-sina", src: "/visuals/thinkers/ibn-sina.webp", family: "arabic", nameEn: "Ibn Sina", nameAr: "ابن سينا" },
-  { id: "al-farabi", src: "/visuals/thinkers/al-farabi.webp", family: "arabic", nameEn: "Al-Farabi", nameAr: "الفارابي" },
-  { id: "marx", src: "/visuals/thinkers/marx.webp", family: "social", nameEn: "Marx", nameAr: "ماركس" },
-  { id: "freud", src: "/visuals/thinkers/freud.webp", family: "psych", nameEn: "Freud", nameAr: "فرويد" },
-  { id: "jung", src: "/visuals/thinkers/jung.webp", family: "psych", nameEn: "Jung", nameAr: "يونغ" },
+  { id: "socrates", src: "/visuals/thinkers/socrates.webp", srcSmall: "/visuals/thinkers/socrates-sm.webp", family: "classical", nameEn: "Socrates", nameAr: "سقراط" },
+  { id: "plato", src: "/visuals/thinkers/plato.webp", srcSmall: "/visuals/thinkers/plato-sm.webp", family: "classical", nameEn: "Plato", nameAr: "أفلاطون" },
+  { id: "aristotle", src: "/visuals/thinkers/aristotle.webp", srcSmall: "/visuals/thinkers/aristotle-sm.webp", family: "classical", nameEn: "Aristotle", nameAr: "أرسطو" },
+  { id: "descartes", src: "/visuals/thinkers/descartes.webp", srcSmall: "/visuals/thinkers/descartes-sm.webp", family: "modern", nameEn: "Descartes", nameAr: "ديكارت" },
+  { id: "kant", src: "/visuals/thinkers/kant.webp", srcSmall: "/visuals/thinkers/kant-sm.webp", family: "modern", nameEn: "Kant", nameAr: "كانط" },
+  { id: "nietzsche", src: "/visuals/thinkers/nietzsche.webp", srcSmall: "/visuals/thinkers/nietzsche-sm.webp", family: "modern", nameEn: "Nietzsche", nameAr: "نيتشه" },
+  { id: "ibn-rushd", src: "/visuals/thinkers/ibn-rushd.webp", srcSmall: "/visuals/thinkers/ibn-rushd-sm.webp", family: "arabic", nameEn: "Ibn Rushd", nameAr: "ابن رشد" },
+  { id: "ibn-sina", src: "/visuals/thinkers/ibn-sina.webp", srcSmall: "/visuals/thinkers/ibn-sina-sm.webp", family: "arabic", nameEn: "Ibn Sina", nameAr: "ابن سينا" },
+  { id: "al-farabi", src: "/visuals/thinkers/al-farabi.webp", srcSmall: "/visuals/thinkers/al-farabi-sm.webp", family: "arabic", nameEn: "Al-Farabi", nameAr: "الفارابي" },
+  { id: "marx", src: "/visuals/thinkers/marx.webp", srcSmall: "/visuals/thinkers/marx-sm.webp", family: "social", nameEn: "Marx", nameAr: "ماركس" },
+  { id: "freud", src: "/visuals/thinkers/freud.webp", srcSmall: "/visuals/thinkers/freud-sm.webp", family: "psych", nameEn: "Freud", nameAr: "فرويد" },
+  { id: "jung", src: "/visuals/thinkers/jung.webp", srcSmall: "/visuals/thinkers/jung-sm.webp", family: "psych", nameEn: "Jung", nameAr: "يونغ" },
 ] as const;
 
 const BY_ID = new Map(THINKERS.map((t) => [t.id, t]));
@@ -173,6 +179,32 @@ export function thinkerAlternate(primary: Thinker | null, salt: string): Thinker
     return rest[hashKey(salt) % rest.length] ?? null;
   }
   return pool[hashKey(salt) % pool.length] ?? null;
+}
+
+/**
+ * The transparent background figure of ONE section / page band (owner request:
+ * cartoon philosophers sit BEHIND every section, never over copy).
+ *
+ * Deterministic from a stable seed (section id, page slug) so SSR and client
+ * agree and a refresh never reshuffles the decor; `avoid` keeps a face from
+ * appearing twice on the same screen.
+ */
+export function sectionBackdropThinker(seed: string, avoid: string | null = null): Thinker | null {
+  const pool = THINKERS.filter((t) => t.id !== avoid);
+  const list = pool.length ? pool : THINKERS;
+  return list[hashKey(`wash:${seed}`) % list.length] ?? null;
+}
+
+/**
+ * The two corner figures that frame the hero identity panel — AROUND the owner
+ * photo slot, never inside it (the teacher's own picture is uploaded from
+ * Admin → Appearance → Identity and nothing ever stands in for it).
+ * Ibn Rushd keeps signing the frame as before; Plato balances the opposite
+ * corner. Neither is Aristotle, whom the philosophy subject card owns, so one
+ * screen never repeats a face.
+ */
+export function heroFrameThinkers(): readonly [Thinker | null, Thinker | null] {
+  return [thinkerById("ibn-rushd"), thinkerById("plato")];
 }
 
 export type StudyItemKind = "video" | "pdf" | "file" | "quiz";

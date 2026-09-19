@@ -1,51 +1,44 @@
-import type { Thinker } from "~/lib/thinkers";
+import { hashKey, sectionBackdropThinker, type Thinker } from "~/lib/thinkers";
 
 /**
- * The platform's ONE thinker-portrait renderer (owner brief §14–§19).
+ * The platform's ONE thinker renderer (owner brief §14–§19, restyled 2026-09).
  *
- * What the assets actually are: 900×604 photographs of a thinker lit against a
- * deep navy field, with the face at roughly x = 65% / y = 30% (measured per
- * file — every asset in `public/visuals/thinkers/` shares that composition).
- * That single fact dictates the whole system:
+ * What the assets are: the platform's own flat-cartoon philosophers
+ * (owner-chosen style C) on transparent WebP, square 1:1 canvases —
+ * `<id>.webp` 900×900 for desktop and `<id>-sm.webp` 420×420 for phones.
  *
- *   • on a LIGHT surface a dark photo at 15% opacity is not "an elegant
- *     watermark", it is a grey smudge that hides the face and reads as a
- *     rendering bug. So light surfaces use the `avatar` presentation: a small,
- *     fully legible, precisely cropped face (also exactly what mobile wants).
- *   • on NAVY the photo belongs to the surface: the `plate` and `watermark`
- *     presentations sit at full tonal range, masked into the edge, so the
- *     figure is clearly noticeable without competing with the copy.
+ * The owner's reference design (his live question-platform hero) fixed the
+ * grammar: philosophers are PEOPLE, not icons — a large semi-transparent
+ * "statue" standing beside/behind the teacher's photo, plus a whisper figure
+ * behind every section. Presentations:
+ *   • `statue`  a legible semi-transparent figure (light-blue duotone, like a
+ *               marble bust tinted by the brand): hero stage, hub openings,
+ *               card corners — never a circular chip
+ *   • `figure`  a subject card's own figure, masked out under the copy
+ *   • `engrave` corner signature on a LIGHT panel, dissolved by a mask
+ *   • `wash`    the transparent backdrop figure of a whole section/band —
+ *               corner-anchored, masked away from the reading side, whisper
+ *               opacity on light surfaces and a pale ghost on navy
  *
  * Everything here is decorative: `alt=""` + `aria-hidden="true"`, never a
  * gallery, never the main content, never over text or a control.
  *
- * `heroVisual` marks the element as the page hero visual: the homepage plate
- * carries `data-hero-visual` + `fetchPriority=high` (it is the LCP element), and
- * every other portrait is `loading=lazy` + `fetchPriority=low` so decoration
- * never wins the browser's priority race.
+ * `heroVisual` marks the element as the page hero visual (data-hero-visual +
+ * fetchPriority=high; React 19 then preloads exactly that URL). Every other
+ * portrait is lazy + low priority so decoration never wins the priority race.
  */
-export type PortraitPresentation = "avatar" | "figure" | "engrave" | "watermark" | "plate";
+export type PortraitPresentation = "statue" | "figure" | "engrave" | "wash";
 
 export function ThinkerPortrait({
   thinker,
-  presentation = "avatar",
-  intensity = "subtle",
+  presentation = "statue",
   eager = false,
   heroVisual = false,
   className = "",
 }: {
   thinker: Thinker | null | undefined;
-  /**
-   * `avatar`    small cropped face for white / light-blue surfaces (default)
-   * `figure`    the subject card's own figure: cropped, masked, never over text
-   * `engrave`   corner signature on a LIGHT panel: duotone, masked, kept quiet
-   * `watermark` edge-anchored figure for navy bands, faded into the surface
-   * `plate`     the figure IS the plate: fills a navy panel, hero use only
-   */
   presentation?: PortraitPresentation;
-  /** Watermark strength only — three levels, mobile-first. */
-  intensity?: "whisper" | "subtle" | "medium";
-  /** Above-the-fold portraits are fetched eagerly (the hero plate). */
+  /** Above-the-fold portraits are fetched eagerly (the hero visual). */
   eager?: boolean;
   /** Marks this element as the page hero visual (data-hero-visual). */
   heroVisual?: boolean;
@@ -53,83 +46,112 @@ export function ThinkerPortrait({
 }) {
   if (!thinker) return null;
 
-  const opacity =
-    presentation === "plate" || presentation === "figure" || presentation === "engrave"
-      ? ""
-      : presentation === "watermark"
-        ? intensity === "whisper"
-          ? "opacity-[0.55] sm:opacity-[0.7] lg:opacity-[0.85]"
-          : intensity === "medium"
-            ? "opacity-[0.6] sm:opacity-[0.8] lg:opacity-[1]"
-            : "opacity-[0.55] sm:opacity-[0.72] lg:opacity-[0.9]"
-        : "";
-
-  if (presentation === "avatar") {
-    return (
-      <span
-        aria-hidden="true"
-        className={`thinker-avatar-shell h-12 w-12 shrink-0 sm:h-14 sm:w-14 ${className}`}
-      >
-        <img
-          src={thinker.src}
-          alt=""
-          loading={eager ? "eager" : "lazy"}
-          decoding="async"
-          width={48}
-          height={48}
-          fetchPriority="low"
-          className="thinker-avatar"
-        />
-      </span>
-    );
-  }
-
-  if (presentation === "figure" || presentation === "engrave") {
+  if (presentation === "statue") {
     return (
       <img
         src={thinker.src}
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-        fetchPriority="low"
-        width={900}
-        height={604}
-        className={`${presentation === "engrave" ? "thinker-engrave" : "thinker-figure"} h-full w-full select-none ${className}`}
-      />
-    );
-  }
-
-  if (presentation === "plate") {
-    return (
-      <img
-        src={thinker.src}
+        srcSet={`${thinker.srcSmall} 420w, ${thinker.src} 900w`}
+        sizes="(max-width: 40rem) 34vw, 22vw"
         alt=""
         aria-hidden="true"
         loading={eager ? "eager" : "lazy"}
         decoding="async"
-        width={900}
-        height={604}
         fetchPriority={heroVisual ? "high" : "low"}
         data-hero-visual={heroVisual ? "true" : undefined}
-        className={`thinker-plate absolute inset-0 z-0 h-full w-full select-none object-cover object-[68%_26%] ${className}`}
+        width={900}
+        height={900}
+        className={`thinker-statue pointer-events-none select-none ${className}`}
       />
     );
   }
 
-  // watermark — navy surfaces only
+  if (presentation === "wash") {
+    return (
+      <img
+        src={thinker.srcSmall}
+        srcSet={`${thinker.srcSmall} 420w, ${thinker.src} 900w`}
+        sizes="(max-width: 40rem) 46vw, 24vw"
+        alt=""
+        aria-hidden="true"
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
+        fetchPriority={heroVisual ? "high" : "low"}
+        data-hero-visual={heroVisual ? "true" : undefined}
+        data-thinker-wash={thinker.id}
+        width={900}
+        height={900}
+        className={`thinker-wash pointer-events-none absolute -z-10 max-w-none select-none ${className}`}
+      />
+    );
+  }
+
+  // figure / engrave — light surfaces, masked so copy always sits on clean bg
   return (
     <img
       src={thinker.src}
+      srcSet={`${thinker.srcSmall} 420w, ${thinker.src} 900w`}
+      sizes="(max-width: 40rem) 40vw, 20vw"
       alt=""
       aria-hidden="true"
       loading={eager ? "eager" : "lazy"}
       decoding="async"
-      width={900}
-      height={604}
       fetchPriority={heroVisual ? "high" : "low"}
       data-hero-visual={heroVisual ? "true" : undefined}
-      className={`thinker-portrait pointer-events-none absolute inset-y-[-10%] end-[-10%] z-0 h-[120%] w-[min(72%,26rem)] max-w-none select-none ${opacity} ${className}`}
+      width={900}
+      height={900}
+      className={`${presentation === "engrave" ? "thinker-engrave" : "thinker-figure"} h-full w-full select-none ${className}`}
+    />
+  );
+}
+
+/**
+ * One-call section backdrop: picks the deterministic figure for a seed and
+ * anchors it to a corner of the (isolated) band, behind the content.
+ *
+ * Callers must sit inside a `relative isolate overflow-hidden` band whose copy
+ * wrapper is positioned (`relative`), which every public section already is.
+ * `surface` switches between the light whisper and the navy ghost treatment;
+ * `edge` chooses the corner (logical, so RTL mirrors it for free).
+ */
+export function ThinkerWash({
+  seed,
+  surface = "light",
+  edge,
+  anchor = "bottom",
+  avoid = null,
+  strength = "wash",
+  eager = false,
+  heroVisual = false,
+  className = "",
+}: {
+  seed: string;
+  surface?: "light" | "navy";
+  edge?: "start" | "end";
+  /**
+   * Tall bands (CMS sections) hug their BOTTOM corner; short page openings hug
+   * the TOP corner instead, so the figure stays inside the visible band even
+   * when the page content is shorter than the viewport.
+   */
+  anchor?: "bottom" | "top";
+  avoid?: string | null;
+  /** `wash` = whole-section backdrop; `frame` = around the owner-photo panel. */
+  strength?: "wash" | "frame";
+  eager?: boolean;
+  heroVisual?: boolean;
+  className?: string;
+}) {
+  const thinker = sectionBackdropThinker(seed, avoid);
+  if (!thinker) return null;
+  const side = edge ?? (hashKey(`wash:${seed}`) % 2 ? "start" : "end");
+  return (
+    <ThinkerPortrait
+      thinker={thinker}
+      presentation="wash"
+      eager={eager}
+      heroVisual={heroVisual}
+      className={`thinker-wash--${surface} thinker-wash--${strength} thinker-wash--${side} ${
+        anchor === "top" ? "thinker-wash--top " : ""
+      }${className}`}
     />
   );
 }

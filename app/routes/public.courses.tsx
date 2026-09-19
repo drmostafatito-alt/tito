@@ -11,6 +11,7 @@ import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, itemListJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 
 /**
  * Catalog: published + visible courses only; access badges from row data
@@ -113,7 +114,8 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
   const cta = locale === "ar" ? pres.ctaLabelAr : pres.ctaLabelEn;
 
   return (
-    <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+    <div className="relative isolate mx-auto w-full max-w-[var(--pub-maxw)] overflow-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+      <ThinkerWash seed="page:courses" anchor="top" />
       <h1 className="mb-6 text-pub-h2 font-extrabold tracking-tight text-pub-ink">{t(locale, "content.catalogTitle")}</h1>
       {loaderData.courses.length === 0 ? (
         <p className="text-pub-muted">{t(locale, "content.catalogEmpty")}</p>

@@ -4,11 +4,12 @@ import { redirect } from "react-router";
 import { getEnv } from "~server/cf.server";
 import { safeLocalRedirect } from "~server/http/redirect.server";
 import { login } from "~server/auth/service.server";
-import { serializeCookie } from "~server/auth/cookies.server";
+import { cookieSameSite, serializeCookie } from "~server/auth/cookies.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
 import { Card } from "~/components/ui/Card";
+import { SessionStorageNotice, markAuthSubmitted } from "~/components/public/SessionStorageNotice";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
@@ -52,7 +53,10 @@ export async function action({ context, request }: Route.ActionArgs) {
 
   const headers = new Headers();
   for (const c of result.cookies) {
-    headers.append("Set-Cookie", serializeCookie(c.name, c.value, { maxAgeSeconds: c.maxAgeSeconds }));
+    headers.append(
+      "Set-Cookie",
+      serializeCookie(c.name, c.value, { maxAgeSeconds: c.maxAgeSeconds, sameSite: cookieSameSite(env) }),
+    );
   }
   const isAdmin = result.user.roleId === "admin" || result.user.roleId === "super_admin";
   const dest = isAdmin ? next ?? "/admin" : next ?? "/dashboard";
@@ -96,13 +100,15 @@ export default function Login() {
           </div>
         )}
 
+        <SessionStorageNotice locale={locale} />
+
         {actionData?.error && actionData.error !== "rate_limited" && (
           <div className="mb-4">
             <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>
           </div>
         )}
 
-        <Form method="post" className="flex flex-col gap-4">
+        <Form method="post" className="flex flex-col gap-4" onSubmit={markAuthSubmitted}>
           <input type="hidden" name="next" value={next} />
           <Input
             label={t(locale, "auth.email")}

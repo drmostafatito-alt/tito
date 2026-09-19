@@ -15,6 +15,7 @@ import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, definedTermSetJsonLd, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
+import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
 import { getRealLessonsForSubject, getLessonNamesForMeta, getSemanticForLessons } from "~server/seo/realLessonsMapping.server";
 
@@ -192,7 +193,8 @@ export default function SubjectPage({ loaderData }: Route.ComponentProps) {
   const desc = locale === "ar" ? subject.descriptionAr : subject.descriptionEn;
 
   return (
-    <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+    <div className="relative isolate mx-auto w-full max-w-[var(--pub-maxw)] overflow-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
+      <ThinkerWash seed={`page:subject:${subject.slug}`} anchor="top" />
       <nav aria-label="breadcrumb" data-allow-small className="mb-3 text-pub-sm text-pub-muted">
         <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         {program.slug && program.titleAr && (

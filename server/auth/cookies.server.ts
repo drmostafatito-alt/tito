@@ -36,6 +36,22 @@ export function serializeCookie(
   return parts.join("; ");
 }
 
+/**
+ * SameSite for the session/device cookies. Default "Lax" (production posture).
+ * Embedded preview contexts (cross-site iframes, e.g. the sandbox live preview)
+ * refuse to store Lax cookies: every login then looks like a NEW device and the
+ * per-user device cap (ADR-005) blocks the very next attempt. Set
+ * COOKIE_SAMESITE=None in such environments so the browser keeps the session.
+ */
+export function cookieSameSite(env: Env | undefined): "Strict" | "Lax" | "None" {
+  // COOKIE_SAMESITE is an optional deployment var (see .dev.vars.example); the
+  // generated Env type does not declare it, so read it through a narrow cast.
+  const v = ((env as unknown as { COOKIE_SAMESITE?: string })?.COOKIE_SAMESITE ?? "").trim().toLowerCase();
+  if (v === "none") return "None";
+  if (v === "strict") return "Strict";
+  return "Lax";
+}
+
 export function clearCookieHeader(name: string, path = "/"): string {
   return `${name}=; Path=${path}; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; HttpOnly; Secure`;
 }

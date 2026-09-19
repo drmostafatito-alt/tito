@@ -18,9 +18,9 @@ describe("settings schemas (ADR-012)", () => {
     expect(platform.nameEn).toBe("Dr mostafa tito");
 
     const devices = deviceSettingsSchema.parse({});
-    expect(devices.maxPerStudent).toBe(1);
-    expect(devices.onLimit).toBe("block");
-    expect(devices.changeLimitPer30d).toBe(2);
+    expect(devices.maxPerStudent).toBe(3);
+    expect(devices.onLimit).toBe("replace_oldest");
+    expect(devices.changeLimitPer30d).toBe(0);
 
     const security = securitySettingsSchema.parse({});
     expect(security.sessionDays).toBe(30);
@@ -75,9 +75,9 @@ describe("settings schemas (ADR-012)", () => {
 
   it("merging a partial patch over defaults keeps the rest", () => {
     const current = deviceSettingsSchema.parse({});
-    const next = deviceSettingsSchema.parse({ ...current, maxPerStudent: 3 });
-    expect(next.maxPerStudent).toBe(3);
-    expect(next.onLimit).toBe("block");
+    const next = deviceSettingsSchema.parse({ ...current, maxPerStudent: 5 });
+    expect(next.maxPerStudent).toBe(5);
+    expect(next.onLimit).toBe("replace_oldest");
   });
 
   it("external questions platform: disabled+empty by default, accepts only https-or-empty", () => {

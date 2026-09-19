@@ -3,11 +3,12 @@ import { Form, Link, useActionData, useNavigation, useSearchParams } from "react
 import { redirect } from "react-router";
 import { getEnv, getWaitUntil } from "~server/cf.server";
 import { login, registerUser } from "~server/auth/service.server";
-import { serializeCookie } from "~server/auth/cookies.server";
+import { cookieSameSite, serializeCookie } from "~server/auth/cookies.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
 import { Card } from "~/components/ui/Card";
+import { SessionStorageNotice, markAuthSubmitted } from "~/components/public/SessionStorageNotice";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
@@ -51,7 +52,10 @@ export async function action({ context, request }: Route.ActionArgs) {
   }
   const headers = new Headers();
   for (const c of result.cookies) {
-    headers.append("Set-Cookie", serializeCookie(c.name, c.value, { maxAgeSeconds: c.maxAgeSeconds }));
+    headers.append(
+      "Set-Cookie",
+      serializeCookie(c.name, c.value, { maxAgeSeconds: c.maxAgeSeconds, sameSite: cookieSameSite(env) }),
+    );
   }
   return redirect("/dashboard", { headers });
 }
@@ -68,13 +72,15 @@ export default function Register() {
       <Card className="p-6 sm:p-8">
         <h1 className="mb-6 text-2xl font-bold text-pub-ink">{t(locale, "common.register")}</h1>
 
+        <SessionStorageNotice locale={locale} />
+
         {actionData?.error && (
           <div className="mb-4">
             <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>
           </div>
         )}
 
-        <Form method="post" className="flex flex-col gap-4">
+        <Form method="post" className="flex flex-col gap-4" onSubmit={markAuthSubmitted}>
           <Input
             label={t(locale, "auth.fullName")}
             name="fullName"
