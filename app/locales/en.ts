@@ -49,6 +49,10 @@ export const en: Dictionary = {
     currentPassword: "Current password",
     newPassword: "New password",
     demoAccounts: "Demo accounts (development only)",
+    cookiesBlocked: "Your browser is blocking cookies in this window, so sign-in cannot be saved. Open the platform in a full tab and try again.",
+    cookiesBlockedAfterLogin: "Sign-in succeeded but this embedded window did not keep the session (cookies are blocked here). Open the platform in a full tab to complete signing in.",
+    frameHint: "You are browsing inside an embedded preview window — opening a full tab makes sign-in more reliable.",
+    openFullTab: "Open in a full tab",
     errors: {
       invalid_credentials: "Incorrect email or password.",
       email_taken: "This email is already registered.",

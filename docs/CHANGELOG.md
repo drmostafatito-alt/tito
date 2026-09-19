@@ -2,6 +2,28 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.15.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
+
+### Fixed — silent login bounce in embedded previews ("the button does nothing")
+
+Owner report: submitting login gave NO reaction. Root cause found and reproduced:
+the login itself succeeds (202 → /dashboard), but browsers that refuse cookies in
+the embedded preview window drop the session cookie, so /dashboard bounces back
+to `/login?next=…` with no error at all — an invisible loop.
+
+- New `SessionStorageNotice` on /login and /register: probes cookie storage
+  client-side and, when cookies are blocked (or a submit just bounced back),
+  shows an honest Arabic/English alert explaining exactly that, plus a
+  **«فتح في تبويب كامل»** escape link (`target=_top`) where cookies are
+  first-party and login persists. In-frame but cookies-fine shows a gentle hint.
+- Auth forms mark their submit in sessionStorage so a bounce-back is diagnosed
+  as "login succeeded but the session was not kept here", not a wrong password.
+
+### Verification
+- Simulated cookie-refusing browser (HTTP + JS cookies): bounce now surfaces the
+  alert + escape link instead of silence; normal browser: no alert, straight to
+  /dashboard. Unit 455/455 (locale parity kept ar/en).
+
 ## [0.14.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
 
 ### Fixed — "maximum devices reached" lockout on register/login (owner-reported)

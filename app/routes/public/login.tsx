@@ -9,6 +9,7 @@ import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
 import { Card } from "~/components/ui/Card";
+import { SessionStorageNotice, markAuthSubmitted } from "~/components/public/SessionStorageNotice";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
@@ -99,13 +100,15 @@ export default function Login() {
           </div>
         )}
 
+        <SessionStorageNotice locale={locale} />
+
         {actionData?.error && actionData.error !== "rate_limited" && (
           <div className="mb-4">
             <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>
           </div>
         )}
 
-        <Form method="post" className="flex flex-col gap-4">
+        <Form method="post" className="flex flex-col gap-4" onSubmit={markAuthSubmitted}>
           <input type="hidden" name="next" value={next} />
           <Input
             label={t(locale, "auth.email")}
