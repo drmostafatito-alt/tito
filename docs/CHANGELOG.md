@@ -2,6 +2,22 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.12.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
+
+### Changed — cartoon philosopher identity + transparent section backdrops (owner request)
+
+The photographic thinker engravings never matched this platform's identity. They are replaced by the platform's OWN flat-cartoon philosophers (owner-chosen style C: friendly modern flat characters on the navy/gold/sand palette), shipped as **transparent WebP** in two renditions — `public/visuals/thinkers/<id>.webp` (900×900, desktop) and `<id>-sm.webp` (420×420, phones) — so a backdrop figure never costs desktop bytes on a phone.
+
+- **New `wash` presentation + `ThinkerWash`** (`app/components/visuals/ThinkerPortrait.tsx`): ONE transparent figure per band, anchored to a bottom corner (tall CMS sections) or a top corner (short page openings), masked radially FROM that corner so it dissolves before reaching copy — headings, cards and CTAs always sit on clean surface, at any width, in RTL and LTR. Whisper opacity on light surfaces (10%, 8–10% on phones), pale ghost on navy; `pointer-events-none` + `aria-hidden` + lazy/low-priority as before.
+- **Every section / page band is covered**: all CMS sections (`blocks.tsx`, skipped automatically when a section already carries its own figure — hero, teacher card, subject/course cards — keeping the "one figure per surface" rule), plus the openings of `/about`, `/study`, `/study/:subject`, `/programs(.:slug)`, `/grades/:slug`, `/subjects/:slug`, `/courses(.:slug)`, `/curriculum/:slug`, `/products/:slug` and the lesson page.
+- **Owner photo slot stays honest**: with no published photo the hero no longer shows a navy photo-plate stand-in. It is an empty identity card (real name/title/tagline from Settings → Identity only) with two transparent philosophers (Ibn Rushd + Plato, `heroFrameThinkers()`) standing in its bottom corners — AROUND the slot, never inside it. The same pair frames the photo once the owner uploads it (Admin → Appearance → Identity), on the homepage and `/about`.
+- **CSS system rewritten** (`app/app.css`): no duotone filter or photo-crop gymnastics remain; transparency + corner masks do the work. New modifiers `--wash/--frame/--start/--end/--top` with phone-specific size/opacity.
+- **Interim for Freud & Jung**: their cartoon portraits land in the follow-up batch (image-generation cap this turn); until then both ship as navy stencil silhouettes derived from the old photos so no photographic rectangle can appear anywhere.
+
+### Verification
+- `tsc --noEmit` clean; `lint:imports` clean; unit **455/455** (39 files) including the rewritten hero-identity contract (empty slot ⇒ no `/files/`, no `hero-philosophy`, no `thinker-plate`, exactly one eager hero visual either way) and new backdrop-assignment tests.
+- Real-browser screenshots (packaged Chromium): home AR desktop + mobile, `/about`, `/study` — figures sit behind copy at every viewport, identity card frames the reserved photo slot.
+
 ## [0.11.0] — 2026-09-14 (branch `arena/01a0a125-tito`)
 
 ### Added — SEO Master Phase (audit → design → implementation → QA → documentation)

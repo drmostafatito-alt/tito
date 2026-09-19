@@ -6,14 +6,18 @@ import { SectionView } from "~/components/cms/blocks";
 import type { CmsRenderCtx } from "~/cms/render-types";
 
 /**
- * The hero identity plate (owner brief §8 + §14–§19).
+ * The hero identity plate (owner brief §8 + §14–§19, restyled 2026-09).
  *
- * Two rules are locked here because both were regressions at different points:
+ * Three rules are locked here because each was a regression at some point:
  *   1. with an owner photo published, THAT photo is the hero visual — the slot is
  *      never filled with a stand-in, and the same face never renders twice;
- *   2. with the slot empty, the plate falls back to the thinker engraving — the
- *      old abstract/violet hero image must never come back, and there is still
- *      exactly ONE eager hero visual on the page either way.
+ *   2. with the slot empty, NOTHING stands in for the teacher: no photo, no
+ *      abstract illustration, and no philosopher posing as the portrait. The
+ *      panel is an honest identity card whose transparent cartoon philosophers
+ *      sit AROUND the reserved slot (owner request), and the old navy
+ *      photo-plate must never come back;
+ *   3. there is still exactly ONE eager hero visual on the page either way
+ *      (the photo, or the frame's start figure), so React preloads one URL.
  */
 
 const PHOTO_URL = "/files/2f2f2f2f-2f2f-4f2f-8f2f-2f2f2f2f2f2f";
@@ -83,11 +87,17 @@ describe("CMS hero identity plate", () => {
     expect(count(html, `src="${PHOTO_URL}"`)).toBe(1);
   });
 
-  it("falls back to the thinker plate — and never to an abstract illustration", () => {
+  it("keeps an empty slot empty — transparent philosophers frame it, nothing stands in", () => {
     const html = renderHero(null);
-    expect(html).toContain("thinker-plate");
+    // no photo, no abstract illustration, and no philosopher posing as one:
+    // the platform's cartoon figures only appear as the transparent frame
     expect(html).not.toContain("/files/");
     expect(html).not.toContain("hero-philosophy");
+    expect(html).not.toContain("thinker-plate");
+    expect(html).toContain("thinker-wash--frame");
+    // …the frame figures are real /visuals/thinkers/ assets, behind the copy
+    expect(html).toContain("/visuals/thinkers/");
+    // …and the identity card still carries the REAL name from Settings
     expect(html).toContain("د/ مصطفى تيتو");
   });
 

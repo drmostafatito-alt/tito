@@ -9,6 +9,7 @@ import { CARD_BODY, CARD_META, CHIP, PUB_CARD, pubBtnSm } from "~/lib/publicStyl
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
+import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
 import { thinkerAlternate, thinkerFor } from "~/lib/thinkers";
 import { t, type Locale } from "~/lib/i18n";
@@ -70,6 +71,7 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
           portrait and the journey line. No dark hero, no stacked ornament. */}
       <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
+        <ThinkerWash seed="page:study" anchor="top" />
         <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
           <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>

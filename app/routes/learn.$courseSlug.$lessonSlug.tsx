@@ -29,7 +29,7 @@ import { Badge } from "~/components/ui/Badge";
 import { SubmitButton } from "~/components/ui/Button";
 import { ProgressBar } from "~/components/ProgressBar";
 import { Card, CardBody } from "~/components/ui/Card";
-import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
+import { ThinkerPortrait, ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { pubBtn } from "~/lib/publicStyles";
 import { thinkerFor } from "~/lib/thinkers";
 import { t, type Locale } from "~/lib/i18n";
@@ -278,7 +278,7 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <main className="pub-root relative isolate mx-auto w-full max-w-[56rem] overflow-x-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <ThinkerPortrait thinker={thinker} intensity="whisper" />
+      <ThinkerWash seed={`page:lesson:${lessonId}`} />
       <nav className="mb-2 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
         <Link to="/study" className="hover:underline">{t(locale, "study.title")}</Link>
         {study.subjectSlug && (

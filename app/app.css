@@ -379,70 +379,56 @@
   transform: rotate(45deg);
 }
 
-/* ─── Thinker portraits — the ONE decorative identity system (§14–§19) ──────
- * The assets in public/visuals/thinkers/ are 900×604 photographs: a thinker lit
- * against a deep-navy field, face at roughly x=65% / y=30% (measured per file —
- * all twelve share that composition). Two consequences are encoded here rather
- * than in per-component hacks:
- *   • the crop must be deliberate, so `object-position` is fixed once;
- *   • one duotone (navy) turns a colour photograph into platform identity
- *     instead of a stock photo, and it works on white AND on navy.
+/* ─── Thinker illustrations — the ONE decorative identity system (§14–§19) ──
+ * The assets in public/visuals/thinkers/ are the platform's OWN flat-cartoon
+ * philosophers (owner-chosen style C) shipped as TRANSPARENT square WebP in two
+ * renditions — `<id>.webp` 900×900 (desktop) and `<id>-sm.webp` 420×420
+ * (phones) — so a backdrop figure never costs desktop bytes on a phone. They
+ * replaced the photographic engravings, which never matched this identity.
+ *
+ * Transparency is what makes the system honest: a figure sits BEHIND a section
+ * or AROUND the owner-photo frame and dissolves with plain opacity + a corner
+ * mask. No duotone filter, no crop gymnastics, no grey smudge on white.
+ *
  * Presentations (app/components/visuals/ThinkerPortrait.tsx):
- *   .thinker-avatar  small legible face for light surfaces
- *   .thinker-figure  a subject card's own figure: cropped band/column, masked out
- *                    under the copy (light surfaces only)
- *   .thinker-plate   the figure fills a navy plate (the homepage hero visual)
- *   .thinker-portrait a masked watermark, for navy bands only
- * No opacity is declared here: the component owns strength per breakpoint, and
- * an unlayered rule would silently beat those utilities.
+ *   .thinker-avatar  small legible character chip for light surfaces
+ *   .thinker-figure  a subject card's own figure, masked out under the copy
+ *   .thinker-engrave corner signature on a LIGHT panel
+ *   .thinker-wash    the transparent section backdrop (rules below)
+ * Strength lives on the surface/strength modifiers here; nothing unlayered
+ * races the call-site utilities.
  */
-.thinker-avatar,
-.thinker-plate,
-.thinker-portrait {
-  object-fit: cover;
-  object-position: 65% 28%;
-  filter: grayscale(1) sepia(0.55) hue-rotate(186deg) saturate(1.5) brightness(1.02) contrast(1.06);
-}
 
-/* The avatar is a shell that clips, because the crop below ZOOMS the photo past
- * its own box: without a clipping parent a 56px face would paint 106px wide and
- * spill over the heading beside it (exactly what happened when the transform sat
- * on the <img> alone). */
+/* The avatar shell clips the square art into a circle; the tint (not navy)
+   lets the cartoon's own palette breathe at 48–56px. */
 .thinker-avatar-shell {
   display: inline-block;
   overflow: hidden;
   flex: none;
   border-radius: 9999px;
-  background-color: var(--color-pub-navy);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-pub-line-strong) 70%, transparent);
+  background-color: var(--color-pub-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-pub-line-strong) 60%, transparent);
 }
 .thinker-avatar {
-  /* 56px of a 900×604 photo is otherwise the navy field, not a face: the crop
-     is pinned to the end edge and then zoomed about the face. Measured against
-     all twelve assets (qa-out avatar lab) — every one frames head-and-shoulders
-     with this pair, which is why it lives here instead of per call site. The
-     shell above is what keeps that zoom inside the layout box. */
   width: 100%;
   height: 100%;
-  object-position: 100% 24%;
-  transform: scale(1.9);
-  transform-origin: 66% 26%;
+  object-fit: cover;
+  /* square canvas ⇒ head-and-shoulders sit in the upper third; zoom about it */
+  object-position: 50% 14%;
+  transform: scale(1.7);
+  transform-origin: 50% 20%;
 }
 
 /*
- * The answer to a specific physical fact: a dark navy photograph on a LIGHT
- * surface. Anything else there reads as a rendering bug, so the subject card's
- * own figure is `.thinker-figure` — full tonal range, cropped, partially visible,
- * masked out on the reading side so the title, description and CTA always sit on
- * clean white. Mobile gets it as a top band instead of a side column. Opacity and
- * size stay at the call site (an unlayered rule here would beat the utilities).
+ * A subject card's own figure on a LIGHT surface: contained (never cropped —
+ * the cartoon IS the art), masked out on the reading side so title,
+ * description and CTA always sit on clean white. Mobile gets a top band.
  */
 .thinker-figure {
-  object-fit: cover;
-  object-position: 74% 20%;
-  filter: grayscale(1) sepia(0.5) hue-rotate(188deg) saturate(1.35) brightness(1.05) contrast(1.08);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 56%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 56%, transparent 100%);
+  object-fit: contain;
+  object-position: 50% 100%;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
 }
 @media (min-width: 40rem) {
   .thinker-figure {
@@ -456,46 +442,127 @@
 }
 
 /*
- * The corner signature on a LIGHT panel (the hero identity frame, the teacher
- * card): the platform's thinker, small and quiet — but quiet ≠ invisible, so it
- * keeps a full navy duotone and dissolves with a vertical mask instead of being
- * faded to nothing. Size/opacity stay at the call site, and `--rise` flips the
- * fade for a bottom-corner element.
+ * The corner signature on a LIGHT panel: the platform's thinker, small and
+ * quiet — dissolved with a vertical mask instead of being faded to nothing.
+ * `--rise` flips the fade for a bottom-corner element.
  */
 .thinker-engrave {
-  object-fit: cover;
-  object-position: 66% 22%;
-  filter: grayscale(1) sepia(0.5) hue-rotate(190deg) saturate(1.5) brightness(1.02) contrast(1.35);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 44%, transparent 94%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 44%, transparent 94%);
+  object-fit: contain;
+  object-position: 50% 0%;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 48%, transparent 96%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 48%, transparent 96%);
 }
 .thinker-engrave--rise {
-  mask-image: linear-gradient(to top, #000 0%, #000 44%, transparent 94%);
-  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 44%, transparent 94%);
-}
-@media (max-width: 639px) {
-  /* Phones get a tighter crop (the face, not the shoulder) and a softer fade,
-     so the figure never turns into a full-width poster. */
-  .thinker-plate,
-  .thinker-portrait {
-    object-position: 66% 20%;
-  }
-  /* the avatar keeps its measured crop on phones too — it is a 44–56px face, so
-     a looser crop there loses the person entirely */
-  .thinker-avatar {
-    object-position: 100% 24%;
-  }
-  .thinker-portrait,
-  [dir="rtl"] .thinker-portrait {
-    mask-image:
-      linear-gradient(to right, #000 0%, #000 22%, transparent 76%),
-      linear-gradient(to top, #000 0%, #000 66%, transparent 100%);
-    -webkit-mask-image:
-      linear-gradient(to right, #000 0%, #000 22%, transparent 76%),
-      linear-gradient(to top, #000 0%, #000 66%, transparent 100%);
-  }
+  mask-image: linear-gradient(to top, #000 0%, #000 48%, transparent 96%);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 48%, transparent 96%);
 }
 
+/* ─── The section backdrop (owner request: philosophers BEHIND every section)
+ * ONE transparent figure per band, anchored to a BOTTOM corner and masked
+ * radially FROM that corner, so it dissolves before it reaches the copy:
+ * headings, cards and CTAs always sit on clean surface, and the figure never
+ * paints over text at any width. Logical inset props mirror RTL for free;
+ * only the (physical) mask gradient needs its [dir] twin.
+ *   --wash   whole-section whisper: 10% on light, a pale ghost on navy
+ *   --frame  the stronger pair surrounding the owner-photo panel
+ * Phones get a smaller, quieter figure hugging the very corner.
+ */
+.thinker-wash {
+  object-fit: contain;
+  object-position: 50% 100%;
+  inset-block-end: 0;
+  width: clamp(7rem, 22vw, 17rem);
+  aspect-ratio: 1 / 1;
+  height: auto;
+}
+.thinker-wash--end {
+  inset-inline-end: -1.25rem;
+  mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
+}
+[dir="rtl"] .thinker-wash--end {
+  mask-image: radial-gradient(120% 120% at 0% 100%, #000 0%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 120% at 0% 100%, #000 0%, #000 46%, transparent 78%);
+}
+.thinker-wash--start {
+  inset-inline-start: -1.25rem;
+  mask-image: radial-gradient(120% 120% at 0% 100%, #000 0%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 120% at 0% 100%, #000 0%, #000 46%, transparent 78%);
+}
+[dir="rtl"] .thinker-wash--start {
+  mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
+}
+.thinker-wash--light.thinker-wash--wash {
+  opacity: 0.1;
+}
+.thinker-wash--navy.thinker-wash--wash {
+  opacity: 0.16;
+  filter: grayscale(1) brightness(2.05) contrast(0.92);
+}
+.thinker-wash--light.thinker-wash--frame {
+  opacity: 0.22;
+}
+.thinker-wash--navy.thinker-wash--frame {
+  opacity: 0.3;
+  filter: grayscale(1) brightness(2.05) contrast(0.92);
+}
+/* The frame pair is fully legible (no mask) and sized by the PANEL's height, so
+   a short identity card never crops a head: two small companions standing in
+   the bottom corners around the owner photo / reserved slot. */
+.thinker-wash--frame {
+  width: auto;
+  height: min(62%, 10rem);
+  mask-image: none;
+  -webkit-mask-image: none;
+  inset-block-end: 0.35rem;
+}
+.thinker-wash--frame.thinker-wash--end {
+  inset-inline-end: 0.5rem;
+}
+.thinker-wash--frame.thinker-wash--start {
+  inset-inline-start: 0.5rem;
+}
+/* Short page openings anchor the figure to the TOP corner instead (the band is
+   often shorter than the viewport, so a bottom anchor would float mid-page).
+   The mask mirrors to fade from that top corner toward the copy. */
+.thinker-wash--top {
+  inset-block-start: 0;
+  inset-block-end: auto;
+}
+.thinker-wash--top.thinker-wash--end {
+  mask-image: radial-gradient(120% 120% at 100% 0%, #000 0%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 120% at 100% 0%, #000 0%, #000 46%, transparent 78%);
+}
+[dir="rtl"] .thinker-wash--top.thinker-wash--end {
+  mask-image: radial-gradient(120% 120% at 0% 0%, #000 0%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 120% at 0% 0%, #000 0%, #000 46%, transparent 78%);
+}
+.thinker-wash--top.thinker-wash--start {
+  mask-image: radial-gradient(120% 120% at 0% 0%, #000 0%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 120% at 0% 0%, #000 0%, #000 46%, transparent 78%);
+}
+[dir="rtl"] .thinker-wash--top.thinker-wash--start {
+  mask-image: radial-gradient(120% 120% at 100% 0%, #000 0%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 120% at 100% 0%, #000 0%, #000 46%, transparent 78%);
+}
+@media (max-width: 40rem) {
+  .thinker-wash {
+    width: clamp(5.5rem, 30vw, 9.5rem);
+  }
+  .thinker-wash--light.thinker-wash--wash {
+    opacity: 0.1;
+  }
+  .thinker-wash--navy.thinker-wash--wash {
+    opacity: 0.12;
+  }
+  .thinker-wash--light.thinker-wash--frame {
+    opacity: 0.18;
+  }
+  .thinker-wash--frame {
+    height: min(48%, 7rem);
+  }
+}
 /* Reduced motion (WCAG 2.3.3 / owner brief §28): decorative movement is a
  * progressive enhancement — neutralize long transitions & animations for
  * visitors who ask for less motion. Interactive state changes stay instant and

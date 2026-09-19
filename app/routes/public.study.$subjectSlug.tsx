@@ -12,6 +12,7 @@ import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { breadcrumbJsonLd } from "~/cms/jsonld";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
+import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { CARD_BODY, CARD_META, PUB_CARD, pubBtnSm } from "~/lib/publicStyles";
 import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
 import { ContentTypeChips } from "~/components/study/ContentTypeChips";
@@ -183,6 +184,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
     <div className="relative isolate overflow-x-hidden">
       <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
+        <ThinkerWash seed={`page:study:${loaderData.subject.slug}`} anchor="top" />
         <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
           <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
