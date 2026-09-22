@@ -10,8 +10,10 @@ import { entitlementsForStudent } from "~server/entitlements/grant.server";
 import { continueLearning, courseProgressBatch, progressStats } from "~server/progress/service.server";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { Badge } from "~/components/ui/Badge";
+import { EmptyState } from "~/components/ui/EmptyState";
 import { ProgressBar } from "~/components/ProgressBar";
 import { QuestionPlatformCard } from "~/components/QuestionPlatform";
+import { pubBtnSm } from "~/lib/publicStyles";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
 
@@ -172,7 +174,14 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "progress.continueTitle")} />
           <CardBody>
             {loaderData.continueItems.length === 0 ? (
-              <p className="text-sm text-slate-500">{t(locale, "progress.continueEmpty")}</p>
+              <EmptyState
+                title={t(locale, "progress.continueEmpty")}
+                action={
+                  <Link to="/study" className={pubBtnSm("primary")} data-testid="dash-study-link-empty">
+                    {t(locale, "study.navTitle")}
+                  </Link>
+                }
+              />
             ) : (
               <ul className="flex flex-col gap-2">
                 {loaderData.continueItems.map((item) => (
@@ -202,7 +211,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         </Card>
       )}
 
-      {loaderData.dash.modules.stats && loaderData.stats && (
+      {loaderData.dash.modules.stats && loaderData.stats && (loaderData.stats.completedLessons > 0 || loaderData.stats.inProgressLessons > 0 || loaderData.stats.completedVideos > 0) && (
         <Card>
           <CardHeader title={t(locale, "progress.statsTitle")} />
           <CardBody>
@@ -229,7 +238,14 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <CardHeader title={t(locale, "dashboard.myCourses")} />
           <CardBody>
             {loaderData.myCourses.length === 0 ? (
-              <p className="text-sm text-slate-500">{t(locale, "content.catalogEmpty")}</p>
+              <EmptyState
+                title={t(locale, "content.catalogEmpty")}
+                action={
+                  <Link to="/study" className={pubBtnSm("primary")}>
+                    {t(locale, "study.navTitle")}
+                  </Link>
+                }
+              />
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {loaderData.myCourses.map((course) => (
@@ -359,7 +375,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               </span>
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {t(locale, "security.devicesTitle")}: {loaderData.activeDevices} · {locale === "ar" ? "جلسات" : "sessions"}: {loaderData.activeSessions}
+              {t(locale, "security.devicesTitle")}: {loaderData.activeDevices} · {t(locale, "dashboard.sessionsLabel")}: {loaderData.activeSessions}
             </p>
           </CardBody>
         </Card>
@@ -378,18 +394,22 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </div>
 
       <Card>
-        <CardHeader title={locale === "ar" ? "آخر النشاطات الأمنية" : "Recent security activity"} />
+        <CardHeader title={t(locale, "dashboard.securityActivity")} />
         <CardBody>
           {loaderData.recentEvents.length === 0 ? (
             <p className="text-sm text-slate-500">—</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
-              {loaderData.recentEvents.map((ev, i) => (
+              {loaderData.recentEvents.map((ev, i) => {
+                const key = `securityAdmin.ev_${ev.type}`;
+                const label = t(locale, key);
+                return (
                 <li key={i} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-slate-600">{ev.type}</span>
+                  <span className="text-slate-600">{label === key ? ev.type.replace(/_/g, " ") : label}</span>
                   <span className="text-xs text-slate-500">{formatDate(locale, ev.createdAt)}</span>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </CardBody>

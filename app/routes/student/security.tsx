@@ -101,6 +101,9 @@ export default function Security() {
               required
               autoComplete="current-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
             <Input
               label={t(locale, "auth.newPassword")}
@@ -110,6 +113,9 @@ export default function Security() {
               minLength={8}
               autoComplete="new-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
             <Input
               label={t(locale, "auth.passwordConfirm")}
@@ -119,6 +125,9 @@ export default function Security() {
               minLength={8}
               autoComplete="new-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
             <div className="flex justify-end">
               <SubmitButton>{t(locale, "common.save")}</SubmitButton>

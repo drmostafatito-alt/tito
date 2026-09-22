@@ -72,7 +72,15 @@ export default function StudentAssignmentsPage({ loaderData }: Route.ComponentPr
       </div>
 
       {items.length === 0 ? (
-        <EmptyState title={t(locale, "assignment.noAssignmentsForYou")} body={t(locale, "assignment.noAssignmentsForYouBody")} icon="📝" />
+        <EmptyState
+          title={t(locale, "assignment.noAssignmentsForYou")}
+          body={t(locale, "assignment.noAssignmentsForYouBody")}
+          action={
+            <Link to="/study" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
+              {t(locale, "study.navTitle")}
+            </Link>
+          }
+        />
       ) : (
         <>
           {(["available", "awaiting", "graded", "closed"] as const).map((s) => {
@@ -101,7 +109,7 @@ export default function StudentAssignmentsPage({ loaderData }: Route.ComponentPr
                           <div className="flex items-center gap-2">
                             {st === "graded" && <Badge tone="brand">{a.myScore}</Badge>}
                             <Badge tone={stateTone[st]}>{t(locale, `assignment.st_${st}`)}</Badge>
-                            <Link to={`/assignments/${a.id}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:border-brand-400">
+                            <Link to={`/assignments/${a.id}`} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 text-xs font-medium text-brand-700 hover:border-brand-400">
                               {st === "available" ? t(locale, "assignment.submitNow") : t(locale, "assignment.view")}
                             </Link>
                           </div>

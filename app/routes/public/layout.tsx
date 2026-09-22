@@ -1,6 +1,6 @@
 import type { Route } from "./+types/layout";
 import { useState } from "react";
-import { Link, Outlet, useRouteLoaderData } from "react-router";
+import { Link, Outlet, useLocation, useRouteLoaderData } from "react-router";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { resolveAuth } from "~server/auth/session.server";
@@ -9,6 +9,8 @@ import { menuItemsFor } from "~server/cms/service.server";
 import { resolvePublicImageUrls } from "~server/cms/render.server";
 import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
+import { Drawer } from "~/components/ui/Drawer";
+import { SkipLink } from "~/components/ui/SkipLink";
 import { Icon } from "~/cms/icons";
 import { siteEntitiesMeta } from "~/cms/seo";
 import { resolveSocialLinks, socialsFor, socialIconName } from "~/cms/social";
@@ -119,6 +121,8 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const appName = locale === "ar" ? loaderData.identity.platformName.ar : loaderData.identity.platformName.en;
   const tagline = locale === "ar" ? loaderData.identity.tagline.ar : loaderData.identity.tagline.en;
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const isAuth = ["/login", "/register", "/forgot-password", "/reset-password"].includes(location.pathname);
 
   if (loaderData.maintenance) {
     return (
@@ -142,9 +146,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="pub-root flex min-h-dvh flex-col overflow-x-hidden">
+      <SkipLink locale={locale} />
       <header
         data-testid="public-header"
-        className="sticky top-0 z-40 border-b border-pub-line bg-pub-bg/92 pt-safe backdrop-blur-md"
+        className="sticky top-0 z-40 border-b border-pub-line bg-pub-bg/97 pt-safe backdrop-blur-md"
       >
         {/* 320px is the design width, not an afterthought: one row, a shrinking
             brand (the wordmark itself hides below sm inside BrandMark), and a
@@ -165,7 +170,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               no clipped header. */}
           {loaderData.header.length > 0 && (
             <nav aria-label={t(locale, "common.navMain")} className="hidden items-center gap-0.5 xl:flex">
-              {loaderData.header.map((node) =>
+              {loaderData.header.slice(0, 5).map((node) =>
                 node.children.length === 0 ? (
                   <NavLink key={node.id} item={node} locale={locale} className={node.href === "/" ? navActiveCls : navLinkCls} />
                 ) : (
@@ -185,6 +190,24 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                     </div>
                   </details>
                 )
+              )}
+              {loaderData.header.length > 5 && (
+                <details className="group relative">
+                  <summary className={`${navLinkCls} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                    <span>{t(locale, "common.more")}</span>
+                    <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="absolute top-full z-50 mt-1 min-w-44 rounded-pub-xl border border-pub-line bg-pub-bg p-1.5 shadow-pub-lg ltr:left-0 rtl:right-0">
+                    {loaderData.header.slice(5).map((node) => (
+                      <NavLink
+                        key={node.id}
+                        item={node}
+                        locale={locale}
+                        className="flex min-h-11 w-full items-center gap-1.5 rounded-pub-md px-3 py-2 text-pub-sm text-pub-ink-soft hover:bg-pub-surface-2"
+                      />
+                    ))}
+                  </div>
+                </details>
               )}
             </nav>
           )}
@@ -259,10 +282,21 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* Mobile navigation panel */}
-        {mobileOpen && (
-          <nav id="mobile-nav" aria-label={t(locale, "common.navMain")} className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-pub-line bg-pub-bg px-3 py-2 lg:hidden">
-            <ul className="flex flex-col">
+      </header>
+
+      <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} id="mobile-nav" label={t(locale, "common.navMain")}>
+        <div className="mb-3 flex items-center justify-between border-b border-pub-line pb-3">
+          <p className="text-pub-sm font-bold text-pub-ink">{t(locale, "common.menu")}</p>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            aria-label={t(locale, "common.close")}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-pub-pill text-pub-ink hover:bg-pub-surface"
+          >
+            <Icon name="close" size="md" colorRole="default" />
+          </button>
+        </div>
+        <ul className="flex flex-col">
               {loaderData.header.map((node) => (
                 <li key={node.id}>
                   <NavLink
@@ -288,7 +322,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 </li>
               ))}
               {!loaderData.user && (
-                <li className="mt-2 flex flex-col gap-2 border-t border-pub-line pt-3 sm:hidden">
+                <li className="mt-2 flex flex-col gap-2 border-t border-pub-line pt-3">
                   <Link
                     to="/login"
                     className="inline-flex min-h-12 items-center justify-center rounded-pub-md border border-pub-line-strong bg-pub-bg px-5 text-pub-base font-semibold text-pub-ink transition-colors hover:bg-pub-surface"
@@ -305,15 +339,20 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                   </Link>
                 </li>
               )}
-            </ul>
-          </nav>
-        )}
-      </header>
+        </ul>
+      </Drawer>
 
-      <main className="flex-1 bg-pub-bg">
+      <main id="main-content" className={isAuth ? "flex flex-1 items-start bg-pub-bg sm:items-center" : "flex-1 bg-pub-bg"}>
         <Outlet />
       </main>
 
+      {isAuth ? (
+      <footer className="border-t border-pub-line bg-pub-bg pb-safe">
+        <div className="mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-4 text-center text-pub-xs text-pub-muted">
+          {copyrightText || `© ${new Date().getFullYear()} ${appName}`}
+        </div>
+      </footer>
+      ) : (
       <footer className="relative border-t border-pub-navy bg-pub-navy pb-safe text-pub-on-navy-soft">
         <DecorHairline className="mx-auto max-w-7xl px-4 text-pub-accent opacity-60" />
         <div className="mx-auto grid w-full max-w-[var(--pub-maxw)] gap-8 px-[var(--pub-pad-x)] py-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -392,6 +431,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 }

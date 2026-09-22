@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import type { ReactNode } from "react";
-import { Form, Link, useActionData, useRouteLoaderData } from "react-router";
+import { Link, useActionData, useRouteLoaderData } from "react-router";
 import { desc } from "drizzle-orm";
 import { requireRole } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
@@ -15,11 +15,19 @@ import { formatMoney } from "~server/commerce/money";
 import { RangeSwitcher } from "~/components/RangeSwitcher";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
+import { ConfirmForm } from "~/components/ui/ConfirmForm";
 import { Alert } from "~/components/ui/Alert";
 import { Badge } from "~/components/ui/Badge";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { fmtDuration } from "~/lib/format";
 import { t, formatDate, type Locale } from "~/lib/i18n";
+
+function humanizeAudit(locale: Locale, action: string): string {
+  const key = `auditAdmin.act_${action.replace(/\./g, "_")}`;
+  const label = t(locale, key);
+  if (label !== key) return label;
+  return action.replace(/[._]/g, " ");
+}
 
 /**
  * Admin dashboard (Phase 2) — real aggregates over the tables the product
@@ -83,7 +91,7 @@ function StatCard({ label, value, testid, mono }: { label: string; value: string
   return (
     <Card>
       <CardBody>
-        <p className={`text-2xl font-bold text-slate-900 ${mono ? "font-mono text-lg" : ""}`} dir="ltr" data-testid={testid}>
+        <p className={`text-xl font-bold text-slate-900 sm:text-2xl ${mono ? "font-mono text-lg" : ""}`} dir="ltr" data-testid={testid}>
           {typeof value === "number" ? value.toLocaleString("en-US") : value}
         </p>
         <p className="mt-1 text-xs text-slate-600">{label}</p>
@@ -133,7 +141,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
       {/* Quick actions */}
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">{t(locale, "dash.quickTitle")}</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="quick-actions">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" data-testid="quick-actions">
           {QUICK.map((qa) => (
             <Link
               key={qa.to}
@@ -168,20 +176,25 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
             <StatCard testid="home-metric-watched-videos" label={t(locale, "admin.mWatchedVideos")} value={o.learning.watchedVideos} />
           </Section>
 
+          {(o.video.starts > 0 || o.video.completions > 0 || o.video.watchedSeconds > 0 || o.video.lessonCompletions > 0) && (
           <Section title={t(locale, "admin.secVideo")}>
             <StatCard testid="home-metric-watch-time" label={t(locale, "admin.mWatchedTime")} value={fmtDuration(o.video.watchedSeconds)} mono />
             <StatCard testid="home-metric-video-starts" label={t(locale, "admin.mVideoStarts")} value={o.video.starts} />
             <StatCard testid="home-metric-video-completions" label={t(locale, "admin.mVideoCompletions")} value={o.video.completions} />
             <StatCard testid="home-metric-lesson-completions" label={t(locale, "admin.mLessonCompletions")} value={o.video.lessonCompletions} />
           </Section>
+          )}
 
+          {(o.exams.attempts > 0 || o.exams.submissions > 0) && (
           <Section title={t(locale, "admin.secExams")}>
             <StatCard testid="home-metric-attempts" label={t(locale, "admin.mAttempts")} value={o.exams.attempts} />
             <StatCard testid="home-metric-submissions" label={t(locale, "admin.mSubmissions")} value={o.exams.submissions} />
             <StatCard testid="home-metric-pass-rate" label={t(locale, "admin.mPassRate")} value={o.exams.passRatePct == null ? "—" : `${o.exams.passRatePct}%`} mono />
             <StatCard testid="home-metric-avg-score" label={t(locale, "admin.mAvgScore")} value={o.exams.avgScorePct == null ? "—" : `${o.exams.avgScorePct}%`} mono />
           </Section>
+          )}
 
+          {(o.commerce.orders > 0 || o.commerce.paidOrders > 0 || o.commerce.pendingOrders > 0) && (
           <Section title={t(locale, "admin.secCommerce")} cols="sm:grid-cols-3 lg:grid-cols-4">
             <StatCard testid="home-metric-orders" label={t(locale, "admin.mOrders")} value={o.commerce.orders} />
             <StatCard testid="home-metric-paid-orders" label={t(locale, "admin.mPaidOrders")} value={o.commerce.paidOrders} />
@@ -192,6 +205,7 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
             <StatCard testid="home-metric-pending-payments" label={t(locale, "admin.mPendingPayments")} value={o.commerce.pendingPaymentReview} />
             <StatCard testid="home-metric-redemptions" label={t(locale, "admin.mRedemptions")} value={o.commerce.redemptions} />
           </Section>
+          )}
 
           <Section title={t(locale, "admin.secOps")}>
             <Link to="/admin/content" className="flex flex-col items-start justify-between gap-1 rounded-xl border border-slate-200 p-3 text-right hover:border-brand-300 hover:bg-slate-50">
@@ -309,19 +323,19 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
             }
           />
           <CardBody>
-            <Form method="post" onSubmit={(e) => {
-              const msg = loaderData.maintenance
+            <ConfirmForm
+              locale={locale}
+              message={loaderData.maintenance
                 ? t(locale, "admin.maintenanceConfirmOff")
-                : t(locale, "admin.maintenanceConfirmOn");
-              if (!confirm(msg)) e.preventDefault();
-            }}>
+                : t(locale, "admin.maintenanceConfirmOn")}
+            >
               <input type="hidden" name="_action" value="toggle-maintenance" />
               <SubmitButton variant={loaderData.maintenance ? "secondary" : "danger"}>
                 {loaderData.maintenance
                   ? t(locale, "admin.maintenanceOff")
                   : t(locale, "admin.maintenanceOn")}
               </SubmitButton>
-            </Form>
+            </ConfirmForm>
           </CardBody>
         </Card>
 

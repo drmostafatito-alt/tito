@@ -10,8 +10,15 @@ import { Card, CardBody } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
+function humanizeAudit(locale: Locale, action: string): string {
+  const key = `auditAdmin.act_${action.replace(/\./g, "_")}`;
+  const label = t(locale, key);
+  if (label !== key) return label;
+  return action.replace(/[._]/g, " ");
+}
+
 const inputCls = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
-const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+const selectCls = "min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm";
 
 /** Read-only audit viewer (P7 §13) — no mutation path exists for audit rows. */
 export async function loader({ context, request }: Route.LoaderArgs) {
@@ -65,7 +72,7 @@ export default function AdminAudit({ loaderData }: Route.ComponentProps) {
           {audit.rows.map((a) => (
             <div key={a.id} className="border-b border-slate-100 py-2.5 text-sm last:border-0" data-testid="audit-row">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono text-xs font-semibold text-slate-700" dir="ltr">{a.action}</span>
+                <span className="text-sm font-semibold text-slate-800" title={a.action}>{humanizeAudit(locale, a.action)}</span>
                 <span className="text-xs text-slate-500">{formatDate(locale, a.createdAt)}</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">

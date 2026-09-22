@@ -125,9 +125,9 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
               return (
                 <div
                   key={plan.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-pub-lg border border-pub-line bg-pub-bg p-4"
+                  className="flex flex-col gap-3 rounded-pub-lg border border-pub-line bg-pub-bg p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold">{label}</p>
                     <p className="text-pub-xs text-pub-muted">
                       {plan.kind === "recurring" ? t(locale, "commerce.recurring") : t(locale, "commerce.oneTime")}
@@ -136,7 +136,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                         : ""}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
                     <div className="text-end">
                       {plan.compareAtMinor !== null && plan.compareAtMinor > plan.effectiveMinor && (
                         <p className="text-pub-xs text-pub-muted line-through" dir="ltr">
@@ -151,7 +151,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                     {loggedIn ? (
                       <Link
                         to={`/checkout/${product.slug}?plan=${plan.id}`}
-                        className={pubBtnSm("primary")}
+                        className={pubBtnSm("primary", "w-full sm:w-auto")}
                         data-testid="buy-cta"
                       >
                         {t(locale, "commerce.buyNow")}
@@ -159,7 +159,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
                     ) : (
                       <Link
                         to={`/login?next=/products/${product.slug}`}
-                        className={pubBtnSm("primary")}
+                        className={pubBtnSm("primary", "w-full sm:w-auto")}
                       >
                         {t(locale, "commerce.loginToBuy")}
                       </Link>

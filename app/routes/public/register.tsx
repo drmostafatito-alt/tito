@@ -1,4 +1,5 @@
 import type { Route } from "./+types/register";
+import { useState } from "react";
 import { Form, Link, useActionData, useNavigation, useSearchParams } from "react-router";
 import { redirect } from "react-router";
 import { getEnv, getWaitUntil } from "~server/cf.server";
@@ -66,6 +67,10 @@ export default function Register() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const [params] = useSearchParams();
+  const [password, setPassword] = useState("");
+  const strength = password.length === 0
+    ? 0
+    : (password.length >= 8 ? 1 : 0) + (/[0-9]/.test(password) ? 1 : 0) + (/[A-Za-z\u0600-\u06FF]/.test(password) ? 1 : 0);
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
@@ -106,7 +111,26 @@ export default function Register() {
             required
             minLength={8}
             dir="ltr"
+            reveal
+            revealShowLabel={t(locale, "common.showPassword")}
+            revealHideLabel={t(locale, "common.hidePassword")}
+            onChange={(e) => setPassword(e.target.value)}
           />
+          {password.length > 0 && (
+            <div className="flex flex-col gap-1" aria-live="polite">
+              <div className="flex gap-1" aria-hidden="true">
+                {[1, 2, 3].map((n) => (
+                  <span
+                    key={n}
+                    className={`h-1.5 flex-1 rounded-full ${strength >= n ? (strength >= 3 ? "bg-pub-success" : strength === 2 ? "bg-pub-accent" : "bg-pub-danger") : "bg-pub-line"}`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-pub-muted">
+                {strength >= 3 ? t(locale, "auth.passwordStrengthStrong") : strength === 2 ? t(locale, "auth.passwordStrengthOk") : t(locale, "auth.passwordStrengthWeak")}
+              </p>
+            </div>
+          )}
           <Input
             label={t(locale, "auth.passwordConfirm")}
             name="passwordConfirm"
@@ -115,6 +139,9 @@ export default function Register() {
             required
             minLength={8}
             dir="ltr"
+            reveal
+            revealShowLabel={t(locale, "common.showPassword")}
+            revealHideLabel={t(locale, "common.hidePassword")}
           />
           <SubmitButton className="mt-1 w-full">
             {navigation.state === "idle" ? t(locale, "common.register") : t(locale, "common.loading")}

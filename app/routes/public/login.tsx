@@ -126,6 +126,9 @@ export default function Login() {
             autoComplete="current-password"
             required
             dir="ltr"
+            reveal
+            revealShowLabel={t(locale, "common.showPassword")}
+            revealHideLabel={t(locale, "common.hidePassword")}
           />
           <SubmitButton className="mt-1 w-full">
             {navigation.state === "idle" ? t(locale, "common.login") : t(locale, "common.loading")}

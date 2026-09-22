@@ -219,16 +219,18 @@ function TreeNode({ node, locale, depth = 0 }: { node: AdminTreeNode; locale: Lo
   const label = locale === "ar" ? node.titleAr : node.titleEn;
   return (
     <li className={depth === 0 ? "mb-3" : "mb-1.5"}>
-      <div className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 py-0.5 ${["", "ps-4", "ps-8", "ps-12", "ps-16", "ps-20", "ps-24", "ps-28"][Math.min(depth, 7)]}`}>
-        <StatusBadge status={node.status} locale={locale} />
-        <Link
-          to={`/admin/content/${node.type}/${node.id}`}
-          className="min-w-0 flex-1 text-sm font-medium text-slate-800 hover:underline"
-        >
-          {label}
-        </Link>
+      <div className={`flex min-w-0 flex-col gap-0.5 py-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 ${["", "ps-4", "ps-8", "ps-12", "ps-16", "ps-20", "ps-24", "ps-28"][Math.min(depth, 7)]}`}>
+        <div className="flex min-w-0 items-center gap-2">
+          <StatusBadge status={node.status} locale={locale} />
+          <Link
+            to={`/admin/content/${node.type}/${node.id}`}
+            className="min-w-0 truncate text-sm font-medium text-slate-800 hover:underline"
+          >
+            {label}
+          </Link>
+        </div>
         {node.slug && (
-          <span dir="ltr" className="min-w-0 max-w-[45%] shrink truncate text-xs text-slate-500">
+          <span dir="ltr" className="min-w-0 truncate text-xs text-slate-500 sm:max-w-[45%]">
             /{node.slug}
           </span>
         )}
@@ -288,7 +290,7 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
     );
   }, [tree, needle, status, type, filtering]);
 
-  const selectCls = "h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm";
+  const selectCls = "min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm";
 
   return (
     <div className="flex flex-col gap-3">
@@ -298,7 +300,7 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
           onChange={(e) => setQ(e.target.value)}
           placeholder={t(locale, "content.searchTree")}
           aria-label={t(locale, "content.searchTree")}
-          className="h-[42px] min-w-[12rem] flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+          className="min-h-11 min-w-[12rem] flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
           data-testid="content-tree-search"
         />
         <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label={t(locale, "content.status")} className={selectCls} data-testid="content-tree-status">

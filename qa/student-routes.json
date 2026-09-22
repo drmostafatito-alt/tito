@@ -1,0 +1,11 @@
+[
+  { "path": "/dashboard" },
+  { "path": "/study" },
+  { "path": "/assignments" },
+  { "path": "/orders" },
+  { "path": "/notifications" },
+  { "path": "/profile" },
+  { "path": "/profile/security" },
+  { "path": "/checkout/physics-3s-full-access" },
+  { "path": "/programs" }
+]

@@ -8,6 +8,7 @@ import { resolveNavItem } from "~/components/admin/nav";
 import { CollapseButton, SidebarContent } from "~/components/admin/AdminSidebar";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { rootMetaFrom } from "~/cms/seo";
+import { SkipLink } from "~/components/ui/SkipLink";
 import { t, type Locale } from "~/lib/i18n";
 
 const COLLAPSE_KEY = "admin.sidebar.collapsed.v1";
@@ -46,15 +47,17 @@ export function meta({ matches }: Route.MetaArgs): MetaDescriptor[] {
   return [{ title, name: "robots", content: "noindex,follow" }];
 }
 
-function Brand({ appName, locale }: { appName: string; locale: Locale }) {
+function Brand({ appName, locale, tone = "onDark" }: { appName: string; locale: Locale; tone?: "onDark" | "onLight" }) {
+  const nameCls = tone === "onDark" ? "text-white" : "text-slate-900";
+  const subCls = tone === "onDark" ? "text-brand-300" : "text-slate-500";
   return (
-    <Link to="/admin" aria-label={appName} className="flex items-center gap-2.5">
+    <Link to="/admin" aria-label={appName} className="flex min-w-0 items-center gap-2.5">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white" aria-hidden="true">
         <AdminIcon name="logo" className="h-5 w-5" />
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-sm font-bold leading-tight text-white">{appName}</span>
-        <span className="block text-[11px] font-medium text-brand-300">{t(locale, "nav.adminLabel")}</span>
+        <span className={`block truncate text-sm font-bold leading-tight ${nameCls}`}>{appName}</span>
+        <span className={`block text-[11px] font-medium ${subCls}`}>{t(locale, "nav.adminLabel")}</span>
       </span>
     </Link>
   );
@@ -107,7 +110,7 @@ function ProfileMenu({ locale, email, fullName }: { locale: Locale; email: strin
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t(locale, "nav.profileMenu")}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/20 text-sm font-bold text-brand-100 transition-colors hover:bg-brand-500/30"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-800 transition-colors hover:bg-brand-200"
       >
         {initial}
       </button>
@@ -183,6 +186,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="console flex min-h-dvh bg-slate-100">
+      <SkipLink locale={locale} />
       {/* Desktop sidebar */}
       <aside
         className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-slate-800 bg-slate-900 pt-safe transition-[width] duration-200 lg:flex ${
@@ -241,7 +245,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             </div>
             {/* Mobile brand */}
             <div className="min-w-0 flex-1 lg:hidden">
-              <Brand appName={appName} locale={locale} />
+              <Brand appName={appName} locale={locale} tone="onLight" />
             </div>
 
             <div className="ms-auto flex shrink-0 items-center gap-1.5">
@@ -263,7 +267,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-6 lg:py-8">
+        <main id="main-content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-6 lg:py-8">
           <Outlet />
         </main>
 
@@ -291,7 +295,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 aria-label={t(locale, "nav.closeMenu")}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white"
               >
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                   <path d="M18 6 6 18" />

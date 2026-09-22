@@ -570,7 +570,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                   />
                 </div>
               ) : (
-                <div className="relative isolate flex min-h-[24rem] items-end justify-center pb-2 sm:min-h-[28rem]">
+                <div className={`relative isolate flex items-end justify-center pb-2 ${platePhoto ? "min-h-[24rem] sm:min-h-[28rem]" : "min-h-[14rem] sm:min-h-[16rem]"}`}>
                   {/* one organic brand blob — a stage, not a card */}
                   <span aria-hidden="true" className="hero-blob absolute inset-x-2 bottom-6 top-0 -z-20 sm:inset-x-6" />
                   {/* quiet ornaments: gold disc, tint dot, dashed orbit */}
@@ -610,12 +610,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                       fetchPriority="high"
                       className="relative z-[1] block max-h-[21rem] w-auto max-w-[78%] object-contain drop-shadow-[0_16px_24px_rgba(15,23,42,0.28)] sm:max-h-[25rem]"
                     />
-                  ) : (
-                    /* Reserved slot — deliberately empty space where the owner's
-                       photo will float once uploaded. The start statue above is
-                       this state's single eager hero visual. */
-                    <div className="relative z-[1] h-[16rem] w-full max-w-[22rem] sm:h-[19rem]" />
-                  )}
+                  ) : null}
                   {/* signature chip + tagline bubble, as in the reference */}
                   {showIdentity && (ownerName || ownerTitle) && (
                     <div className="absolute bottom-8 end-0 z-[2] max-w-[11rem] rounded-pub-md border border-pub-line bg-pub-surface/95 px-3 py-2 text-start shadow-pub-sm">
