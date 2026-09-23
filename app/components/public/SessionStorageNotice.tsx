@@ -18,9 +18,14 @@ export function SessionStorageNotice({ locale }: { locale: Locale }) {
   useEffect(() => {
     let cookiesOk = false;
     try {
-      document.cookie = `${PROBE_NAME}=1; Path=/; SameSite=Lax`;
+      document.cookie = `${PROBE_NAME}=1; Path=/; SameSite=None; Secure; Partitioned`;
       cookiesOk = document.cookie.includes(PROBE_NAME);
-      document.cookie = `${PROBE_NAME}=; Path=/; Max-Age=0`;
+      document.cookie = `${PROBE_NAME}=; Path=/; Max-Age=0; SameSite=None; Secure; Partitioned`;
+      if (!cookiesOk) {
+        document.cookie = `${PROBE_NAME}=1; Path=/; SameSite=Lax`;
+        cookiesOk = document.cookie.includes(PROBE_NAME);
+        document.cookie = `${PROBE_NAME}=; Path=/; Max-Age=0`;
+      }
     } catch {
       cookiesOk = false;
     }

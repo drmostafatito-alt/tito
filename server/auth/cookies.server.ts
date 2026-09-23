@@ -30,9 +30,12 @@ export function serializeCookie(
   parts.push(`Path=${opts.path ?? "/"}`);
   if (opts.maxAgeSeconds !== undefined) parts.push(`Max-Age=${Math.floor(opts.maxAgeSeconds)}`);
   if (opts.expires) parts.push(`Expires=${opts.expires.toUTCString()}`);
-  parts.push(`SameSite=${opts.sameSite ?? "Lax"}`);
+  const sameSite = opts.sameSite ?? "Lax";
+  parts.push(`SameSite=${sameSite}`);
   if (opts.httpOnly !== false) parts.push("HttpOnly");
   if (opts.secure !== false) parts.push("Secure");
+  // CHIPS: third-party iframes (live preview) keep None cookies only when partitioned.
+  if (sameSite === "None") parts.push("Partitioned");
   return parts.join("; ");
 }
 
