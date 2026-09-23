@@ -3,7 +3,7 @@ import type { DB } from "../db/client.server";
 import { devices, sessions } from "../db/schema";
 import { sha256Hex } from "../http/rate-limit.server";
 import { logSecurityEvent } from "../security/events.server";
-import { parseCookieHeader } from "./cookies.server";
+import { EMBED_DEVICE_HEADER, parseCookieHeader, readEmbedHeader } from "./cookies.server";
 import { newOpaqueToken } from "./session.server";
 import { DEVICE_COOKIE } from "./session.server";
 import type { DeviceSettings } from "../settings/schema";
@@ -44,7 +44,7 @@ export async function resolveDevice(
   }
 ): Promise<DeviceOutcome> {
   const cookies = parseCookieHeader(opts.request.headers.get("cookie"));
-  const existingKey = cookies.get(DEVICE_COOKIE);
+  const existingKey = cookies.get(DEVICE_COOKIE) ?? readEmbedHeader(opts.request, EMBED_DEVICE_HEADER, env);
   const now = Date.now();
 
   if (existingKey) {

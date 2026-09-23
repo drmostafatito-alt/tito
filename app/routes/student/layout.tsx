@@ -11,6 +11,8 @@ import { BrandMark } from "~/components/BrandMark";
 import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { QuestionPlatformNavLink } from "~/components/QuestionPlatform";
 import { Icon } from "~/cms/icons";
+import { Drawer } from "~/components/ui/Drawer";
+import { SkipLink } from "~/components/ui/SkipLink";
 import { rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
@@ -96,38 +98,38 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const close = () => setMobileOpen(false);
 
-  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100";
-  const activeLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700";
+  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-pub-pill px-3 py-2 text-pub-sm font-medium text-pub-ink-soft hover:bg-pub-surface hover:text-pub-ink";
+  const activeLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-pub-pill bg-pub-surface px-3 py-2 text-pub-sm font-bold text-pub-ink shadow-[inset_0_-2px_0_0_var(--color-pub-accent)]";
+  const drawerLink = "flex min-h-12 w-full items-center gap-2 rounded-pub-md px-3 text-pub-base font-medium text-pub-ink hover:bg-pub-surface";
 
-  const coreLinks: Array<{ to: string; label: string; end?: boolean; badge?: number }> = [
-    { to: "/dashboard", label: t(locale, "common.dashboard") },
-    // Student-facing terminology: "المحتوى التعليمي" — never "الكورسات".
-    { to: "/study", label: t(locale, "study.navTitle") },
+  const primary = [
+    { to: "/dashboard", label: t(locale, "common.dashboard"), icon: "grid" as const, end: true },
+    { to: "/study", label: t(locale, "study.navTitle"), icon: "book-open" as const },
+    { to: "/assignments", label: t(locale, "assignment.myAssignments"), icon: "file-text" as const },
+    { to: "/notifications", label: t(locale, "notifications.navLabel"), icon: "message-circle" as const, badge: loaderData.unreadNotifications },
+  ];
+  const more = [
     { to: "/programs", label: t(locale, "catalog.programs") },
-    { to: "/assignments", label: t(locale, "assignment.myAssignments") },
     { to: "/orders", label: t(locale, "commerce.myOrders") },
-    { to: "/notifications", label: t(locale, "notifications.navLabel"), badge: loaderData.unreadNotifications },
     { to: "/profile", label: t(locale, "profile.title") },
     { to: "/profile/security", label: t(locale, "dashboard.securityLink") },
   ];
 
   return (
-    <div className="console flex min-h-dvh flex-col bg-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white pt-safe">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
-          <div className="flex items-center gap-4">
-            <Link to="/" aria-label={appName} className="inline-flex min-h-11 items-center">
-              <BrandMark name={appName} />
-            </Link>
-          </div>
+    <div className="pub-root flex min-h-dvh flex-col overflow-x-hidden bg-pub-surface">
+      <SkipLink locale={locale} />
+      <header className="sticky top-0 z-40 border-b border-pub-line bg-pub-bg/97 pt-safe backdrop-blur-md">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-2 px-3 sm:h-16 sm:px-4">
+          <Link to="/" aria-label={appName} className="inline-flex min-h-11 min-w-0 shrink items-center">
+            <BrandMark name={appName} />
+          </Link>
 
-          {/* Desktop navigation */}
-          <nav className="hidden items-center gap-1 xl:flex" aria-label={t(locale, "common.navMain")}>
-            {coreLinks.map((l) => (
-              <RRNavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? activeLinkCls : navLinkCls)}>
+          <nav className="hidden min-w-0 items-center gap-0.5 xl:flex" aria-label={t(locale, "common.navMain")}>
+            {primary.map((l) => (
+              <RRNavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => (isActive ? activeLinkCls : navLinkCls)}>
                 {l.label}
                 {l.badge ? (
-                  <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white" dir="ltr" data-testid="nav-unread-badge">{l.badge}</span>
+                  <span className="rounded-full bg-pub-navy px-1.5 text-[11px] font-bold text-pub-bg" dir="ltr" data-testid="nav-unread-badge">{l.badge}</span>
                 ) : null}
               </RRNavLink>
             ))}
@@ -142,36 +144,48 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
                     <span>{locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}</span>
                     <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
                   </summary>
-                  <div className="absolute top-full z-50 mt-1 min-w-44 rounded-[var(--radius-card)] border border-slate-200 bg-white p-1.5 shadow-lg ltr:left-0 rtl:right-0">
+                  <div className="absolute top-full z-50 mt-1 min-w-44 rounded-pub-xl border border-pub-line bg-pub-bg p-1.5 shadow-pub-lg ltr:left-0 rtl:right-0">
                     {node.href && (
-                      <MenuLinkNode item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100" />
+                      <MenuLinkNode item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-pub-md px-3 py-2 text-pub-sm font-semibold text-pub-ink hover:bg-pub-surface" />
                     )}
                     {node.children.map((child) => (
-                      <MenuLinkNode key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100" />
+                      <MenuLinkNode key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-pub-md px-3 py-2 text-pub-sm text-pub-ink-soft hover:bg-pub-surface" />
                     ))}
                   </div>
                 </details>
               )
             )}
-            {isAdmin && (
-              <Link to="/admin" className="rounded-lg px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">
-                {t(locale, "common.admin")}
-              </Link>
-            )}
-            <LanguageSwitcher locale={locale} options={localeOptions} />
-            <Form method="post" action="/logout">
-              <button type="submit" className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
-                {t(locale, "common.logout")}
-              </button>
-            </Form>
           </nav>
 
-          {/* Mobile: language + hamburger */}
-          <div className="flex items-center gap-1.5 xl:hidden">
-            <LanguageSwitcher locale={locale} options={localeOptions} />
+          <div className="flex shrink-0 items-center gap-1">
+            <LanguageSwitcher locale={locale} options={localeOptions} compact />
+            <details className="group relative hidden xl:block">
+              <summary className={`${navLinkCls} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                <Icon name="user" size="sm" colorRole="default" className="text-current" />
+                <span className="max-w-[9rem] truncate">{loaderData.user.fullName}</span>
+                <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="absolute top-full z-50 mt-1 min-w-52 rounded-pub-xl border border-pub-line bg-pub-bg p-1.5 shadow-pub-lg ltr:right-0 rtl:left-0">
+                {more.map((l) => (
+                  <RRNavLink key={l.to} to={l.to} className="flex min-h-11 w-full items-center rounded-pub-md px-3 py-2 text-pub-sm text-pub-ink-soft hover:bg-pub-surface">
+                    {l.label}
+                  </RRNavLink>
+                ))}
+                {isAdmin && (
+                  <Link to="/admin" className="flex min-h-11 w-full items-center rounded-pub-md px-3 py-2 text-pub-sm font-medium text-pub-ink-soft hover:bg-pub-surface">
+                    {t(locale, "common.admin")}
+                  </Link>
+                )}
+                <Form method="post" action="/logout">
+                  <button type="submit" className="flex min-h-11 w-full items-center rounded-pub-md px-3 py-2 text-pub-sm font-medium text-pub-danger hover:bg-pub-danger-bg">
+                    {t(locale, "common.logout")}
+                  </button>
+                </Form>
+              </div>
+            </details>
             <button
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-pub-pill text-pub-ink hover:bg-pub-surface xl:hidden"
               aria-expanded={mobileOpen}
               aria-controls="student-mobile-nav"
               aria-label={t(locale, "common.menu")}
@@ -181,54 +195,89 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
             </button>
           </div>
         </div>
-
-        {/* Mobile navigation panel */}
-        {mobileOpen && (
-          <nav id="student-mobile-nav" aria-label={t(locale, "common.navMain")} className="border-t border-slate-200 bg-white px-4 py-3 xl:hidden">
-            <div className="flex flex-col gap-1">
-              {coreLinks.map((l) => (
-                <RRNavLink key={l.to} to={l.to} onClick={close} className={({ isActive }) => (isActive ? activeLinkCls + " w-full" : navLinkCls + " w-full")}>
-                  {l.label}
-                  {l.badge ? (
-                    <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white" dir="ltr">{l.badge}</span>
-                  ) : null}
-                </RRNavLink>
-              ))}
-              <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} block onNavigate={close} testId="nav-question-platform-mobile" />
-              {loaderData.menu.map((node) => (
-                <div key={node.id} className="flex flex-col">
-                  {node.href && <MenuLinkNode item={node} locale={locale} className={navLinkCls + " w-full"} onNavigate={close} />}
-                  {node.children.map((child) => (
-                    <MenuLinkNode key={child.id} item={child} locale={locale} className={navLinkCls + " w-full ltr:pl-7 rtl:pr-7"} onNavigate={close} />
-                  ))}
-                  {!node.href && node.children.length === 0 && (
-                    <span className={`${navLinkCls} w-full text-slate-500`}>
-                      {locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}
-                    </span>
-                  )}
-                </div>
-              ))}
-              {isAdmin && (
-                <Link to="/admin" onClick={close} className="rounded-lg px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 min-h-11 inline-flex items-center">
-                  {t(locale, "common.admin")}
-                </Link>
-              )}
-              <Form method="post" action="/logout">
-                <button type="submit" className="inline-flex min-h-11 w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
-                  {t(locale, "common.logout")}
-                </button>
-              </Form>
-            </div>
-          </nav>
-        )}
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <Drawer open={mobileOpen} onClose={close} id="student-mobile-nav" label={t(locale, "common.navMain")}>
+        <div className="mb-3 flex items-center justify-between border-b border-pub-line pb-3">
+          <p className="truncate text-pub-sm font-bold text-pub-ink">{loaderData.user.fullName}</p>
+          <button
+            type="button"
+            onClick={close}
+            aria-label={t(locale, "common.close")}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-pub-pill text-pub-ink hover:bg-pub-surface"
+          >
+            <Icon name="close" size="md" colorRole="default" />
+          </button>
+        </div>
+        <div className="flex flex-col gap-1">
+          {primary.map((l) => (
+            <RRNavLink key={l.to} to={l.to} end={l.end} onClick={close} className={({ isActive }) => (isActive ? `${activeLinkCls} w-full` : drawerLink)}>
+              <Icon name={l.icon} size="sm" colorRole="default" className="text-current" />
+              {l.label}
+              {l.badge ? (
+                <span className="rounded-full bg-pub-navy px-1.5 text-[11px] font-bold text-pub-bg" dir="ltr">{l.badge}</span>
+              ) : null}
+            </RRNavLink>
+          ))}
+          <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} block onNavigate={close} testId="nav-question-platform-mobile" />
+          {more.map((l) => (
+            <RRNavLink key={l.to} to={l.to} onClick={close} className={drawerLink}>
+              {l.label}
+            </RRNavLink>
+          ))}
+          {loaderData.menu.map((node) => (
+            <div key={node.id} className="flex flex-col">
+              {node.href && <MenuLinkNode item={node} locale={locale} className={drawerLink} onNavigate={close} />}
+              {node.children.map((child) => (
+                <MenuLinkNode key={child.id} item={child} locale={locale} className={`${drawerLink} ltr:pl-7 rtl:pr-7`} onNavigate={close} />
+              ))}
+              {!node.href && node.children.length === 0 && (
+                <span className={`${drawerLink} text-pub-muted`}>
+                  {locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}
+                </span>
+              )}
+            </div>
+          ))}
+          {isAdmin && (
+            <Link to="/admin" onClick={close} className={drawerLink}>
+              {t(locale, "common.admin")}
+            </Link>
+          )}
+          <Form method="post" action="/logout">
+            <button type="submit" className="flex min-h-12 w-full items-center rounded-pub-md px-3 text-pub-base font-medium text-pub-danger hover:bg-pub-danger-bg">
+              {t(locale, "common.logout")}
+            </button>
+          </Form>
+        </div>
+      </Drawer>
+
+      <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 xl:py-8 xl:pb-8">
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-200 bg-white pb-safe">
-        <div className="mx-auto w-full max-w-6xl px-4 py-4 text-sm text-slate-500">
+      <nav aria-label={t(locale, "common.tabBar")} className="fixed inset-x-0 bottom-0 z-30 border-t border-pub-line bg-pub-bg/97 pb-safe backdrop-blur-md xl:hidden">
+        <div className="grid grid-cols-4">
+          {primary.map((l) => (
+            <RRNavLink
+              key={l.to}
+              to={l.to}
+              end={l.end}
+              className={({ isActive }) =>
+                `relative flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium ${isActive ? "text-pub-navy" : "text-pub-muted"}`
+              }
+            >
+              <Icon name={l.icon} size="sm" colorRole="default" className="text-current" />
+              <span className="truncate">{l.label}</span>
+              {l.badge ? (
+                <span className="absolute end-3 top-1 min-w-4 rounded-full bg-pub-navy px-1 text-[10px] font-bold leading-4 text-pub-bg" dir="ltr">{l.badge}</span>
+              ) : null}
+            </RRNavLink>
+          ))}
+        </div>
+      </nav>
+
+      <footer className="hidden border-t border-pub-line bg-pub-bg pb-safe xl:block">
+        <div className="mx-auto w-full max-w-6xl px-4 py-4 text-sm text-pub-muted">
           © {new Date().getFullYear()} {appName}
         </div>
       </footer>

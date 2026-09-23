@@ -124,7 +124,7 @@ export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
           {loaderData.courses.map((course) => {
             const meta: string[] = [];
             if (pres.showTeacher && course.teacherName) meta.push(course.teacherName);
-            if (pres.showLessonCount) meta.push(t(locale, "content.lessonsCount", { n: course.lessonCount }));
+            if (pres.showLessonCount && course.lessonCount > 0) meta.push(t(locale, "content.lessonsCount", { n: course.lessonCount }));
             if (pres.showSubject) {
               meta.push(
                 `${c({ titleAr: course.programAr, titleEn: course.programEn })} · ${c({ titleAr: course.gradeAr, titleEn: course.gradeEn })} · ${c({ titleAr: course.subjectAr, titleEn: course.subjectEn })}`

@@ -6,10 +6,8 @@ import { requireUser } from "~server/auth/guards.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { changePassword } from "~server/auth/service.server";
-import { revokeAllUserSessions } from "~server/auth/session.server";
+import { applyAuthClear, revokeAllUserSessions } from "~server/auth/session.server";
 import { devices } from "~server/db/schema";
-import { clearCookieHeader } from "~server/auth/cookies.server";
-import { SESSION_COOKIE } from "~server/auth/session.server";
 import { logSecurityEvent } from "~server/security/events.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
@@ -49,7 +47,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     await revokeAllUserSessions(db, auth.user.id, "user_signout_all");
     await logSecurityEvent(db, { userId: auth.user.id, type: "sessions_revoked_all" });
     const headers = new Headers();
-    headers.append("Set-Cookie", clearCookieHeader(SESSION_COOKIE));
+    applyAuthClear(headers, env);
     return redirect("/login", { headers });
   }
 
@@ -70,7 +68,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   if (!result.ok) return { error: result.code };
 
   const headers = new Headers();
-  headers.append("Set-Cookie", clearCookieHeader(SESSION_COOKIE));
+  applyAuthClear(headers, env);
   return redirect("/login?reset=1", { headers });
 }
 
@@ -101,6 +99,9 @@ export default function Security() {
               required
               autoComplete="current-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
             <Input
               label={t(locale, "auth.newPassword")}
@@ -110,6 +111,9 @@ export default function Security() {
               minLength={8}
               autoComplete="new-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
             <Input
               label={t(locale, "auth.passwordConfirm")}
@@ -119,6 +123,9 @@ export default function Security() {
               minLength={8}
               autoComplete="new-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
             <div className="flex justify-end">
               <SubmitButton>{t(locale, "common.save")}</SubmitButton>

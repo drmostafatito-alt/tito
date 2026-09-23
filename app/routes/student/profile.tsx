@@ -13,7 +13,16 @@ import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
 import { Card, CardBody, CardHeader } from "~/components/ui/Card";
-import { t, formatDate, type Locale } from "~/lib/i18n";
+import { t, formatDateShort, type Locale } from "~/lib/i18n";
+
+function localizeRole(locale: Locale, label: string): string {
+  const k = label.toLowerCase();
+  if (k.includes("super")) return t(locale, "dashboard.roleSuperAdmin");
+  if (k.includes("admin") || k.includes("مشرف")) return t(locale, "dashboard.roleAdmin");
+  if (k.includes("teacher") || k.includes("مدر")) return t(locale, "dashboard.roleTeacher");
+  if (k.includes("student") || k.includes("طالب")) return t(locale, "dashboard.roleStudent");
+  return label;
+}
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2).max(80),
@@ -125,11 +134,11 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
             </div>
             <div>
               <dt className="text-slate-500">{t(locale, "dashboard.role")}</dt>
-              <dd className="font-medium text-slate-800">{user.roleLabel}</dd>
+              <dd className="font-medium text-slate-800">{localizeRole(locale, user.roleLabel)}</dd>
             </div>
             <div>
               <dt className="text-slate-500">{t(locale, "profile.memberSince")}</dt>
-              <dd className="font-medium text-slate-800">{formatDate(locale, user.createdAt)}</dd>
+              <dd className="font-medium text-slate-800">{formatDateShort(locale, user.createdAt)}</dd>
             </div>
           </dl>
         </CardBody>
@@ -176,9 +185,12 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
               maxLength={128}
               autoComplete="current-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
-            <div className="flex justify-end">
-              <SubmitButton>{t(locale, "profile.emailChangeSubmit")}</SubmitButton>
+            <div className="flex sm:justify-end">
+              <SubmitButton className="w-full sm:w-auto">{t(locale, "profile.emailChangeSubmit")}</SubmitButton>
             </div>
           </Form>
         </CardBody>

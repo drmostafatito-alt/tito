@@ -1,0 +1,16 @@
+[
+  { "path": "/" },
+  { "path": "/study" },
+  { "path": "/study/physics-3s" },
+  { "path": "/courses" },
+  { "path": "/courses/physics-3s-full" },
+  { "path": "/programs" },
+  { "path": "/programs/al-Thanawiya-al-3amma" },
+  { "path": "/products/physics-3s-full-access" },
+  { "path": "/p/resources" },
+  { "path": "/p/faq" },
+  { "path": "/p/contact" },
+  { "path": "/login" },
+  { "path": "/register" },
+  { "path": "/forgot-password" }
+]

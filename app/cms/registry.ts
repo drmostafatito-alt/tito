@@ -1192,7 +1192,7 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
   "cms.set.allowFullscreen": { ar: "السماح بملء الشاشة", en: "Allow fullscreen" },
   "cms.set.welcome": { ar: "رسالة الترحيب", en: "Welcome message" },
   "cms.set.modules": { ar: "وحدات اللوحة", en: "Dashboard modules" },
-  "cms.set.mod.my_courses": { ar: "كورساتي", en: "My courses" },
+  "cms.set.mod.my_courses": { ar: "محتواي التعليمي", en: "My learning" },
   "cms.set.mod.quick_actions": { ar: "إجراءات سريعة", en: "Quick actions" },
   "cms.set.mod.support": { ar: "الدعم", en: "Support" },
   "cms.set.mod.continue": { ar: "استكمل التعلم", en: "Continue learning" },

@@ -176,6 +176,9 @@ export default function ResetPassword({ loaderData }: Route.ComponentProps) {
               maxLength={128}
               autoComplete="new-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
             <Input
               label={t(locale, "auth.passwordConfirm")}
@@ -186,6 +189,9 @@ export default function ResetPassword({ loaderData }: Route.ComponentProps) {
               maxLength={128}
               autoComplete="new-password"
               dir="ltr"
+              reveal
+              revealShowLabel={t(locale, "common.showPassword")}
+              revealHideLabel={t(locale, "common.hidePassword")}
             />
             <SubmitButton className="w-full">
               {navigation.state === "idle" ? t(locale, "auth.resetSubmit") : t(locale, "common.loading")}

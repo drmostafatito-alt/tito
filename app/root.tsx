@@ -23,11 +23,11 @@ import {
 } from "~server/http/csrf.server";
 import { applicationOrigin } from "~server/http/origin.server";
 import { resolveAuth, SESSION_COOKIE } from "~server/auth/session.server";
+import { cookieSameSite, EMBED_SESSION_HEADER, parseCookieHeader } from "~server/auth/cookies.server";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
 import { LOCALE_COOKIE, resolveLocale } from "~server/settings/locale.server";
-import { parseCookieHeader } from "~server/auth/cookies.server";
 import { isLocale, t, dirOf, type Locale } from "~/lib/i18n";
 import { cspNonceContext } from "~server/csp.server";
 import "./app.css";
@@ -143,7 +143,8 @@ export const middleware: Route.MiddlewareFunction[] = [
     // Authenticated documents, data responses, APIs and redirects are private.
     applyPrivateCacheControl(
       response.headers,
-      parseCookieHeader(request.headers.get("cookie")).has(SESSION_COOKIE),
+      parseCookieHeader(request.headers.get("cookie")).has(SESSION_COOKIE) ||
+        (cookieSameSite(getEnv(context)) === "None" && Boolean(request.headers.get(EMBED_SESSION_HEADER))),
     );
     applySensitiveAuthHeaders(response.headers, pathname);
     return response;
