@@ -115,6 +115,17 @@ const QUICK = [
   { to: "/admin/announcements?new=1", key: "dash.qAnnounce", tone: "bg-slate-600 text-white" },
 ] as const;
 
+/** Owner map: every student-facing surface → the admin screen that edits it. */
+const SITE = [
+  { to: "/admin/cms", key: "dash.siteHome", hint: "dash.siteHomeHint" },
+  { to: "/admin/cms/menus", key: "dash.siteNav", hint: "dash.siteNavHint" },
+  { to: "/admin/appearance", key: "dash.siteIdentity", hint: "dash.siteIdentityHint" },
+  { to: "/admin/content", key: "dash.siteContent", hint: "dash.siteContentHint" },
+  { to: "/admin/announcements", key: "dash.siteAnnounce", hint: "dash.siteAnnounceHint" },
+  { to: "/admin/commerce", key: "dash.siteProducts", hint: "dash.siteProductsHint" },
+  { to: "/admin/files", key: "dash.siteMedia", hint: "dash.siteMediaHint" },
+] as const;
+
 function courseLabel(c: { titleAr: string; titleEn: string }, locale: Locale) {
   return locale === "ar" ? c.titleAr || c.titleEn : c.titleEn || c.titleAr;
 }
@@ -137,6 +148,26 @@ export default function AdminHome({ loaderData }: Route.ComponentProps) {
         </div>
         <RangeSwitcher range={loaderData.range} locale={locale} base="/admin" ranges={RANGE_KEYS} />
       </div>
+
+      {/* What students see — owner control map */}
+      <section className="flex flex-col gap-2" data-testid="student-site-control">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">{t(locale, "dash.siteTitle")}</h2>
+          <p className="mt-1 text-sm text-slate-600">{t(locale, "dash.siteHint")}</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {SITE.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="flex min-h-16 flex-col justify-center gap-0.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-right shadow-sm transition hover:border-brand-300 hover:bg-brand-50/40"
+            >
+              <span className="text-sm font-semibold text-slate-900">{t(locale, item.key)}</span>
+              <span className="text-xs text-slate-600">{t(locale, item.hint)}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* Quick actions */}
       <div className="flex flex-col gap-2">

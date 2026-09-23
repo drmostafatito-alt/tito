@@ -41,7 +41,7 @@ import { t, type Locale } from "~/lib/i18n";
 
 /** Node editor: edit fields, status/visibility/access, ordering, archive, children creation. */
 
-const VALID_TYPES: ContentType[] = ["program", "grade", "subject", "course", "unit", "lesson", "lessonItem"];
+const VALID_TYPES: ContentType[] = ["academicYear", "term", "program", "grade", "subject", "course", "unit", "lesson", "lessonItem"];
 
 const CHILD_LABEL: Partial<Record<ContentType, string>> = {
   program: "content.addGrade",
@@ -217,6 +217,13 @@ export async function action({ context, request, params }: Route.ActionArgs) {
         const ea = form.get("expiresAt");
         if (ea !== null) patch.expiresAt = dateMs(form, "expiresAt");
         if (type === "lesson") patch.freePreview = form.get("freePreview") === "on";
+        if (type === "academicYear") {
+          const startYear = num(form, "startYear");
+          const endYear = num(form, "endYear");
+          if (startYear !== null) patch.startYear = startYear;
+          if (endYear !== null) patch.endYear = endYear;
+          patch.isCurrent = form.get("isCurrent") === "on";
+        }
         if (type === "lessonItem") {
           patch.required = form.get("required") === "on";
         }
@@ -350,7 +357,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   const isCourse = type === "course";
   const isLesson = type === "lesson";
   const hasThumb = type === "subject" || isCourse;
-  const canDuplicate = type !== "lessonItem";
+  const canDuplicate = type !== "lessonItem" && type !== "academicYear" && type !== "term";
 
   return (
     <div className="space-y-6" key={`${type}-${String(node.id)}`}>
@@ -402,7 +409,12 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
                   <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50" disabled={nav.state === "submitting"}>⧉ {t(locale, "content.duplicate")}</button>
                 </Form>
               )}
-              <Form method="post">
+              <Form
+                method="post"
+                onSubmit={(e) => {
+                  if (!confirm(t(locale, "content.confirmArchive"))) e.preventDefault();
+                }}
+              >
                 <input type="hidden" name="_action" value="archive" />
                 <button className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50" disabled={nav.state === "submitting"}>{t(locale, "content.archive")}</button>
               </Form>

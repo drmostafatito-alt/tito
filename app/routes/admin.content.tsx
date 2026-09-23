@@ -7,6 +7,7 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import {
   adminTree,
+  CONTENT_TYPES,
   createAcademicYear,
   createCourse,
   createGrade,
@@ -18,7 +19,9 @@ import {
   ensureDefaultUnit,
   listAcademicYears,
   listTerms,
+  updateNode,
   type AdminTreeNode,
+  type ContentType,
 } from "~server/content/service.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { Badge } from "~/components/ui/Badge";
@@ -92,6 +95,26 @@ export async function action({ context, request }: Route.ActionArgs) {
       { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) }
     );
     return { ok: true as const };
+  }
+
+  if (intent === "set-status") {
+    const type = String(form.get("type") ?? "") as ContentType;
+    const id = String(form.get("id") ?? "").trim();
+    const status = String(form.get("status") ?? "");
+    if (!id || !(CONTENT_TYPES as readonly string[]).includes(type) || type === "lessonItem") {
+      return { error: "validation" as const };
+    }
+    if (status !== "draft" && status !== "published" && status !== "archived") {
+      return { error: "validation" as const };
+    }
+    const res = await updateNode(
+      db,
+      type,
+      id,
+      { status },
+      { userId: auth.user.id, role: auth.user.roleId, ipHash: await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER) }
+    );
+    return res.ok ? { ok: true as const } : { error: "generic" as const };
   }
 
   if (intent === "create-term") {
@@ -215,6 +238,42 @@ function StatusBadge({ status, locale }: { status: string; locale: Locale }) {
   return <Badge tone={tone}>{t(locale, key)}</Badge>;
 }
 
+/** Publish / hide / archive without opening the node editor. */
+function NodeStatusActions({ type, id, status, locale }: { type: string; id: string; status: string; locale: Locale }) {
+  if (type === "lessonItem") return null;
+  const next = status === "published" ? "draft" : "published";
+  const btn = "rounded border px-2 py-0.5 text-xs hover:bg-slate-50 disabled:opacity-50";
+  return (
+    <span className="flex shrink-0 flex-wrap items-center gap-1">
+      <Form method="post">
+        <input type="hidden" name="_action" value="set-status" />
+        <input type="hidden" name="type" value={type} />
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="status" value={next} />
+        <button type="submit" className={`${btn} border-slate-300 text-slate-700`}>
+          {status === "published" ? t(locale, "content.hideFromStudents") : t(locale, "content.showToStudents")}
+        </button>
+      </Form>
+      {status !== "archived" && (
+        <Form
+          method="post"
+          onSubmit={(e) => {
+            if (!confirm(t(locale, "content.confirmArchive"))) e.preventDefault();
+          }}
+        >
+          <input type="hidden" name="_action" value="set-status" />
+          <input type="hidden" name="type" value={type} />
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="status" value="archived" />
+          <button type="submit" className={`${btn} border-red-200 text-red-600 hover:bg-red-50`}>
+            {t(locale, "content.archive")}
+          </button>
+        </Form>
+      )}
+    </span>
+  );
+}
+
 function TreeNode({ node, locale, depth = 0 }: { node: AdminTreeNode; locale: Locale; depth?: number }) {
   const label = locale === "ar" ? node.titleAr : node.titleEn;
   return (
@@ -234,6 +293,7 @@ function TreeNode({ node, locale, depth = 0 }: { node: AdminTreeNode; locale: Lo
             /{node.slug}
           </span>
         )}
+        <NodeStatusActions type={node.type} id={node.id} status={node.status} locale={locale} />
       </div>
       {node.children.length > 0 && (
         <ul className="list-none p-0">
@@ -339,6 +399,7 @@ function ContentTree({ tree, locale }: { tree: AdminTreeNode[]; locale: Locale }
                   </Link>
                   <Badge tone="neutral">{t(locale, TYPE_LABEL_KEY[node.type] ?? "content.type")}</Badge>
                   {node.slug && <span dir="ltr" className="hidden max-w-[30%] shrink truncate text-xs text-slate-500 md:inline">/{node.slug}</span>}
+                  <NodeStatusActions type={node.type} id={node.id} status={node.status} locale={locale} />
                 </li>
               ))}
             </ul>
@@ -397,7 +458,7 @@ export default function AdminContent({ loaderData }: Route.ComponentProps) {
     <div className="space-y-6">
       <h1 className="sr-only">{t(locale, "admin.navContent")}</h1>
       <Card>
-        <CardHeader title={t(locale, "admin.navContent")} description={t(locale, "content.treeHint")} />
+        <CardHeader title={t(locale, "admin.navContent")} description={`${t(locale, "content.treeHint")} ${t(locale, "content.studentVisibleNote")}`} />
         <CardBody>
           <ContentTree tree={loaderData.tree} locale={locale} />
         </CardBody>
@@ -445,6 +506,7 @@ export default function AdminContent({ loaderData }: Route.ComponentProps) {
                   </Link>
                   <span dir="ltr" className="text-xs text-slate-500">{y.startYear}/{y.endYear}</span>
                   {y.isCurrent && <Badge tone="brand">{t(locale, "content.isCurrent")}</Badge>}
+                  <NodeStatusActions type="academicYear" id={y.id} status={y.status} locale={locale} />
                 </li>
               ))}
             </ul>
@@ -488,11 +550,12 @@ export default function AdminContent({ loaderData }: Route.ComponentProps) {
           {loaderData.terms.length > 0 && (
             <ul className="flex flex-wrap gap-2 text-sm" data-testid="admin-terms">
               {loaderData.terms.map((tm) => (
-                <li key={tm.id} className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1">
+                <li key={tm.id} className="flex flex-wrap items-center gap-2 rounded-full border border-slate-200 px-3 py-1">
                   <StatusBadge status={tm.status} locale={locale} />
                   <Link to={`/admin/content/term/${tm.id}`} className="font-medium text-slate-800 hover:underline">
                     {locale === "ar" ? tm.titleAr : tm.titleEn}
                   </Link>
+                  <NodeStatusActions type="term" id={tm.id} status={tm.status} locale={locale} />
                 </li>
               ))}
             </ul>
