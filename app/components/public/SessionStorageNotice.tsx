@@ -37,9 +37,10 @@ export function SessionStorageNotice({ locale }: { locale: Locale }) {
       submitted = false;
     }
     setHref(window.location.href);
-    const inFrame = window.top !== window.self;
-    if (!cookiesOk) setState(submitted ? "lost" : "blocked");
-    else if (inFrame) setState("frame");
+    // Login in this preview also persists via sessionStorage (see entry.client),
+    // so a blocked-cookie probe is not a reason to scare the user before submit.
+    // Only explain a bounce AFTER they actually submitted and came back.
+    if (!cookiesOk && submitted) setState("lost");
   }, []);
 
   if (!state) return null;

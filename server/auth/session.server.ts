@@ -2,7 +2,17 @@ import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import type { DB } from "../db/client.server";
 import { devices, sessions, users } from "../db/schema";
 import { sha256Hex } from "../http/rate-limit.server";
-import { cookieSameSite, parseCookieHeader, serializeCookie } from "./cookies.server";
+import {
+  applyEmbedClear,
+  clearCookieHeader,
+  cookieSameSite,
+  embedHeadersEnabled,
+  EMBED_DEVICE_HEADER,
+  EMBED_SESSION_HEADER,
+  parseCookieHeader,
+  readEmbedHeader,
+  serializeCookie,
+} from "./cookies.server";
 
 // __Host- cookies cannot be planted from a sibling subdomain: browsers require
 // Secure, Path=/, and no Domain attribute. serializeCookie enforces that shape.
@@ -34,6 +44,36 @@ export function newOpaqueToken(): string {
 
 export async function hashToken(token: string, env: Env): Promise<string> {
   return sha256Hex(token, env.SESSION_PEPPER ?? "");
+}
+
+/** Cookie first; embed header only when COOKIE_SAMESITE=None (preview iframes). */
+export function readSessionToken(request: Request, env: Env): string | undefined {
+  const fromCookie = parseCookieHeader(request.headers.get("cookie")).get(SESSION_COOKIE)?.trim();
+  if (fromCookie) return fromCookie;
+  return readEmbedHeader(request, EMBED_SESSION_HEADER, env);
+}
+
+export function applyAuthCookies(
+  headers: Headers,
+  env: Env,
+  cookies: { name: string; value: string; maxAgeSeconds: number }[],
+): void {
+  const sameSite = cookieSameSite(env);
+  const embed = embedHeadersEnabled(env);
+  for (const c of cookies) {
+    headers.append(
+      "Set-Cookie",
+      serializeCookie(c.name, c.value, { maxAgeSeconds: c.maxAgeSeconds, sameSite }),
+    );
+    if (!embed) continue;
+    if (c.name === SESSION_COOKIE) headers.set(EMBED_SESSION_HEADER, c.value);
+    if (c.name === DEVICE_COOKIE) headers.set(EMBED_DEVICE_HEADER, c.value);
+  }
+}
+
+export function applyAuthClear(headers: Headers, env: Env): void {
+  headers.append("Set-Cookie", clearCookieHeader(SESSION_COOKIE));
+  applyEmbedClear(headers, env);
 }
 
 export async function createSession(
@@ -71,7 +111,7 @@ export async function resolveAuth(
   env: Env,
   request: Request
 ): Promise<{ auth: AuthContext | null; refreshCookie?: string }> {
-  const token = parseCookieHeader(request.headers.get("cookie")).get(SESSION_COOKIE);
+  const token = readSessionToken(request, env);
   if (!token) return { auth: null };
 
   const tokenHash = await hashToken(token, env);

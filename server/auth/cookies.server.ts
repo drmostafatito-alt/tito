@@ -55,6 +55,30 @@ export function cookieSameSite(env: Env | undefined): "Strict" | "Lax" | "None" 
   return "Lax";
 }
 
+/** Cross-site iframes (live preview) drop even Partitioned cookies. When
+ *  COOKIE_SAMESITE=None we also carry the opaque tokens on these headers so
+ *  the hydrated client can replay them from sessionStorage. Production (Lax)
+ *  never emits or accepts the headers — HttpOnly cookies stay the only path. */
+export const EMBED_SESSION_HEADER = "X-Edu-Session";
+export const EMBED_DEVICE_HEADER = "X-Edu-Device";
+export const EMBED_CLEAR_SESSION_HEADER = "X-Edu-Clear-Session";
+
+const OPAQUE_TOKEN = /^[A-Za-z0-9_-]{16,128}$/;
+
+export function embedHeadersEnabled(env: Env | undefined): boolean {
+  return cookieSameSite(env) === "None";
+}
+
+export function readEmbedHeader(request: Request, name: string, env: Env | undefined): string | undefined {
+  if (!embedHeadersEnabled(env)) return undefined;
+  const raw = request.headers.get(name)?.trim() ?? "";
+  return OPAQUE_TOKEN.test(raw) ? raw : undefined;
+}
+
+export function applyEmbedClear(headers: Headers, env: Env | undefined): void {
+  if (embedHeadersEnabled(env)) headers.set(EMBED_CLEAR_SESSION_HEADER, "1");
+}
+
 export function clearCookieHeader(name: string, path = "/"): string {
   return `${name}=; Path=${path}; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; HttpOnly; Secure`;
 }

@@ -2,11 +2,9 @@ import type { Route } from "./+types/logout";
 import { redirect } from "react-router";
 import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
-import { resolveAuth } from "~server/auth/session.server";
+import { applyAuthClear, resolveAuth } from "~server/auth/session.server";
 import { logout } from "~server/auth/service.server";
-import { clearCookieHeader } from "~server/auth/cookies.server";
 import { clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
-import { SESSION_COOKIE } from "~server/auth/session.server";
 
 /** POST-only logout: revokes the session row (device slot persists — ADR-005). */
 export async function action({ context, request }: Route.ActionArgs) {
@@ -17,7 +15,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     await logout(db, auth.session.id, auth.user.id, await sha256Hex(clientIpOf(request) ?? "unknown", env.SESSION_PEPPER));
   }
   const headers = new Headers();
-  headers.append("Set-Cookie", clearCookieHeader(SESSION_COOKIE));
+  applyAuthClear(headers, env);
   return redirect("/login", { headers });
 }
 

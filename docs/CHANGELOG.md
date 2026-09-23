@@ -2,6 +2,27 @@
 
 All notable changes are documented here. Versioning stays 0.x until first production release.
 
+## [0.16.0] — 2026-09-24 (branch `arena/01a0c40b-tito`)
+
+### Fixed — login in the live-preview iframe still bounced to guest
+
+`COOKIE_SAMESITE=None` + `Partitioned` (0.14) is not enough: Chromium still
+drops third-party `__Host-` cookies inside the Arena LIVE PREVIEW iframe, so a
+successful admin/student login 302'd to `/admin` then immediately bounced back
+to `/login`. Production (Lax, first-party) is unchanged.
+
+- Login/register now also emit opaque tokens on `X-Edu-Session` / `X-Edu-Device`
+  when `COOKIE_SAMESITE=None`. Logout/password-change emit `X-Edu-Clear-Session`.
+- `app/entry.client.tsx` patches `fetch` **before** hydrate: same-origin
+  React Router `.data` requests replay the tokens from `sessionStorage`.
+  Cookie still wins when the browser keeps it. Headers are ignored unless
+  `COOKIE_SAMESITE=None`, and tokens must match `^[A-Za-z0-9_-]{16,128}$`.
+- SessionStorageNotice no longer scares the user before they even submit.
+
+### Verification
+- Unit cookies suite 12/12 (header gated, cookie-wins, malformed reject).
+- `lint:imports` + `tsc --noEmit` clean.
+
 ## [0.15.0] — 2026-09-19 (branch `arena/01a0b9b9-tito`)
 
 ### Fixed — silent login bounce in embedded previews ("the button does nothing")
