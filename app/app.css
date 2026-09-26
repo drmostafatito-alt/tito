@@ -659,3 +659,56 @@
   .study-lesson-row:focus-within { padding-inline: 0.5rem; }
   .study-lesson-row { min-height: 6rem; }
 }
+
+/* Product composition -------------------------------------------------------
+   Public sections use rhythm rather than a stack of identical cards. */
+.cms-page > .pub-section:nth-child(odd) { background: var(--color-pub-bg); }
+.cms-page > .pub-section:nth-child(even) { background: var(--color-pub-surface); }
+.cms-page > .pub-section:nth-child(3n) .pub-container { max-inline-size: 72rem; }
+.cms-page > .pub-section:nth-child(3n) h2 { font-size: clamp(1.75rem, 3.5vw, 3.25rem); letter-spacing: -0.045em; }
+.cms-page .pub-container { position: relative; }
+.cms-page .pub-section { padding-block: clamp(3.5rem, 8vw, 7rem); }
+.cms-page .pub-section + .pub-section { border-block-start: 0; }
+
+/* Hero is a product introduction: short, editorial, and useful. */
+.cms-page .hero-blob { box-shadow: 1rem 1rem 0 var(--color-pub-accent-soft); }
+.cms-page [data-hero-visual="true"] { max-block-size: 30rem; }
+
+/* Dashboard: convert generic console cards into a quiet learning workspace. */
+.student-dashboard { --dash-line: var(--color-pub-line); }
+.student-dashboard > div:first-child {
+  border-block-end: 1px solid var(--dash-line);
+  padding-block-end: 1.5rem;
+}
+.student-dashboard > .rounded-card,
+.student-dashboard > [class*="rounded"] { min-inline-size: 0; }
+.student-dashboard .rounded-lg.border-slate-200,
+.student-dashboard .rounded-xl.border-slate-200 {
+  border-color: var(--dash-line);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+.student-dashboard .rounded-lg.border-slate-200:hover,
+.student-dashboard .rounded-xl.border-slate-200:hover { border-color: var(--color-pub-line-strong); }
+.student-dashboard [class*="bg-brand-"],
+.student-dashboard [class*="text-brand-"] { --tw-bg-opacity: 1; }
+
+/* Auth is an entry point into the learning product, not an isolated SaaS form. */
+.auth-page { max-inline-size: 34rem; min-block-size: min(36rem, 78vh); }
+.auth-page > .rounded-card,
+.auth-page > [class*="rounded"] {
+  border-color: var(--color-pub-line);
+  border-radius: 1.25rem 3rem 1.25rem 3rem;
+  box-shadow: var(--shadow-pub-card);
+}
+.auth-page h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -0.045em; }
+.auth-page form button[type="submit"] { min-block-size: 3rem; }
+
+@media (min-width: 64rem) {
+  .cms-page > .pub-section:nth-child(3n + 1) .pub-container { padding-inline-start: 8%; }
+  .cms-page > .pub-section:nth-child(3n + 2) .pub-container { padding-inline-end: 8%; }
+}
+@media (max-width: 40rem) {
+  .cms-page .pub-section { padding-block: 3rem; }
+  .cms-page .hero-blob { box-shadow: .5rem .5rem 0 var(--color-pub-accent-soft); }
+  .auth-page { min-block-size: auto; padding-block: 2.5rem; }
+}
