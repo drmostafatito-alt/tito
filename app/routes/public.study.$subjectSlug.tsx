@@ -13,7 +13,7 @@ import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { breadcrumbJsonLd } from "~/cms/jsonld";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
 import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
-import { CARD_BODY, CARD_META, PUB_CARD, pubBtnSm } from "~/lib/publicStyles";
+import { CARD_BODY, CARD_META, pubBtnSm } from "~/lib/publicStyles";
 import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
 import { ContentTypeChips } from "~/components/study/ContentTypeChips";
 import { thinkerAlternate, thinkerFor, type StudyItemKind } from "~/lib/thinkers";
@@ -287,7 +287,7 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                     <div
                       key={term.id}
                       data-testid={`study-term-${term.slug}`}
-                      className={`${PUB_CARD} isolate rounded-pub-2xl hover:shadow-pub-card`}
+                      className="study-term-section border-t border-pub-line pt-6 first:border-t-0 sm:pt-8"
                     >
                       <div className="relative z-10 p-5 sm:p-6">
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -313,10 +313,10 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                               return (
                                 <li
                                   key={l.id}
-                                  className="flex flex-col gap-3 rounded-pub-xl border border-pub-line bg-pub-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+                                  className="study-lesson-row group/lesson flex flex-col gap-3 border-b border-pub-line px-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
                                 >
                                   <div className="flex min-w-0 items-start gap-3">
-                                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pub-md bg-pub-navy text-pub-sm font-bold tabular-nums text-pub-on-navy">
+                                    <span className="study-lesson-number flex h-12 w-12 shrink-0 items-center justify-center border-e-2 border-pub-accent text-pub-lg font-extrabold tabular-nums text-pub-navy sm:h-14 sm:w-14 sm:text-pub-xl">
                                       {padIndex(idx + 1)}
                                     </span>
                                     <div className="min-w-0">

@@ -592,3 +592,168 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Tito editorial learning layer ------------------------------------------------
+ * Public content is intentionally not rendered as a marketplace grid. These
+ * primitives give the study surfaces a recognizable rhythm: index-like rows,
+ * asymmetric subject identity blocks, and typography-led transitions. */
+.study-subject-block {
+  isolation: isolate;
+  transition: border-color 180ms ease, padding-inline 180ms ease;
+}
+.study-subject-block::before {
+  content: "";
+  position: absolute;
+  inset-block: 1.5rem;
+  inset-inline-end: 0;
+  width: 0.25rem;
+  background: var(--color-pub-accent);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 180ms ease;
+}
+.study-subject-block:hover,
+.study-subject-block:focus-within {
+  border-color: var(--color-pub-line-strong);
+  padding-inline: 0.75rem;
+}
+.study-subject-block:hover::before,
+.study-subject-block:focus-within::before { transform: scaleY(1); }
+
+.study-term-section {
+  position: relative;
+}
+.study-term-section > .relative {
+  margin-block-end: 1.25rem;
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--color-pub-line);
+}
+.study-lesson-row {
+  min-height: 5.25rem;
+  transition: background-color 180ms ease, padding-inline 180ms ease;
+}
+.study-lesson-row:hover,
+.study-lesson-row:focus-within {
+  background: var(--color-pub-surface);
+  padding-inline: 0.75rem;
+}
+.study-lesson-number { font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+
+/* One deliberate transition between content bands; no gradients or decorative
+   blobs. It reads like a printed chapter divider at large sizes. */
+.pub-section + .pub-section { border-block-start: 1px solid var(--color-pub-line); }
+.pub-section > .pub-container > h2:first-child,
+.pub-section > .pub-container > div > h2:first-child { max-inline-size: 15ch; }
+
+/* The identity is carried by type and composition, not a large illustration. */
+.hero-blob {
+  background: var(--color-pub-navy);
+  border-radius: 1.5rem 5rem 1.5rem 5rem;
+}
+.hero-orbit { border-style: solid; border-width: 1px; opacity: .45; }
+
+@media (max-width: 40rem) {
+  .study-subject-block:hover,
+  .study-subject-block:focus-within,
+  .study-lesson-row:hover,
+  .study-lesson-row:focus-within { padding-inline: 0.5rem; }
+  .study-lesson-row { min-height: 6rem; }
+}
+
+/* Product composition -------------------------------------------------------
+   Public sections use rhythm rather than a stack of identical cards. */
+.cms-page > .pub-section:nth-child(odd) { background: var(--color-pub-bg); }
+.cms-page > .pub-section:nth-child(even) { background: var(--color-pub-surface); }
+.cms-page > .pub-section:nth-child(3n) .pub-container { max-inline-size: 72rem; }
+.cms-page > .pub-section:nth-child(3n) h2 { font-size: clamp(1.75rem, 3.5vw, 3.25rem); letter-spacing: -0.045em; }
+.cms-page .pub-container { position: relative; }
+.cms-page .pub-section { padding-block: clamp(3.5rem, 8vw, 7rem); }
+.cms-page .pub-section + .pub-section { border-block-start: 0; }
+
+/* Hero is a product introduction: short, editorial, and useful. */
+.cms-page .hero-blob { box-shadow: 1rem 1rem 0 var(--color-pub-accent-soft); }
+.cms-page [data-hero-visual="true"] { max-block-size: 30rem; }
+
+/* Dashboard: convert generic console cards into a quiet learning workspace. */
+.student-dashboard { --dash-line: var(--color-pub-line); }
+.student-dashboard > div:first-child {
+  border-block-end: 1px solid var(--dash-line);
+  padding-block-end: 1.5rem;
+}
+.student-dashboard > .rounded-card,
+.student-dashboard > [class*="rounded"] { min-inline-size: 0; }
+.student-dashboard .rounded-lg.border-slate-200,
+.student-dashboard .rounded-xl.border-slate-200 {
+  border-color: var(--dash-line);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+.student-dashboard .rounded-lg.border-slate-200:hover,
+.student-dashboard .rounded-xl.border-slate-200:hover { border-color: var(--color-pub-line-strong); }
+.student-dashboard [class*="bg-brand-"],
+.student-dashboard [class*="text-brand-"] { --tw-bg-opacity: 1; }
+
+/* Auth is an entry point into the learning product, not an isolated SaaS form. */
+.auth-page { max-inline-size: 34rem; min-block-size: min(36rem, 78vh); }
+.auth-page > .rounded-card,
+.auth-page > [class*="rounded"] {
+  border-color: var(--color-pub-line);
+  border-radius: 1.25rem 3rem 1.25rem 3rem;
+  box-shadow: var(--shadow-pub-card);
+}
+.auth-page h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -0.045em; }
+.auth-page form button[type="submit"] { min-block-size: 3rem; }
+
+@media (min-width: 64rem) {
+  .cms-page > .pub-section:nth-child(3n + 1) .pub-container { padding-inline-start: 8%; }
+  .cms-page > .pub-section:nth-child(3n + 2) .pub-container { padding-inline-end: 8%; }
+}
+@media (max-width: 40rem) {
+  .cms-page .pub-section { padding-block: 3rem; }
+  .cms-page .hero-blob { box-shadow: .5rem .5rem 0 var(--color-pub-accent-soft); }
+  .auth-page { min-block-size: auto; padding-block: 2.5rem; }
+}
+
+/* Final product-wide polish ------------------------------------------------- */
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-pub-accent-strong);
+  outline-offset: 3px;
+}
+
+/* Keep every public action legible at a glance: one primary, quiet siblings. */
+.pub-root main a[class*="bg-pub-navy"],
+.cms-page a[class*="bg-pub-navy"] { font-weight: 700; }
+.pub-root main a[class*="bg-pub-accent"] { box-shadow: 0 2px 0 color-mix(in srgb, var(--color-pub-accent-strong) 35%, transparent); }
+
+/* Header and drawer are navigation, not a collection of pills. */
+.pub-root header nav a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--color-pub-accent); }
+.pub-root [role="dialog"] a { min-block-size: 2.75rem; }
+
+/* Empty states keep the same editorial tone as populated content. */
+[data-testid$="-empty"],
+[data-testid="study-empty"] { border-inline-start: 3px solid var(--color-pub-accent); }
+
+/* Subject language: philosophy reads structured; psychology gets softer only
+   through its motif classes, never a separate brand palette. */
+[data-subject-kind="philosophy"] .study-lesson-number { letter-spacing: -0.08em; }
+[data-subject-kind="psychology"] .study-lesson-row:hover { background: color-mix(in srgb, var(--color-pub-surface) 70%, white); }
+
+/* Prevent common narrow-screen failure modes. */
+html, body { max-inline-size: 100%; overflow-x: hidden; }
+img, video, iframe { max-inline-size: 100%; }
+button, a { touch-action: manipulation; }
+
+@media (max-width: 22.5rem) {
+  .pub-root header .brand-mark { max-inline-size: 9rem; }
+  .pub-root main { overflow-wrap: anywhere; }
+  .pub-root main a[class*="px-6"] { padding-inline: 1rem; }
+}
+@media (min-width: 48rem) and (max-width: 63.999rem) {
+  .pub-root .pub-container { padding-inline: 1.5rem; }
+}
+@media (min-width: 90rem) {
+  .pub-root .pub-container { max-inline-size: 78rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-subject-block, .study-lesson-row, .student-dashboard * { transition: none !important; }
+}
