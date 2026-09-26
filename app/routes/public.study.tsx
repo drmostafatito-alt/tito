@@ -5,7 +5,7 @@ import { getEnv } from "~server/cf.server";
 import { studyHub } from "~server/content/service.server";
 import { getSettings } from "~server/settings/service.server";
 import { resolvePublicImageUrls } from "~server/cms/render.server";
-import { CARD_BODY, CARD_META, CHIP, PUB_CARD, pubBtnSm } from "~/lib/publicStyles";
+import { CARD_BODY, CARD_META, CHIP, pubBtnSm } from "~/lib/publicStyles";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
@@ -150,8 +150,9 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
               });
               const thinker = i === 1 ? thinkerAlternate(thinkerFor({ slot: "subject-card", slug: s.slug, titleAr: s.titleAr, titleEn: s.titleEn }), s.slug) : primary;
               const year = ar ? s.yearTitleAr : s.yearTitleEn;
+              const subjectKind = /نفس|psychology/i.test(`${s.titleAr} ${s.titleEn} ${s.slug}`) ? "psychology" : "philosophy";
               return (
-                <article key={s.slug} className={`${PUB_CARD} isolate rounded-pub-2xl`}>
+                <article key={s.slug} data-subject-kind={subjectKind} className="study-subject-block group relative isolate overflow-hidden border-b border-pub-line py-6 first:border-t sm:py-8">
                   <Link
                     to={`/study/${s.slug}`}
                     className="relative z-10 flex min-h-[11rem] flex-col gap-2 p-5 sm:p-6"
