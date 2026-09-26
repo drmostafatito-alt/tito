@@ -592,3 +592,70 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Tito editorial learning layer ------------------------------------------------
+ * Public content is intentionally not rendered as a marketplace grid. These
+ * primitives give the study surfaces a recognizable rhythm: index-like rows,
+ * asymmetric subject identity blocks, and typography-led transitions. */
+.study-subject-block {
+  isolation: isolate;
+  transition: border-color 180ms ease, padding-inline 180ms ease;
+}
+.study-subject-block::before {
+  content: "";
+  position: absolute;
+  inset-block: 1.5rem;
+  inset-inline-end: 0;
+  width: 0.25rem;
+  background: var(--color-pub-accent);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 180ms ease;
+}
+.study-subject-block:hover,
+.study-subject-block:focus-within {
+  border-color: var(--color-pub-line-strong);
+  padding-inline: 0.75rem;
+}
+.study-subject-block:hover::before,
+.study-subject-block:focus-within::before { transform: scaleY(1); }
+
+.study-term-section {
+  position: relative;
+}
+.study-term-section > .relative {
+  margin-block-end: 1.25rem;
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--color-pub-line);
+}
+.study-lesson-row {
+  min-height: 5.25rem;
+  transition: background-color 180ms ease, padding-inline 180ms ease;
+}
+.study-lesson-row:hover,
+.study-lesson-row:focus-within {
+  background: var(--color-pub-surface);
+  padding-inline: 0.75rem;
+}
+.study-lesson-number { font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+
+/* One deliberate transition between content bands; no gradients or decorative
+   blobs. It reads like a printed chapter divider at large sizes. */
+.pub-section + .pub-section { border-block-start: 1px solid var(--color-pub-line); }
+.pub-section > .pub-container > h2:first-child,
+.pub-section > .pub-container > div > h2:first-child { max-inline-size: 15ch; }
+
+/* The identity is carried by type and composition, not a large illustration. */
+.hero-blob {
+  background: var(--color-pub-navy);
+  border-radius: 1.5rem 5rem 1.5rem 5rem;
+}
+.hero-orbit { border-style: solid; border-width: 1px; opacity: .45; }
+
+@media (max-width: 40rem) {
+  .study-subject-block:hover,
+  .study-subject-block:focus-within,
+  .study-lesson-row:hover,
+  .study-lesson-row:focus-within { padding-inline: 0.5rem; }
+  .study-lesson-row { min-height: 6rem; }
+}
