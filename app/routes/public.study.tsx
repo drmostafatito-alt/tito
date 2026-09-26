@@ -153,6 +153,11 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
               const subjectKind = /نفس|psychology/i.test(`${s.titleAr} ${s.titleEn} ${s.slug}`) ? "psychology" : "philosophy";
               return (
                 <article key={s.slug} data-subject-kind={subjectKind} className="study-subject-block group relative isolate overflow-hidden border-b border-pub-line py-6 first:border-t sm:py-8">
+=======
+=======
+                <article key={s.slug} className="study-subject-block group relative isolate overflow-hidden border-b border-pub-line py-6 first:border-t sm:py-8">
+>>>>>>> 735f2104b4471ccd7a305aa8d6d348c2d86ccd44
+>>>>>>> b6440777cb4b0348a4afe4d609a96095bb430a8a
                   <Link
                     to={`/study/${s.slug}`}
                     className="relative z-10 flex min-h-[11rem] flex-col gap-2 p-5 sm:p-6"
