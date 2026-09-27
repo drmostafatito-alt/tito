@@ -68,7 +68,7 @@ export default function Login() {
   const reset = params.get("reset");
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
+    <div className="auth-page mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
         <h1 className="mb-1 text-2xl font-bold text-pub-ink">{t(locale, "auth.loginTitle")}</h1>
         <p className="mb-6 text-sm text-pub-muted">{t(locale, "auth.loginSubtitle")}</p>

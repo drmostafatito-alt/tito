@@ -1210,7 +1210,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               const thinker = idx > 0 ? thinkerAlternate(primary, row.id) : primary;
               return (
                 <li key={row.id} className="h-full min-w-0">
-                  <SmartLink href={row.href} ariaLabel={`${cta} — ${title}`} className={`${PUB_CARD} min-h-[13rem] gap-3 p-5 pt-[7rem] sm:p-6 sm:pt-6`}>
+                  <SmartLink href={row.href} ariaLabel={`${cta} — ${title}`} className="subject-world-panel group relative isolate flex min-h-[19rem] flex-col overflow-hidden border-b-2 border-pub-line p-5 pt-[7rem] transition-colors hover:border-pub-accent sm:min-h-[15rem] sm:p-7">
                     {/* The subject's own thinker, INSIDE the card: a top band on a
                         phone and a cropped column from sm up. Masked toward the
                         reading side (see .thinker-figure) so the title, description
@@ -1606,7 +1606,7 @@ export function SectionView({ section, ctx }: { section: RenderBlock; ctx: CmsRe
   return (
     <section
       id={anchorId}
-      className={`relative isolate scroll-mt-24 overflow-hidden ${SECTION_BG[bg] ?? "bg-pub-bg"} ${SECTION_PAD[raw(p, "padding") || "md"] ?? SECTION_PAD.md} ${bool(p, "hideMobile") ? "max-md:hidden" : ""}`}
+      className={`cms-section relative isolate scroll-mt-24 overflow-hidden ${SECTION_BG[bg] ?? "bg-pub-bg"} ${SECTION_PAD[raw(p, "padding") || "md"] ?? SECTION_PAD.md} ${bool(p, "hideMobile") ? "max-md:hidden" : ""}`}
     >
       {(bg === "dark" || bg === "brand") && <SectionDecor variant="band" />}
       {(bg === "default" || bg === "surface") && <span aria-hidden="true" className="decor-wash pointer-events-none absolute inset-0 -z-10 opacity-60" />}
