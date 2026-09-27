@@ -68,7 +68,7 @@ export default function Register() {
     : (password.length >= 8 ? 1 : 0) + (/[0-9]/.test(password) ? 1 : 0) + (/[A-Za-z\u0600-\u06FF]/.test(password) ? 1 : 0);
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
+    <div className="auth-page mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
       <Card className="p-6 sm:p-8">
         <h1 className="mb-6 text-2xl font-bold text-pub-ink">{t(locale, "common.register")}</h1>
 
