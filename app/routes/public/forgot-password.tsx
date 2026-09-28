@@ -5,7 +5,7 @@ import { requestPasswordReset } from "~server/auth/service.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
-import { Card } from "~/components/ui/Card";
+import { AuthFrame, AuthLink } from "~/components/tito/auth";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
@@ -44,22 +44,21 @@ export default function ForgotPassword() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
-        <h1 className="mb-1 text-2xl font-bold text-pub-ink">{t(locale, "auth.forgotTitle")}</h1>
-        <p className="mb-6 text-sm text-pub-muted">{t(locale, "auth.forgotDesc")}</p>
+    <AuthFrame
+      locale={locale}
+      step={2}
+      title={t(locale, "auth.forgotTitle")}
+      lede={t(locale, "auth.forgotDesc")}
+      footer={<AuthLink to="/login">{t(locale, "common.login")}</AuthLink>}
+    >
+      {actionData?.sent && <Alert kind="success">{t(locale, "auth.forgotSent")}</Alert>}
 
-        {actionData?.sent && (
-          <div className="mb-4">
-            <Alert kind="success">{t(locale, "auth.forgotSent")}</Alert>
-          </div>
-        )}
-
-        <Form method="post" className="flex flex-col gap-4">
-          <Input label={t(locale, "auth.email")} name="email" type="email" required autoComplete="email" dir="ltr" />
-          <SubmitButton className="w-full">{t(locale, "auth.forgotSubmit")}</SubmitButton>
-        </Form>
-      </Card>
-    </div>
+      <Form method="post" className="flex flex-col gap-5">
+        <Input label={t(locale, "auth.email")} name="email" type="email" required autoComplete="email" dir="ltr" />
+        <SubmitButton size="lg" className="w-full">
+          {t(locale, "auth.forgotSubmit")}
+        </SubmitButton>
+      </Form>
+    </AuthFrame>
   );
 }

@@ -29,7 +29,13 @@ export function applySecurityHeaders(headers: HeaderLike, isDev: boolean, nonce?
     // YouTube player entirely. Pinned to the privacy-enhanced host only — the
     // embed URL is rebuilt server-side from a validated video id, so no other
     // origin can ever be framed.
-    `frame-src https://www.youtube-nocookie.com https://docs.google.com`,
+    //
+    // 'self' is required for the lesson page's inline PDF viewer: attachments
+    // are framed from our own signed `/files/:id` URLs, which the browser
+    // otherwise refuses (frame-src does NOT fall back to default-src once the
+    // directive is present). This does not make the app framable — that is
+    // `frame-ancestors 'none'`, below — it only lets us frame ourselves.
+    `frame-src 'self' https://www.youtube-nocookie.com https://docs.google.com`,
     `font-src 'self'`,
     // hls.js fetches Mux manifests/segments through XHR/Fetch; media-src alone
     // covers only the native Safari path.

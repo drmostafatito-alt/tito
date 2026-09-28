@@ -1,5 +1,15 @@
 import { useId, useState } from "react";
 
+/**
+ * THE field.
+ *
+ * In the Index language a form is a ruled list of things you fill in, so the
+ * field is a near-square box with a hairline and a paper interior, and its
+ * label is set in the same tiny letterspaced grammar as every other label in
+ * the product. No raw Tailwind ramps (`slate-*`, `brand-*`) — LAYER A tokens
+ * only, so an Appearance change can never repaint an input.
+ */
+
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string | null;
@@ -9,6 +19,11 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   revealShowLabel?: string;
   revealHideLabel?: string;
 }
+
+export const FIELD_CLASS =
+  "min-h-12 w-full rounded-pub-sm border bg-pub-sheet px-3.5 py-2.5 text-pub-base text-pub-ink transition-colors placeholder:text-ink-300 hover:border-pub-line-strong focus:border-pub-ink focus:outline-none";
+
+export const FIELD_LABEL = "tito-label text-pub-ink-soft";
 
 export function Input({
   label,
@@ -31,17 +46,17 @@ export function Input({
   const actualType = reveal && isPassword ? (shown ? "text" : "password") : type;
 
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
+    <div className={`flex flex-col gap-2 ${className}`}>
+      <label htmlFor={inputId} className={FIELD_LABEL}>
         {label}
       </label>
       <div className="relative">
         <input
           id={inputId}
           type={actualType}
-          className={`min-h-11 w-full rounded-lg border bg-white px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-            reveal && isPassword ? "pe-12" : ""
-          } ${error ? "border-red-400" : "border-slate-300"}`}
+          className={`${FIELD_CLASS} ${reveal && isPassword ? "pe-12" : ""} ${
+            error ? "border-pub-danger" : "border-pub-line-strong"
+          }`}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
           {...rest}
@@ -50,7 +65,7 @@ export function Input({
           <button
             type="button"
             onClick={() => setShown((v) => !v)}
-            className="absolute end-0.5 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:text-slate-800"
+            className="absolute end-0.5 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-pub-sm text-pub-muted transition-colors hover:text-pub-ink"
             aria-label={shown ? revealHideLabel : revealShowLabel}
             aria-pressed={shown}
           >
@@ -70,12 +85,12 @@ export function Input({
         )}
       </div>
       {hint && !error && (
-        <p id={hintId} className="text-xs text-slate-500">
+        <p id={hintId} className="text-pub-xs leading-pub-normal text-pub-muted">
           {hint}
         </p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="text-xs font-medium text-red-600">
+        <p id={errorId} role="alert" className="text-pub-xs font-bold text-pub-danger">
           {error}
         </p>
       )}

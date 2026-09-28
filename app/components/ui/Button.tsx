@@ -1,20 +1,29 @@
 import { useNavigation } from "react-router";
 
+/**
+ * THE button, in the Index language: ink is the action, paper + hairline is the
+ * alternative, and everything is near-square. Reads LAYER A tokens only (no
+ * `brand-*`/`red-*` ramps), so the owner's Appearance settings can never
+ * repaint a submit control.
+ */
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800",
-  secondary: "bg-white text-brand-700 border border-brand-200 hover:bg-brand-50",
-  ghost: "text-brand-700 hover:bg-brand-50",
-  danger: "bg-red-600 text-white hover:bg-red-700",
+  primary: "bg-pub-navy text-pub-on-navy hover:bg-pub-navy-2",
+  secondary: "border border-pub-line-strong bg-pub-sheet text-pub-ink hover:border-pub-ink hover:bg-pub-surface",
+  ghost: "text-pub-ink-soft underline decoration-pub-accent decoration-2 underline-offset-4 hover:text-pub-ink",
+  danger: "bg-pub-danger text-white hover:brightness-110",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "min-h-11 px-3 py-2 text-sm",
-  md: "min-h-11 px-4 py-2.5 text-sm",
-  lg: "min-h-12 px-6 py-3 text-base",
+  sm: "min-h-11 px-3.5 py-2 text-pub-sm",
+  md: "min-h-11 px-4 py-2.5 text-pub-sm",
+  lg: "min-h-12 px-6 py-3 text-pub-base",
 };
+
+const BASE =
+  "inline-flex items-center justify-center gap-2 rounded-pub-md font-bold leading-pub-snug transition-all duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60";
 
 export function Spinner({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -42,7 +51,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${BASE} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...rest}
@@ -82,7 +91,7 @@ export function SubmitButton({
       type="submit"
       name={name}
       value={value}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${BASE} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={submitting || disabled}
       aria-busy={submitting || undefined}
     >

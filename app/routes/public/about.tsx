@@ -7,10 +7,9 @@ import { resolvePublicImageUrls } from "~server/cms/render.server";
 import { resolveSocialLinks } from "~/cms/social";
 import { subjects } from "~server/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
-import { CARD_BODY, CARD_LINK, CARD_META, CARD_TITLE, PUB_CARD } from "~/lib/publicStyles";
-import { ThinkerPortrait, ThinkerWash } from "~/components/visuals/ThinkerPortrait";
-import { heroFrameThinkers } from "~/lib/thinkers";
-import { Icon } from "~/cms/icons";
+import { PageBody, PageHead } from "~/components/tito/page";
+import { ArrowGlyph, Ordinal } from "~/components/tito/ui";
+import { SubjectPlate, SubjectSignature, subjectKindOf } from "~/components/tito/subject";
 import { rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, personJsonLd, safeHttpsUrl, webPageJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
@@ -159,129 +158,144 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export default function AboutPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
+  const ar = locale === "ar";
   const { owner, site, contact, subjects } = loaderData;
-  const name = locale === "ar" ? owner.nameAr || owner.nameEn : owner.nameEn || owner.nameAr;
-  const title = locale === "ar" ? owner.titleAr || owner.titleEn : owner.titleEn || owner.titleAr;
-  const siteName = locale === "ar" ? site.nameAr : site.nameEn;
-  const tagline = locale === "ar" ? site.taglineAr : site.taglineEn;
-  const c = (row: { titleAr: string; titleEn: string }) => (locale === "ar" ? row.titleAr : row.titleEn);
+  const name = ar ? owner.nameAr || owner.nameEn : owner.nameEn || owner.nameAr;
+  const title = ar ? owner.titleAr || owner.titleEn : owner.titleEn || owner.titleAr;
+  const siteName = ar ? site.nameAr : site.nameEn;
+  const tagline = ar ? site.taglineAr : site.taglineEn;
+  const c = (row: { titleAr: string; titleEn: string }) => (ar ? row.titleAr : row.titleEn);
+  const address = ar ? contact.addressAr : contact.addressEn;
 
-  const [frameStart, frameEnd] = heroFrameThinkers();
+  /* The contact block is a ruled data list of REAL configured values only —
+     a row exists exactly when the owner filled that field in. */
+  const rows: Array<{ label: string; value: string; href?: string; ltr?: boolean }> = [];
+  if (contact.phone) rows.push({ label: t(locale, "contact.phone"), value: contact.phone, href: `tel:${contact.phone}`, ltr: true });
+  if (contact.email) rows.push({ label: t(locale, "contact.email"), value: contact.email, href: `mailto:${contact.email}`, ltr: true });
+  if (address) rows.push({ label: t(locale, "contact.address"), value: address });
 
   return (
-    <div className="pub-section pub-container relative isolate flex flex-col gap-[calc(var(--pub-gap)*2)] overflow-hidden">
-      <ThinkerWash seed="page:about" anchor="top" />
-      <nav aria-label="breadcrumb" data-allow-small className={`${CARD_META} flex items-center gap-1.5`}>
-        <Link to="/" className="hover:text-pub-navy">{locale === "ar" ? "الرئيسية" : "Home"}</Link>
-        <span aria-hidden>›</span>
-        <span className="font-medium text-pub-ink-soft">{t(locale, "seo.about")}</span>
-      </nav>
-
-      {/*
-        The teacher's own picture, framed the same way as on the homepage hero:
-        light surface, one gold hairline, one soft shadow. The image is shown as
-        uploaded (object-contain inside a crop container) — never re-cropped into a
-        square, never filtered, never replaced.
-      */}
-      <div className="grid items-start gap-[calc(var(--pub-gap)*1.5)] lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-        <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-1">
-          {owner.photoUrl && (
-            <div className="relative isolate overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-md">
-              {/* Transparent philosophers AROUND the teacher's picture (owner
-                  request): bottom corners, masked inward, behind the photo. */}
-              {frameStart && (
-                <ThinkerPortrait thinker={frameStart} presentation="wash" className="thinker-wash--light thinker-wash--frame thinker-wash--start" />
-              )}
-              {frameEnd && (
-                <ThinkerPortrait thinker={frameEnd} presentation="wash" className="thinker-wash--light thinker-wash--frame thinker-wash--end" />
-              )}
+    <div className="flex flex-col">
+      <PageHead
+        locale={locale}
+        crumbs={[{ label: t(locale, "study.breadcrumbHome"), to: "/" }, { label: t(locale, "seo.about") }]}
+        eyebrow={title || t(locale, "seo.about")}
+        title={name}
+        lede={t(locale, "seo.aboutBio", { name: siteName, tagline })}
+        aside={
+          owner.photoUrl ? (
+            /* THE photograph. Shown exactly as uploaded inside a hairline
+               frame offset by one solid block of the mark — never re-cropped,
+               never filtered, and never substituted when it is missing. */
+            <figure className="relative shrink-0 self-center">
+              <span aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 bg-pub-accent rtl:-translate-x-3" />
               <img
                 src={owner.photoUrl}
                 alt={name}
                 loading="eager"
                 decoding="async"
-                className="relative z-[1] mx-auto block max-h-[22rem] w-full px-4 py-4 object-contain object-bottom"
+                width={288}
+                height={352}
+                className="relative block h-auto max-h-[22rem] w-[min(18rem,70vw)] border border-pub-ink bg-pub-sheet object-contain object-bottom"
               />
-            </div>
-          )}
-          {(contact.phone || contact.email || contact.socials.length > 0 || contact.addressAr || contact.addressEn) && (
-            <div className="flex flex-col gap-2">
-              <h2 className={`${CARD_META} uppercase`}>{t(locale, "seo.aboutContact")}</h2>
-              <ul className="flex flex-col gap-1.5 text-pub-sm text-pub-muted">
-                {contact.phone && (
-                  <li>
-                    <a
-                      dir="ltr"
-                      href={`tel:${contact.phone}`}
-                      className="inline-flex min-h-11 items-center hover:text-pub-navy"
-                    >
-                      {contact.phone}
-                    </a>
-                  </li>
-                )}
-                {contact.email && (
-                  <li>
-                    <a href={`mailto:${contact.email}`} className="inline-flex min-h-11 items-center hover:text-pub-navy">
-                      {contact.email}
-                    </a>
-                  </li>
-                )}
-                {(locale === "ar" ? contact.addressAr : contact.addressEn) && <li>{locale === "ar" ? contact.addressAr : contact.addressEn}</li>}
-                {contact.socials.length > 0 && (
-                  <li className="flex flex-wrap gap-3 pt-1">
-                    {contact.socials.map((soc, i) => (
-                      <a
-                        key={i}
-                        href={safeHref(soc.url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`${CARD_LINK} inline-flex min-h-11 items-center`}
-                      >
-                        {locale === "ar" ? soc.labelAr || soc.url : soc.labelEn || soc.url}
-                      </a>
-                    ))}
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
-        </div>
+              {title && (
+                <figcaption className="relative bg-pub-navy px-4 py-2.5 text-pub-xs font-bold text-pub-on-navy">{title}</figcaption>
+              )}
+            </figure>
+          ) : undefined
+        }
+      />
 
-        {/* On a phone the person comes first, then the picture and the contact
-            details; on a tablet/desktop the framed picture leads and the text
-            follows beside it. */}
-        <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-2">
-          <h1 className="text-pub-h1 font-extrabold text-pub-navy [overflow-wrap:anywhere]">{name}</h1>
-          {title && <p className="text-pub-md font-medium text-pub-ink-soft">{title}</p>}
-          <p className={`${CARD_BODY} pub-measure`}>{t(locale, "seo.aboutBio", { name: siteName, tagline })}</p>
-          {owner.aboutImageUrl && (
-            <div className="mt-2 overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-surface shadow-pub-card">
-              <img src={owner.aboutImageUrl} alt={name} loading="lazy" decoding="async" className="max-h-[26rem] w-full object-contain" />
-            </div>
-          )}
+      <PageBody className="grid items-start gap-x-[var(--pub-gap)] gap-y-12 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0 flex flex-col gap-12">
           {subjects.length > 0 && (
-            <section className="mt-2 flex flex-col gap-3">
-              <h2 className={`${CARD_META} uppercase`}>{t(locale, "seo.aboutSubjects")}</h2>
-              <ul className="pub-grid grid-cols-1 sm:grid-cols-2">
-                {subjects.map((s) => (
-                  <li key={s.slug} className="h-full min-w-0">
-                    <Link to={`/study/${s.slug}`} className={`${PUB_CARD} min-h-[5rem] gap-1.5 p-4 sm:p-5`} data-testid={`about-subject-${s.slug}`}>
-                      <h3 className={`${CARD_TITLE} min-w-0`}>
-                        <Icon name="book-open" size="sm" colorRole="brand" className="shrink-0" />
-                        {c(s)}
-                      </h3>
-                      <span className={`${CARD_LINK} mt-auto inline-flex items-center`}>
-                        {locale === "ar" ? "افتح المحتوى" : "Open content"}
-                        <span aria-hidden className="ms-1">→</span>
+            <section aria-labelledby="about-subjects">
+              <div className="flex items-baseline gap-3 border-t-2 border-pub-ink pt-3.5">
+                <h2 id="about-subjects" className="font-display text-[length:var(--text-pub-h3)] font-extrabold tracking-[-0.03em] text-pub-ink">
+                  {t(locale, "seo.aboutSubjects")}
+                </h2>
+              </div>
+              <ul className="tito-rows mt-2">
+                {subjects.map((s, i) => {
+                  const kind = subjectKindOf(s.slug, s.titleEn, s.titleAr);
+                  return (
+                    <li key={s.slug} data-subject={kind} className="tito-row grid-cols-[2.25rem_minmax(0,1fr)_auto] px-1">
+                      <span className="pt-1 text-pub-sm font-bold text-ink-300" aria-hidden="true">
+                        <Ordinal n={i + 1} />
                       </span>
-                    </Link>
-                  </li>
-                ))}
+                      <div className="min-w-0">
+                        <Link
+                          to={`/study/${s.slug}`}
+                          data-testid={`about-subject-${s.slug}`}
+                          className="font-display text-pub-md font-bold leading-pub-snug text-pub-ink after:absolute after:inset-0 focus-visible:outline-offset-4"
+                        >
+                          {c(s)}
+                        </Link>
+                      </div>
+                      <span className="relative z-10 flex items-center gap-2 self-center text-[color:var(--subject-ink)]">
+                        <SubjectSignature kind={kind} size={18} />
+                        <ArrowGlyph className="text-pub-ink" />
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}
+
+          {owner.aboutImageUrl && (
+            <figure className="border border-pub-line bg-pub-sheet p-2">
+              <img src={owner.aboutImageUrl} alt={name} loading="lazy" decoding="async" className="max-h-[26rem] w-full object-contain" />
+            </figure>
+          )}
         </div>
-      </div>
+
+        <aside className="min-w-0">
+          {(rows.length > 0 || contact.socials.length > 0) && (
+            <section aria-labelledby="about-contact" className="relative isolate overflow-hidden border border-pub-line bg-pub-sheet p-5">
+              <span aria-hidden="true" className="pointer-events-none absolute -bottom-8 -z-10 opacity-[0.12] ltr:-right-8 rtl:-left-8">
+                <SubjectPlate kind="psych" className="h-40 w-64" />
+              </span>
+              <h2 id="about-contact" className="tito-label">
+                {t(locale, "seo.aboutContact")}
+              </h2>
+              <dl className="mt-3">
+                {rows.map((r) => (
+                  <div key={r.label} className="flex items-baseline justify-between gap-4 border-t border-pub-line py-3">
+                    <dt className="tito-label shrink-0">{r.label}</dt>
+                    <dd className="min-w-0 text-end text-pub-sm font-bold text-pub-ink" dir={r.ltr ? "ltr" : undefined}>
+                      {r.href ? (
+                        <a href={r.href} className="inline-flex min-h-11 items-center hover:underline">
+                          {r.value}
+                        </a>
+                      ) : (
+                        r.value
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              {contact.socials.length > 0 && (
+                <ul className="mt-2 flex flex-col">
+                  {contact.socials.map((soc, i) => (
+                    <li key={i} className="border-t border-pub-line">
+                      <a
+                        href={safeHref(soc.url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex min-h-11 items-center justify-between gap-3 py-2 text-pub-sm font-bold text-pub-ink hover:underline"
+                      >
+                        {ar ? soc.labelAr || soc.url : soc.labelEn || soc.url}
+                        <ArrowGlyph />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+        </aside>
+      </PageBody>
     </div>
   );
 }

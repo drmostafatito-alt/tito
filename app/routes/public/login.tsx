@@ -8,7 +8,7 @@ import { applyAuthCookies } from "~server/auth/session.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
-import { Card } from "~/components/ui/Card";
+import { AuthFrame, AuthLink } from "~/components/tito/auth";
 import { SessionStorageNotice, markAuthSubmitted } from "~/components/public/SessionStorageNotice";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
@@ -68,89 +68,78 @@ export default function Login() {
   const reset = params.get("reset");
 
   return (
-    <div className="auth-page mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
-        <h1 className="mb-1 text-2xl font-bold text-pub-ink">{t(locale, "auth.loginTitle")}</h1>
-        <p className="mb-6 text-sm text-pub-muted">{t(locale, "auth.loginSubtitle")}</p>
-
-        {reset && (
-          <div className="mb-4">
-            <Alert kind="success">{t(locale, "auth.resetSuccess")}</Alert>
-          </div>
-        )}
-
-        {actionData?.error === "rate_limited" && (
-          <div className="mb-4 space-y-1">
-            <Alert kind="error">
-              <span className="font-medium">{t(locale, "auth.errors.rate_limitedTitle")}</span>
-              <span className="mt-1 block text-sm opacity-90">{t(locale, "auth.errors.rate_limitedBody")}</span>
-              {actionData.retryAfterSeconds != null && (
-                <span className="mt-1 block text-sm font-medium">
-                  {actionData.retryAfterSeconds === 1
-                    ? t(locale, "auth.errors.rate_limitedRetryOne")
-                    : t(locale, "auth.errors.rate_limitedRetry", { s: String(actionData.retryAfterSeconds) })}
-                </span>
-              )}
-            </Alert>
-          </div>
-        )}
-
-        <SessionStorageNotice locale={locale} />
-
-        {actionData?.error && actionData.error !== "rate_limited" && (
-          <div className="mb-4">
-            <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>
-          </div>
-        )}
-
-        <Form method="post" className="flex flex-col gap-4" onSubmit={markAuthSubmitted}>
-          <input type="hidden" name="next" value={next} />
-          <Input
-            label={t(locale, "auth.email")}
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            defaultValue={actionData?.email ?? ""}
-            dir="ltr"
-          />
-          <Input
-            label={t(locale, "auth.password")}
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            dir="ltr"
-            reveal
-            revealShowLabel={t(locale, "common.showPassword")}
-            revealHideLabel={t(locale, "common.hidePassword")}
-          />
-          <SubmitButton className="mt-1 w-full">
-            {navigation.state === "idle" ? t(locale, "common.login") : t(locale, "common.loading")}
-          </SubmitButton>
-        </Form>
-
-        <div className="mt-4 flex flex-col gap-2 text-sm">
-          <Link to="/forgot-password" className="text-pub-ink-soft hover:underline">
-            {t(locale, "auth.forgotLink")}
-          </Link>
-          <p className="text-pub-muted">
-            {t(locale, "auth.noAccount")}{" "}
-            <Link to="/register" className="font-medium text-pub-ink-soft hover:underline">
-              {t(locale, "common.register")}
-            </Link>
+    <AuthFrame
+      locale={locale}
+      step={1}
+      title={t(locale, "auth.loginTitle")}
+      lede={t(locale, "auth.loginSubtitle")}
+      footer={
+        <div className="flex flex-col gap-3">
+          <p>
+            {t(locale, "auth.noAccount")} <AuthLink to="/register">{t(locale, "common.register")}</AuthLink>
           </p>
+          <p>
+            <AuthLink to="/forgot-password">{t(locale, "auth.forgotLink")}</AuthLink>
+          </p>
+          {envDevNote(locale) && (
+            <div className="mt-2 rounded-pub-sm border border-dashed border-pub-line-strong bg-pub-surface p-3 text-pub-xs leading-relaxed text-pub-muted" dir="ltr">
+              <p className="mb-1 font-bold">{t(locale, "auth.demoAccounts")}</p>
+              <p>admin@educore.local (local seed only — not a production identity)</p>
+              <p>student@educore.local (local fixture)</p>
+            </div>
+          )}
         </div>
+      }
+    >
+      {reset && <Alert kind="success">{t(locale, "auth.resetSuccess")}</Alert>}
 
-        {envDevNote(locale) && (
-          <div className="mt-6 rounded-lg border border-dashed border-pub-line-strong bg-pub-surface p-3 text-xs leading-relaxed text-pub-muted" dir="ltr">
-            <p className="mb-1 font-semibold">{t(locale, "auth.demoAccounts")}</p>
-            <p>admin@educore.local (local seed only — not a production identity)</p>
-            <p>student@educore.local (local fixture)</p>
-          </div>
-        )}
-      </Card>
-    </div>
+      {actionData?.error === "rate_limited" && (
+        <Alert kind="error">
+          <span className="font-bold">{t(locale, "auth.errors.rate_limitedTitle")}</span>
+          <span className="mt-1 block text-pub-sm opacity-90">{t(locale, "auth.errors.rate_limitedBody")}</span>
+          {actionData.retryAfterSeconds != null && (
+            <span className="mt-1 block text-pub-sm font-bold">
+              {actionData.retryAfterSeconds === 1
+                ? t(locale, "auth.errors.rate_limitedRetryOne")
+                : t(locale, "auth.errors.rate_limitedRetry", { s: String(actionData.retryAfterSeconds) })}
+            </span>
+          )}
+        </Alert>
+      )}
+
+      <SessionStorageNotice locale={locale} />
+
+      {actionData?.error && actionData.error !== "rate_limited" && (
+        <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>
+      )}
+
+      <Form method="post" className="flex flex-col gap-5" onSubmit={markAuthSubmitted}>
+        <input type="hidden" name="next" value={next} />
+        <Input
+          label={t(locale, "auth.email")}
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          defaultValue={actionData?.email ?? ""}
+          dir="ltr"
+        />
+        <Input
+          label={t(locale, "auth.password")}
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          dir="ltr"
+          reveal
+          revealShowLabel={t(locale, "common.showPassword")}
+          revealHideLabel={t(locale, "common.hidePassword")}
+        />
+        <SubmitButton size="lg" className="mt-1 w-full">
+          {navigation.state === "idle" ? t(locale, "common.login") : t(locale, "common.loading")}
+        </SubmitButton>
+      </Form>
+    </AuthFrame>
   );
 }
 

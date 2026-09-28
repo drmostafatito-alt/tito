@@ -23,6 +23,8 @@ export const en: Dictionary = {
     navMain: "Main navigation",
     breadcrumb: "Breadcrumb",
     prevNext: "Previous and next lesson",
+    previous: "Previous lesson",
+    next: "Next lesson",
     menu: "Menu",
     english: "English",
     arabic: "العربية",
@@ -35,7 +37,14 @@ export const en: Dictionary = {
     showPassword: "Show password",
     hidePassword: "Hide password",
   },
+  contact: {
+    phone: "Phone",
+    email: "Email",
+    address: "Address",
+  },
   auth: {
+    frameLabel: "Account",
+    registerSubtitle: "Create your account to reach your lessons and follow your progress.",
     loginTitle: "Welcome back",
     loginSubtitle: "Log in to continue to your account",
     email: "Email",

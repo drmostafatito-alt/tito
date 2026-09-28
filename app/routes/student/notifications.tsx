@@ -11,7 +11,8 @@ import {
 } from "~server/announcements/service.server";
 import { Alert } from "~/components/ui/Alert";
 import { Badge } from "~/components/ui/Badge";
-import { Card, CardBody } from "~/components/ui/Card";
+import { EmptyNote } from "~/components/tito/ui";
+import { WorkHead } from "~/components/tito/page";
 import { SubmitButton } from "~/components/ui/Button";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 
@@ -45,60 +46,88 @@ export async function action({ context, request }: Route.ActionArgs) {
   return { error: "bad_request" };
 }
 
+/**
+ * Announcements are a reading list, not an inbox of cards: each one is a dated
+ * entry on a rule, unread ones marked with the highlighter.
+ */
 export default function StudentNotifications({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
+  const ar = locale === "ar";
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">{t(locale, "notifications.title")}</h1>
-        {loaderData.unread > 0 && (
-          <Form method="post">
-            <input type="hidden" name="_action" value="mark-all-read" />
-            <span data-testid="mark-all-read"><SubmitButton variant="secondary" size="sm">{t(locale, "notifications.markAllRead")}</SubmitButton></span>
-          </Form>
-        )}
-      </div>
+    <div>
+      <WorkHead
+        eyebrow={t(locale, "common.dashboard")}
+        title={t(locale, "notifications.title")}
+        actions={
+          loaderData.unread > 0 ? (
+            <Form method="post">
+              <input type="hidden" name="_action" value="mark-all-read" />
+              <span data-testid="mark-all-read">
+                <SubmitButton variant="secondary" size="sm">
+                  {t(locale, "notifications.markAllRead")}
+                </SubmitButton>
+              </span>
+            </Form>
+          ) : undefined
+        }
+      />
 
-      {loaderData.items.length === 0 && (
-        <Alert kind="info"><span data-testid="notifications-empty">{t(locale, "notifications.empty")}</span></Alert>
-      )}
-
-      <div className="flex flex-col gap-4">
-        {loaderData.items.map((a) => {
-          const title = locale === "ar" ? a.titleAr || a.titleEn : a.titleEn || a.titleAr;
-          const body = locale === "ar" ? a.bodyAr || a.bodyEn : a.bodyEn || a.bodyAr;
-          return (
-            <Card key={a.id}>
-              <CardBody className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-base font-semibold text-slate-900" data-testid={`notif-title-${a.id}`}>{title}</h2>
-                  <span className="flex items-center gap-2">
+      {loaderData.items.length === 0 ? (
+        <span data-testid="notifications-empty">
+          <EmptyNote title={t(locale, "notifications.empty")} />
+        </span>
+      ) : (
+        <ul className="flex flex-col">
+          {loaderData.items.map((a) => {
+            const title = ar ? a.titleAr || a.titleEn : a.titleEn || a.titleAr;
+            const body = ar ? a.bodyAr || a.bodyEn : a.bodyEn || a.bodyAr;
+            return (
+              <li key={a.id} className="border-b border-pub-line py-6 first:border-t first:border-pub-ink">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                  <h2 className="min-w-0 font-display text-pub-md font-extrabold leading-pub-snug text-pub-ink" data-testid={`notif-title-${a.id}`}>
+                    {title}
+                  </h2>
+                  <span className="flex shrink-0 items-center gap-2">
                     {a.readAt ? (
                       <Badge tone="neutral">{t(locale, "notifications.readLabel")}</Badge>
                     ) : (
-                      <span data-testid={`notif-unread-${a.id}`}><Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge></span>
+                      <span data-testid={`notif-unread-${a.id}`}>
+                        <Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge>
+                      </span>
                     )}
-                    <span className="text-xs text-slate-500">{formatDate(locale, a.publishedAt ?? a.createdAt)}</span>
+                    <span className="text-pub-xs text-pub-muted" data-numeral>
+                      {formatDate(locale, a.publishedAt ?? a.createdAt)}
+                    </span>
                   </span>
                 </div>
-                {body && <p className="whitespace-pre-line text-sm text-slate-600" data-testid={`notif-body-${a.id}`}>{body}</p>}
+                {body && (
+                  <p className="mt-3 max-w-[62ch] whitespace-pre-line text-pub-sm leading-pub-normal text-pub-ink-soft" data-testid={`notif-body-${a.id}`}>
+                    {body}
+                  </p>
+                )}
                 {a.expiresAt && (
-                  <p className="text-xs text-slate-500">{t(locale, "notifications.expiresAt")}: {formatDate(locale, a.expiresAt)}</p>
+                  <p className="mt-3 text-pub-xs text-pub-muted" data-numeral>
+                    {t(locale, "notifications.expiresAt")}: {formatDate(locale, a.expiresAt)}
+                  </p>
                 )}
                 {!a.readAt && (
-                  <Form method="post">
+                  <Form method="post" className="mt-4">
                     <input type="hidden" name="_action" value="mark-read" />
                     <input type="hidden" name="id" value={a.id} />
-                    <span data-testid={`mark-read-${a.id}`}><SubmitButton variant="secondary" size="sm">{t(locale, "notifications.markRead")}</SubmitButton></span>
+                    <span data-testid={`mark-read-${a.id}`}>
+                      <SubmitButton variant="secondary" size="sm">
+                        {t(locale, "notifications.markRead")}
+                      </SubmitButton>
+                    </span>
                   </Form>
                 )}
-              </CardBody>
-            </Card>
-          );
-        })}
-      </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

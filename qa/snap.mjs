@@ -53,7 +53,14 @@ if (who !== "anon") {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await page.locator('input[name="email"]').fill(creds.email);
   await page.locator('input[name="password"]').fill(creds.password);
-  await Promise.all([page.waitForLoadState("networkidle"), page.locator('button[type="submit"]').first().click()]);
+  // scope to the login form: the layout's locale switcher is also a submit
+  await page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
+  try {
+    await page.waitForURL(/\/(dashboard|admin)/, { timeout: 20000 });
+  } catch {
+    const alert = await page.locator('[role="alert"], [role="status"]').first().textContent().catch(() => null);
+    problems.push(`login failed for ${who} — still at ${page.url()}${alert ? ` :: ${alert.trim().slice(0, 160)}` : ""}`);
+  }
 }
 
 await page.goto(`${BASE}${urlPath}`, { waitUntil: "networkidle", timeout: 60000 });

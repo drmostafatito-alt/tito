@@ -1,6 +1,6 @@
 import type { Route } from "./+types/register";
 import { useState } from "react";
-import { Form, Link, useActionData, useNavigation, useSearchParams } from "react-router";
+import { Form, useActionData, useNavigation, useSearchParams } from "react-router";
 import { redirect } from "react-router";
 import { getEnv, getWaitUntil } from "~server/cf.server";
 import { login, registerUser } from "~server/auth/service.server";
@@ -8,7 +8,7 @@ import { applyAuthCookies } from "~server/auth/session.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
-import { Card } from "~/components/ui/Card";
+import { AuthFrame, AuthLink } from "~/components/tito/auth";
 import { SessionStorageNotice, markAuthSubmitted } from "~/components/public/SessionStorageNotice";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
@@ -68,88 +68,100 @@ export default function Register() {
     : (password.length >= 8 ? 1 : 0) + (/[0-9]/.test(password) ? 1 : 0) + (/[A-Za-z\u0600-\u06FF]/.test(password) ? 1 : 0);
 
   return (
-    <div className="auth-page mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
-        <h1 className="mb-6 text-2xl font-bold text-pub-ink">{t(locale, "common.register")}</h1>
+    <AuthFrame
+      locale={locale}
+      step={1}
+      title={t(locale, "common.register")}
+      lede={t(locale, "auth.registerSubtitle")}
+      footer={
+        <p>
+          {t(locale, "auth.haveAccount")}{" "}
+          <AuthLink to={`/login${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`}>
+            {t(locale, "common.login")}
+          </AuthLink>
+        </p>
+      }
+    >
+      <SessionStorageNotice locale={locale} />
 
-        <SessionStorageNotice locale={locale} />
+      {actionData?.error && <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>}
 
-        {actionData?.error && (
-          <div className="mb-4">
-            <Alert kind="error">{t(locale, `auth.errors.${actionData.error}`)}</Alert>
+      <Form method="post" className="flex flex-col gap-5" onSubmit={markAuthSubmitted}>
+        <Input
+          label={t(locale, "auth.fullName")}
+          name="fullName"
+          autoComplete="name"
+          required
+          minLength={2}
+          defaultValue={actionData?.fullName ?? ""}
+        />
+        <Input
+          label={t(locale, "auth.email")}
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          defaultValue={actionData?.email ?? ""}
+          dir="ltr"
+        />
+        <Input
+          label={t(locale, "auth.password")}
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          dir="ltr"
+          reveal
+          revealShowLabel={t(locale, "common.showPassword")}
+          revealHideLabel={t(locale, "common.hidePassword")}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {password.length > 0 && (
+          /* Three ruled segments, not a coloured pill: strength is read as how
+             much of the rule is inked, in the same grammar as every meter. */
+          <div className="-mt-1 flex flex-col gap-2" aria-live="polite">
+            <div className="flex gap-1.5" aria-hidden="true">
+              {[1, 2, 3].map((n) => (
+                <span
+                  key={n}
+                  className={`h-1 flex-1 ${
+                    strength >= n
+                      ? strength >= 3
+                        ? "bg-pub-ok"
+                        : strength === 2
+                          ? "bg-pub-accent"
+                          : "bg-pub-danger"
+                      : "bg-pub-surface-2"
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="tito-label">
+              {strength >= 3
+                ? t(locale, "auth.passwordStrengthStrong")
+                : strength === 2
+                  ? t(locale, "auth.passwordStrengthOk")
+                  : t(locale, "auth.passwordStrengthWeak")}
+            </p>
           </div>
         )}
-
-        <Form method="post" className="flex flex-col gap-4" onSubmit={markAuthSubmitted}>
-          <Input
-            label={t(locale, "auth.fullName")}
-            name="fullName"
-            autoComplete="name"
-            required
-            minLength={2}
-            defaultValue={actionData?.fullName ?? ""}
-          />
-          <Input
-            label={t(locale, "auth.email")}
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            defaultValue={actionData?.email ?? ""}
-            dir="ltr"
-          />
-          <Input
-            label={t(locale, "auth.password")}
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            dir="ltr"
-            reveal
-            revealShowLabel={t(locale, "common.showPassword")}
-            revealHideLabel={t(locale, "common.hidePassword")}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {password.length > 0 && (
-            <div className="flex flex-col gap-1" aria-live="polite">
-              <div className="flex gap-1" aria-hidden="true">
-                {[1, 2, 3].map((n) => (
-                  <span
-                    key={n}
-                    className={`h-1.5 flex-1 rounded-full ${strength >= n ? (strength >= 3 ? "bg-pub-success" : strength === 2 ? "bg-pub-accent" : "bg-pub-danger") : "bg-pub-line"}`}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-pub-muted">
-                {strength >= 3 ? t(locale, "auth.passwordStrengthStrong") : strength === 2 ? t(locale, "auth.passwordStrengthOk") : t(locale, "auth.passwordStrengthWeak")}
-              </p>
-            </div>
-          )}
-          <Input
-            label={t(locale, "auth.passwordConfirm")}
-            name="passwordConfirm"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            dir="ltr"
-            reveal
-            revealShowLabel={t(locale, "common.showPassword")}
-            revealHideLabel={t(locale, "common.hidePassword")}
-          />
-          <SubmitButton className="mt-1 w-full">
-            {navigation.state === "idle" ? t(locale, "common.register") : t(locale, "common.loading")}
-          </SubmitButton>
-        </Form>
-
-        <p className="mt-4 text-sm text-pub-muted">
-          {t(locale, "auth.haveAccount")}{" "}
-          <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`} className="font-medium text-pub-ink-soft hover:underline">
-            {t(locale, "common.login")}
-          </Link>
-        </p>
-      </Card>
-    </div>
+        <Input
+          label={t(locale, "auth.passwordConfirm")}
+          name="passwordConfirm"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          dir="ltr"
+          reveal
+          revealShowLabel={t(locale, "common.showPassword")}
+          revealHideLabel={t(locale, "common.hidePassword")}
+        />
+        <SubmitButton size="lg" className="mt-1 w-full">
+          {navigation.state === "idle" ? t(locale, "common.register") : t(locale, "common.loading")}
+        </SubmitButton>
+      </Form>
+    </AuthFrame>
   );
 }

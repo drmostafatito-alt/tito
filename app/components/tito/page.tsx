@@ -132,3 +132,58 @@ export function BackLink({ to, label }: { to: string; label: string }) {
     </Link>
   );
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   WORKSPACE HEAD
+   The student area has no breadcrumbs (the rail already says where you are),
+   so its pages open on a label, a display title, and at most one action.
+   ──────────────────────────────────────────────────────────────────────── */
+export function WorkHead({
+  eyebrow,
+  title,
+  lede,
+  actions,
+}: {
+  eyebrow?: string;
+  title: string;
+  lede?: string;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <header className="mb-8">
+      {eyebrow && <p className="tito-label">{eyebrow}</p>}
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-pub-line pb-4">
+        <h1 className="max-w-[20ch] font-display text-[length:var(--text-pub-h2)] font-extrabold leading-pub-tight tracking-[-0.035em] text-pub-ink">
+          {title}
+        </h1>
+        {actions && <div className="flex shrink-0 flex-wrap items-center gap-3">{actions}</div>}
+      </div>
+      {lede && <p className="mt-4 max-w-[62ch] text-pub-md leading-pub-normal text-pub-ink-soft">{lede}</p>}
+    </header>
+  );
+}
+
+/** A ruled block inside a workspace page: a label on a rule, then content. */
+export function WorkSection({
+  title,
+  action,
+  children,
+  testId,
+  className = "",
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  testId?: string;
+  className?: string;
+}) {
+  return (
+    <section data-testid={testId} className={`min-w-0 ${className}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t-2 border-pub-ink pt-3">
+        <h2 className="font-display text-pub-md font-extrabold tracking-[-0.02em] text-pub-ink">{title}</h2>
+        {action}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}

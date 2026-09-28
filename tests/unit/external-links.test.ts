@@ -83,7 +83,7 @@ describe("CSP allows the embedded Google Form", () => {
   const frame = csp.split(";").map((d) => d.trim()).find((d) => d.startsWith("frame-src")) ?? "";
 
   it("includes docs.google.com and nothing broader", () => {
-    expect(frame).toBe("frame-src https://www.youtube-nocookie.com https://docs.google.com");
+    expect(frame).toBe("frame-src 'self' https://www.youtube-nocookie.com https://docs.google.com");
     expect(frame).not.toContain("*");
   });
 });

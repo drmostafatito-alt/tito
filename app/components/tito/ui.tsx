@@ -129,7 +129,18 @@ export function Tag({
  * dropped in production. SVG geometry attributes are not inline styles, so this
  * renders the EXACT percentage with no CSS enumeration and no CSP exception.
  */
-export function Meter({ pct, className = "", label }: { pct: number; className?: string; label?: string }) {
+export function Meter({
+  pct,
+  className = "",
+  label,
+  tone = "onLight",
+}: {
+  pct: number;
+  className?: string;
+  label?: string;
+  /** `onDark` swaps the unfilled track for a translucent white rule. */
+  tone?: "onLight" | "onDark";
+}) {
   const v = Math.max(0, Math.min(100, Math.round(pct)));
   return (
     <svg
@@ -142,7 +153,7 @@ export function Meter({ pct, className = "", label }: { pct: number; className?:
       aria-valuemax={100}
       aria-label={label}
     >
-      <rect x="0" y="0" width="100" height="6" fill="var(--color-pub-surface-2)" />
+      <rect x="0" y="0" width="100" height="6" fill={tone === "onDark" ? "rgba(255,255,255,0.18)" : "var(--color-pub-surface-2)"} />
       {v > 0 ? <rect x="0" y="0" width={v} height="6" fill="var(--color-pub-accent)" /> : null}
     </svg>
   );

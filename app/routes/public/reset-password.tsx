@@ -15,7 +15,7 @@ import {
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
-import { Card } from "~/components/ui/Card";
+import { AuthFrame, AuthLink } from "~/components/tito/auth";
 import { t, type Locale } from "~/lib/i18n";
 import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 
@@ -144,61 +144,56 @@ export default function ResetPassword({ loaderData }: Route.ComponentProps) {
   const actionError = actionData && "error" in actionData ? actionData.error : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
-      <Card className="p-6 sm:p-8">
-        <h1 className="mb-6 text-2xl font-bold text-pub-ink">{t(locale, "auth.resetTitle")}</h1>
+    <AuthFrame
+      locale={locale}
+      step={3}
+      title={t(locale, "auth.resetTitle")}
+      footer={<AuthLink to="/login">{t(locale, "common.login")}</AuthLink>}
+    >
+      {exchangeState === "checking" && (
+        <p role="status" className="text-pub-sm text-pub-muted">
+          {t(locale, "common.loading")}
+        </p>
+      )}
+      {exchangeState === "invalid" && <Alert kind="error">{t(locale, "auth.resetInvalid")}</Alert>}
+      {exchangeState === "rate_limited" && <Alert kind="error">{t(locale, "auth.errors.rate_limited")}</Alert>}
 
-        {exchangeState === "checking" && (
-          <p role="status" className="text-sm text-pub-muted">{t(locale, "common.loading")}</p>
-        )}
-        {exchangeState === "invalid" && (
-          <Alert kind="error">{t(locale, "auth.resetInvalid")}</Alert>
-        )}
-        {exchangeState === "rate_limited" && (
-          <Alert kind="error">{t(locale, "auth.errors.rate_limited")}</Alert>
-        )}
+      {actionError && ready && <Alert kind="error">{t(locale, `auth.errors.${actionError}`)}</Alert>}
 
-        {actionError && ready && (
-          <div className="mb-4">
-            <Alert kind="error">{t(locale, `auth.errors.${actionError}`)}</Alert>
-          </div>
-        )}
-
-        {ready && (
-          <Form method="post" className="flex flex-col gap-4">
-            <input type="hidden" name="_action" value="reset" />
-            <Input
-              label={t(locale, "auth.newPassword")}
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              maxLength={128}
-              autoComplete="new-password"
-              dir="ltr"
-              reveal
-              revealShowLabel={t(locale, "common.showPassword")}
-              revealHideLabel={t(locale, "common.hidePassword")}
-            />
-            <Input
-              label={t(locale, "auth.passwordConfirm")}
-              name="passwordConfirm"
-              type="password"
-              required
-              minLength={8}
-              maxLength={128}
-              autoComplete="new-password"
-              dir="ltr"
-              reveal
-              revealShowLabel={t(locale, "common.showPassword")}
-              revealHideLabel={t(locale, "common.hidePassword")}
-            />
-            <SubmitButton className="w-full">
-              {navigation.state === "idle" ? t(locale, "auth.resetSubmit") : t(locale, "common.loading")}
-            </SubmitButton>
-          </Form>
-        )}
-      </Card>
-    </div>
+      {ready && (
+        <Form method="post" className="flex flex-col gap-5">
+          <input type="hidden" name="_action" value="reset" />
+          <Input
+            label={t(locale, "auth.newPassword")}
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            maxLength={128}
+            autoComplete="new-password"
+            dir="ltr"
+            reveal
+            revealShowLabel={t(locale, "common.showPassword")}
+            revealHideLabel={t(locale, "common.hidePassword")}
+          />
+          <Input
+            label={t(locale, "auth.passwordConfirm")}
+            name="passwordConfirm"
+            type="password"
+            required
+            minLength={8}
+            maxLength={128}
+            autoComplete="new-password"
+            dir="ltr"
+            reveal
+            revealShowLabel={t(locale, "common.showPassword")}
+            revealHideLabel={t(locale, "common.hidePassword")}
+          />
+          <SubmitButton size="lg" className="w-full">
+            {navigation.state === "idle" ? t(locale, "auth.resetSubmit") : t(locale, "common.loading")}
+          </SubmitButton>
+        </Form>
+      )}
+    </AuthFrame>
   );
 }

@@ -97,7 +97,7 @@ test.describe("owner-managed YouTube video", () => {
       const r = await fetch("/", { method: "GET" });
       return r.headers.get("content-security-policy") ?? "";
     });
-    expect(csp).toContain("frame-src https://www.youtube-nocookie.com");
+    expect(csp).toContain("frame-src 'self' https://www.youtube-nocookie.com");
 
     await student.close();
   });

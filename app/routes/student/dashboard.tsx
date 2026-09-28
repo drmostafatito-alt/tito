@@ -8,12 +8,9 @@ import { courses, devices, securityEvents, sessions, subscriptions } from "~serv
 import { unreadAnnouncementsCount, visibleAnnouncements } from "~server/announcements/service.server";
 import { entitlementsForStudent } from "~server/entitlements/grant.server";
 import { continueLearning, courseProgressBatch, progressStats } from "~server/progress/service.server";
-import { Card, CardBody, CardHeader } from "~/components/ui/Card";
-import { Badge } from "~/components/ui/Badge";
-import { EmptyState } from "~/components/ui/EmptyState";
-import { ProgressBar } from "~/components/ProgressBar";
 import { QuestionPlatformCard } from "~/components/QuestionPlatform";
-import { pubBtnSm } from "~/lib/publicStyles";
+import { Action, ArrowGlyph, EmptyNote, Meter, Ordinal, Tag } from "~/components/tito/ui";
+import { subjectKindOf, SubjectSignature } from "~/components/tito/subject";
 import { t, formatDate, type Locale } from "~/lib/i18n";
 import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
 
@@ -139,9 +136,64 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   };
 }
 
+/**
+ * THE WORKSPACE.
+ *
+ * The dashboard answers five questions, in this order, and nothing else:
+ *   1. where did I stop?      → "أكمل من حيث توقفت"
+ *   2. what do I have?        → "موادي"
+ *   3. how far am I?          → "تقدّمي"
+ *   4. what needs attention?  → expiries + unread announcements
+ *   5. what is my account?    → session, device, security activity
+ *
+ * Which modules exist is still decided by `settings.dashboard.modules`; a
+ * disabled or empty module renders nothing at all. There is no invented
+ * content anywhere on this page.
+ */
+function Module({
+  title,
+  index,
+  action,
+  children,
+  testId,
+}: {
+  title: string;
+  index?: number;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  testId?: string;
+}) {
+  return (
+    <section data-testid={testId} className="min-w-0">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t-2 border-pub-ink pt-3">
+        <h2 className="flex items-baseline gap-3 font-display text-pub-md font-extrabold tracking-[-0.02em] text-pub-ink">
+          {index != null && (
+            <span className="tito-label text-ink-300" aria-hidden="true">
+              <Ordinal n={index} />
+            </span>
+          )}
+          {title}
+        </h2>
+        {action}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function ModuleLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link to={to} className="inline-flex min-h-11 items-center gap-1.5 text-pub-sm font-bold text-pub-ink hover:underline">
+      {children}
+      <ArrowGlyph />
+    </Link>
+  );
+}
+
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
+  const ar = locale === "ar";
 
   const roleLabel: Record<string, string> = {
     student: t(locale, "dashboard.roleStudent"),
@@ -149,271 +201,339 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     admin: t(locale, "dashboard.roleAdmin"),
     super_admin: t(locale, "dashboard.roleSuperAdmin"),
   };
-  const welcomeLine =
-    (locale === "ar" ? loaderData.dash.welcome.ar : loaderData.dash.welcome.en) ||
-    t(locale, "dashboard.welcome");
+  const welcomeLine = (ar ? loaderData.dash.welcome.ar : loaderData.dash.welcome.en) || t(locale, "dashboard.welcome");
+
+  const [resume, ...rest] = loaderData.continueItems;
+  const stats = loaderData.stats;
+  const showStats =
+    loaderData.dash.modules.stats &&
+    stats &&
+    (stats.completedLessons > 0 || stats.inProgressLessons > 0 || stats.completedVideos > 0);
+  const expiring = loaderData.dash.modules.expiry ? (loaderData.expiringModule ?? []) : [];
+  const announcements = loaderData.dash.modules.announcements ? loaderData.announcementsModule : null;
+  const support = loaderData.support;
+  const hasSupport = loaderData.dash.modules.support && (support.email || support.phone || support.whatsapp);
+
+  /* Modules are numbered in the order the student reads them, and the numbers
+     are computed from what actually renders — a disabled module does not leave
+     a gap in the sequence. */
+  let n = 0;
+  const next = () => ++n;
 
   return (
-    <div className="student-dashboard flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-500">{welcomeLine}</p>
-          <h1 className="text-2xl font-bold text-slate-900">{loaderData.user.fullName}</h1>
+    <div className="student-dashboard flex flex-col gap-10">
+      {/* WHO — the name is the heading; the role and the session are ruled meta. */}
+      <header>
+        <p className="tito-label">{welcomeLine}</p>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-pub-line pb-4">
+          <h1 className="font-display text-[length:var(--text-pub-h2)] font-extrabold leading-pub-tight tracking-[-0.035em] text-pub-ink">
+            {loaderData.user.fullName}
+          </h1>
+          <Tag tone="neutral">
+            {t(locale, "dashboard.role")}: {roleLabel[loaderData.user.roleId] ?? loaderData.user.roleId}
+          </Tag>
         </div>
-        <Badge tone="brand">
-          {t(locale, "dashboard.role")}: {roleLabel[loaderData.user.roleId] ?? loaderData.user.roleId}
-        </Badge>
-      </div>
+      </header>
 
-      {/* External Questions & Exams Platform entry (replaces the retired internal question bank) */}
-      <QuestionPlatformCard url={loaderData.questionPlatformUrl} locale={locale} />
-
-      {/* Admin-configured modules */}
+      {/* 1 — WHERE DID I STOP */}
       {loaderData.dash.modules.continue && (
-        <Card>
-          <CardHeader title={t(locale, "progress.continueTitle")} />
-          <CardBody>
-            {loaderData.continueItems.length === 0 ? (
-              <EmptyState
-                title={t(locale, "progress.continueEmpty")}
-                action={
-                  <Link to="/study" className={pubBtnSm("primary")} data-testid="dash-study-link-empty">
+        <Module index={next()} title={t(locale, "progress.continueTitle")}>
+          {loaderData.continueItems.length === 0 ? (
+            <EmptyNote
+              title={t(locale, "progress.continueEmpty")}
+              action={
+                <span data-testid="dash-study-link-empty">
+                  <Action size="sm" to="/study">
                     {t(locale, "study.navTitle")}
-                  </Link>
-                }
-              />
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {loaderData.continueItems.map((item) => (
-                  <li key={`${item.courseSlug}/${item.lessonSlug}`}>
-                    <Link
-                      to={`/learn/${item.courseSlug}/${item.lessonSlug}`}
-                      className="flex min-h-11 flex-col gap-1 rounded-lg border border-slate-200 px-4 py-2.5 hover:border-brand-300 hover:bg-brand-50/40"
-                    >
-                      <span className="flex items-center justify-between gap-2 text-sm font-medium text-slate-800">
-                        {locale === "ar" ? item.lessonTitleAr || item.lessonTitleEn : item.lessonTitleEn || item.lessonTitleAr}
-                        {item.status === "completed" ? (
-                          <Badge tone="success">{t(locale, "progress.completed")}</Badge>
-                        ) : (
-                          <span className="text-xs font-normal text-brand-700">{t(locale, "progress.resume")}</span>
-                        )}
-                      </span>
-                      <span className="flex items-center gap-2 text-xs text-slate-500">
-                        {locale === "ar" ? item.courseTitleAr || item.courseTitleEn : item.courseTitleEn || item.courseTitleAr}
-                        <span dir="ltr">· {item.pct}%</span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardBody>
-        </Card>
-      )}
-
-      {loaderData.dash.modules.stats && loaderData.stats && (loaderData.stats.completedLessons > 0 || loaderData.stats.inProgressLessons > 0 || loaderData.stats.completedVideos > 0) && (
-        <Card>
-          <CardHeader title={t(locale, "progress.statsTitle")} />
-          <CardBody>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-slate-200 p-3 text-center">
-                <p className="text-2xl font-bold text-brand-700" dir="ltr">{loaderData.stats.completedLessons}</p>
-                <p className="text-xs text-slate-500">{t(locale, "progress.completedLessons")}</p>
-              </div>
-              <div className="rounded-lg border border-slate-200 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-700" dir="ltr">{loaderData.stats.inProgressLessons}</p>
-                <p className="text-xs text-slate-500">{t(locale, "progress.lessonsInProgress")}</p>
-              </div>
-              <div className="rounded-lg border border-slate-200 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-700" dir="ltr">{loaderData.stats.completedVideos}</p>
-                <p className="text-xs text-slate-500">{t(locale, "progress.completedVideos")}</p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
-
-      {loaderData.dash.modules.myCourses && (
-        <Card>
-          <CardHeader title={t(locale, "dashboard.myCourses")} />
-          <CardBody>
-            {loaderData.myCourses.length === 0 ? (
-              <EmptyState
-                title={t(locale, "content.catalogEmpty")}
-                action={
-                  <Link to="/study" className={pubBtnSm("primary")}>
-                    {t(locale, "study.navTitle")}
-                  </Link>
-                }
-              />
-            ) : (
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {loaderData.myCourses.map((course) => (
-                  <li key={course.slug}>
-                    <Link
-                      to={`/courses/${course.slug}`}
-                      className="flex min-h-11 flex-col gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 hover:border-brand-300 hover:bg-brand-50/40"
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        {locale === "ar" ? course.titleAr || course.titleEn : course.titleEn || course.titleAr}
-                        <span className="text-xs font-normal text-slate-500" dir="ltr">{course.pct}%</span>
-                      </span>
-                      <ProgressBar pct={course.pct} label={t(locale, "progress.courseProgress")} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardBody>
-        </Card>
-      )}
-
-      {loaderData.dash.modules.announcements && loaderData.announcementsModule && (
-        <Card>
-          <CardHeader
-            title={t(locale, "dashboard.announcements")}
-            action={
-              <Link to="/notifications" className="text-sm text-blue-700 hover:underline">
-                {loaderData.announcementsModule.unread > 0
-                  ? t(locale, "dashboard.unreadCount", { n: loaderData.announcementsModule.unread })
-                  : t(locale, "dashboard.viewAll")}
-              </Link>
-            }
-          />
-          <CardBody>
-            {loaderData.announcementsModule.items.length === 0 ? (
-              <p className="text-sm text-slate-500" data-testid="dash-announcements-empty">{t(locale, "notifications.empty")}</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {loaderData.announcementsModule.items.map((a) => (
-                  <li key={a.id} className="flex items-center justify-between gap-2 text-sm" data-testid="dash-announcement-row">
-                    <Link to="/notifications" className="truncate font-medium text-slate-800 hover:text-brand-700">
-                      {locale === "ar" ? a.titleAr || a.titleEn : a.titleEn || a.titleAr}
-                    </Link>
-                    {!a.readAt && <Badge tone="brand">{t(locale, "notifications.unreadLabel")}</Badge>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardBody>
-        </Card>
-      )}
-
-      {loaderData.dash.modules.expiry && loaderData.expiringModule && loaderData.expiringModule.length > 0 && (
-        <Card>
-          <CardHeader title={t(locale, "dashboard.expiring")} />
-          <CardBody>
-            <ul className="flex flex-col gap-2">
-              {loaderData.expiringModule.map((s) => (
-                <li key={s.id} className="flex items-center justify-between gap-2 text-sm" data-testid="dash-expiry-row">
-                  <span className="truncate font-medium text-slate-800">
-                    {(locale === "ar" ? s.titleAr || s.titleEn : s.titleEn || s.titleAr) || t(locale, "dashboard.subscriptionGeneric")}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <Badge tone="warning">{t(locale, "dashboard.expiresOn")}</Badge>
-                    <span className="text-xs text-slate-500">{formatDate(locale, s.endAt)}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardBody>
-        </Card>
-      )}
-
-      {loaderData.dash.modules.quickActions && (
-        <Card>
-          <CardHeader title={t(locale, "dashboard.quickActions")} />
-          <CardBody>
-            <div className="flex flex-wrap gap-2">
-              <Link to="/study" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700" data-testid="dash-study-link">
-                {t(locale, "study.navTitle")}
-              </Link>
-              <Link to="/profile/security" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                {t(locale, "security.devicesTitle")}
-              </Link>
-            </div>
-          </CardBody>
-        </Card>
-      )}
-
-      {loaderData.dash.modules.support &&
-        (loaderData.support.email || loaderData.support.phone || loaderData.support.whatsapp) && (
-          <Card>
-            <CardHeader title={t(locale, "dashboard.support")} />
-            <CardBody>
-              <div className="flex flex-wrap gap-4 text-sm">
-                {loaderData.support.email && (
-                  <a href={`mailto:${loaderData.support.email}`} className="text-brand-700 hover:underline">{loaderData.support.email}</a>
-                )}
-                {loaderData.support.phone && (
-                  <a href={`tel:${loaderData.support.phone}`} className="text-brand-700 hover:underline" dir="ltr">{loaderData.support.phone}</a>
-                )}
-                {loaderData.support.whatsapp && (
-                  <a
-                    href={`https://wa.me/${loaderData.support.whatsapp.replace(/[^\d]/g, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-700 hover:underline"
-                  >
-                    WhatsApp
-                  </a>
-                )}
-              </div>
-            </CardBody>
-          </Card>
-        )}
-
-      {/* Account/session facts (functional, always available to the signed-in user) */}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Card>
-          <CardHeader title={t(locale, "dashboard.sessionCard")} />
-          <CardBody>
-            <p className="text-sm text-slate-600">
-              {t(locale, "dashboard.sessionExpires")}{" "}
-              <span className="font-medium text-slate-900">
-                {formatDate(locale, loaderData.session.expiresAt)}
-              </span>
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              {t(locale, "security.devicesTitle")}: {loaderData.activeDevices} · {t(locale, "dashboard.sessionsLabel")}: {loaderData.activeSessions}
-            </p>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader title={t(locale, "dashboard.deviceCard")} />
-          <CardBody>
-            <p className="text-sm font-medium text-slate-900">{loaderData.device.label}</p>
-            <p className="mt-1 text-xs text-slate-500">{loaderData.device.platform}</p>
-            <Link to="/profile/security" className="mt-3 inline-flex min-h-6 items-center text-sm font-medium text-brand-700 hover:underline">
-              {t(locale, "dashboard.securityLink")}
-              <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
-            </Link>
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader title={t(locale, "dashboard.securityActivity")} />
-        <CardBody>
-          {loaderData.recentEvents.length === 0 ? (
-            <p className="text-sm text-slate-500">—</p>
+                  </Action>
+                </span>
+              }
+            />
           ) : (
-            <ul className="flex flex-col gap-1.5">
-              {loaderData.recentEvents.map((ev, i) => {
-                const key = `securityAdmin.ev_${ev.type}`;
-                const label = t(locale, key);
+            <div className="flex flex-col gap-4">
+              {/* The resume card: the ONE thing this page exists to offer. */}
+              <Link
+                to={`/learn/${resume.courseSlug}/${resume.lessonSlug}`}
+                className="group relative flex flex-col gap-4 overflow-hidden rounded-pub-lg bg-pub-navy p-6 text-pub-on-navy transition-colors hover:bg-pub-navy-2 sm:p-7"
+              >
+                <span className="tito-label text-pub-accent">{t(locale, "progress.continueTitle")}</span>
+                <span className="font-display text-[length:var(--text-pub-h3)] font-extrabold leading-pub-tight tracking-[-0.03em] text-pub-on-navy">
+                  {(ar ? resume.lessonTitleAr || resume.lessonTitleEn : resume.lessonTitleEn || resume.lessonTitleAr) || ""}
+                </span>
+                <span className="flex flex-wrap items-center gap-x-4 gap-y-2 text-pub-sm text-pub-on-navy-soft">
+                  <span className="min-w-0 truncate">
+                    {(ar ? resume.courseTitleAr || resume.courseTitleEn : resume.courseTitleEn || resume.courseTitleAr) || ""}
+                  </span>
+                  {resume.status === "completed" ? (
+                    <Tag tone="onDark">{t(locale, "progress.completed")}</Tag>
+                  ) : (
+                    <span data-numeral dir="ltr" className="font-bold text-pub-accent">
+                      {resume.pct}%
+                    </span>
+                  )}
+                </span>
+                <Meter pct={resume.pct} tone="onDark" label={t(locale, "progress.courseProgress")} />
+                <span className="mt-1 inline-flex items-center gap-2 text-pub-sm font-bold text-pub-accent">
+                  {t(locale, "study.startLesson")}
+                  <ArrowGlyph />
+                </span>
+              </Link>
+
+              {rest.length > 0 && (
+                <ul className="tito-rows">
+                  {rest.map((item, i) => (
+                    <li key={`${item.courseSlug}/${item.lessonSlug}`} className="tito-row grid-cols-[2.25rem_minmax(0,1fr)_auto] px-1">
+                      <span className="pt-1 text-pub-sm font-bold text-ink-300" aria-hidden="true">
+                        <Ordinal n={i + 2} />
+                      </span>
+                      <div className="min-w-0">
+                        <Link
+                          to={`/learn/${item.courseSlug}/${item.lessonSlug}`}
+                          className="font-display text-pub-base font-bold leading-pub-snug text-pub-ink after:absolute after:inset-0"
+                        >
+                          {(ar ? item.lessonTitleAr || item.lessonTitleEn : item.lessonTitleEn || item.lessonTitleAr) || ""}
+                        </Link>
+                        <p className="mt-1 truncate text-pub-xs text-pub-muted">
+                          {(ar ? item.courseTitleAr || item.courseTitleEn : item.courseTitleEn || item.courseTitleAr) || ""}
+                        </p>
+                      </div>
+                      <span className="relative z-10 flex shrink-0 items-center gap-3 self-center">
+                        {item.status === "completed" ? (
+                          <Tag tone="ok">{t(locale, "progress.completed")}</Tag>
+                        ) : (
+                          <span data-numeral dir="ltr" className="text-pub-sm font-bold text-pub-muted">
+                            {item.pct}%
+                          </span>
+                        )}
+                        <ArrowGlyph className="text-pub-ink" />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </Module>
+      )}
+
+      {/* 2 — WHAT DO I HAVE ACCESS TO */}
+      {loaderData.dash.modules.myCourses && (
+        <Module
+          index={next()}
+          title={t(locale, "dashboard.myCourses")}
+          action={<ModuleLink to="/study">{t(locale, "study.navTitle")}</ModuleLink>}
+        >
+          {loaderData.myCourses.length === 0 ? (
+            <EmptyNote
+              title={t(locale, "content.catalogEmpty")}
+              action={
+                <Action size="sm" to="/study">
+                  {t(locale, "study.navTitle")}
+                </Action>
+              }
+            />
+          ) : (
+            <ul className="tito-rows">
+              {loaderData.myCourses.map((course, i) => {
+                const title = (ar ? course.titleAr || course.titleEn : course.titleEn || course.titleAr) || "";
+                const kind = subjectKindOf(course.slug, course.titleEn, course.titleAr);
                 return (
-                <li key={i} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-slate-600">{label === key ? ev.type.replace(/_/g, " ") : label}</span>
-                  <span className="text-xs text-slate-500">{formatDate(locale, ev.createdAt)}</span>
-                </li>
+                  <li key={course.slug} data-subject={kind} className="tito-row grid-cols-[2.25rem_minmax(0,1fr)_auto] px-1">
+                    <span className="pt-1 text-[color:var(--subject-ink)]" aria-hidden="true">
+                      <SubjectSignature kind={kind} size={18} />
+                    </span>
+                    <div className="min-w-0">
+                      <Link
+                        to={`/courses/${course.slug}`}
+                        className="font-display text-pub-base font-bold leading-pub-snug text-pub-ink after:absolute after:inset-0"
+                      >
+                        {title}
+                      </Link>
+                      <div className="mt-2 flex items-center gap-3">
+                        <Meter pct={course.pct} className="max-w-56" label={t(locale, "progress.courseProgress")} />
+                        <span data-numeral dir="ltr" className="shrink-0 text-pub-xs font-bold text-pub-muted">
+                          {course.completed}/{course.total}
+                        </span>
+                      </div>
+                    </div>
+                    <span data-numeral dir="ltr" className="relative z-10 self-center text-pub-md font-extrabold text-pub-ink">
+                      {course.pct}%
+                      <span className="sr-only"> — {t(locale, "progress.courseProgress")}</span>
+                    </span>
+                    <span aria-hidden="true" className="sr-only">
+                      {i}
+                    </span>
+                  </li>
                 );
               })}
             </ul>
           )}
-        </CardBody>
-      </Card>
+        </Module>
+      )}
+
+      {/* 3 — HOW FAR AM I */}
+      {showStats && stats && (
+        <Module index={next()} title={t(locale, "progress.statsTitle")}>
+          <dl className="grid grid-cols-3 gap-px bg-pub-line">
+            {[
+              { v: stats.completedLessons, l: t(locale, "progress.completedLessons") },
+              { v: stats.inProgressLessons, l: t(locale, "progress.lessonsInProgress") },
+              { v: stats.completedVideos, l: t(locale, "progress.completedVideos") },
+            ].map((s) => (
+              <div key={s.l} className="bg-pub-bg px-2 py-4">
+                <dd data-numeral dir="ltr" className="text-[length:var(--text-pub-xl)] font-extrabold leading-none tracking-[-0.04em] text-pub-ink">
+                  {s.v}
+                </dd>
+                <dt className="tito-label mt-2">{s.l}</dt>
+              </div>
+            ))}
+          </dl>
+        </Module>
+      )}
+
+      {/* 4 — WHAT NEEDS ATTENTION */}
+      {(expiring.length > 0 || announcements) && (
+        <Module
+          index={next()}
+          title={t(locale, "dashboard.announcements")}
+          action={
+            announcements ? (
+              <ModuleLink to="/notifications">
+                {announcements.unread > 0 ? t(locale, "dashboard.unreadCount", { n: announcements.unread }) : t(locale, "dashboard.viewAll")}
+              </ModuleLink>
+            ) : undefined
+          }
+        >
+          <div className="flex flex-col gap-6">
+            {expiring.length > 0 && (
+              <ul className="tito-rows">
+                {expiring.map((s) => (
+                  <li key={s.id} data-testid="dash-expiry-row" className="tito-row grid-cols-[minmax(0,1fr)_auto] px-1">
+                    <span className="min-w-0 truncate font-display text-pub-base font-bold text-pub-ink">
+                      {(ar ? s.titleAr || s.titleEn : s.titleEn || s.titleAr) || t(locale, "dashboard.subscriptionGeneric")}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3 self-center">
+                      <Tag tone="warn">{t(locale, "dashboard.expiresOn")}</Tag>
+                      <span data-numeral className="text-pub-xs text-pub-muted">
+                        {formatDate(locale, s.endAt)}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {announcements &&
+              (announcements.items.length === 0 ? (
+                <p className="text-pub-sm text-pub-muted" data-testid="dash-announcements-empty">
+                  {t(locale, "notifications.empty")}
+                </p>
+              ) : (
+                <ul className="tito-rows">
+                  {announcements.items.map((a) => (
+                    <li key={a.id} data-testid="dash-announcement-row" className="tito-row grid-cols-[minmax(0,1fr)_auto] px-1">
+                      <Link to="/notifications" className="min-w-0 truncate font-display text-pub-base font-bold text-pub-ink after:absolute after:inset-0">
+                        {(ar ? a.titleAr || a.titleEn : a.titleEn || a.titleAr) || ""}
+                      </Link>
+                      {!a.readAt && (
+                        <span className="relative z-10 self-center">
+                          <Tag tone="mark">{t(locale, "notifications.unreadLabel")}</Tag>
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ))}
+          </div>
+        </Module>
+      )}
+
+      {/* The external exam platform — only when the owner configured a URL. */}
+      <QuestionPlatformCard url={loaderData.questionPlatformUrl} locale={locale} />
+
+      {/* 5 — MY ACCOUNT: session, device, security, support. Facts only. */}
+      <Module index={next()} title={t(locale, "dashboard.sessionCard")}>
+        <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+          <dl className="text-pub-sm">
+            <div className="flex items-baseline justify-between gap-4 border-b border-pub-line py-2.5">
+              <dt className="tito-label">{t(locale, "dashboard.sessionExpires")}</dt>
+              <dd data-numeral className="font-bold text-pub-ink">{formatDate(locale, loaderData.session.expiresAt)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 border-b border-pub-line py-2.5">
+              <dt className="tito-label">{t(locale, "security.devicesTitle")}</dt>
+              <dd data-numeral className="font-bold text-pub-ink">{loaderData.activeDevices}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 border-b border-pub-line py-2.5">
+              <dt className="tito-label">{t(locale, "dashboard.sessionsLabel")}</dt>
+              <dd data-numeral className="font-bold text-pub-ink">{loaderData.activeSessions}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 border-b border-pub-line py-2.5">
+              <dt className="tito-label">{t(locale, "dashboard.deviceCard")}</dt>
+              <dd className="min-w-0 truncate font-bold text-pub-ink">{loaderData.device.label}</dd>
+            </div>
+            <div className="pt-3">
+              <ModuleLink to="/profile/security">{t(locale, "dashboard.securityLink")}</ModuleLink>
+            </div>
+          </dl>
+
+          <div className="min-w-0">
+            <p className="tito-label">{t(locale, "dashboard.securityActivity")}</p>
+            {loaderData.recentEvents.length === 0 ? (
+              <p className="mt-3 text-pub-sm text-pub-muted">—</p>
+            ) : (
+              <ul className="mt-2 text-pub-sm">
+                {loaderData.recentEvents.map((ev, i) => {
+                  const key = `securityAdmin.ev_${ev.type}`;
+                  const label = t(locale, key);
+                  return (
+                    <li key={i} className="flex items-baseline justify-between gap-3 border-b border-pub-line py-2.5">
+                      <span className="min-w-0 truncate text-pub-ink-soft">{label === key ? ev.type.replace(/_/g, " ") : label}</span>
+                      <span data-numeral className="shrink-0 text-pub-xs text-pub-muted">{formatDate(locale, ev.createdAt)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {(loaderData.dash.modules.quickActions || hasSupport) && (
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2">
+                {loaderData.dash.modules.quickActions && (
+                  <span data-testid="dash-study-link">
+                    <Action size="sm" variant="secondary" to="/study">
+                      {t(locale, "study.navTitle")}
+                    </Action>
+                  </span>
+                )}
+                {hasSupport && (
+                  <>
+                    <span className="tito-label">{t(locale, "dashboard.support")}</span>
+                    {support.email && (
+                      <a href={`mailto:${support.email}`} className="text-pub-sm font-bold text-pub-ink hover:underline">
+                        {support.email}
+                      </a>
+                    )}
+                    {support.phone && (
+                      <a href={`tel:${support.phone}`} dir="ltr" className="text-pub-sm font-bold text-pub-ink hover:underline">
+                        {support.phone}
+                      </a>
+                    )}
+                    {support.whatsapp && (
+                      <a
+                        href={`https://wa.me/${support.whatsapp.replace(/[^\d]/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-pub-sm font-bold text-pub-ink hover:underline"
+                      >
+                        WhatsApp
+                      </a>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </Module>
     </div>
   );
 }

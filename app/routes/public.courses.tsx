@@ -5,13 +5,11 @@ import { getEnv } from "~server/cf.server";
 import { getSettings } from "~server/settings/service.server";
 import { catalogCourses } from "~server/content/service.server";
 import { lessonCounts, resolvePublicImageUrls, teacherNames } from "~server/cms/render.server";
-import { Card, CardBody } from "~/components/ui/Card";
-import { CARD_BODY, pubBtnSm } from "~/lib/publicStyles";
-import { Badge } from "~/components/ui/Badge";
+import { PageBody, PageHead } from "~/components/tito/page";
+import { ArrowGlyph, EmptyNote, Ordinal, Tag } from "~/components/tito/ui";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, itemListJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
-import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 
 /**
  * Catalog: published + visible courses only; access badges from row data
@@ -100,66 +98,120 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   ];
 }
 
-const LAYOUT_GRID = {
-  standard: "sm:grid-cols-2",
-  compact: "sm:grid-cols-2 lg:grid-cols-3",
-  wide: "grid-cols-1",
+/**
+ * A term container is READ as an index entry, not as a product card: the row
+ * carries its place in the curriculum (المرحلة · الصف · المادة), its size, and
+ * its access state. `presentation.courseCard` stays authoritative over which of
+ * those facts are shown — the owner's toggles still decide, the grammar changed.
+ *
+ * `wide` keeps one column; the other saved layouts become a two-column index.
+ */
+const LAYOUT_COLUMNS = {
+  standard: "lg:grid-cols-2",
+  compact: "lg:grid-cols-2",
+  wide: "",
 } as const;
 
 export default function CoursesCatalog({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
-  const c = (row: { titleAr: string; titleEn: string }) => (locale === "ar" ? row.titleAr : row.titleEn);
+  const ar = locale === "ar";
+  const c = (row: { titleAr: string; titleEn: string }) => (ar ? row.titleAr : row.titleEn);
   const { pres } = loaderData;
-  const cta = locale === "ar" ? pres.ctaLabelAr : pres.ctaLabelEn;
+  const cta = ar ? pres.ctaLabelAr : pres.ctaLabelEn;
+  const withImages = pres.showImage && loaderData.courses.some((x) => x.imageUrl);
 
   return (
-    <div className="relative isolate mx-auto w-full max-w-[var(--pub-maxw)] overflow-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <ThinkerWash seed="page:courses" anchor="top" />
-      <h1 className="mb-6 text-pub-h2 font-extrabold tracking-tight text-pub-ink">{t(locale, "content.catalogTitle")}</h1>
-      {loaderData.courses.length === 0 ? (
-        <p className="text-pub-muted">{t(locale, "content.catalogEmpty")}</p>
-      ) : (
-        <div className={`grid gap-4 ${LAYOUT_GRID[pres.layout as keyof typeof LAYOUT_GRID] ?? LAYOUT_GRID.standard}`}>
-          {loaderData.courses.map((course) => {
-            const meta: string[] = [];
-            if (pres.showTeacher && course.teacherName) meta.push(course.teacherName);
-            if (pres.showLessonCount && course.lessonCount > 0) meta.push(t(locale, "content.lessonsCount", { n: course.lessonCount }));
-            if (pres.showSubject) {
-              meta.push(
-                `${c({ titleAr: course.programAr, titleEn: course.programEn })} · ${c({ titleAr: course.gradeAr, titleEn: course.gradeEn })} · ${c({ titleAr: course.subjectAr, titleEn: course.subjectEn })}`
-              );
-            }
-            return (
-              <Card key={course.slug} className="overflow-hidden">
-                {pres.showImage && course.imageUrl && (
-                  <img src={course.imageUrl} alt={c(course)} loading="lazy" decoding="async" className="aspect-video w-full object-cover" />
-                )}
-                <CardBody>
-                  {pres.showBadge && (
-                    <div className="mb-1 flex items-center gap-2">
-                      <Badge tone={course.accessLevel === "public" ? "success" : course.accessLevel === "authenticated" ? "brand" : "neutral"}>
-                        {t(locale, course.accessLevel === "public" ? "content.accessPublic" : course.accessLevel === "authenticated" ? "content.accessAuthenticated" : "content.accessEntitled")}
-                      </Badge>
-                      {course.visibility === "featured" && <Badge tone="warning">★</Badge>}
+    <div className="flex flex-col">
+      <PageHead
+        locale={locale}
+        crumbs={[{ label: t(locale, "study.breadcrumbHome"), to: "/" }, { label: t(locale, "content.catalogTitle") }]}
+        eyebrow={t(locale, "study.discoverEyebrow")}
+        title={t(locale, "content.catalogTitle")}
+        aside={
+          loaderData.courses.length === 0 ? undefined : (
+            <dl className="shrink-0">
+              <dd data-numeral className="text-[length:var(--text-pub-xl)] font-extrabold leading-none tracking-[-0.04em] text-pub-ink">
+                {loaderData.courses.length}
+              </dd>
+              <dt className="tito-label mt-2">{t(locale, "content.catalogTitle")}</dt>
+            </dl>
+          )
+        }
+      />
+
+      <PageBody>
+        {loaderData.courses.length === 0 ? (
+          <EmptyNote title={t(locale, "content.catalogEmpty")} />
+        ) : (
+          <ul className={`grid gap-x-[var(--pub-gap)] ${LAYOUT_COLUMNS[pres.layout as keyof typeof LAYOUT_COLUMNS] ?? LAYOUT_COLUMNS.standard}`}>
+            {loaderData.courses.map((course, i) => {
+              const meta: string[] = [];
+              if (pres.showTeacher && course.teacherName) meta.push(course.teacherName);
+              if (pres.showLessonCount && course.lessonCount > 0) meta.push(t(locale, "content.lessonsCount", { n: course.lessonCount }));
+              if (pres.showSubject) {
+                meta.push(
+                  [
+                    c({ titleAr: course.programAr, titleEn: course.programEn }),
+                    c({ titleAr: course.gradeAr, titleEn: course.gradeEn }),
+                    c({ titleAr: course.subjectAr, titleEn: course.subjectEn }),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                );
+              }
+              return (
+                <li key={course.slug} className="tito-row grid-cols-[2.25rem_minmax(0,1fr)_auto] px-1">
+                  <span className="pt-1 text-pub-sm font-bold text-ink-300" aria-hidden="true">
+                    <Ordinal n={i + 1} />
+                  </span>
+                  <div className="flex min-w-0 gap-4">
+                    {withImages && (
+                      /* The thumbnail earns its place only when the owner
+                         uploaded one; there is no placeholder tile. */
+                      <span className="hidden w-28 shrink-0 self-start border border-pub-line bg-pub-surface sm:block">
+                        {course.imageUrl ? (
+                          <img src={course.imageUrl} alt="" loading="lazy" decoding="async" className="aspect-video w-full object-cover" />
+                        ) : (
+                          <span className="block aspect-video w-full" />
+                        )}
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <Link
+                        to={`/courses/${course.slug}`}
+                        className="font-display text-pub-md font-bold leading-pub-snug text-pub-ink after:absolute after:inset-0 focus-visible:outline-offset-4"
+                      >
+                        {c(course)}
+                      </Link>
+                      {meta.length > 0 && <p className="mt-1.5 text-pub-sm leading-pub-snug text-pub-muted">{meta.join(" · ")}</p>}
+                      {pres.showBadge && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                          <Tag tone={course.accessLevel === "public" ? "mark" : course.accessLevel === "authenticated" ? "neutral" : "quiet"}>
+                            {t(
+                              locale,
+                              course.accessLevel === "public"
+                                ? "content.accessPublic"
+                                : course.accessLevel === "authenticated"
+                                  ? "content.accessAuthenticated"
+                                  : "content.accessEntitled"
+                            )}
+                          </Tag>
+                          {course.visibility === "featured" && <Tag tone="ink">★</Tag>}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <h2 className="text-pub-md font-bold text-pub-ink">
-                    <Link to={`/courses/${course.slug}`} className="hover:underline">{c(course)}</Link>
-                  </h2>
-                  {meta.length > 0 && <p className={`mt-1 ${CARD_BODY}`}>{meta.join(" · ")}</p>}
-                  {cta && (
-                    <Link to={`/courses/${course.slug}`} className={pubBtnSm("ghost", "mt-3 self-start")}>
-                      {cta}
-                      <span aria-hidden="true" className="ms-1 rtl:rotate-180">→</span>
-                    </Link>
-                  )}
-                </CardBody>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                  </div>
+                  <span className="relative z-10 flex items-center gap-2 self-center text-pub-sm font-bold text-pub-ink">
+                    {cta && <span className="hidden sm:inline">{cta}</span>}
+                    <ArrowGlyph />
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </PageBody>
     </div>
   );
 }

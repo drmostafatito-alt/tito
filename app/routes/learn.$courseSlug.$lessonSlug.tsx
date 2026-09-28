@@ -25,13 +25,9 @@ import { courseProgress, lessonProgressMap, setLessonCompleted, videoProgressMap
 import { getSettings } from "~server/settings/service.server";
 import { signFileUrl } from "~server/files/storage.server";
 import { VideoPlayer } from "~/components/player/VideoPlayer";
-import { Badge } from "~/components/ui/Badge";
 import { SubmitButton } from "~/components/ui/Button";
-import { ProgressBar } from "~/components/ProgressBar";
-import { Card, CardBody } from "~/components/ui/Card";
-import { ThinkerPortrait, ThinkerWash } from "~/components/visuals/ThinkerPortrait";
-import { pubBtn } from "~/lib/publicStyles";
-import { thinkerFor } from "~/lib/thinkers";
+import { Action, ArrowGlyph, Meter, Ordinal, Tag } from "~/components/tito/ui";
+import { SubjectPlate, subjectKindOf } from "~/components/tito/subject";
 import { t, type Locale } from "~/lib/i18n";
 import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 
@@ -260,168 +256,255 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   );
 }
 
+/** One numbered part of the lesson: a rule, a label, then the material. */
+function Part({
+  index,
+  label,
+  title,
+  meta,
+  children,
+  testId,
+}: {
+  index: number;
+  label: string;
+  title?: string;
+  meta?: React.ReactNode;
+  children: React.ReactNode;
+  testId?: string;
+}) {
+  return (
+    <section data-testid={testId} className="min-w-0">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-pub-ink pt-3">
+        <span className="tito-label text-pub-ink" aria-hidden="true">
+          <Ordinal n={index} />
+        </span>
+        <span className="tito-label">{label}</span>
+        {title && <span className="min-w-0 font-display text-pub-base font-bold text-pub-ink">{title}</span>}
+        {meta && <span className="ms-auto text-pub-xs text-pub-muted">{meta}</span>}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+/**
+ * THE LESSON — a reading room, not a page of cards.
+ *
+ * The chrome is deliberately thin: one sticky bar carrying where you are, how
+ * far you have got, and the way back. Everything below it is the material
+ * itself, numbered in the order the teacher ordered it. Access is the server's
+ * verdict; the locked state states the exact scope you would be buying.
+ */
 export default function LessonPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
+  const ar = locale === "ar";
   const { course, unit, lesson, verdict, items, prev, next, pres, progress, lessonId, study } = loaderData;
   const revalidator = useRevalidator();
   const actionData = useActionData<typeof action>();
-  const title = locale === "ar" ? lesson.titleAr : lesson.titleEn;
+  const title = ar ? lesson.titleAr : lesson.titleEn;
   const lessonCompleted = actionData?.completed ?? (progress?.lesson?.status === "completed" || false);
-  const thinker = thinkerFor({
-    slot: verdict.allowed ? "lesson-page" : "lesson-locked",
-    slug: study.subjectSlug ?? course.slug,
-    titleAr: study.subjectTitleAr,
-    titleEn: study.subjectTitleEn,
-  });
+  const kind = subjectKindOf(study.subjectSlug ?? course.slug, study.subjectTitleEn ?? "", study.subjectTitleAr ?? "");
   const backHref = study.subjectSlug ? `/study/${study.subjectSlug}` : "/study";
+  const subjectTitle = (ar ? study.subjectTitleAr || study.subjectTitleEn : study.subjectTitleEn || study.subjectTitleAr) || "";
+  const termTitle = (ar ? study.termTitleAr : study.termTitleEn) || "";
+  const unitTitle = unit ? (ar ? unit.titleAr : unit.titleEn) : "";
+  const description = ar ? lesson.descriptionAr : lesson.descriptionEn;
+
+  /* Parts are numbered by what actually renders, so a hidden attachment or a
+     pending video never leaves a gap in the sequence. */
+  let part = 0;
 
   return (
-    <main className="pub-root relative isolate mx-auto w-full max-w-[56rem] overflow-x-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <ThinkerWash seed={`page:lesson:${lessonId}`} />
-      <nav className="mb-2 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
-        <Link to="/study" className="hover:underline">{t(locale, "study.title")}</Link>
-        {study.subjectSlug && (
-          <>
-            <span aria-hidden="true"> / </span>
-            <Link to={`/study/${study.subjectSlug}`} className="hover:underline">
-              {locale === "ar" ? study.subjectTitleAr || study.subjectTitleEn : study.subjectTitleEn || study.subjectTitleAr}
-            </Link>
-          </>
-        )}
-        <span aria-hidden="true"> / </span>
-        {/* the term container, labelled with the TERM name — never "كورس" */}
-        <span>{locale === "ar" ? study.termTitleAr : study.termTitleEn}</span>
-        {unit && <span> / {locale === "ar" ? unit.titleAr : unit.titleEn}</span>}
-      </nav>
-      <div className="mb-1 flex flex-wrap items-center gap-2">
-        <h1 className="text-pub-h3 font-extrabold tracking-tight text-pub-ink">{title}</h1>
-        {lesson.freePreview && <Badge tone="success">{t(locale, "content.freePreview")}</Badge>}
-        {progress && lessonCompleted && <Badge tone="success">{t(locale, "progress.completed")}</Badge>}
-        {progress && !lessonCompleted && progress.lesson && <Badge tone="warning">{t(locale, "progress.inProgress")}</Badge>}
-      </div>
-      {progress && progress.course.total > 0 && (
-        <div className="mb-4" aria-label={t(locale, "progress.courseProgress")}>
-          <div className="mb-1 flex items-center justify-between text-pub-xs text-pub-muted">
-            <span>{t(locale, "progress.courseProgress")}</span>
-            <span dir="ltr">{progress.course.completed}/{progress.course.total} · {progress.course.pct}%</span>
-          </div>
-          <ProgressBar pct={progress.course.pct} label={t(locale, "progress.courseProgress")} />
-        </div>
-      )}
-      {pres.showDescription && (locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn) && (
-        <p className="mb-6 text-pub-muted">{locale === "ar" ? lesson.descriptionAr : lesson.descriptionEn}</p>
-      )}
+    <div className="pub-root flex min-h-dvh flex-col bg-pub-bg" data-subject={kind}>
+      {/* ── THE LESSON BAR ─────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 border-b border-pub-line bg-pub-bg/97 pt-safe backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-[64rem] items-center gap-4 px-[var(--pub-pad-x)] py-2.5">
+          <Link
+            to={backHref}
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 text-pub-sm font-bold text-pub-ink-soft transition-colors hover:text-pub-ink"
+          >
+            <span className="rotate-180 rtl:rotate-0">
+              <ArrowGlyph />
+            </span>
+            <span className="hidden sm:inline">{t(locale, "common.back")}</span>
+          </Link>
 
-      {!verdict.allowed ? (
-        <Card data-testid="lesson-locked" className="relative isolate overflow-hidden border-pub-line">
-          <ThinkerPortrait
-            thinker={thinkerFor({ slot: "lesson-locked", slug: study.subjectSlug ?? "locked" })}
-            presentation="statue"
-            className="thinker-statue--quiet absolute bottom-0 end-2 h-24 w-20"
-          />
-          <CardBody className="relative z-10 space-y-3">
-            <div className="flex items-center gap-2">
-              <span aria-hidden="true">🔒</span>
-              <h2 className="text-pub-base font-semibold text-pub-ink">{t(locale, "content.lockedTitle")}</h2>
+          <nav aria-label={t(locale, "common.breadcrumb")} data-allow-small className="min-w-0 flex-1">
+            <ol className="flex min-w-0 items-center gap-2 text-pub-xs text-pub-muted">
+              <li className="shrink-0">
+                <Link to="/study" className="font-semibold hover:text-pub-ink">
+                  {t(locale, "study.title")}
+                </Link>
+              </li>
+              {study.subjectSlug && (
+                <li className="hidden min-w-0 shrink items-center gap-2 sm:flex">
+                  <span aria-hidden="true" className="text-ink-300">/</span>
+                  <Link to={`/study/${study.subjectSlug}`} className="min-w-0 truncate font-semibold hover:text-pub-ink">
+                    {subjectTitle}
+                  </Link>
+                </li>
+              )}
+              <li className="hidden min-w-0 shrink items-center gap-2 lg:flex">
+                <span aria-hidden="true" className="text-ink-300">/</span>
+                <span className="min-w-0 truncate">{termTitle}</span>
+              </li>
+              {unitTitle && (
+                <li className="hidden min-w-0 shrink items-center gap-2 lg:flex">
+                  <span aria-hidden="true" className="text-ink-300">/</span>
+                  <span className="min-w-0 truncate">{unitTitle}</span>
+                </li>
+              )}
+            </ol>
+          </nav>
+
+          {progress && progress.course.total > 0 && (
+            <div className="hidden w-48 shrink-0 sm:block">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="tito-label">{t(locale, "progress.courseProgress")}</span>
+                <span data-numeral dir="ltr" className="text-pub-xs font-bold text-pub-ink">
+                  {progress.course.completed}/{progress.course.total}
+                </span>
+              </div>
+              <Meter className="mt-1.5" pct={progress.course.pct} label={t(locale, "progress.courseProgress")} />
             </div>
-            <p className="text-pub-sm text-pub-muted">{t(locale, "content.lockedBody")}</p>
-            {/* The scope this lesson belongs to, so the student knows exactly what
-                they would be subscribing to (year · subject · term). */}
-            <p className="text-pub-xs text-pub-muted" data-testid="lesson-locked-scope">
+          )}
+        </div>
+      </header>
+
+      <main id="main-content" className="mx-auto w-full max-w-[64rem] flex-1 px-[var(--pub-pad-x)] py-8 sm:py-12">
+        {/* ── THE LESSON HEAD ───────────────────────────────────────────── */}
+        <div className="border-b border-pub-line pb-8">
+          <p className="tito-label text-[color:var(--subject-ink)]">
+            {[subjectTitle, termTitle, unitTitle].filter(Boolean).join(" · ")}
+          </p>
+          <h1 className="mt-3 max-w-[22ch] font-display text-[length:var(--text-pub-h1)] font-extrabold leading-pub-tight tracking-[-0.04em] text-pub-ink [overflow-wrap:anywhere]">
+            {title}
+          </h1>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {lesson.freePreview && <Tag tone="mark">{t(locale, "content.freePreview")}</Tag>}
+            {progress && lessonCompleted && <Tag tone="ok">{t(locale, "progress.completed")}</Tag>}
+            {progress && !lessonCompleted && progress.lesson && <Tag tone="neutral">{t(locale, "progress.inProgress")}</Tag>}
+          </div>
+          {pres.showDescription && description && (
+            <p className="mt-5 max-w-[60ch] text-pub-md leading-pub-normal text-pub-ink-soft">{description}</p>
+          )}
+        </div>
+
+        {!verdict.allowed ? (
+          /* ── LOCKED ──────────────────────────────────────────────────
+             The gate is the server's. This panel only explains it, and it
+             names the exact scope the student would be paying for. */
+          <section
+            data-testid="lesson-locked"
+            className="relative isolate mt-10 overflow-hidden rounded-pub-lg bg-pub-navy p-6 text-pub-on-navy sm:p-9"
+          >
+            <span aria-hidden="true" className="pointer-events-none absolute -bottom-14 -z-10 opacity-20 ltr:-right-12 rtl:-left-12">
+              <SubjectPlate kind={kind === "none" ? "logic" : kind} className="h-72 w-[26rem] text-pub-accent" />
+            </span>
+
+            <p className="tito-label text-pub-accent">{t(locale, "content.locked")}</p>
+            <h2 className="mt-3 max-w-[20ch] font-display text-[length:var(--text-pub-h3)] font-extrabold leading-pub-tight tracking-[-0.03em] text-pub-on-navy">
+              {t(locale, "content.lockedTitle")}
+            </h2>
+            <p className="mt-3 max-w-[52ch] text-pub-sm leading-pub-normal text-pub-on-navy-soft">{t(locale, "content.lockedBody")}</p>
+
+            <dl className="mt-7 max-w-md" data-testid="lesson-locked-scope">
               {[
                 study.yearTitleAr || study.yearTitleEn
-                  ? `${t(locale, "commerce.scopeYear")}: ${locale === "ar" ? study.yearTitleAr || study.yearTitleEn : study.yearTitleEn || study.yearTitleAr}`
+                  ? { k: t(locale, "commerce.scopeYear"), v: (ar ? study.yearTitleAr || study.yearTitleEn : study.yearTitleEn || study.yearTitleAr) || "" }
                   : null,
-                study.subjectTitleAr || study.subjectTitleEn
-                  ? `${t(locale, "commerce.scopeSubject")}: ${locale === "ar" ? study.subjectTitleAr || study.subjectTitleEn : study.subjectTitleEn || study.subjectTitleAr}`
-                  : null,
-                `${t(locale, "commerce.scopeTerm")}: ${locale === "ar" ? study.termTitleAr : study.termTitleEn}`,
+                subjectTitle ? { k: t(locale, "commerce.scopeSubject"), v: subjectTitle } : null,
+                { k: t(locale, "commerce.scopeTerm"), v: termTitle },
               ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
+                .filter((x): x is { k: string; v: string } => Boolean(x))
+                .map((row) => (
+                  <div key={row.k} className="flex items-baseline justify-between gap-4 border-t border-white/15 py-2.5">
+                    <dt className="tito-label text-pub-on-navy-muted">{row.k}</dt>
+                    <dd className="min-w-0 text-end text-pub-sm font-bold text-pub-on-navy">{row.v}</dd>
+                  </div>
+                ))}
+            </dl>
+
+            <div className="mt-7 flex flex-wrap items-center gap-3">
               {study.offer ? (
                 <Link
                   to={`/checkout/${study.offer.productSlug}`}
-                  className={pubBtn("gold", "pill", "px-5 py-2")}
+                  className="inline-flex min-h-12 items-center gap-3 rounded-pub-md bg-pub-accent px-6 text-pub-base font-bold text-pub-ink transition-colors hover:bg-pub-accent-soft"
                   data-testid="lesson-subscribe-cta"
                 >
                   {t(locale, "content.lockedSubscribe")}
-                  <span dir="ltr" className="ms-2 text-pub-xs">
+                  <span dir="ltr" data-numeral className="font-extrabold">
                     {formatMoney(study.offer.minPriceMinor, study.offer.currency)}
                   </span>
                 </Link>
               ) : (
-                <span className="text-pub-sm text-pub-muted" data-testid="lesson-no-offer">
+                <p className="text-pub-sm text-pub-on-navy-soft" data-testid="lesson-no-offer">
                   {t(locale, "content.lockedNoOffer")}
-                </span>
+                </p>
               )}
-            </div>
-            <div className="border-t border-slate-100 pt-3">
-              <p className="text-pub-sm text-pub-muted">{t(locale, "content.lockedActivateHint")}</p>
               <Link
                 to="/activate"
-                className="mt-2 inline-flex min-h-11 items-center rounded-pub-pill border border-slate-300 px-4 py-2 text-pub-sm font-semibold text-pub-muted hover:bg-pub-surface"
+                className="inline-flex min-h-12 items-center rounded-pub-md border border-white/25 px-5 text-pub-sm font-bold text-pub-on-navy transition-colors hover:border-pub-accent hover:text-pub-accent"
                 data-testid="lesson-activate-cta"
               >
                 {t(locale, "content.lockedActivate")}
               </Link>
             </div>
-            <Link to={`/courses/${course.slug}`} className="mt-2 inline-block text-pub-sm text-blue-600 hover:underline">
-              {t(locale, "common.back")}
-            </Link>
-          </CardBody>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {items.map((item) => {
-            if (item.kind === "video") {
-              return item.status === "ready" ? (
-                <VideoPlayer
-                  key={item.key}
-                  videoId={item.videoId}
-                  lessonId={lessonId}
-                  title={pres.video.showTitle ? t(locale, "content.videoItem") : undefined}
-                  showPoster={pres.video.showPoster}
-                  allowFullscreen={pres.video.allowFullscreen}
-                  allowSpeed={pres.video.allowSpeed}
-                  startAt={progress?.videos[item.videoId]?.positionSeconds ?? 0}
-                  onLessonCompleted={() => revalidator.revalidate()}
-                />
-              ) : (
-                <Card key={item.key}>
-                  <CardBody className="text-pub-sm text-pub-muted">
-                    {t(locale, "content.videoItem")} — {t(locale, `videosAdmin.statusPending`)}…
-                  </CardBody>
-                </Card>
-              );
-            }
-            if (item.kind === "link") {
-              const title = (locale === "ar" ? item.titleAr : item.titleEn)
-                ?? (locale === "ar" ? item.titleEn : item.titleAr)
-                ?? t(locale, "content.linkItem");
-              const desc = (locale === "ar" ? item.descriptionAr : item.descriptionEn)
-                ?? (locale === "ar" ? item.descriptionEn : item.descriptionAr);
-              return (
-                <Card key={item.key}>
-                  <CardBody className="space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-pub-sm font-semibold text-pub-ink">{title}</h3>
-                      {item.required && (
-                        <span className="text-pub-xs text-pub-muted">{t(locale, "content.required")}</span>
-                      )}
+            <p className="mt-3 text-pub-xs text-pub-on-navy-muted">{t(locale, "content.lockedActivateHint")}</p>
+          </section>
+        ) : (
+          <div className="mt-10 flex flex-col gap-12">
+            {items.map((item) => {
+              if (item.kind === "video") {
+                if (item.status !== "ready") {
+                  return (
+                    <Part key={item.key} index={++part} label={t(locale, "content.videoItem")}>
+                      <p className="border border-dashed border-pub-line-strong bg-pub-surface px-4 py-6 text-center text-pub-sm text-pub-muted">
+                        {t(locale, "videosAdmin.statusPending")}…
+                      </p>
+                    </Part>
+                  );
+                }
+                return (
+                  <Part key={item.key} index={++part} label={t(locale, "content.videoItem")}>
+                    <div className="overflow-hidden rounded-pub-md border border-pub-ink bg-black">
+                      <VideoPlayer
+                        videoId={item.videoId}
+                        lessonId={lessonId}
+                        title={pres.video.showTitle ? t(locale, "content.videoItem") : undefined}
+                        showPoster={pres.video.showPoster}
+                        allowFullscreen={pres.video.allowFullscreen}
+                        allowSpeed={pres.video.allowSpeed}
+                        startAt={progress?.videos[item.videoId]?.positionSeconds ?? 0}
+                        onLessonCompleted={() => revalidator.revalidate()}
+                      />
                     </div>
-                    {desc && <p className="text-pub-sm text-pub-muted">{desc}</p>}
-                    {/* Google Forms sets its own X-Frame-Options for /viewform with
-                        ?embedded=true, so the iframe is the supported path. The
-                        external link is always offered as well, so the quiz is
-                        reachable even where embedding is blocked. */}
-                    <div className="overflow-hidden rounded-pub-md border border-pub-line" data-testid="external-quiz">
+                  </Part>
+                );
+              }
+
+              if (item.kind === "link") {
+                const linkTitle =
+                  (ar ? item.titleAr : item.titleEn) ?? (ar ? item.titleEn : item.titleAr) ?? t(locale, "content.linkItem");
+                const desc = (ar ? item.descriptionAr : item.descriptionEn) ?? (ar ? item.descriptionEn : item.descriptionAr);
+                return (
+                  <Part
+                    key={item.key}
+                    index={++part}
+                    label={t(locale, "content.linkItem")}
+                    title={linkTitle}
+                    meta={item.required ? t(locale, "content.required") : undefined}
+                  >
+                    {desc && <p className="mb-4 max-w-[60ch] text-pub-sm leading-pub-normal text-pub-muted">{desc}</p>}
+                    {/* Google Forms sets its own X-Frame-Options for /viewform
+                        with ?embedded=true, so the iframe is the supported
+                        path. The external link is always offered too, so the
+                        quiz stays reachable where embedding is blocked. */}
+                    <div className="overflow-hidden rounded-pub-sm border border-pub-line" data-testid="external-quiz">
                       <iframe
                         src={item.embedUrl}
-                        title={title}
+                        title={linkTitle}
                         className="h-[600px] w-full border-0"
                         loading="lazy"
                         referrerPolicy="strict-origin-when-cross-origin"
@@ -432,88 +515,111 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
                       href={item.openUrl}
                       target="_blank"
                       rel="noopener noreferrer nofollow"
-                      className="inline-flex min-h-11 items-center gap-1 text-pub-sm font-medium text-pub-ink-soft underline decoration-pub-accent underline-offset-4 hover:text-pub-accent-strong"
+                      className="mt-3 inline-flex min-h-11 items-center gap-2 text-pub-sm font-bold text-pub-ink underline decoration-pub-accent decoration-2 underline-offset-4"
                       data-testid="external-quiz-open"
                     >
-                      {t(locale, "content.linkOpen")} ↗
+                      {t(locale, "content.linkOpen")}
+                      <ArrowGlyph />
                     </a>
-                  </CardBody>
-                </Card>
-              );
-            }
-            if (item.kind === "file") {
-              if (!pres.showAttachments) return null;
-              const isPdf = item.kindOf === "pdf";
-              return (
-                <Card key={item.key} className="overflow-hidden border-pub-line">
-                  <CardBody className="space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="font-semibold text-pub-ink">{isPdf ? t(locale, "content.pdfItem") : t(locale, "content.fileItem")} · {item.filename}</p>
-                        <p className="text-pub-xs text-pub-muted">
-                          {Math.max(1, Math.round(item.byteSize / 1024))} KB · {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 text-pub-sm">
-                        {item.viewUrl && (
-                          <a href={item.viewUrl} target="_blank" rel="noopener" className="font-medium text-navy-700 hover:underline">
-                            {t(locale, "content.view")}
-                          </a>
-                        )}
-                        {item.downloadUrl && (
-                          <a href={item.downloadUrl} className="font-medium text-navy-700 hover:underline">
-                            {t(locale, "content.download")}
-                          </a>
-                        )}
-                      </div>
+                  </Part>
+                );
+              }
+
+              if (item.kind === "file") {
+                if (!pres.showAttachments) return null;
+                const isPdf = item.kindOf === "pdf";
+                return (
+                  <Part
+                    key={item.key}
+                    index={++part}
+                    label={isPdf ? t(locale, "content.pdfItem") : t(locale, "content.fileItem")}
+                    title={item.filename}
+                    meta={
+                      <span data-numeral>
+                        {Math.max(1, Math.round(item.byteSize / 1024))} KB ·{" "}
+                        {item.required ? t(locale, "content.required") : t(locale, "content.optional")}
+                      </span>
+                    }
+                  >
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                      {item.viewUrl && (
+                        <a href={item.viewUrl} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center gap-2 text-pub-sm font-bold text-pub-ink underline decoration-pub-accent decoration-2 underline-offset-4">
+                          {t(locale, "content.view")}
+                        </a>
+                      )}
+                      {item.downloadUrl && (
+                        <a href={item.downloadUrl} className="inline-flex min-h-11 items-center gap-2 text-pub-sm font-bold text-pub-ink underline decoration-pub-accent decoration-2 underline-offset-4">
+                          {t(locale, "content.download")}
+                        </a>
+                      )}
                     </div>
                     {isPdf && item.viewUrl && (
-                      <div className="overflow-hidden rounded-pub-md border border-pub-line bg-navy-50">
-                        <iframe
-                          src={item.viewUrl}
-                          title={item.filename}
-                          className="h-[min(70vh,32rem)] w-full border-0"
-                          loading="lazy"
-                        />
+                      <div className="mt-4 overflow-hidden rounded-pub-sm border border-pub-line bg-pub-surface">
+                        <iframe src={item.viewUrl} title={item.filename} className="h-[min(70vh,32rem)] w-full border-0" loading="lazy" />
                       </div>
                     )}
-                  </CardBody>
-                </Card>
-              );
-            }
-            // Legacy internal-exam items are filtered out server-side (the
-            // questions/exams platform is now an external standalone product).
-            return null;
-          })}
-          {items.length === 0 && <p className="text-pub-sm text-pub-muted">—</p>}
-          <Form method="post" className="pt-2" data-lesson-id={lessonId}>
-            <input type="hidden" name="_action" value="toggle-complete" />
-            <input type="hidden" name="completed" value={lessonCompleted ? "0" : "1"} />
-            <SubmitButton variant={lessonCompleted ? "secondary" : "primary"} className="min-h-11">
-              {lessonCompleted ? t(locale, "progress.markIncomplete") : t(locale, "progress.markComplete")}
-            </SubmitButton>
-          </Form>
-        </div>
-      )}
+                  </Part>
+                );
+              }
 
-      {pres.showPrevNext && (
-      <nav className="mt-8 flex justify-between text-pub-sm" aria-label={t(locale, "common.prevNext")}>
-        {prev ? (
-          <Link to={`/learn/${course.slug}/${prev.slug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
-            <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span>
-            {locale === "ar" ? prev.titleAr : prev.titleEn}
-          </Link>
-        ) : (
-          <span />
+              // Legacy internal-exam items are filtered out server-side (the
+              // questions/exams platform is now an external standalone product).
+              return null;
+            })}
+
+            {items.length === 0 && (
+              <p className="border border-dashed border-pub-line-strong bg-pub-surface px-4 py-8 text-center text-pub-sm text-pub-muted">—</p>
+            )}
+
+            {/* ── COMPLETION ─────────────────────────────────────────────
+                The student's own mark on the lesson. The server re-checks the
+                entitlement on every toggle; this is only the control. */}
+            <Form method="post" data-lesson-id={lessonId} className="flex flex-wrap items-center justify-between gap-4 border-t-2 border-pub-ink pt-5">
+              <div className="min-w-0">
+                <p className="tito-label">{t(locale, "progress.courseProgress")}</p>
+                <p className="mt-1 font-display text-pub-base font-bold text-pub-ink">
+                  {lessonCompleted ? t(locale, "progress.completed") : t(locale, "progress.inProgress")}
+                </p>
+              </div>
+              <input type="hidden" name="_action" value="toggle-complete" />
+              <input type="hidden" name="completed" value={lessonCompleted ? "0" : "1"} />
+              <SubmitButton variant={lessonCompleted ? "secondary" : "primary"} size="lg">
+                {lessonCompleted ? t(locale, "progress.markIncomplete") : t(locale, "progress.markComplete")}
+              </SubmitButton>
+            </Form>
+          </div>
         )}
-        {next && verdict.allowed && (
-          <Link to={`/learn/${course.slug}/${next.slug}`} className="inline-flex min-h-6 items-center text-blue-600 hover:underline">
-            {locale === "ar" ? next.titleAr : next.titleEn}
-            <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
-          </Link>
+
+        {/* ── PREV / NEXT ─────────────────────────────────────────────── */}
+        {pres.showPrevNext && (prev || (next && verdict.allowed)) && (
+          <nav className="mt-14 grid gap-px border-t border-pub-line bg-pub-line sm:grid-cols-2" aria-label={t(locale, "common.prevNext")}>
+            {prev ? (
+              <Link to={`/learn/${course.slug}/${prev.slug}`} className="group flex min-h-24 flex-col justify-center gap-1.5 bg-pub-bg py-5 pe-4 transition-colors hover:bg-pub-surface">
+                <span className="tito-label flex items-center gap-2">
+                  <span className="rotate-180 rtl:rotate-0">
+                    <ArrowGlyph className="h-3.5 w-3.5" />
+                  </span>
+                  {t(locale, "common.previous")}
+                </span>
+                <span className="font-display text-pub-base font-bold leading-pub-snug text-pub-ink">{ar ? prev.titleAr : prev.titleEn}</span>
+              </Link>
+            ) : (
+              <span className="hidden bg-pub-bg sm:block" />
+            )}
+            {next && verdict.allowed ? (
+              <Link to={`/learn/${course.slug}/${next.slug}`} className="group flex min-h-24 flex-col justify-center gap-1.5 bg-pub-bg py-5 ps-4 text-end transition-colors hover:bg-pub-surface">
+                <span className="tito-label flex items-center justify-end gap-2">
+                  {t(locale, "common.next")}
+                  <ArrowGlyph className="h-3.5 w-3.5" />
+                </span>
+                <span className="font-display text-pub-base font-bold leading-pub-snug text-pub-ink">{ar ? next.titleAr : next.titleEn}</span>
+              </Link>
+            ) : (
+              <span className="hidden bg-pub-bg sm:block" />
+            )}
+          </nav>
         )}
-      </nav>
-      )}
-    </main>
+      </main>
+    </div>
   );
 }

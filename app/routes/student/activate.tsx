@@ -6,8 +6,9 @@ import { getEnv } from "~server/cf.server";
 import { redeemActivationCode, type RedeemErrorReason } from "~server/commerce/service.server";
 import { checkRateLimit, clientIpOf, sha256Hex } from "~server/http/rate-limit.server";
 import { Alert } from "~/components/ui/Alert";
-import { Card, CardBody, CardHeader } from "~/components/ui/Card";
 import { SubmitButton } from "~/components/ui/Button";
+import { FIELD_LABEL } from "~/components/ui/Input";
+import { WorkHead } from "~/components/tito/page";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -37,49 +38,56 @@ export async function action({ context, request }: Route.ActionArgs) {
   return { error: result.reason as RedeemErrorReason };
 }
 
+/**
+ * One field, one verdict. The code is checked by the server against a hash and
+ * either grants real entitlements or does not — there is no optimistic state
+ * and no success message that is not the server's.
+ */
 export default function ActivatePage({}: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t(locale, "commerce.activateTitle")}</h1>
+    <div className="mx-auto w-full max-w-xl">
+      <WorkHead eyebrow={t(locale, "commerce.myOrders")} title={t(locale, "commerce.activateTitle")} lede={t(locale, "commerce.redeemNotice")} />
 
       {actionData && "error" in actionData && (
-        <div data-testid="redeem-error">
+        <div data-testid="redeem-error" className="mb-6">
           <Alert kind="error">{t(locale, `commerce.redeem_${actionData.error}` as never)}</Alert>
         </div>
       )}
       {actionData && "ok" in actionData && (
-        <div data-testid="redeem-success">
+        <div data-testid="redeem-success" className="mb-6">
           <Alert kind="success">{t(locale, "commerce.redeemSuccess")}</Alert>
         </div>
       )}
 
-      <Card>
-        <CardHeader title={t(locale, "commerce.activateTitle")} />
-        <CardBody>
-          <Form method="post" className="space-y-3">
-            <input type="hidden" name="_action" value="redeem" />
-            <label className="grid gap-1 text-sm">
-              <span>{t(locale, "commerce.codeLabel")}</span>
-              <input
-                name="code"
-                required
-                dir="ltr"
-                autoComplete="off"
-                maxLength={40}
-                className="rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase"
-                placeholder="TITO-XXXX-XXXX-XXXX"
-                data-testid="code-input"
-              />
-            </label>
-            <SubmitButton name="_action" value="redeem">{t(locale, "commerce.redeemButton")}</SubmitButton>
-            <p className="text-xs text-slate-500">{t(locale, "commerce.redeemNotice")}</p>
-          </Form>
-        </CardBody>
-      </Card>
+      <Form method="post" className="flex flex-col gap-5">
+        <input type="hidden" name="_action" value="redeem" />
+        <div>
+          <label htmlFor="activation-code" className={FIELD_LABEL}>
+            {t(locale, "commerce.codeLabel")}
+          </label>
+          {/* The code is the hero of this page: oversized, monospaced, LTR. */}
+          <input
+            id="activation-code"
+            name="code"
+            required
+            dir="ltr"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            maxLength={40}
+            className="mt-2 block w-full rounded-pub-md border-2 border-pub-ink bg-pub-sheet px-4 py-3.5 text-center font-mono text-pub-md font-bold uppercase tracking-[0.18em] text-pub-ink placeholder:font-normal placeholder:tracking-[0.12em] placeholder:text-ink-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-ink"
+            placeholder="TITO-XXXX-XXXX-XXXX"
+            data-testid="code-input"
+          />
+        </div>
+        <SubmitButton name="_action" value="redeem" size="lg" className="w-full">
+          {t(locale, "commerce.redeemButton")}
+        </SubmitButton>
+      </Form>
     </div>
   );
 }

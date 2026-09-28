@@ -6,18 +6,17 @@ import { SectionView } from "~/components/cms/blocks";
 import type { CmsRenderCtx } from "~/cms/render-types";
 
 /**
- * The hero identity plate (owner brief §8 + §14–§19, restyled 2026-09).
+ * The hero identity plate (owner brief §8 + §14–§19, rebuilt 2026-09).
  *
  * Three rules are locked here because each was a regression at some point:
- *   1. with an owner photo published, THAT photo is the hero visual — the slot is
- *      never filled with a stand-in, and the same face never renders twice;
+ *   1. with an owner photo published, THAT photo is the hero visual — the slot
+ *      is never filled with a stand-in, and the same face never renders twice;
  *   2. with the slot empty, NOTHING stands in for the teacher: no photo, no
- *      abstract illustration, and no philosopher posing as the portrait. The
- *      hero is the owner's reference stage — one organic brand blob with the
- *      semi-transparent philosophers standing behind the RESERVED empty slot
- *      (owner request), and the old navy photo-plate must never come back;
- *   3. there is still exactly ONE eager hero visual on the page either way
- *      (the photo, or the frame's start figure), so React preloads one URL.
+ *      stock portrait, and no philosopher posing as one. The reserved slot
+ *      falls back to the discipline plate, which is drawn geometry (SVG) — not
+ *      a raster image pretending to be a person;
+ *   3. there is AT MOST one eager hero visual on the page, and when there is
+ *      one it is preloaded, so the browser fetches exactly one LCP URL.
  */
 
 const PHOTO_URL = "/files/2f2f2f2f-2f2f-4f2f-8f2f-2f2f2f2f2f2f";
@@ -87,26 +86,28 @@ describe("CMS hero identity plate", () => {
     expect(count(html, `src="${PHOTO_URL}"`)).toBe(1);
   });
 
-  it("keeps an empty slot empty — the stage stands ready, nothing stands in", () => {
+  it("keeps an empty slot empty — no raster stands in for the teacher", () => {
     const html = renderHero(null);
-    // no photo, no abstract illustration, and no philosopher posing as one:
-    // the semi-transparent statues only stand BEHIND the reserved slot
+    // no photo, no stock portrait, and no philosopher posing as one
     expect(html).not.toContain("/files/");
     expect(html).not.toContain("hero-philosophy");
-    expect(html).not.toContain("thinker-plate");
-    expect(html).toContain("thinker-statue");
-    expect(html).toContain("hero-blob");
-    // …the statues are real /visuals/thinkers/ assets
-    expect(html).toContain("/visuals/thinkers/");
-    // …and the identity chip still carries the REAL name from Settings
+    expect(html).not.toContain("<img");
+    // the reserved slot is drawn geometry, not a picture of a person
+    expect(html).toContain("<svg");
+    // …and the identity line still carries the REAL name from Settings
     expect(html).toContain("د/ مصطفى تيتو");
   });
 
-  it("renders exactly one eager hero visual either way (LCP discipline)", () => {
+  it("renders at most one eager hero visual either way (LCP discipline)", () => {
     for (const photo of [PHOTO_URL, null]) {
       const html = renderHero(photo);
       const heroImgs = html.match(/<img[^>]*data-hero-visual="true"[^>]*>/g) ?? [];
-      expect(heroImgs).toHaveLength(1);
+      expect(heroImgs.length).toBeLessThanOrEqual(1);
+      if (heroImgs.length === 0) {
+        // nothing eager ⇒ nothing preloaded
+        expect(html).not.toContain('<link rel="preload" as="image"');
+        continue;
+      }
       const hero = String(heroImgs[0]);
       // React SSR keeps the camelCase spelling of the fetch-priority hint.
       expect(hero).toContain('fetchPriority="high"');

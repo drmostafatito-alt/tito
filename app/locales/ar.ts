@@ -22,6 +22,8 @@ export const ar = {
     navMain: "التنقل الرئيسي",
     breadcrumb: "مسار التنقل",
     prevNext: "الدرس السابق والتالي",
+    previous: "الدرس السابق",
+    next: "الدرس التالي",
     menu: "القائمة",
     english: "English",
     arabic: "العربية",
@@ -34,7 +36,14 @@ export const ar = {
     showPassword: "إظهار كلمة المرور",
     hidePassword: "إخفاء كلمة المرور",
   },
+  contact: {
+    phone: "الهاتف",
+    email: "البريد الإلكتروني",
+    address: "العنوان",
+  },
   auth: {
+    frameLabel: "الحساب",
+    registerSubtitle: "أنشئ حسابك للوصول إلى دروسك ومتابعة تقدّمك.",
     loginTitle: "مرحبًا بعودتك",
     loginSubtitle: "سجّل الدخول للمتابعة إلى حسابك",
     email: "البريد الإلكتروني",

@@ -99,7 +99,7 @@ export const ICON_SIZE_CLASS: Record<string, string> = {
 };
 
 export const ICON_COLOR_CLASS: Record<string, string> = {
-  default: "text-slate-700",
+  default: "text-current",
   brand: "text-brand-600",
   accent: "text-accent-600",
   success: "text-emerald-600",

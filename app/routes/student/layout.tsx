@@ -13,6 +13,8 @@ import { QuestionPlatformNavLink } from "~/components/QuestionPlatform";
 import { Icon } from "~/cms/icons";
 import { Drawer } from "~/components/ui/Drawer";
 import { SkipLink } from "~/components/ui/SkipLink";
+import { Ordinal } from "~/components/tito/ui";
+import { SubjectPlate } from "~/components/tito/subject";
 import { rootMetaFrom } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
 import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
@@ -41,7 +43,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
 /**
  * The whole student area is per-user (progress, orders, assignments) — defense
- * in depth: anon visitors are already redirected (requireUser), but a
+ * in depth: anon visitors are already redirected (requireUser), but an
  * authenticated render must also carry noindex so a logged-in session can never
  * leak personal data into the index.
  */
@@ -71,8 +73,8 @@ function MenuLinkNode({ item, locale, className, onNavigate }: { item: MenuLink;
   const label = locale === "ar" ? item.labelAr || item.labelEn : item.labelEn || item.labelAr;
   const inner = (
     <>
-      {item.icon && <Icon name={item.icon} size="sm" colorRole="default" className="text-current" />}
-      <span>{label}</span>
+      {item.icon && <Icon name={item.icon} size="sm" className="text-current" />}
+      <span className="min-w-0 truncate">{label}</span>
     </>
   );
   if (item.external) {
@@ -89,6 +91,21 @@ function MenuLinkNode({ item, locale, className, onNavigate }: { item: MenuLink;
   );
 }
 
+/** The unread count. Square, tabular, never a floating red dot. */
+function Badge({ n, testId }: { n: number; testId?: string }) {
+  if (!n) return null;
+  return (
+    <span
+      data-numeral
+      dir="ltr"
+      data-testid={testId}
+      className="ms-auto inline-flex min-w-5 items-center justify-center rounded-pub-sm bg-pub-accent px-1.5 py-px text-pub-xs font-extrabold text-pub-ink"
+    >
+      {n}
+    </span>
+  );
+}
+
 export default function StudentLayout({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as RootLoaderData | undefined;
   const locale = root?.locale ?? "ar";
@@ -97,10 +114,6 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
   const isAdmin = loaderData.user.rank >= 3;
   const [mobileOpen, setMobileOpen] = useState(false);
   const close = () => setMobileOpen(false);
-
-  const navLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-pub-pill px-3 py-2 text-pub-sm font-medium text-pub-ink-soft hover:bg-pub-surface hover:text-pub-ink";
-  const activeLinkCls = "inline-flex min-h-11 items-center gap-1.5 rounded-pub-pill bg-pub-surface px-3 py-2 text-pub-sm font-bold text-pub-ink shadow-[inset_0_-2px_0_0_var(--color-pub-accent)]";
-  const drawerLink = "flex min-h-12 w-full items-center gap-2 rounded-pub-md px-3 text-pub-base font-medium text-pub-ink hover:bg-pub-surface";
 
   const primary = [
     { to: "/dashboard", label: t(locale, "common.dashboard"), icon: "grid" as const, end: true },
@@ -115,114 +128,135 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
     { to: "/profile/security", label: t(locale, "dashboard.securityLink") },
   ];
 
+  /* THE RAIL ROW — an ordinal in the gutter, the label, then state. The active
+     row is inked with the mark on its leading edge; nothing moves or scales. */
+  const railRow =
+    "group relative flex min-h-11 items-center gap-3 border-s-2 border-transparent ps-4 pe-3 text-pub-sm font-semibold text-pub-on-navy-soft transition-colors hover:text-pub-on-navy";
+  const railRowActive =
+    "group relative flex min-h-11 items-center gap-3 border-s-2 border-pub-accent bg-white/[0.06] ps-4 pe-3 text-pub-sm font-bold text-pub-on-navy";
+  const drawerLink = "flex min-h-12 w-full items-center gap-3 border-b border-pub-line px-1 text-pub-base font-semibold text-pub-ink";
+  const drawerLinkActive = `${drawerLink} text-pub-ink [&>span:first-child]:bg-pub-accent`;
+
   return (
-    <div className="pub-root flex min-h-dvh flex-col overflow-x-hidden bg-pub-surface">
+    <div className="pub-root flex min-h-dvh flex-col bg-pub-bg xl:grid xl:min-h-dvh xl:grid-cols-[16rem_minmax(0,1fr)] xl:items-stretch">
       <SkipLink locale={locale} />
-      <header className="sticky top-0 z-40 border-b border-pub-line bg-pub-bg/97 pt-safe backdrop-blur-md">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-2 px-3 sm:h-16 sm:px-4">
+
+      {/* ─── THE RAIL (xl and up) ─────────────────────────────────────────
+          The student area is a WORKSPACE, not a marketing page: it gets its
+          own ink spine with the whole of the student's world listed on it, so
+          "where am I / what else is there" is answered without a menu. */}
+      <aside className="relative isolate hidden overflow-hidden bg-pub-navy text-pub-on-navy xl:flex xl:flex-col">
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 -z-10 opacity-[0.14] ltr:-right-24 rtl:-left-24">
+          <SubjectPlate kind="logic" className="h-80 w-[26rem] text-pub-accent" />
+        </span>
+
+        <div className="border-b border-white/10 px-5 py-5">
+          <Link to="/" aria-label={appName} className="inline-flex min-h-11 min-w-0 items-center">
+            <BrandMark name={appName} tone="onDark" />
+          </Link>
+        </div>
+
+        <nav aria-label={t(locale, "common.navMain")} className="flex flex-col gap-0.5 py-5">
+          {primary.map((l, i) => (
+            <RRNavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => (isActive ? railRowActive : railRow)}>
+              <span className="tito-label text-pub-on-navy-muted" aria-hidden="true">
+                <Ordinal n={i + 1} />
+              </span>
+              <span className="min-w-0 truncate">{l.label}</span>
+              <Badge n={l.badge ?? 0} testId="nav-unread-badge" />
+            </RRNavLink>
+          ))}
+          <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} block testId="nav-question-platform-desktop" />
+        </nav>
+
+        <div className="px-5">
+          <p className="tito-label border-t border-white/10 pt-4 text-pub-on-navy-muted">{t(locale, "common.more")}</p>
+        </div>
+        <nav aria-label={t(locale, "nav.profileMenu")} className="mt-1 flex flex-col">
+          {more.map((l) => (
+            <RRNavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? railRowActive : railRow)}>
+              <span className="min-w-0 truncate">{l.label}</span>
+            </RRNavLink>
+          ))}
+          {loaderData.menu.map((node) => (
+            <div key={node.id} className="flex flex-col">
+              {node.href && <MenuLinkNode item={node} locale={locale} className={railRow} />}
+              {node.children.map((child) => (
+                <MenuLinkNode key={child.id} item={child} locale={locale} className={`${railRow} ps-9`} />
+              ))}
+            </div>
+          ))}
+          {isAdmin && (
+            <Link to="/admin" className={railRow}>
+              {t(locale, "common.admin")}
+            </Link>
+          )}
+        </nav>
+
+        <div className="mt-auto border-t border-white/10 px-5 py-4">
+          <p className="truncate font-display text-pub-sm font-bold text-pub-on-navy">{loaderData.user.fullName}</p>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <Form method="post" action="/logout">
+              <button
+                type="submit"
+                className="inline-flex min-h-11 items-center text-pub-xs font-bold text-pub-on-navy-muted underline decoration-pub-accent decoration-2 underline-offset-4 hover:text-pub-on-navy"
+              >
+                {t(locale, "common.logout")}
+              </button>
+            </Form>
+            <LanguageSwitcher locale={locale} options={localeOptions} compact />
+          </div>
+        </div>
+      </aside>
+
+      {/* ─── The compact header (below xl) ──────────────────────────────── */}
+      <header className="sticky top-0 z-40 border-b border-pub-line bg-pub-bg/97 pt-safe backdrop-blur-md xl:hidden">
+        <div className="flex h-14 w-full items-center justify-between gap-2 px-4 sm:h-16">
           <Link to="/" aria-label={appName} className="inline-flex min-h-11 min-w-0 shrink items-center">
             <BrandMark name={appName} />
           </Link>
-
-          <nav className="hidden min-w-0 items-center gap-0.5 xl:flex" aria-label={t(locale, "common.navMain")}>
-            {primary.map((l) => (
-              <RRNavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => (isActive ? activeLinkCls : navLinkCls)}>
-                {l.label}
-                {l.badge ? (
-                  <span className="rounded-full bg-pub-navy px-1.5 text-[11px] font-bold text-pub-bg" dir="ltr" data-testid="nav-unread-badge">{l.badge}</span>
-                ) : null}
-              </RRNavLink>
-            ))}
-            <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} testId="nav-question-platform-desktop" />
-            {loaderData.menu.map((node) =>
-              node.children.length === 0 ? (
-                <MenuLinkNode key={node.id} item={node} locale={locale} className={navLinkCls} />
-              ) : (
-                <details key={node.id} className="group relative">
-                  <summary className={`${navLinkCls} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                    {node.icon && <Icon name={node.icon} size="sm" colorRole="default" className="text-current" />}
-                    <span>{locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}</span>
-                    <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
-                  </summary>
-                  <div className="absolute top-full z-50 mt-1 min-w-44 rounded-pub-xl border border-pub-line bg-pub-bg p-1.5 shadow-pub-lg ltr:left-0 rtl:right-0">
-                    {node.href && (
-                      <MenuLinkNode item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-pub-md px-3 py-2 text-pub-sm font-semibold text-pub-ink hover:bg-pub-surface" />
-                    )}
-                    {node.children.map((child) => (
-                      <MenuLinkNode key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-pub-md px-3 py-2 text-pub-sm text-pub-ink-soft hover:bg-pub-surface" />
-                    ))}
-                  </div>
-                </details>
-              )
-            )}
-          </nav>
-
           <div className="flex shrink-0 items-center gap-1">
             <LanguageSwitcher locale={locale} options={localeOptions} compact />
-            <details className="group relative hidden xl:block">
-              <summary className={`${navLinkCls} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                <Icon name="user" size="sm" colorRole="default" className="text-current" />
-                <span className="max-w-[9rem] truncate">{loaderData.user.fullName}</span>
-                <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="absolute top-full z-50 mt-1 min-w-52 rounded-pub-xl border border-pub-line bg-pub-bg p-1.5 shadow-pub-lg ltr:right-0 rtl:left-0">
-                {more.map((l) => (
-                  <RRNavLink key={l.to} to={l.to} className="flex min-h-11 w-full items-center rounded-pub-md px-3 py-2 text-pub-sm text-pub-ink-soft hover:bg-pub-surface">
-                    {l.label}
-                  </RRNavLink>
-                ))}
-                {isAdmin && (
-                  <Link to="/admin" className="flex min-h-11 w-full items-center rounded-pub-md px-3 py-2 text-pub-sm font-medium text-pub-ink-soft hover:bg-pub-surface">
-                    {t(locale, "common.admin")}
-                  </Link>
-                )}
-                <Form method="post" action="/logout">
-                  <button type="submit" className="flex min-h-11 w-full items-center rounded-pub-md px-3 py-2 text-pub-sm font-medium text-pub-danger hover:bg-pub-danger-bg">
-                    {t(locale, "common.logout")}
-                  </button>
-                </Form>
-              </div>
-            </details>
             <button
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-pub-pill text-pub-ink hover:bg-pub-surface xl:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-pub-sm text-pub-ink hover:bg-pub-surface"
               aria-expanded={mobileOpen}
               aria-controls="student-mobile-nav"
               aria-label={t(locale, "common.menu")}
               onClick={() => setMobileOpen((v) => !v)}
             >
-              <Icon name={mobileOpen ? "close" : "menu"} size="md" colorRole="default" />
+              <Icon name={mobileOpen ? "close" : "menu"} size="md" className="text-current" />
             </button>
           </div>
         </div>
       </header>
 
       <Drawer open={mobileOpen} onClose={close} id="student-mobile-nav" label={t(locale, "common.navMain")}>
-        <div className="mb-3 flex items-center justify-between border-b border-pub-line pb-3">
-          <p className="truncate text-pub-sm font-bold text-pub-ink">{loaderData.user.fullName}</p>
+        <div className="mb-4 flex items-center justify-between border-b-2 border-pub-ink pb-3">
+          <p className="truncate font-display text-pub-md font-extrabold text-pub-ink">{loaderData.user.fullName}</p>
           <button
             type="button"
             onClick={close}
             aria-label={t(locale, "common.close")}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-pub-pill text-pub-ink hover:bg-pub-surface"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-pub-sm text-pub-ink hover:bg-pub-surface"
           >
-            <Icon name="close" size="md" colorRole="default" />
+            <Icon name="close" size="md" className="text-current" />
           </button>
         </div>
-        <div className="flex flex-col gap-1">
-          {primary.map((l) => (
-            <RRNavLink key={l.to} to={l.to} end={l.end} onClick={close} className={({ isActive }) => (isActive ? `${activeLinkCls} w-full` : drawerLink)}>
-              <Icon name={l.icon} size="sm" colorRole="default" className="text-current" />
-              {l.label}
-              {l.badge ? (
-                <span className="rounded-full bg-pub-navy px-1.5 text-[11px] font-bold text-pub-bg" dir="ltr">{l.badge}</span>
-              ) : null}
+        <div className="flex flex-col">
+          {primary.map((l, i) => (
+            <RRNavLink key={l.to} to={l.to} end={l.end} onClick={close} className={({ isActive }) => (isActive ? drawerLinkActive : drawerLink)}>
+              <span className="tito-label inline-flex h-6 w-6 items-center justify-center bg-pub-surface-2 text-pub-ink" aria-hidden="true">
+                <Ordinal n={i + 1} />
+              </span>
+              <span className="min-w-0 truncate">{l.label}</span>
+              <Badge n={l.badge ?? 0} />
             </RRNavLink>
           ))}
-          <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} block onNavigate={close} testId="nav-question-platform-mobile" />
+          <QuestionPlatformNavLink url={loaderData.questionPlatformUrl} locale={locale} block tone="onLight" onNavigate={close} testId="nav-question-platform-mobile" />
           {more.map((l) => (
-            <RRNavLink key={l.to} to={l.to} onClick={close} className={drawerLink}>
-              {l.label}
+            <RRNavLink key={l.to} to={l.to} onClick={close} className={`${drawerLink} text-pub-ink-soft`}>
+              <span className="min-w-0 truncate">{l.label}</span>
             </RRNavLink>
           ))}
           {loaderData.menu.map((node) => (
@@ -231,11 +265,6 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
               {node.children.map((child) => (
                 <MenuLinkNode key={child.id} item={child} locale={locale} className={`${drawerLink} ltr:pl-7 rtl:pr-7`} onNavigate={close} />
               ))}
-              {!node.href && node.children.length === 0 && (
-                <span className={`${drawerLink} text-pub-muted`}>
-                  {locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}
-                </span>
-              )}
             </div>
           ))}
           {isAdmin && (
@@ -243,18 +272,27 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
               {t(locale, "common.admin")}
             </Link>
           )}
-          <Form method="post" action="/logout">
-            <button type="submit" className="flex min-h-12 w-full items-center rounded-pub-md px-3 text-pub-base font-medium text-pub-danger hover:bg-pub-danger-bg">
+          <Form method="post" action="/logout" className="mt-4">
+            <button type="submit" className="inline-flex min-h-12 items-center text-pub-sm font-bold text-pub-danger">
               {t(locale, "common.logout")}
             </button>
           </Form>
         </div>
       </Drawer>
 
-      <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 xl:py-8 xl:pb-8">
-        <Outlet />
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 py-7 pb-24 sm:px-6 xl:px-10 xl:py-10 xl:pb-10">
+          <Outlet />
+        </main>
 
+        <footer className="hidden border-t border-pub-line pb-safe xl:block">
+          <div className="mx-auto w-full max-w-5xl px-10 py-5 text-pub-xs text-pub-muted">
+            © {new Date().getFullYear()} {appName}
+          </div>
+        </footer>
+      </div>
+
+      {/* Bottom tabs below xl — four destinations, square, 48px, safe-area aware. */}
       <nav aria-label={t(locale, "common.tabBar")} className="fixed inset-x-0 bottom-0 z-30 border-t border-pub-line bg-pub-bg/97 pb-safe backdrop-blur-md xl:hidden">
         <div className="grid grid-cols-4">
           {primary.map((l) => (
@@ -263,24 +301,22 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
               to={l.to}
               end={l.end}
               className={({ isActive }) =>
-                `relative flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium ${isActive ? "text-pub-navy" : "text-pub-muted"}`
+                `relative flex min-h-13 flex-col items-center justify-center gap-1 border-t-2 px-1 pt-1.5 pb-1 text-pub-xs font-bold ${
+                  isActive ? "border-pub-accent text-pub-ink" : "border-transparent text-pub-muted"
+                }`
               }
             >
-              <Icon name={l.icon} size="sm" colorRole="default" className="text-current" />
+              <Icon name={l.icon} size="sm" className="text-current" />
               <span className="truncate">{l.label}</span>
               {l.badge ? (
-                <span className="absolute end-3 top-1 min-w-4 rounded-full bg-pub-navy px-1 text-[10px] font-bold leading-4 text-pub-bg" dir="ltr">{l.badge}</span>
+                <span data-numeral dir="ltr" className="absolute end-2 top-0.5 min-w-4 bg-pub-accent px-1 text-[10px] font-extrabold leading-4 text-pub-ink">
+                  {l.badge}
+                </span>
               ) : null}
             </RRNavLink>
           ))}
         </div>
       </nav>
-
-      <footer className="hidden border-t border-pub-line bg-pub-bg pb-safe xl:block">
-        <div className="mx-auto w-full max-w-6xl px-4 py-4 text-sm text-pub-muted">
-          © {new Date().getFullYear()} {appName}
-        </div>
-      </footer>
     </div>
   );
 }
