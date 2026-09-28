@@ -34,10 +34,17 @@ export const BTN_VARIANT: Record<string, string> = {
 };
 
 /** The only shape knob the owner gets (registry `ctaShape`); default = system. */
+/**
+ * The owner-editable `ctaShape` (CMS registry) still works, but its range is the
+ * NEW shape language: this system is near-square, and the pill belongs to chips
+ * and avatars, not to actions. A snapshot saved as "pill" therefore reads as the
+ * softest button the system has rather than reintroducing the old rounded-LMS
+ * look next to a square one.
+ */
 export const BTN_SHAPE: Record<string, string> = {
   rounded: "rounded-pub-md",
   soft: "rounded-pub-lg",
-  pill: "rounded-pub-pill",
+  pill: "rounded-pub-lg",
 };
 
 /** Compose a public button from a (validated) variant + shape key. */

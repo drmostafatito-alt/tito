@@ -182,3 +182,70 @@ export function SubjectRule({
     </div>
   );
 }
+
+/**
+ * THE SUBJECT PANEL — the most important surface on the public site.
+ *
+ * One panel per published subject, carrying its own discipline: the signature
+ * mark and a coloured spine, the journey line (year · stage · grade) as ruled
+ * data, the title at display size, and the counts as figures. Shared by the CMS
+ * `study_subjects` block and the /study hub so the two can never drift apart.
+ *
+ * The caller supplies the link element (`as`), because one call site links with
+ * the router and the other resolves a CMS href.
+ */
+export function SubjectPanelBody({
+  kind,
+  meta,
+  title,
+  desc,
+  facts,
+  cta,
+}: {
+  kind: SubjectKind;
+  meta?: string;
+  title: string;
+  desc?: string;
+  facts?: string[];
+  cta: string;
+}) {
+  return (
+    <>
+      <span aria-hidden="true" className="pointer-events-none absolute -top-6 opacity-[0.16] ltr:-right-6 rtl:-left-6">
+        <SubjectPlate kind={kind === "none" ? "logic" : kind} className="h-44 w-72 text-[color:var(--subject-ink)]" />
+      </span>
+
+      <span className="relative flex items-center gap-3 text-[color:var(--subject-ink)]">
+        <SubjectSignature kind={kind} size={26} />
+        {meta ? <span className="tito-label min-w-0 truncate text-[color:var(--subject-ink)]">{meta}</span> : null}
+      </span>
+
+      <span className="relative mt-5 block font-display text-[length:var(--text-pub-lg)] font-extrabold leading-pub-tight tracking-[-0.035em] text-pub-ink [overflow-wrap:anywhere]">
+        {title}
+      </span>
+      {desc ? <span className="relative mt-3 line-clamp-3 block max-w-[44ch] text-pub-sm leading-pub-normal text-pub-muted">{desc}</span> : null}
+
+      {facts && facts.length > 0 ? (
+        <span className="relative mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-pub-line pt-4">
+          {facts.map((f) => (
+            <span key={f} data-numeral className="text-pub-sm font-bold text-pub-ink-soft">
+              {f}
+            </span>
+          ))}
+        </span>
+      ) : null}
+
+      <span className="relative mt-auto inline-flex min-h-11 items-center gap-2 pt-5 text-pub-sm font-bold text-pub-ink">
+        {cta}
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="tito-arrow h-4 w-4 shrink-0 rtl:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 12h15" />
+          <path d="m13 6 6 6-6 6" />
+        </svg>
+      </span>
+    </>
+  );
+}
+
+/** The shared panel shell: border, spine, padding, hover. */
+export const SUBJECT_PANEL_CLASS =
+  "tito-spine group relative flex h-full min-w-0 flex-col overflow-hidden border border-pub-line bg-pub-sheet p-6 ps-7 transition-colors hover:border-pub-ink sm:p-8 sm:ps-9";

@@ -4,34 +4,29 @@ import { getDb } from "~server/db/client.server";
 import { getEnv } from "~server/cf.server";
 import { studyHub } from "~server/content/service.server";
 import { getSettings } from "~server/settings/service.server";
-import { resolvePublicImageUrls } from "~server/cms/render.server";
-import { CARD_BODY, CARD_META, CHIP, pubBtnSm } from "~/lib/publicStyles";
-import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
-import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
-import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
-import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
-import { thinkerAlternate, thinkerFor } from "~/lib/thinkers";
+import { PageBody, PageHead } from "~/components/tito/page";
+import { Action, EmptyNote, Ordinal } from "~/components/tito/ui";
+import { SUBJECT_PANEL_CLASS, SubjectPanelBody, subjectKindOf } from "~/components/tito/subject";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
  * المحتوى التعليمي — the student-facing entry point to real published content.
  *
- * Information architecture (owner model, no "courses" vocabulary):
- *   السنة الدراسية → الصف → المادة → الترم → الدرس
+ * Information architecture (the owner's model, never "courses"):
+ *   السنة الدراسية → الصف → المادة → الترم → الوحدة → الدرس
  *
- * Everything rendered here comes from PUBLISHED rows the admin created; the page
- * is empty-first, so nothing is ever invented or shown as a placeholder.
+ * This page is the FIRST TWO LEVELS of that index. Subjects are not a flat card
+ * wall: they are grouped under the grade they belong to, because "which grade am
+ * I in" is the question a student actually arrives with. Everything rendered
+ * comes from PUBLISHED rows; the page is empty-first and never invents content.
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
   const db = getDb(getEnv(context));
   const [subjects, settings] = await Promise.all([studyHub(db), getSettings(db)]);
-  const photoId = settings.identity.ownerPhotoFileId;
-  const images = photoId ? await resolvePublicImageUrls(db, [photoId]) : {};
   return {
     subjects,
     url: request.url,
-    ownerPhotoUrl: photoId ? (images[photoId] ?? null) : null,
     ownerNameAr: settings.identity.ownerNameAr,
     ownerNameEn: settings.identity.ownerNameEn,
   };
@@ -58,142 +53,124 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
   const ar = locale === "ar";
-  const heroThinker = thinkerFor({ slot: "landing-hero", slug: "study-hub" });
-  const ownerName = ar
-    ? loaderData.ownerNameAr || loaderData.ownerNameEn
-    : loaderData.ownerNameEn || loaderData.ownerNameAr;
+  const subjects = loaderData.subjects;
+  const empty = subjects.length === 0;
 
-  const empty = loaderData.subjects.length === 0;
+  /**
+   * Group by grade, preserving the server's ordering. The grade is the heading
+   * a student scans for; the year sits in its label because one grade belongs
+   * to exactly one academic year in this curriculum.
+   */
+  const groups: Array<{ key: string; grade: string; year: string; program: string; items: typeof subjects }> = [];
+  for (const s of subjects) {
+    const key = s.gradeSlug || (ar ? s.gradeTitleAr : s.gradeTitleEn);
+    let g = groups.find((x) => x.key === key);
+    if (!g) {
+      g = {
+        key,
+        grade: (ar ? s.gradeTitleAr : s.gradeTitleEn) || (ar ? s.gradeTitleEn : s.gradeTitleAr),
+        year: (ar ? s.yearTitleAr : s.yearTitleEn) || "",
+        program: (ar ? s.programTitleAr : s.programTitleEn) || "",
+        items: [],
+      };
+      groups.push(g);
+    }
+    g.items.push(s);
+  }
+
+  const totalLessons = subjects.reduce((n, s) => n + s.lessonCount, 0);
 
   return (
-    <div className="relative isolate overflow-x-hidden">
-      {/* One restrained opening band: light-blue support surface, a whisper
-          portrait and the journey line. No dark hero, no stacked ornament. */}
-      <section className="relative isolate overflow-hidden bg-pub-surface">
-        <SectionDecor variant="page" />
-        <ThinkerWash seed="page:study" anchor="top" />
-        <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
-          <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
-            <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
-            <span aria-hidden="true"> / </span>
-            <span className="font-medium text-pub-navy-2">{t(locale, "study.title")}</span>
-          </nav>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-5">
-            {!empty ? (
-              /* Subject identity sits BESIDE the title as a legible
-                 semi-transparent statue — a person, not an icon chip (owner
-                 reference design) — and never behind text, so a long
-                 description can never collide with it at phone widths. */
-              <ThinkerPortrait
-                thinker={heroThinker}
-                presentation="statue"
-                eager
-                className="h-24 w-20 shrink-0 sm:h-32 sm:w-28"
-              />
-            ) : null}
-            <div className="min-w-0">
-              <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink sm:text-pub-h1">
-                {t(locale, "study.title")}
-              </h1>
-              <DecorHairline className="mt-3 max-w-[10rem] text-pub-accent" />
-            </div>
-          </div>
-          {!empty && (
-            <p className="mt-3 max-w-[var(--pub-measure)] text-pub-base leading-pub-normal text-pub-muted">
-              {t(locale, "study.subtitle")}
-            </p>
-          )}
+    <div className="flex flex-col">
+      <PageHead
+        locale={locale}
+        crumbs={[{ label: t(locale, "study.breadcrumbHome"), to: "/" }, { label: t(locale, "study.title") }]}
+        eyebrow={t(locale, "study.discoverEyebrow")}
+        title={t(locale, "study.title")}
+        lede={empty ? undefined : t(locale, "study.subtitle")}
+        aside={
+          empty ? undefined : (
+            /* The scale of the index, stated as figures rather than claimed in
+               prose. Both numbers are counted from published rows. */
+            <dl className="flex shrink-0 gap-10">
+              <div>
+                <dd data-numeral className="text-[length:var(--text-pub-xl)] font-extrabold leading-none tracking-[-0.04em] text-pub-ink">
+                  {subjects.length}
+                </dd>
+                <dt className="tito-label mt-2">{t(locale, "study.subjectsTitle")}</dt>
+              </div>
+              <div>
+                <dd data-numeral className="text-[length:var(--text-pub-xl)] font-extrabold leading-none tracking-[-0.04em] text-pub-ink">
+                  {totalLessons}
+                </dd>
+                <dt className="tito-label mt-2">{t(locale, "study.lessonsInTerm")}</dt>
+              </div>
+            </dl>
+          )
+        }
+      />
 
-          {loaderData.ownerPhotoUrl && (
-            <div className="relative mt-6 inline-flex">
-              <img
-                src={loaderData.ownerPhotoUrl}
-                alt={ownerName || t(locale, "study.ownerPhotoSlot")}
-                width={72}
-                height={72}
-                className="relative z-10 h-16 w-16 rounded-pub-xl object-cover shadow-pub-md ring-2 ring-pub-bg sm:h-[4.5rem] sm:w-[4.5rem]"
-              />
-            </div>
-          )}
-        </div>
-      </section>
-
-      <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] pb-[var(--pub-pad-y)]">
+      <PageBody>
         {empty ? (
-          <div
-            className="relative isolate mt-1 overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-bg p-6 shadow-pub-card sm:p-8"
-            data-testid="study-empty"
-          >
-            <ThinkerPortrait
-              thinker={heroThinker}
-              presentation="statue"
-              eager
-              className="thinker-statue--quiet absolute bottom-0 end-0 h-28 w-24 sm:h-36 sm:w-32"
+          <div data-testid="study-empty">
+            <EmptyNote
+              title={t(locale, "study.emptyTitle")}
+              body={t(locale, "study.empty")}
+              action={<Action to="/register">{t(locale, "common.register")}</Action>}
             />
-            <div className="relative z-10 max-w-[var(--pub-measure)] sm:pe-24">
-              <h2 className="text-pub-md font-extrabold text-pub-ink">{t(locale, "study.emptyTitle")}</h2>
-              <p className="mt-2 text-pub-base leading-pub-normal text-pub-muted">{t(locale, "study.empty")}</p>
-              <Link to="/register" className={`mt-5 ${pubBtnSm("primary", "px-5")}`}>
-                {t(locale, "common.register")}
-              </Link>
-            </div>
           </div>
         ) : (
-          <div className="grid gap-[var(--pub-gap)] sm:grid-cols-2" data-testid="study-subjects">
-            {loaderData.subjects.map((s, i) => {
-              const primary = thinkerFor({
-                slot: "subject-card",
-                slug: s.slug,
-                titleAr: s.titleAr,
-                titleEn: s.titleEn,
-                skip: i % 2 === 1,
-              });
-              const thinker = i === 1 ? thinkerAlternate(thinkerFor({ slot: "subject-card", slug: s.slug, titleAr: s.titleAr, titleEn: s.titleEn }), s.slug) : primary;
-              const year = ar ? s.yearTitleAr : s.yearTitleEn;
-              const subjectKind = /نفس|psychology/i.test(`${s.titleAr} ${s.titleEn} ${s.slug}`) ? "psychology" : "philosophy";
-              return (
-                <article key={s.slug} data-subject-kind={subjectKind} className="study-subject-block group relative isolate overflow-hidden border-b border-pub-line py-6 first:border-t sm:py-8">
-                  <Link
-                    to={`/study/${s.slug}`}
-                    className="relative z-10 flex min-h-[11rem] flex-col gap-2 p-5 sm:p-6"
-                    data-testid={`study-subject-${s.slug}`}
-                  >
-                    <span className="flex min-w-0 items-start gap-3">
-                      {/* subject identity as a small standing figure */}
-                      <ThinkerPortrait thinker={thinker} presentation="statue" className="thinker-statue--quiet h-16 w-12 shrink-0 sm:h-20 sm:w-16" />
-                      <h2 className="min-w-0 flex-1 text-pub-lg font-bold leading-pub-snug text-pub-ink group-hover:text-pub-navy-2">
-                        {ar ? s.titleAr : s.titleEn}
-                      </h2>
-                    </span>
-                    <p className={`text-pub-sm ${CARD_BODY}`}>
-                      {t(locale, "study.gradeLabel")}: {ar ? s.gradeTitleAr : s.gradeTitleEn}
-                      {s.programTitleAr || s.programTitleEn
-                        ? ` · ${t(locale, "study.programLabel")}: ${ar ? s.programTitleAr : s.programTitleEn}`
-                        : ""}
-                    </p>
-                    {year && (
-                      <p className={`text-pub-xs ${CARD_META}`} dir="ltr">
-                        {t(locale, "study.yearLabel")}: {year}
-                      </p>
-                    )}
-                    {(ar ? s.descriptionAr : s.descriptionEn) && (
-                      <p className={`line-clamp-2 text-pub-sm ${CARD_BODY}`}>{ar ? s.descriptionAr : s.descriptionEn}</p>
-                    )}
-                    <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
-                      <span className={CHIP}>{t(locale, "study.termsCount", { n: s.termCount })}</span>
-                      <span className={CHIP}>{t(locale, "study.lessonsCount", { n: s.lessonCount })}</span>
-                    </div>
-                    <span className={pubBtnSm("primary", "mt-3 w-fit group-hover:bg-pub-navy-2")}>
-                      {t(locale, "study.openSubject")}
-                      <Icon name="arrow-right" size="sm" colorRole="invert" className="text-pub-bg rtl:rotate-180" />
-                    </span>
-                  </Link>
-                </article>
-              );
-            })}
+          <div className="flex flex-col gap-[calc(var(--pub-pad-y)*0.8)]" data-testid="study-subjects">
+            {groups.map((g, gi) => (
+              <section key={g.key} aria-labelledby={`grade-${gi}`}>
+                {/* the grade rule: an ordinal, the grade, then the journey line
+                    it sits in — the hierarchy stated, not diagrammed */}
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-pub-ink pt-3.5">
+                  <span className="tito-label text-pub-ink" aria-hidden="true">
+                    <Ordinal n={gi + 1} />
+                  </span>
+                  <h2 id={`grade-${gi}`} className="font-display text-[length:var(--text-pub-h3)] font-extrabold tracking-[-0.03em] text-pub-ink">
+                    {g.grade}
+                  </h2>
+                  <span className="tito-label ms-auto">
+                    {[g.program, g.year].filter(Boolean).join(" · ")}
+                  </span>
+                </div>
+
+                {/* A grade usually publishes one or two subjects. Two columns
+                    only when there is something to put in the second one —
+                    a lone panel goes full width instead of leaving a hole. */}
+                <ul className={`mt-6 grid gap-[var(--pub-gap)] ${g.items.length > 1 ? "lg:grid-cols-2" : ""}`}>
+                  {g.items.map((s) => {
+                    const kind = subjectKindOf(s.slug, s.titleEn, s.titleAr);
+                    return (
+                      <li key={s.slug} data-subject={kind} className="min-w-0">
+                        <Link
+                          to={`/study/${s.slug}`}
+                          data-testid={`study-subject-${s.slug}`}
+                          className={SUBJECT_PANEL_CLASS}
+                        >
+                          <SubjectPanelBody
+                            kind={kind}
+                            meta={[g.year, g.grade].filter(Boolean).join(" · ")}
+                            title={(ar ? s.titleAr : s.titleEn) || s.titleAr || s.titleEn}
+                            desc={(ar ? s.descriptionAr : s.descriptionEn) || ""}
+                            facts={[
+                              t(locale, "study.termsCount", { n: s.termCount }),
+                              t(locale, "study.lessonsCount", { n: s.lessonCount }),
+                            ]}
+                            cta={t(locale, "study.openSubject")}
+                          />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
           </div>
         )}
-      </div>
+      </PageBody>
     </div>
   );
 }

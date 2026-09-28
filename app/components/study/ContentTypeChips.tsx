@@ -9,23 +9,22 @@ const META: Record<StudyItemKind, { icon: string; key: "study.typeVideo" | "stud
   quiz: { icon: "pencil", key: "study.typeQuiz" },
 };
 
-export function ContentTypeChips({
-  kinds,
-  locale,
-}: {
-  kinds: StudyItemKind[];
-  locale: Locale;
-}) {
+/**
+ * What a lesson actually contains, as glyphs.
+ *
+ * In the index grammar these are not chips in boxes: they are small marks in
+ * the meta line, with the label kept for screen readers and shown from `sm` up
+ * where the row has room. A student scanning a term reads the shape of a lesson
+ * (video? notes? exercise?) before they read its title.
+ */
+export function ContentTypeChips({ kinds, locale }: { kinds: StudyItemKind[]; locale: Locale }) {
   if (!kinds.length) return null;
   return (
-    <ul className="flex flex-wrap gap-1.5">
+    <ul className="flex flex-wrap items-center gap-x-3 gap-y-1">
       {kinds.map((k) => (
-        <li
-          key={k}
-          className="inline-flex items-center gap-1 rounded-full bg-navy-50 px-2 py-0.5 text-[11px] font-medium text-navy-700 ring-1 ring-navy-100"
-        >
-          <Icon name={META[k].icon} size="sm" colorRole="brand" className="h-3.5 w-3.5 text-navy-600" />
-          {t(locale, META[k].key)}
+        <li key={k} className="inline-flex items-center gap-1.5 text-pub-xs font-semibold text-pub-muted">
+          <Icon name={META[k].icon} size="sm" className="h-4 w-4 text-pub-ink-soft" />
+          <span>{t(locale, META[k].key)}</span>
         </li>
       ))}
     </ul>
