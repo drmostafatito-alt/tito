@@ -2,7 +2,7 @@
 /* Subset-scoped fontsource imports (arabic + latin + latin-ext ONLY).
  * The blanket `400.css`…`700.css` imports pull the cyrillic-ext subset too;
  * those files are <4 KB so Vite inlines them as data: URIs, which CSP
- * `font-src 'self'` blocks → 8 console errors on every page. This site is
+ * `font-src 'self'` blocks → console errors on every page. This site is
  * Arabic/English — cyrillic is never rendered. CSP stays strict (no data:). */
 @import "@fontsource/ibm-plex-sans-arabic/arabic-400.css";
 @import "@fontsource/ibm-plex-sans-arabic/latin-400.css";
@@ -17,7 +17,7 @@
 @import "@fontsource/ibm-plex-sans-arabic/latin-700.css";
 @import "@fontsource/ibm-plex-sans-arabic/latin-ext-700.css";
 
-/* Self-hosted Cairo (ADMIN-CUSTOMIZATION §5). Files live at /fonts/cairo. */
+/* Self-hosted Cairo — the DISPLAY face (headings, indices, numerals). */
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 400; src: url("/fonts/cairo/cairo-ar-400.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFF; }
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 400; src: url("/fonts/cairo/cairo-lat-400.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 600; src: url("/fonts/cairo/cairo-ar-600.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFF; }
@@ -28,28 +28,28 @@
 @font-face { font-family: "Cairo"; font-style: normal; font-display: swap; font-weight: 800; src: url("/fonts/cairo/cairo-lat-800.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Design tokens — THE single source for the whole design system
-   (docs/ARCHITECTURE.md §9). One system, two clearly separated layers:
+   TITO DESIGN SYSTEM — "الفهرس" (The Index)
+   ---------------------------------------------------------------------------
+   The public product is a STUDY INSTRUMENT, not a brochure. Its grammar is the
+   grammar of a well-set index: warm paper, ink-black type, hairline rules,
+   ordinal numerals, and exactly ONE accent — a highlighter.
 
-   LAYER B · CONSOLE / APPEARANCE  —  `--color-brand-*`, `--color-accent-*` and
-     `--color-page-bg|surface|ink|line`, `--radius-*`, `--shadow-card`,
-     `--density`. Themeable: the /theme.css route re-emits them from the owner's
-     Appearance settings. They drive the ADMIN console and the STUDENT console
-     (that is what their violet/indigo default ramp is for). Public surfaces must
-     not read them — that is exactly how "half the site turns violet" happened.
+   Two layers, strictly separated (unchanged architecture, new identity):
 
-   LAYER A · PUBLIC IDENTITY  —  `--*-pub-*`, FROZEN.
-     The public platform (home, /study, /curriculum, catalog shells, auth, and
-     every CMS block) reads ONLY these. /theme.css never emits them, so no
-     Appearance change can repaint the public identity. Navy = primary, white =
-     default surface, very light blue = support, gold = minimal accent, and the
-     canvas stays 70–80% light. `--color-navy-*` / `--color-gold-*` are the raw
-     ramps Layer A is built from; prefer the semantic `pub` names in new code.
+   LAYER B · CONSOLE  — `--color-brand-*`, `--color-accent-*`, `--radius-*`,
+     `--shadow-card`, `--density`. Re-emitted by /theme.css from the owner's
+     Appearance settings. Drives the ADMIN console only.
+
+   LAYER A · PUBLIC IDENTITY — the `--*-pub-*` names. FROZEN: /theme.css never
+     emits them, so no Appearance change can repaint the public product. Every
+     public surface, every CMS block and the whole student workspace read ONLY
+     these names.
    ═══════════════════════════════════════════════════════════════════════════ */
 @theme {
   --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Cairo", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
 
-  /* LAYER B · Brand: violet / indigo — CONSOLE ONLY (never a public surface) */
+  /* LAYER B · console ramps (admin only — never a public surface) */
   --color-brand-50: #f5f3ff;
   --color-brand-100: #ede9fe;
   --color-brand-200: #ddd6fe;
@@ -61,197 +61,173 @@
   --color-brand-800: #5b21b6;
   --color-brand-900: #4c1d95;
   --color-brand-950: #2e1065;
-
-  /* LAYER B · Accent: indigo — CONSOLE ONLY (never a public surface) */
   --color-accent-50: #eef2ff;
   --color-accent-100: #e0e7ff;
   --color-accent-400: #818cf8;
   --color-accent-500: #6366f1;
   --color-accent-600: #4f46e5;
   --color-accent-700: #4338ca;
-
-  /* ─── Identity palette: Navy / White / Gold (owner brief §1) ───────────────
-   * STABLE tokens — deliberately NOT emitted by /theme.css, so the premium
-   * academic identity (deep navy surfaces, gold accents, light-blue support)
-   * renders identically whatever brand ramp the owner picks in
-   * Appearance → Theme. The owner-editable `--color-brand-*` ramp stays the
-   * semantic default for the rest of the platform; these tokens are used for
-   * the identity surfaces (hero, dark bands, closing banner, curriculum pages)
-   * and for gold accents only. No new colors beyond the approved 4. */
-  --color-navy-50: #f2f6fc;
-  --color-navy-100: #e3ecf8;
-  --color-navy-200: #c6d9ef;
-  --color-navy-300: #9bb9e1;
-  --color-navy-400: #6792ce;
-  --color-navy-500: #3f6cb0;
-  --color-navy-600: #2b518f;
-  --color-navy-700: #1f3f72;
-  --color-navy-800: #16305a;
-  --color-navy-900: #0f2342;
-  --color-navy-950: #08152b;
-
-  --color-gold-50: #fdf9ed;
-  --color-gold-100: #f9efd0;
-  --color-gold-200: #f2dda1;
-  --color-gold-300: #e9c469;
-  --color-gold-400: #dfae42;
-  --color-gold-500: #c9932a;
-  --color-gold-600: #a9741f;
-  --color-gold-700: #85571c;
-  --color-gold-800: #6b451c;
-  --color-gold-900: #5a3a1b;
-
   --radius-card: 1.25rem;
 
-  /* ─── LAYER A · PUBLIC IDENTITY ───────────────────────────────────────────
-   * The public design system in one place: color, shape, type, rhythm.
-   * Registered here (not in :root) so `bg-pub-*`, `text-pub-ink`,
-   * `border-pub-line`, `rounded-pub-lg`, `shadow-pub-card`, `text-pub-xl` and
-   * `leading-pub-snug` exist as real utilities — no per-component redefinition.
-   * Semantic state colors are tokens too, so a warning can never become a
-   * random amber/emerald/rose again. */
-  --color-pub-bg: #ffffff; /* default public surface — white */
-  --color-pub-surface: #f2f6fc; /* support: very light blue panel (navy-50) */
-  --color-pub-surface-2: #e3ecf8; /* support: one step deeper (navy-100) */
-  --color-pub-tint: #d8e6f6; /* icon chips / pills on a light surface */
-  --color-pub-line: #dbe6f4; /* hairlines on light surfaces */
-  --color-pub-line-strong: #c6d9ef;
+  /* ─── LAYER A · raw ramps ────────────────────────────────────────────────
+   * ink   — the type and the deep bands (warm near-black, never blue-black)
+   * paper — the canvas (warm off-white, never pure #fff except for lifted
+   *         sheets, which is how a sheet reads as lifted at all)
+   * mark  — THE accent: a study highlighter. Used as a fill or a wash behind
+   *         type; its dark step is the only place it becomes a text colour. */
+  --color-ink-950: #0b0b08;
+  --color-ink-900: #15150f;
+  --color-ink-800: #24241b;
+  --color-ink-700: #3a3a2c;
+  --color-ink-600: #555443;
+  --color-ink-500: #6f6e5c;
+  --color-ink-400: #908f7c;
+  --color-ink-300: #b6b4a1;
+  --color-ink-200: #d8d5c4;
+  --color-ink-100: #e9e6d9;
+  --color-ink-50: #f4f2e9;
 
-  --color-pub-ink: #0f2342; /* primary ink = navy-900 */
-  --color-pub-ink-strong: #08152b; /* display ink = navy-950 */
-  --color-pub-ink-soft: #16305a; /* secondary ink = navy-800 */
-  --color-pub-muted: #2b518f; /* muted copy = navy-600 */
+  --color-paper: #fbfaf6;
+  --color-paper-2: #f3f1e8;
+  --color-paper-3: #ebe8dc;
 
-  --color-pub-navy: #0f2342; /* the ONE dark band, rare by design */
-  --color-pub-navy-2: #16305a;
-  --color-pub-on-navy: #e3ecf8; /* ink on a navy field */
-  --color-pub-on-navy-soft: #c6d9ef;
-  --color-pub-on-navy-muted: #9bb9e1;
+  --color-mark-50: #f7fce9;
+  --color-mark-100: #edf8c6;
+  --color-mark-200: #ddf291;
+  --color-mark-300: #cbe95c;
+  --color-mark-400: #b4d62f;
+  --color-mark-500: #8fae1c;
+  --color-mark-600: #6b8413;
+  --color-mark-700: #4f6210;
 
-  --color-pub-accent: #c9932a; /* gold — minimal accent only */
-  --color-pub-accent-strong: #a9741f;
-  --color-pub-accent-soft: #dfae42;
-  --color-pub-accent-bg: #fdf9ed;
-  --color-pub-accent-line: #f2dda1;
+  /* Subject signatures — thin strokes and tiny labels only, never a surface. */
+  --color-subject-logic: #15544c;
+  --color-subject-logic-soft: #d9ebe7;
+  --color-subject-psych: #8a3a24;
+  --color-subject-psych-soft: #f5e4dd;
 
-  --color-pub-success: #065f46;
-  --color-pub-success-bg: #e8f5ef;
-  --color-pub-warning: #92600a;
-  --color-pub-warning-bg: #fdf4e3;
-  --color-pub-danger: #9f1c1c;
-  --color-pub-danger-bg: #fbeeee;
+  /* ─── LAYER A · semantic names (what components actually read) ─────────── */
+  --color-pub-bg: #fbfaf6;          /* the canvas: warm paper */
+  --color-pub-sheet: #ffffff;       /* a lifted sheet on the canvas */
+  --color-pub-surface: #f3f1e8;     /* recessed panel */
+  --color-pub-surface-2: #ebe8dc;   /* one step deeper */
+  --color-pub-tint: #e9e6d9;        /* chips / glyph plates */
+  --color-pub-line: #e2dfd1;        /* hairlines */
+  --color-pub-line-strong: #cbc8b5;
 
-  /* The ONE documented non-identity hue: WhatsApp's own brand green, used only
-     where the product literally hands the user to WhatsApp (floating contact
-     button, manual-payment CTA). Kept as a token so no raw hex is scattered
-     through the UI and no component invents a slightly different green. */
+  --color-pub-ink: #15150f;
+  --color-pub-ink-strong: #0b0b08;
+  --color-pub-ink-soft: #3a3a2c;
+  --color-pub-muted: #6f6e5c;
+
+  /* The deep band. Historically named `navy`; it is now ink-black by identity.
+     Kept as a name so every existing surface repaints with the system. */
+  --color-pub-navy: #15150f;
+  --color-pub-navy-2: #24241b;
+  --color-pub-on-navy: #f4f2e9;
+  --color-pub-on-navy-soft: #d8d5c4;
+  --color-pub-on-navy-muted: #908f7c;
+
+  /* THE accent — one highlighter, nothing else. */
+  --color-pub-accent: #cbe95c;         /* the fill / the mark */
+  --color-pub-accent-strong: #4f6210;  /* the only accent TEXT colour (AA on paper) */
+  --color-pub-accent-soft: #ddf291;
+  --color-pub-accent-bg: #f7fce9;
+  --color-pub-accent-line: #ddf291;
+
+  --color-pub-success: #14653f;
+  --color-pub-success-bg: #e7f3ec;
+  --color-pub-ok: #14653f;
+  --color-pub-warning: #7c5307;
+  --color-pub-warning-bg: #fbf3e0;
+  --color-pub-danger: #99201f;
+  --color-pub-danger-bg: #faecec;
+  --color-pub-info: #24241b;
+  --color-pub-info-bg: #f3f1e8;
+
+  /* WhatsApp's own brand green — used only where the product literally hands
+     the user to WhatsApp. Tokenised so no component invents another green. */
   --color-pub-whatsapp: #25d366;
-  --color-pub-whatsapp-strong: #1ebe5b;  --color-pub-info: #16305a;
-  --color-pub-info-bg: #e3ecf8;
+  --color-pub-whatsapp-strong: #1ebe5b;
 
-  /* shape — one radius scale, one elevation scale */
-  --radius-pub-sm: 0.5rem;
-  --radius-pub-md: 0.75rem;
-  --radius-pub-lg: 1rem;
-  --radius-pub-xl: 1.25rem;
-  --radius-pub-2xl: 1.5rem;
+  /* ─── shape ──────────────────────────────────────────────────────────────
+   * The index grammar is nearly square: small radii, hairlines, no glossy
+   * pills except where a control genuinely is a pill (chips, avatars). */
+  --radius-pub-sm: 0.25rem;
+  --radius-pub-md: 0.375rem;
+  --radius-pub-lg: 0.5rem;
+  --radius-pub-xl: 0.75rem;
+  --radius-pub-2xl: 1rem;
   --radius-pub-pill: 999px;
-  --radius-btn: 0.75rem; /* keeps ui/Button + admin rounded-[var(--radius-btn)] valid */
+  --radius-btn: 0.375rem;
 
-  --shadow-pub-sm: 0 1px 2px rgb(8 21 43 / 0.05);
-  --shadow-pub-card: 0 1px 2px rgb(8 21 43 / 0.04), 0 14px 30px -22px rgb(8 21 43 / 0.16);
-  --shadow-pub-md: 0 10px 24px -14px rgb(8 21 43 / 0.18);
-  --shadow-pub-lg: 0 22px 44px -26px rgb(8 21 43 / 0.22);
+  /* ─── elevation — paper, not glass ─────────────────────────────────────── */
+  --shadow-pub-sm: 0 1px 0 0 rgb(21 21 15 / 0.05);
+  --shadow-pub-card: 0 1px 0 0 rgb(21 21 15 / 0.04), 0 10px 24px -20px rgb(21 21 15 / 0.30);
+  --shadow-pub-md: 0 10px 22px -16px rgb(21 21 15 / 0.35);
+  --shadow-pub-lg: 0 26px 48px -28px rgb(21 21 15 / 0.38);
 
-  /* type — fluid: one step per breakpoint, not two component-specific lists */
-  --font-display: "Cairo", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  /* ─── type ───────────────────────────────────────────────────────────────
+   * Arabic first: bigger base, generous leading for running copy, tight
+   * negative tracking only on the display sizes where Cairo can take it. */
   --text-pub-xs: 0.8125rem;
-  --text-pub-sm: clamp(0.875rem, 0.85rem + 0.14vw, 0.95rem);
-  --text-pub-base: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
-  --text-pub-md: clamp(1.0625rem, 0.98rem + 0.4vw, 1.3rem);
-  --text-pub-lg: clamp(1.25rem, 1.05rem + 0.9vw, 1.75rem);
-  --text-pub-xl: clamp(1.5rem, 1.15rem + 1.6vw, 2.25rem);
-  --text-pub-2xl: clamp(1.75rem, 1.2rem + 2.4vw, 2.9rem);
-  --leading-pub-tight: 1.32;
-  --leading-pub-snug: 1.55;
+  --text-pub-sm: clamp(0.875rem, 0.85rem + 0.14vw, 0.9375rem);
+  --text-pub-base: clamp(1rem, 0.96rem + 0.22vw, 1.0625rem);
+  --text-pub-md: clamp(1.0625rem, 0.98rem + 0.42vw, 1.3125rem);
+  --text-pub-lg: clamp(1.25rem, 1.05rem + 0.95vw, 1.75rem);
+  --text-pub-xl: clamp(1.5rem, 1.15rem + 1.7vw, 2.375rem);
+  --text-pub-2xl: clamp(1.75rem, 1.2rem + 2.6vw, 3.125rem);
+  --text-pub-h3: clamp(1.375rem, 1.1rem + 1.3vw, 1.875rem);
+  --text-pub-h2: clamp(1.75rem, 1.25rem + 2.4vw, 3rem);
+  --text-pub-h1: clamp(2.125rem, 1.35rem + 3.8vw, 4rem);
+  --text-pub-display: clamp(2.5rem, 1.2rem + 6.4vw, 5.5rem);
+  --leading-pub-tight: 1.18;
+  --leading-pub-snug: 1.4;
   --leading-pub-normal: 1.8;
 
-  @keyframes marquee {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(-50%);
-    }
-  }
-  @keyframes float {
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-8px);
-    }
-  }
-  @keyframes pulse-soft {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.55;
-    }
-  }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  @keyframes tito-rise { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; } }
 }
 
-/* The public *rhythm* scale — plain custom properties (never utilities), so
-   section padding / gaps / measure are one decision for every public surface,
-   and mobile is the base value rather than a desktop value with overrides. */
+/* The public rhythm scale — plain custom properties, decided once. */
 :root {
   --pub-gap: clamp(0.75rem, 0.6rem + 0.8vw, 1.5rem);
-  --pub-pad-y: clamp(2rem, 1.35rem + 2.6vw, 4.25rem);
-  --pub-pad-x: clamp(1rem, 0.65rem + 1.4vw, 2rem);
-  --pub-maxw: 74rem;
-  --pub-measure: 46rem;
+  --pub-pad-y: clamp(2.5rem, 1.5rem + 3.4vw, 5.5rem);
+  --pub-pad-x: clamp(1rem, 0.6rem + 1.6vw, 2.25rem);
+  --pub-maxw: 78rem;
+  --pub-measure: 42rem;
   --pub-fab-size: 3.5rem;
   --pub-fab-inset: 1rem;
   --pub-fab-clear: calc(var(--pub-fab-size) + var(--pub-fab-inset) * 2);
+  --pub-rule: 1px;
 }
 
 /* ─── LAYER A bridge · `.pub-root` ─────────────────────────────────────────
- * Shared primitives (`~/components/ui/Button|Input|Alert`, and anything else
- * written against LAYER B names) are used by BOTH consoles and by public pages
- * such as /login, /register and /learn. We do not fork them into a second
- * button system: the public shell adds one class, and inside that scope the
- * LAYER B names resolve to the public identity. Two properties of this bridge
- * matter:
- *   • it is declared in LAYER A, and /theme.css only ever emits LAYER B on
- *     :root — a closer ancestor wins for inheritance, so an Appearance change
- *     (any brand ramp, any radius, any density) can no longer turn the public
- *     site violet or rounded-square;
- *   • the public identity stays the single visual language for public routes,
- *     while the consoles keep the owner's theme.
- */
+ * Shared primitives (`~/components/ui/*`) are written against LAYER B names and
+ * are used by both consoles AND public routes. Instead of forking them, the
+ * public shell adds one class and inside that scope the LAYER B names resolve
+ * to the public identity. /theme.css only ever emits LAYER B on `:root`, and a
+ * closer ancestor wins — so no Appearance change can reach a public surface. */
 .pub-root {
   --color-brand-50: var(--color-pub-surface);
   --color-brand-100: var(--color-pub-surface-2);
   --color-brand-200: var(--color-pub-line-strong);
-  --color-brand-300: var(--color-navy-300);
-  --color-brand-400: var(--color-navy-400);
-  --color-brand-500: var(--color-navy-500);
+  --color-brand-300: var(--color-ink-300);
+  --color-brand-400: var(--color-ink-400);
+  --color-brand-500: var(--color-ink-600);
   --color-brand-600: var(--color-pub-navy);
   --color-brand-700: var(--color-pub-navy-2);
-  --color-brand-800: var(--color-navy-800);
+  --color-brand-800: var(--color-ink-800);
   --color-brand-900: var(--color-pub-ink);
-  --color-brand-950: var(--color-navy-950);
+  --color-brand-950: var(--color-ink-950);
   --color-accent-50: var(--color-pub-accent-bg);
   --color-accent-100: var(--color-pub-accent-line);
   --color-accent-400: var(--color-pub-accent-soft);
   --color-accent-500: var(--color-pub-accent);
   --color-accent-600: var(--color-pub-accent-strong);
-  --color-accent-700: var(--color-gold-700);
-  /* shape + rhythm are identity too: one radius scale, one shadow, no density
-     squeezing on public surfaces */
+  --color-accent-700: var(--color-mark-700);
   --radius-sm: var(--radius-pub-sm);
   --radius-md: var(--radius-pub-md);
   --radius-lg: var(--radius-pub-lg);
@@ -262,10 +238,8 @@
   --radius-card: var(--radius-pub-xl);
   --shadow-card: var(--shadow-pub-card);
   --density: 1;
-  /* surfaces + semantic states, so a shared primitive cannot read the owner's
-     console page colour through the public shell */
   --color-page-bg: var(--color-pub-bg);
-  --color-surface: var(--color-pub-bg);
+  --color-surface: var(--color-pub-sheet);
   --color-ink: var(--color-pub-ink);
   --color-ink-muted: var(--color-pub-muted);
   --color-line: var(--color-pub-line);
@@ -278,42 +252,41 @@
 }
 
 @layer base {
-  html {
-    -webkit-text-size-adjust: 100%;
-  }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     @apply font-sans antialiased;
-    /* PUBLIC canvas: white with navy ink (LAYER A). Consoles paint their own
-       surface (bg-slate-50/100 on their layout roots) and read LAYER B, so the
-       owner's Appearance page background/ink can no longer leak into — or
-       recolor — the public site. `--font-body` is honoured when set: typography
-       is an owner choice, palette and shape are identity. */
     background-color: var(--color-pub-bg);
     color: var(--color-pub-ink);
     font-family: var(--font-body, var(--font-sans));
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-pub-accent-strong;
+    outline: 2px solid var(--color-pub-ink);
+    outline-offset: 2px;
   }
-  /* Forms: never smaller than 16px on iOS to avoid focus zoom */
-  input,
-  select,
-  textarea {
-    font-size: 1rem;
+  /* Forms never smaller than 16px on iOS (focus zoom). */
+  input, select, textarea { font-size: 1rem; }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading, "Cairo"), "IBM Plex Sans Arabic", ui-sans-serif, sans-serif;
   }
-  .cms-richtext p {
-    margin-block: 0 0.75em;
+  /* Every figure in the product is an index number: one numeral treatment. */
+  [data-numeral] {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: 0;
   }
-  .cms-richtext p:last-child {
-    margin-block-end: 0;
-  }
-  .cms-richtext h2 { font-size: 1.5rem; font-weight: 800; margin-block: 0 0.5em; }
-  .cms-richtext h3 { font-size: 1.25rem; font-weight: 700; margin-block: 0 0.4em; }
+
+  /* Rich text reads LAYER A. The rt-c-* names are kept (saved snapshots use
+     them) but their meaning is public identity, never the console ramp. */
+  .cms-richtext p { margin-block: 0 0.75em; }
+  .cms-richtext p:last-child { margin-block-end: 0; }
+  .cms-richtext h2 { font-size: var(--text-pub-lg); font-weight: 800; margin-block: 0 0.5em; letter-spacing: -0.02em; }
+  .cms-richtext h3 { font-size: var(--text-pub-md); font-weight: 700; margin-block: 0 0.4em; }
   .cms-richtext ul, .cms-richtext ol { padding-inline-start: 1.25rem; margin-block: 0.5em; }
-  /* Rich text reads LAYER A: the same ink/muted/accent as every other public
-     surface. The rt-c-* names are kept (saved snapshots use them) but their
-     meaning is now public-identity, never the console violet. */
-  .cms-richtext a { color: var(--color-pub-ink-soft); text-decoration: underline; }
+  .cms-richtext li { margin-block: 0.25em; }
+  .cms-richtext strong { font-weight: 700; color: var(--color-pub-ink); box-shadow: inset 0 -0.42em 0 color-mix(in srgb, var(--color-pub-accent) 55%, transparent); }
+  .cms-richtext a { color: var(--color-pub-ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: var(--color-pub-accent); }
   .cms-richtext .rt-c-brand, .rt-c-brand { color: var(--color-pub-ink-soft); }
   .cms-richtext .rt-c-accent, .rt-c-accent { color: var(--color-pub-accent-strong); }
   .cms-richtext .rt-c-success, .rt-c-success { color: var(--color-pub-success); }
@@ -324,35 +297,18 @@
   .cms-richtext .rt-align-center { text-align: center; }
   .cms-richtext .rt-align-end { text-align: end; }
   .cms-richtext .rt-w-bold { font-weight: 700; }
-  h1, h2, h3, h4 { font-family: var(--font-heading, "Cairo"), "IBM Plex Sans Arabic", ui-sans-serif, sans-serif; }
+
+  /* Common narrow-screen failure modes, prevented once. */
+  html, body { max-inline-size: 100%; overflow-x: clip; }
+  img, video, iframe { max-inline-size: 100%; }
+  button, a { touch-action: manipulation; }
 }
 
-/* iOS safe areas for fixed/sticky chrome (ARCHITECTURE §15) */
-@utility pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
-}
-@utility pt-safe {
-  padding-top: max(env(safe-area-inset-top), 0.25rem);
-}
+/* iOS safe areas for fixed/sticky chrome */
+@utility pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+@utility pt-safe { padding-top: max(env(safe-area-inset-top), 0.25rem); }
 
-/* ─── Decorative identity utilities (owner brief §14–§16) ──────────────────
- * ONE restrained ornament system, pure CSS (zero image files, zero network
- * cost), sized for a white-first public surface:
- *   decor-wash     the single background field — a faint light-blue radial
- *                  wash that fades to the surface (replaces rings + meander +
- *                  gold blooms stacking on top of each other)
- *   decor-hairline the single divider — a line with one centered diamond
- * Anything heavier is decorative overload: new code must not add another
- * ornament layer, and every use stays aria-hidden + pointer-events-none. */
-@utility decor-wash {
-  background-image:
-    radial-gradient(120% 90% at 85% 0%, var(--color-pub-surface-2) 0%, transparent 55%),
-    radial-gradient(100% 80% at 10% 100%, var(--color-pub-surface) 0%, transparent 60%);
-}
-
-/* Public layout primitives — the reason every section reads the same.
-   Section rhythm, container measure, grid gap and text measure are decided ONCE
-   here (mobile-first clamp), so a block never re-invents spacing. */
+/* ─── Layout primitives ──────────────────────────────────────────────────── */
 @utility pub-section {
   padding-block: var(--pub-pad-y);
   padding-inline: var(--pub-pad-x);
@@ -362,493 +318,136 @@
   width: 100%;
   max-width: var(--pub-maxw);
 }
-@utility pub-grid {
+@utility pub-grid { display: grid; gap: var(--pub-gap); }
+@utility pub-measure { max-width: var(--pub-measure); }
+
+/* ─── THE MARK — the single accent gesture ──────────────────────────────────
+ * A highlighter stroke behind type. Used on ONE phrase per screen, never as a
+ * background for a whole block. */
+@utility tito-mark {
+  background-image: linear-gradient(to top, color-mix(in srgb, var(--color-pub-accent) 78%, transparent) 0 0.46em, transparent 0.46em);
+  padding-inline: 0.12em;
+}
+@utility tito-mark-full {
+  background-color: var(--color-pub-accent);
+  color: var(--color-pub-ink);
+}
+
+/* ─── THE RULE — index typography ───────────────────────────────────────────
+ * Rows separated by hairlines, an ordinal in the gutter, the title carrying the
+ * weight. This is the product's primary content pattern; cards are the
+ * exception, not the rule. */
+@utility tito-rows {
+  display: flex;
+  flex-direction: column;
+  border-block-start: var(--pub-rule) solid var(--color-pub-line);
+}
+@utility tito-row {
+  position: relative;
   display: grid;
-  gap: var(--pub-gap);
-}
-@utility pub-measure {
-  max-width: var(--pub-measure);
-}
-
-/* A real diamond (a filled square turned 45°). It used to be two crossing
-   diagonal strokes, which at 8px reads as a "close" glyph — an icon that means
-   "dismiss", on an ornament. */
-@utility decor-diamond {
-  background-color: color-mix(in srgb, var(--color-pub-accent) 70%, transparent);
-  border-radius: 1px;
-  transform: rotate(45deg);
+  align-items: start;
+  gap: 0.75rem 1rem;
+  border-block-end: var(--pub-rule) solid var(--color-pub-line);
+  padding-block: 1rem;
+  transition: background-color 160ms ease;
 }
 
-/* ─── Thinker illustrations — the ONE decorative identity system (§14–§19) ──
- * The assets in public/visuals/thinkers/ are the platform's OWN flat-cartoon
- * philosophers (owner-chosen style C) shipped as TRANSPARENT square WebP in two
- * renditions — `<id>.webp` 900×900 (desktop) and `<id>-sm.webp` 420×420
- * (phones) — so a backdrop figure never costs desktop bytes on a phone. They
- * replaced the photographic engravings, which never matched this identity.
- *
- * Transparency is what makes the system honest: a figure sits BEHIND a section
- * or AROUND the owner-photo frame and dissolves with plain opacity + a corner
- * mask. No duotone filter, no crop gymnastics, no grey smudge on white.
- *
- * Presentations (app/components/visuals/ThinkerPortrait.tsx):
- *   .thinker-avatar  small legible character chip for light surfaces
- *   .thinker-figure  a subject card's own figure, masked out under the copy
- *   .thinker-engrave corner signature on a LIGHT panel
- *   .thinker-wash    the transparent section backdrop (rules below)
- * Strength lives on the surface/strength modifiers here; nothing unlayered
- * races the call-site utilities.
- */
+/* The eyebrow/label grammar: uppercase-ish, letterspaced, tiny, ink-muted. */
+@utility tito-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  color: var(--color-pub-muted);
+}
 
-/* The statue is a LEGIBLE semi-transparent person (owner reference: a marble
-   bust tinted by the brand beside the teacher's photo), never a circular icon
-   chip: full figure, light-blue duotone, standing on the baseline. Strength is
-   a variable so a quiet slot can dial down without fighting the cascade. */
+/* ─── Subject signatures ────────────────────────────────────────────────────
+ * Philosophy & Logic reads ORTHOGONAL — right angles, brackets, ordered steps.
+ * Psychology reads CONNECTED — nodes, curves, soft junctions.
+ * The difference is carried by FORM plus one thin stroke colour; it is never a
+ * second brand palette and never a different component family. */
+[data-subject="logic"] { --subject-ink: var(--color-subject-logic); --subject-soft: var(--color-subject-logic-soft); --subject-join: 0px; }
+[data-subject="psych"] { --subject-ink: var(--color-subject-psych); --subject-soft: var(--color-subject-psych-soft); --subject-join: 999px; }
+[data-subject="none"], :root { --subject-ink: var(--color-pub-ink); --subject-soft: var(--color-pub-surface-2); --subject-join: 2px; }
+
+@utility tito-spine {
+  position: relative;
+}
+.tito-spine::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 2px;
+  background: var(--subject-ink);
+  border-radius: var(--subject-join);
+  opacity: 0.85;
+}
+
+/* ─── Diagram plate — the one piece of decorative identity ─────────────────
+ * An SVG reasoning diagram (server-rendered, zero image bytes). It is always
+ * aria-hidden and never carries meaning. */
+@utility tito-diagram {
+  color: var(--color-pub-line-strong);
+}
+/* ─── Interaction ───────────────────────────────────────────────────────────
+ * One hover language: the row tints, the rule darkens, the arrow travels. */
+.tito-row:hover, .tito-row:focus-within { background-color: color-mix(in srgb, var(--color-pub-surface) 60%, transparent); }
+.tito-arrow { transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .tito-arrow, a:hover .tito-arrow, .tito-row:hover .tito-arrow { transform: translateX(-0.2rem); }
+[dir="ltr"] .group:hover .tito-arrow, [dir="ltr"] a:hover .tito-arrow, [dir="ltr"] .tito-row:hover .tito-arrow { transform: translateX(0.2rem); }
+
+/* Progress: a hairline that fills with the mark. */
+@utility tito-meter {
+  position: relative;
+  block-size: 0.375rem;
+  border-radius: 999px;
+  background: var(--color-pub-surface-2);
+  overflow: hidden;
+}
+
+/* ─── Thinker illustrations ─────────────────────────────────────────────────
+ * The platform's own flat illustrations (public/visuals/thinkers/*.webp).
+ * In the new identity they appear RARELY and only as a quiet plate: one figure
+ * per surface, contained, dissolved into the paper. They are decoration, never
+ * content, and never a stand-in for the teacher's real photograph. */
 .thinker-statue {
   object-fit: contain;
   object-position: 50% 100%;
-  /* NO duotone: the platform's cartoons keep their own palette (owner:
-     coloured, not black-and-white). Transparency alone places them. */
-  opacity: var(--thinker-statue-o, 0.9);
+  opacity: var(--thinker-statue-o, 0.85);
 }
-.thinker-statue--quiet {
-  --thinker-statue-o: 0.55;
-}
-@media (max-width: 40rem) {
-  .thinker-statue {
-    --thinker-statue-o: 0.85;
-  }
-  .thinker-statue--quiet {
-    --thinker-statue-o: 0.45;
-  }
-}
-
-/* ─── The hero stage (owner reference design, 2026-09) ─────────────────────
- * The teacher's photo floats — no frame, no card — over ONE organic brand
- * blob, with three quiet ornaments (gold disc, tint dot, dashed orbit) and the
- * semi-transparent philosophers standing behind it. Pure CSS: zero assets. */
-.hero-blob {
-  background:
-    radial-gradient(85% 70% at 32% 18%, color-mix(in srgb, var(--color-pub-navy) 46%, #ffffff) 0%, transparent 62%),
-    linear-gradient(155deg, color-mix(in srgb, var(--color-pub-navy) 86%, #ffffff) 0%, var(--color-pub-navy-2) 100%);
-  border-radius: 56% 44% 60% 40% / 46% 58% 42% 54%;
-}
-.hero-orbit {
-  border: 2px dashed color-mix(in srgb, var(--color-pub-accent) 65%, transparent);
-}
-
-/*
- * A subject card's own figure on a LIGHT surface: contained (never cropped —
- * the cartoon IS the art), masked out on the reading side so title,
- * description and CTA always sit on clean white. Mobile gets a top band.
- */
+.thinker-statue--quiet { --thinker-statue-o: 0.45; }
 .thinker-figure {
   object-fit: contain;
   object-position: 50% 100%;
-  mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 64%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 64%, transparent 100%);
 }
-@media (min-width: 40rem) {
-  .thinker-figure {
-    mask-image: linear-gradient(to right, transparent 0%, #000 44%, #000 100%);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 44%, #000 100%);
-  }
-  [dir="rtl"] .thinker-figure {
-    mask-image: linear-gradient(to left, transparent 0%, #000 44%, #000 100%);
-    -webkit-mask-image: linear-gradient(to left, transparent 0%, #000 44%, #000 100%);
-  }
-}
-
-/*
- * The corner signature on a LIGHT panel: the platform's thinker, small and
- * quiet — dissolved with a vertical mask instead of being faded to nothing.
- * `--rise` flips the fade for a bottom-corner element.
- */
 .thinker-engrave {
   object-fit: contain;
   object-position: 50% 0%;
-  mask-image: linear-gradient(to bottom, #000 0%, #000 48%, transparent 96%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 48%, transparent 96%);
+  opacity: 0.4;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 52%, transparent 96%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 52%, transparent 96%);
 }
-.thinker-engrave--rise {
-  mask-image: linear-gradient(to top, #000 0%, #000 48%, transparent 96%);
-  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 48%, transparent 96%);
-}
-
-/* ─── The section backdrop (owner request: philosophers BEHIND every section)
- * ONE transparent figure per band, anchored to a BOTTOM corner and masked
- * radially FROM that corner, so it dissolves before it reaches the copy:
- * headings, cards and CTAs always sit on clean surface, and the figure never
- * paints over text at any width. Logical inset props mirror RTL for free;
- * only the (physical) mask gradient needs its [dir] twin.
- *   --wash   whole-section whisper: 10% on light, a pale ghost on navy
- *   --frame  the stronger pair surrounding the owner-photo panel
- * Phones get a smaller, quieter figure hugging the very corner.
- */
 .thinker-wash {
   object-fit: contain;
-  object-position: 50% 100%;
-  inset-block-end: 0;
-  width: clamp(7rem, 22vw, 17rem);
-  aspect-ratio: 1 / 1;
-  height: auto;
+  opacity: 0.09;
+  filter: grayscale(1);
 }
-.thinker-wash--end {
-  inset-inline-end: -1.25rem;
-  mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
-}
-[dir="rtl"] .thinker-wash--end {
-  mask-image: radial-gradient(120% 120% at 0% 100%, #000 0%, #000 46%, transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 120% at 0% 100%, #000 0%, #000 46%, transparent 78%);
-}
-.thinker-wash--start {
-  inset-inline-start: -1.25rem;
-  mask-image: radial-gradient(120% 120% at 0% 100%, #000 0%, #000 46%, transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 120% at 0% 100%, #000 0%, #000 46%, transparent 78%);
-}
-[dir="rtl"] .thinker-wash--start {
-  mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 120% at 100% 100%, #000 0%, #000 46%, transparent 78%);
-}
-.thinker-wash--light.thinker-wash--wash {
-  opacity: 0.12;
-}
-.thinker-wash--navy.thinker-wash--wash {
-  opacity: 0.22;
-}
-.thinker-wash--light.thinker-wash--frame {
-  opacity: 0.22;
-}
-.thinker-wash--navy.thinker-wash--frame {
-  opacity: 0.3;
-}
-/* The frame pair is fully legible (no mask) and sized by the PANEL's height, so
-   a short identity card never crops a head: two small companions standing in
-   the bottom corners around the owner photo / reserved slot. */
-.thinker-wash--frame {
-  width: auto;
-  height: min(62%, 10rem);
-  mask-image: none;
-  -webkit-mask-image: none;
-  inset-block-end: 0.35rem;
-}
-.thinker-wash--frame.thinker-wash--end {
-  inset-inline-end: 0.5rem;
-}
-.thinker-wash--frame.thinker-wash--start {
-  inset-inline-start: 0.5rem;
-}
-/* Short page openings anchor the figure to the TOP corner instead (the band is
-   often shorter than the viewport, so a bottom anchor would float mid-page).
-   The mask mirrors to fade from that top corner toward the copy. */
-.thinker-wash--top {
-  inset-block-start: 0;
-  inset-block-end: auto;
-}
-.thinker-wash--top.thinker-wash--end {
-  mask-image: radial-gradient(120% 120% at 100% 0%, #000 0%, #000 46%, transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 120% at 100% 0%, #000 0%, #000 46%, transparent 78%);
-}
-[dir="rtl"] .thinker-wash--top.thinker-wash--end {
-  mask-image: radial-gradient(120% 120% at 0% 0%, #000 0%, #000 46%, transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 120% at 0% 0%, #000 0%, #000 46%, transparent 78%);
-}
-.thinker-wash--top.thinker-wash--start {
-  mask-image: radial-gradient(120% 120% at 0% 0%, #000 0%, #000 46%, transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 120% at 0% 0%, #000 0%, #000 46%, transparent 78%);
-}
-[dir="rtl"] .thinker-wash--top.thinker-wash--start {
-  mask-image: radial-gradient(120% 120% at 100% 0%, #000 0%, #000 46%, transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 120% at 100% 0%, #000 0%, #000 46%, transparent 78%);
-}
+.thinker-avatar { object-fit: contain; object-position: 50% 100%; }
+
 @media (max-width: 40rem) {
-  .thinker-wash {
-    width: clamp(5.5rem, 30vw, 9.5rem);
-  }
-  .thinker-wash--light.thinker-wash--wash {
-    opacity: 0.1;
-  }
-  .thinker-wash--navy.thinker-wash--wash {
-    opacity: 0.16;
-  }
-  .thinker-wash--light.thinker-wash--frame {
-    opacity: 0.18;
-  }
-  .thinker-wash--frame {
-    height: min(48%, 7rem);
-  }
+  .thinker-statue { --thinker-statue-o: 0.7; }
+  .thinker-statue--quiet { --thinker-statue-o: 0.35; }
 }
-/* Reduced motion (WCAG 2.3.3 / owner brief §28): decorative movement is a
- * progressive enhancement — neutralize long transitions & animations for
- * visitors who ask for less motion. Interactive state changes stay instant and
- * visible (never removed, only shortened). */
+
+/* ─── Reduced motion ────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* Tito editorial learning layer ------------------------------------------------
- * Public content is intentionally not rendered as a marketplace grid. These
- * primitives give the study surfaces a recognizable rhythm: index-like rows,
- * asymmetric subject identity blocks, and typography-led transitions. */
-.study-subject-block {
-  isolation: isolate;
-  transition: border-color 180ms ease, padding-inline 180ms ease;
-}
-.study-subject-block::before {
-  content: "";
-  position: absolute;
-  inset-block: 1.5rem;
-  inset-inline-end: 0;
-  width: 0.25rem;
-  background: var(--color-pub-accent);
-  transform: scaleY(0);
-  transform-origin: center;
-  transition: transform 180ms ease;
-}
-.study-subject-block:hover,
-.study-subject-block:focus-within {
-  border-color: var(--color-pub-line-strong);
-  padding-inline: 0.75rem;
-}
-.study-subject-block:hover::before,
-.study-subject-block:focus-within::before { transform: scaleY(1); }
-
-.study-term-section {
-  position: relative;
-}
-.study-term-section > .relative {
-  margin-block-end: 1.25rem;
-  padding-block-end: 1rem;
-  border-block-end: 1px solid var(--color-pub-line);
-}
-.study-lesson-row {
-  min-height: 5.25rem;
-  transition: background-color 180ms ease, padding-inline 180ms ease;
-}
-.study-lesson-row:hover,
-.study-lesson-row:focus-within {
-  background: var(--color-pub-surface);
-  padding-inline: 0.75rem;
-}
-.study-lesson-number { font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
-
-/* One deliberate transition between content bands; no gradients or decorative
-   blobs. It reads like a printed chapter divider at large sizes. */
-.pub-section + .pub-section { border-block-start: 1px solid var(--color-pub-line); }
-.pub-section > .pub-container > h2:first-child,
-.pub-section > .pub-container > div > h2:first-child { max-inline-size: 15ch; }
-
-/* The identity is carried by type and composition, not a large illustration. */
-.hero-blob {
-  background: var(--color-pub-navy);
-  border-radius: 1.5rem 5rem 1.5rem 5rem;
-}
-.hero-orbit { border-style: solid; border-width: 1px; opacity: .45; }
-
-@media (max-width: 40rem) {
-  .study-subject-block:hover,
-  .study-subject-block:focus-within,
-  .study-lesson-row:hover,
-  .study-lesson-row:focus-within { padding-inline: 0.5rem; }
-  .study-lesson-row { min-height: 6rem; }
-}
-
-/* Product composition -------------------------------------------------------
-   Public sections use rhythm rather than a stack of identical cards. */
-.cms-page > .pub-section:nth-child(odd) { background: var(--color-pub-bg); }
-.cms-page > .pub-section:nth-child(even) { background: var(--color-pub-surface); }
-.cms-page > .pub-section:nth-child(3n) .pub-container { max-inline-size: 72rem; }
-.cms-page > .pub-section:nth-child(3n) h2 { font-size: clamp(1.75rem, 3.5vw, 3.25rem); letter-spacing: -0.045em; }
-.cms-page .pub-container { position: relative; }
-.cms-page .pub-section { padding-block: clamp(3.5rem, 8vw, 7rem); }
-.cms-page .pub-section + .pub-section { border-block-start: 0; }
-
-/* Hero is a product introduction: short, editorial, and useful. */
-.cms-page .hero-blob { box-shadow: 1rem 1rem 0 var(--color-pub-accent-soft); }
-.cms-page [data-hero-visual="true"] { max-block-size: 30rem; }
-
-/* Dashboard: convert generic console cards into a quiet learning workspace. */
-.student-dashboard { --dash-line: var(--color-pub-line); }
-.student-dashboard > div:first-child {
-  border-block-end: 1px solid var(--dash-line);
-  padding-block-end: 1.5rem;
-}
-.student-dashboard > .rounded-card,
-.student-dashboard > [class*="rounded"] { min-inline-size: 0; }
-.student-dashboard .rounded-lg.border-slate-200,
-.student-dashboard .rounded-xl.border-slate-200 {
-  border-color: var(--dash-line);
-  transition: border-color 180ms ease, background-color 180ms ease;
-}
-.student-dashboard .rounded-lg.border-slate-200:hover,
-.student-dashboard .rounded-xl.border-slate-200:hover { border-color: var(--color-pub-line-strong); }
-.student-dashboard [class*="bg-brand-"],
-.student-dashboard [class*="text-brand-"] { --tw-bg-opacity: 1; }
-
-/* Auth is an entry point into the learning product, not an isolated SaaS form. */
-.auth-page { max-inline-size: 34rem; min-block-size: min(36rem, 78vh); }
-.auth-page > .rounded-card,
-.auth-page > [class*="rounded"] {
-  border-color: var(--color-pub-line);
-  border-radius: 1.25rem 3rem 1.25rem 3rem;
-  box-shadow: var(--shadow-pub-card);
-}
-.auth-page h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -0.045em; }
-.auth-page form button[type="submit"] { min-block-size: 3rem; }
-
-@media (min-width: 64rem) {
-  .cms-page > .pub-section:nth-child(3n + 1) .pub-container { padding-inline-start: 8%; }
-  .cms-page > .pub-section:nth-child(3n + 2) .pub-container { padding-inline-end: 8%; }
-}
-@media (max-width: 40rem) {
-  .cms-page .pub-section { padding-block: 3rem; }
-  .cms-page .hero-blob { box-shadow: .5rem .5rem 0 var(--color-pub-accent-soft); }
-  .auth-page { min-block-size: auto; padding-block: 2.5rem; }
-}
-
-/* Final product-wide polish ------------------------------------------------- */
-:where(a, button, input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--color-pub-accent-strong);
-  outline-offset: 3px;
-}
-
-/* Keep every public action legible at a glance: one primary, quiet siblings. */
-.pub-root main a[class*="bg-pub-navy"],
-.cms-page a[class*="bg-pub-navy"] { font-weight: 700; }
-.pub-root main a[class*="bg-pub-accent"] { box-shadow: 0 2px 0 color-mix(in srgb, var(--color-pub-accent-strong) 35%, transparent); }
-
-/* Header and drawer are navigation, not a collection of pills. */
-.pub-root header nav a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--color-pub-accent); }
-.pub-root [role="dialog"] a { min-block-size: 2.75rem; }
-
-/* Empty states keep the same editorial tone as populated content. */
-[data-testid$="-empty"],
-[data-testid="study-empty"] { border-inline-start: 3px solid var(--color-pub-accent); }
-
-/* Subject language: philosophy reads structured; psychology gets softer only
-   through its motif classes, never a separate brand palette. */
-[data-subject-kind="philosophy"] .study-lesson-number { letter-spacing: -0.08em; }
-[data-subject-kind="psychology"] .study-lesson-row:hover { background: color-mix(in srgb, var(--color-pub-surface) 70%, white); }
-
-/* Prevent common narrow-screen failure modes. */
-html, body { max-inline-size: 100%; overflow-x: hidden; }
-img, video, iframe { max-inline-size: 100%; }
-button, a { touch-action: manipulation; }
-
-@media (max-width: 22.5rem) {
-  .pub-root header .brand-mark { max-inline-size: 9rem; }
-  .pub-root main { overflow-wrap: anywhere; }
-  .pub-root main a[class*="px-6"] { padding-inline: 1rem; }
-}
-@media (min-width: 48rem) and (max-width: 63.999rem) {
-  .pub-root .pub-container { padding-inline: 1.5rem; }
-}
-@media (min-width: 90rem) {
-  .pub-root .pub-container { max-inline-size: 78rem; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .study-subject-block, .study-lesson-row, .student-dashboard * { transition: none !important; }
-}
-
-/* Targeted refinement: the dashboard reads as a learning workspace first. */
-.student-dashboard > :nth-child(2) {
-  border-block: 2px solid var(--color-pub-navy);
-  background: var(--color-pub-bg);
-  box-shadow: var(--shadow-pub-md);
-}
-.student-dashboard > :nth-child(n + 3) {
-  border-color: var(--color-pub-line);
-}
-.student-dashboard > :nth-last-child(-n + 3) {
-  opacity: .9;
-}
-.student-dashboard > :nth-last-child(-n + 3) h2,
-.student-dashboard > :nth-last-child(-n + 3) [class*="font-bold"] {
-  font-weight: 600;
-}
-
-/* Psychology: connected cognition is expressed through quiet paths, not a new
-   palette or a new component family. Philosophy keeps the numbered/ordered
-   language already present in the lesson index. */
-[data-subject-kind="psychology"] .study-term-section {
-  padding-inline-start: clamp(.5rem, 2vw, 1.5rem);
-  border-inline-start: 1px solid var(--color-pub-line-strong);
-}
-[data-subject-kind="psychology"] .study-term-heading::after {
-  content: "";
-  display: block;
-  inline-size: 2.5rem;
-  block-size: 1px;
-  margin-inline-start: .75rem;
-  background: var(--color-pub-accent-soft);
-}
-[data-subject-kind="philosophy"] .study-term-index {
-  font-size: clamp(1.35rem, 3vw, 2.25rem);
-  letter-spacing: -.08em;
-}
-
-/* Keep subject identity blocks editorial: the identity anchor is type and
-   numbering; metadata remains quiet and never becomes a chip wall. */
-.study-subject-block .rounded-full {
-  border-radius: 0;
-  background: transparent;
-  padding-inline: 0;
-  color: var(--color-pub-muted);
-  box-shadow: inset 0 -1px 0 var(--color-pub-line);
-}
-.study-subject-block .study-subject-block__motif { opacity: .55; }
-
-/* Visible product composition pass -----------------------------------------
-   CMS remains the source of truth; the public renderer supplies a stronger
-   Tito rhythm so valid compositions read as a learning product, not a card
-   catalogue. */
-.cms-section { --section-rule: var(--color-pub-line); }
-.cms-section:nth-of-type(odd) { background: var(--color-pub-bg); }
-.cms-section:nth-of-type(even) { background: var(--color-pub-surface); }
-.cms-section:nth-of-type(3n) .pub-container,
-.cms-section:nth-of-type(3n) > div { max-inline-size: 76rem; }
-.cms-section:nth-of-type(3n) h2 { max-inline-size: 13ch; font-size: clamp(2rem, 5vw, 4rem); letter-spacing: -.06em; }
-.cms-section:nth-of-type(3n + 2) h2 { max-inline-size: 20ch; }
-.cms-section + .cms-section { border-block-start: 1px solid var(--section-rule); }
-.cms-section .pub-grid { align-items: stretch; }
-
-.subject-world-panel { background: var(--color-pub-bg); }
-.subject-world-panel::before {
-  content: "";
-  position: absolute;
-  inset-block: 1.5rem;
-  inset-inline-end: 0;
-  inline-size: .25rem;
-  background: var(--color-pub-accent);
-  transform: scaleY(.2);
-  transform-origin: center;
-  transition: transform 180ms ease;
-}
-.subject-world-panel:hover::before,
-.subject-world-panel:focus-within::before { transform: scaleY(1); }
-.subject-world-panel h3 { font-size: clamp(1.45rem, 3vw, 2.25rem); letter-spacing: -.05em; }
-.subject-world-panel .thinker-figure { opacity: .72; }
-
-/* A learning portal has a clear entry rhythm: headline, subject worlds, then
-   indexed content. Keep the geometry flat and editorial rather than glossy. */
-.cms-section .text-pub-xl { letter-spacing: -.045em; }
-.cms-section .pub-grid > li:nth-child(2) .subject-world-panel { border-block-start: 0; }
-
-@media (min-width: 64rem) {
-  .cms-section:nth-of-type(3n + 1) > div { padding-inline-start: 8vw; }
-  .cms-section:nth-of-type(3n + 2) > div { padding-inline-end: 8vw; }
-  .subject-world-panel { min-block-size: 18rem; }
-}
-@media (max-width: 40rem) {
-  .cms-section:nth-of-type(3n) h2 { font-size: clamp(2rem, 11vw, 3rem); }
-  .subject-world-panel { min-block-size: 18rem; }
-  .subject-world-panel::before { inset-block: 1rem; }
 }
