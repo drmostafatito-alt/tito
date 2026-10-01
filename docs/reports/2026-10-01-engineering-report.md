@@ -104,6 +104,24 @@ failed WCAG 2.1 AA 1.4.3 — `--color-pub-muted` and `--mk-muted` (#7D8495: 3.75
 3.23:1) and Tailwind's `slate-500` (#62748E: 4.11–4.46:1). All corrected to the nearest
 AA-passing value at identical hue. *(`945b091`, `5fd0750`)*
 
+**Brand CTA contrast.** `.mk .btn-gold` was white on `#C99A2E` (**2.58:1**) and
+`.mk .btn-ghost` was `#1F9D4D` on white (**3.51:1**); both are 16.32px bold, so AA requires
+4.5:1 (bold only relaxes to 3:1 from 18.66px up). The gold is identity and is byte-identical
+after the fix — only the ink moved, to the design's own `--mk-ink` `#1B2540`, giving
+**5.88:1**. Hover no longer darkens the fill to `--mk-gold-deep`, because navy on that
+darker gold is 4.05:1 and would fail again; the lift and the existing glow carry the hover
+instead, and no new gold shade was invented. The ghost label darkened within its own green
+family to `#188040` (**5.00:1**) with the white fill and WhatsApp-green border untouched.
+`.btn-blue` already passed at 6.52:1 and `.mk .play` is a decorative `aria-hidden` glyph, so
+neither was touched. *(`8196320`)*
+
+**Mobile drawer contract.** The three headers disagreed with each other. Student and admin
+published `aria-controls` even while their drawer was unmounted — a dangling IDREF that axe
+only grades as "needs review", which is how it survived a clean audit — and the admin
+drawer, which does not use the shared `Drawer` component, had neither Escape-to-close nor
+body scroll lock. All three now emit `aria-controls` exactly while the target exists, all
+three carry `aria-haspopup="menu"`, and Escape closes all three. *(`5cf1e1a`)*
+
 **Dead code removed:** `.mk body-pad`, and the `.nav.open` rules once the double menu was
 fixed.
 
@@ -189,9 +207,32 @@ Login/Register inside, `aria-controls="mobile-nav"`, bottom bar visible and shel
 width. No horizontal scroll at any width.** Per your direction the mobile top bar remains
 brand + hamburger only; no login CTA was added beside it.
 
+**Second pass (after the drawer-contract fix), ten surfaces × nine widths:**
+
+| Sweep | Coverage | Result |
+|---|---|---|
+| home, study, subject, about, contact, login, register, dashboard, admin, admin/appearance | 320/360/375/390/414/768/1024/1280/1440 | **90/90 combinations clean** |
+| Toggle geometry + drawer | the ten widths above plus 960 | **public / student / admin all clean** |
+| Real `Tab` walk (not a static scan) | home, study, dashboard, admin @390, drawer open *and* closed | **0 stops on a hidden control** |
+
+Checked per combination: horizontal overflow, number of visible menu landmarks,
+tabbable-but-invisible controls, exactly one `h1`, language switcher, `tel:` link and the
+external exam link. Zero horizontal overflow everywhere. Toggle is 44×44 and never clipped:
+public visible 320→960, student 320→1024, admin 320→960, each disappearing exactly at its
+breakpoint. Drawer opens 272–320px wide, one menu landmark, and Escape closes it on all
+three (that last one only became true in `5cf1e1a` — see §6).
+
+Two caveats on method, because they changed the conclusion. A first version of the scan
+reported 89 "failures"; both were detector bugs, not product bugs. It counted breadcrumb
+`<nav>`s as duplicate menus, and it treated controls inside a `display:none` ancestor as
+reachable — `getComputedStyle(el).display` returns the element's *own* value regardless of
+its ancestors. Switching to `el.checkVisibility({ checkOpacity: true, checkVisibilityCSS:
+true })` and excluding breadcrumb landmarks brought the scan in line with the real `Tab`
+walk, which had reported 0 hidden stops all along.
+
 ## 13. Test results
 
-| Suite | Before (`29657c4`) | After (`5fd0750`) |
+| Suite | Before (`29657c4`) | After (`5cf1e1a`) |
 |---|---|---|
 | Lint | ✅ | ✅ |
 | Typecheck | ✅ | ✅ |
@@ -206,9 +247,18 @@ underlying behaviour was correct. Notably the `cms-builder` hide/show failure wa
 non-unique marker string, not a CMS bug, and one `question-platform` test had never actually
 executed — it sat behind a `describe.serial` failure.
 
-axe is now **0 violations** on login, register, forgot-password, dashboard, catalog, course,
+The three remaining e2e failures are the two owner decisions in §17, nothing else: one axe
+assertion (the eyebrow/tag gold pair) and two hero-visual assertions (no real photo yet).
+
+axe is **0 violations** on login, register, forgot-password, dashboard, catalog, course,
 lesson, assignments, checkout, orders, notifications, profile, admin-dashboard, admin-users,
-admin-announcements, admin-analytics, admin-security, admin-audit and admin-commerce.
+admin-announcements, admin-analytics, admin-security, admin-audit and admin-commerce. The
+homepage went from three contrast violations to one (§6).
+
+Two e2e tests were strengthened in `5cf1e1a`. They previously asserted only that a mobile
+toggle existed and was collapsed; they now assert the full ARIA contract in both states.
+One of them had never actually driven the control, because the toggle is `xl:hidden` and the
+test ran at the default desktop viewport.
 
 ## 14. Build
 
@@ -225,54 +275,97 @@ admin-announcements, admin-analytics, admin-security, admin-audit and admin-comm
 | `6346b53` | feat(exams): ship the external questions platform entry enabled |
 | `945b091` | fix(a11y): one mobile menu, real menu semantics, AA-contrast muted text |
 | `08cc28d` | feat(public): restore the language switcher and contact details in the footer |
-| `5fd0750` | fix(a11y,test): AA contrast in the consoles, and 5 stale e2e expectations |
+| `2d793d6` | fix(a11y,test): AA contrast in the consoles, and 5 stale e2e expectations |
+| `dbfc109` | docs: engineering report for the audit and repair pass |
+| `8196320` | fix(a11y): bring the two brand CTAs up to AA without touching the gold |
+| `5cf1e1a` | fix(a11y): one drawer contract across public, student and admin headers |
+
+> The last two rows of the first batch were re-created. Between sessions the sandbox was
+> rebuilt and the repository re-cloned, which discarded local history back to the base
+> commit while leaving the edits in the working tree. Recovery was `git fetch` plus
+> `git reset --mixed origin/arena/01a0f697-tito` — no rewrite, no force, no history loss on
+> the remote, which still held all six pushed commits. The two unpushed commits were then
+> re-committed with identical content and therefore **new hashes**: `5fd0750` → `2d793d6`
+> and `7589641` → `dbfc109`. Flagging it so the SHAs in any earlier note still line up.
 
 No force push, no reset, no rebase, no history rewrite, no branch deletion, no merge, no PR.
 
 ## 16. Remote verification
 
-`c0cfc7b`, `4ca9af6`, `8d37417`, `6346b53`, `945b091` and `08cc28d` were pushed to
-`origin/arena/01a0f697-tito` and each confirmed with `git ls-remote` — last verified remote
-SHA **`08cc28da353a875ff110d027a6b678dfc187a058`**.
-
-⚠️ **`5fd0750` is committed locally but NOT yet pushed.** The GitHub token expired during
-the session:
+Every commit was pushed to `origin/arena/01a0f697-tito` and confirmed with `git ls-remote`
+immediately after its push. Last verified remote SHA:
 
 ```
-gh auth status → X github.com: authentication failed
-                 - The github.com token in GH_TOKEN is no longer valid.
-git push       → fatal: could not read Username for 'https://github.com'
+$ git rev-parse HEAD
+5cf1e1a4811edd282b72116e043a17aab610f697
+$ git ls-remote origin refs/heads/arena/01a0f697-tito
+5cf1e1a4811edd282b72116e043a17aab610f697
 ```
 
-Reconnect GitHub in Arena and the single outstanding commit will push cleanly. Nothing is
-lost — the commit and working tree are intact.
+Local and remote match, `0` ahead / `0` behind. The GitHub token that expired mid-session
+has been reconnected (`gh auth status` → logged in), and the two commits that were stranded
+by it are pushed — see the note in §15 about their new hashes.
 
 **Final `git status`: clean.** `qa-out/`, `test-results/` and `playwright-report/` are
-gitignored; 16 MB of Playwright traces/videos were deleted. No large assets, no new
-dependencies, no duplicated images, no source assets or official project files removed.
+gitignored and the Playwright traces were deleted. No large assets, no new dependencies, no
+duplicated images, no source assets or official project files removed.
+
+**Production is untouched.** Everything in this pass is local: no migration was added or
+run, no production D1/R2/secret/binding/config was read or written, no deploy was performed,
+and no auth, RBAC, entitlement, payment or activation-code logic was modified.
 
 ## 17. Remaining issues
 
-**1 — Hero photo not configured (2 e2e failures).** `homepage.spec.ts:28` and `:98` expect
-a loaded hero visual. The approved hero is built around the teacher's photograph, and none
-is set — `ownerPhotoFileId` is deliberately empty in the seed ("Never fabricate"), and the
-only portrait-shaped file in the repo is an AI-generated image I was instructed not to
-substitute. **This is a content gap, not a code bug.** I restored the lost
-`data-hero-visual` marker on the hero `<img>`, so both tests pass as soon as you upload the
-real photo in **Admin → Appearance → Identity**.
+**1 — Hero photo not configured (2 e2e failures). Needs you — 2 minutes.**
+`homepage.spec.ts:28` and `:98` expect a loaded hero visual. The approved hero is built
+around your photograph and none is set: `scripts/seed.mjs:93` deliberately leaves
+`ownerPhotoFileId` empty, and the only portrait-shaped file in the repo is an AI-generated
+image I was told not to substitute. **This is a content gap, not a code bug** — and I
+verified that end to end rather than assuming it.
 
-**2 — Brand-colour contrast on the homepage (1 e2e failure, needs your decision.)** Three
-approved brand colours fail WCAG 2.1 AA. These are your signature colours, so I did not
-change them. Options, all preserving the palette's character:
+*Proof the wiring is complete.* I drove the real admin UI with a throwaway local file:
+homepage `[data-hero-visual]` went 0 → 1, the `<img>` resolved to `/files/<uuid>`, returned
+`HTTP 200 image/png`, and rendered at 400×400 in the hero. The same photo also populated
+the `teacher_profile` block. I then reset the local database, so nothing fabricated remains
+anywhere — no file, no commit, no seed entry.
 
-| Element | Now | Options |
+*How to set it:*
+
+1. Sign in as admin → **الإدارة** → **الهوية والمظهر** (`/admin/appearance`).
+2. Under **الهوية**, find **صورة المالك** (Owner photo).
+3. Click **رفع صورة** and pick the photo. It uploads through the same validated
+   `/admin/files` pipeline and is selected automatically — no need to visit the media
+   library first. (**اختيار من المكتبة** is there if the photo is already uploaded.)
+4. Save the form.
+
+*Constraints the uploader enforces:* JPEG, PNG, WebP, GIF or SVG, max **10 MB**, and the
+file must be **public** visibility — the identity picker only lists `visibility = "public"`
+images, and the inline upload sets that for you. The content type is verified by magic
+bytes, not by the declared MIME, so a renamed file is rejected. A square or portrait crop
+suits the hero's circular frame best; it is served same-origin, so it needs no CSP change.
+
+Nothing else is required: the chain `admin.appearance.tsx` → `identity.ownerPhotoFileId` →
+`render.server.ts:107` → `blocks.tsx` `photoSrc` → `<img data-hero-visual>` is already in
+place, and both tests go green on the next run. The same image also feeds the header and
+footer avatar and the teacher-profile block, so one upload covers all of them.
+
+**2 — One brand-colour pair still fails contrast (1 e2e failure, needs your decision.)**
+The two CTAs are fixed (§6). What remains is `.mk .eyebrow` and `.mk .vbody .tag` —
+`--mk-gold-deep` `#A57E26` on `--mk-cream` `#F9F3E6`, **3.38:1** against a 4.5:1 minimum.
+These are badges, not CTAs, and unlike the buttons *both* the text and the background are
+gold-family brand colours, so every possible fix changes a gold shade — which you asked me
+not to do without approval. Left failing and reported rather than silenced with an axe
+suppression.
+
+| Change | Result | Visual cost |
 |---|---|---|
-| `.btn-gold` ("تصفّح الكورسات") white on `#C99A2E` | **2.57:1** | (a) navy ink `#1B2540` on the same gold → 5.88:1 · (b) keep white, darken bg to `#8A6A1F` → 5.05:1 · (c) raise the label to ≥18.66px bold, which lowers the AA bar to 3.0:1 — still fails at 2.57 |
-| `.btn-ghost` green `#1F9D4D` on white | **3.50:1** | `#1A8742` → 4.58:1 · `#177A3B` → 5.41:1 |
-| `.eyebrow` `#A57E26` on cream `#F9F3E6` | **3.38:1** | `#8A6A1F` → 4.56:1 · `#7D601C` → 5.33:1 |
+| Text `#A57E26` → `#8A6A1F` | 4.56:1 | Slightly deeper gold label, cream pill unchanged |
+| Text `#A57E26` → `#7D601C` | 5.33:1 | More headroom, noticeably deeper |
+| Cream `#F9F3E6` → `#FFFDF8` | 3.59:1 | Still fails — the background alone cannot fix it |
 
-Option (a) for the gold button is the smallest visual change with the biggest gain. Say the
-word and I'll apply any combination.
+My recommendation is the first row. Say the word and it is a one-line change.
+*(For reference, `.hero .doc-line` uses the same gold on white at 3.74:1 but is 24–32px, so
+the large-text 3:1 bar applies and it already passes.)*
 
 **3 — Homepage social cards are not links.** Facebook/TikTok/YouTube cards have `href: ""`
 and render as `<span>` (correct honest-degradation behaviour) even though a real Facebook
