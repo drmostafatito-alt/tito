@@ -76,7 +76,14 @@ describe("recommended homepage preset — mockup v5 composition", () => {
   const types = blocks.map((b) => b.type);
 
   it("follows the mockup section order", () => {
-    // hero → grades → videos → features → about → contact → quotes → cta
+    // hero → grades → videos → features → about → contact → cta
+    //
+    // `quote_cards` (the mockup's "أقوال مأثورة" band) is deliberately NOT in
+    // the recommended preset: the owner confirmed the quotes band is not part
+    // of the current homepage composition. The block itself stays registered
+    // and fully rendered — `.mk .quotes/.qgrid/.q/.qfig` in app.css and the
+    // `quote_cards` renderer in blocks.tsx are live for any page the owner
+    // adds it to — it is just not seeded on the homepage.
     expect(types).toEqual([
       "hero_showcase",
       "grade_cards",
@@ -84,7 +91,6 @@ describe("recommended homepage preset — mockup v5 composition", () => {
       "feature_cards",
       "teacher_profile",
       "social_links",
-      "quote_cards",
       "cta_banner",
     ]);
   });
@@ -100,6 +106,33 @@ describe("recommended homepage preset — mockup v5 composition", () => {
   it("sends CTAs to real destinations, never to /courses", () => {
     // The legacy catalog stays reachable by URL/SEO, never as a CTA.
     expect(presetRaw).not.toContain('"/courses"');
+  });
+
+  it("invents no engagement metrics in the video fallback", () => {
+    // The static `videos` prop is the CMS fallback shown only until real video
+    // rows exist. It must never ship fabricated social proof: view counts,
+    // relative timestamps or runtimes that no row backs. Real rows supply
+    // `meta`/`duration` from the database (see blocks.tsx video_showcase).
+    const showcase = blocks.find((b) => b.type === "video_showcase");
+    expect(showcase).toBeDefined();
+    const videos = (showcase!.props.videos ?? []) as Array<Record<string, { ar?: string; en?: string } | string>>;
+    expect(videos.length).toBeGreaterThan(0);
+    for (const v of videos) {
+      const meta = (v.meta ?? {}) as { ar?: string; en?: string };
+      expect(meta.ar ?? "").toBe("");
+      expect(meta.en ?? "").toBe("");
+      expect(v.duration ?? "").toBe("");
+    }
+  });
+
+  it("states no fabricated counts anywhere in the preset", () => {
+    // Guards the whole document, not just the block above: "12.4K مشاهدة",
+    // "9.1K views • 5 days ago", "منذ أسبوع", "24:15" …
+    expect(presetRaw).not.toMatch(/\d+(\.\d+)?\s*K\b/);
+    expect(presetRaw).not.toMatch(/\bviews\b/i);
+    expect(presetRaw).not.toMatch(/مشاهدة\s*•/);
+    expect(presetRaw).not.toMatch(/\bago\b/i);
+    expect(presetRaw).not.toMatch(/"\d{1,2}:\d{2}"/);
   });
 
   it("keeps every marketing string CMS-editable (no empty required copy)", () => {
