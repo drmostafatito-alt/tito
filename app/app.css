@@ -52,6 +52,18 @@
   --font-sans: "Tajawal", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-script: "Aref Ruqaa", "Tajawal", serif;
 
+  /* Tailwind's stock slate-500 (#62748E) is the muted-label colour across the
+     admin and student consoles, and it fails WCAG 2.1 AA 1.4.3 for body text
+     on the surfaces it actually sits on: 4.11:1 on --color-pub-surface and
+     4.45:1 on --color-pub-bg, against a 4.5:1 minimum. Overriding the palette
+     entry fixes all 287 call sites at once instead of editing ~50 files, and
+     it is safe to do here because the scale is used ONLY as `text-slate-500`
+     (zero bg-/border-/ring-/fill- uses), so nothing but text colour moves.
+     #55637A is the nearest darker slate that clears 4.5:1 on white, #FDFDFE,
+     --color-pub-surface and --color-pub-bg, and still clears it (4.78:1) where
+     the console renders these labels at ~90% alpha over a near-white card. */
+  --color-slate-500: #55637A;
+
   /* LAYER B · Brand: violet / indigo — CONSOLE ONLY (never a public surface) */
   --color-brand-50: #f5f3ff;
   --color-brand-100: #ede9fe;
@@ -123,7 +135,12 @@
   --color-pub-ink: #1B2540; /* primary ink (mockup) */
   --color-pub-ink-strong: #08152b; /* display ink = navy-950 */
   --color-pub-ink-soft: #16305a; /* secondary ink = navy-800 */
-  --color-pub-muted: #7D8495; /* muted copy (mockup) */
+  /* Muted copy. The mockup's #7D8495 fails WCAG 2.1 AA 1.4.3 on every public
+     canvas it is used on (3.75:1 on #fff, 3.50:1 on --color-pub-bg, 3.23:1 on
+     --color-pub-surface; AA needs 4.5:1 for body text). Darkened to the first
+     value that clears 4.5:1 on all three, keeping the mockup's hue (222.5deg)
+     and saturation (10.2%) exactly — 5.32 / 4.97 / 4.59. */
+  --color-pub-muted: #656B7C; /* muted copy (mockup hue, AA-corrected) */
 
   --color-pub-navy: #113274; /* the ONE dark band, rare by design (mockup) */
   --color-pub-navy-2: #1947A4;
@@ -204,6 +221,34 @@
   /* Activates the float keyframes above as the `animate-float` utility
      (mockup portrait/badges hover motion). */
   --animate-float: float 6s ease-in-out infinite;
+  /* Mobile navigation drawer. The panel is anchored to the PHYSICAL left edge
+     on every surface, in both reading directions, so the motion is always
+     "in from the left" — it is deliberately not a logical (start/end)
+     property, which would follow `dir` and put the drawer on the right in
+     Arabic. Only the panel's position and motion are physical; everything
+     inside it still inherits the document's RTL direction.
+     The drawer unmounts when closed, so there is no exit animation to define:
+     closed means fully absent, which is past the left edge by definition.
+     The global prefers-reduced-motion rule below already collapses both of
+     these to ~0ms. */
+  @keyframes drawer-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  --animate-drawer-in-left: drawer-in-left 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  @keyframes scrim-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  --animate-scrim-in: scrim-in 220ms ease-out;
   @keyframes pulse-soft {
     0%,
     100% {
@@ -887,7 +932,11 @@ button, a { touch-action: manipulation; }
   --mk-gold-deep: #A57E26;
   --mk-cream: #F9F3E6;
   --mk-ink: var(--color-pub-ink);
-  --mk-muted: #7D8495;
+  /* Same AA correction as --color-pub-muted in Layer A: the mockup's #7D8495
+     is 3.50:1 on the page canvas, below the 4.5:1 body-text minimum. #656B7C
+     is the same hue/saturation at the first AA-passing lightness. Used by
+     .lede, .sec-head p, .gcard .sub, .brand small, .sign small … all body copy. */
+  --mk-muted: #656B7C;
   --mk-faint: #A2A7B5;
   --mk-card-blue: #E9EEFA;
   --mk-mint: #DFF7E8;
@@ -915,7 +964,7 @@ button, a { touch-action: manipulation; }
 .mk .socials{display:flex;gap:10px}
 .mk .socials a{width:34px;height:34px;border-radius:50%;border:1.5px solid #D5DFF5;display:grid;place-items:center;background:#fff;transition:.2s}
 .mk .socials a:hover{transform:translateY(-2px);border-color:var(--mk-gold)}
-.mk .burger{display:none;border:0;background:#fff;width:44px;height:44px;border-radius:12px;font-size:1.3rem;box-shadow:var(--mk-shadow);cursor:pointer}
+.mk .burger{display:none;flex:0 0 44px;border:0;background:#fff;width:44px;height:44px;border-radius:12px;font-size:1.3rem;box-shadow:var(--mk-shadow);cursor:pointer}
 .mk .socials img{width:16px;height:16px;display:block}
 .mk .fsoc img{width:17px;height:17px;display:block}
 
@@ -932,7 +981,11 @@ button, a { touch-action: manipulation; }
 .mk .btn{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:1.02rem;padding:15px 34px;border-radius:999px;transition:.22s;cursor:pointer;border:0}
 .mk .btn-blue{background:var(--mk-blue);color:#fff;box-shadow:0 14px 28px -12px rgba(30,86,200,.55)}
 .mk .btn-blue:hover{background:var(--mk-blue-deep);transform:translateY(-2px)}
-.mk .btn-ghost{background:#fff;color:#1f9d4d;border:2px solid rgba(37,211,102,.5);box-shadow:0 10px 24px -14px rgba(27,37,64,.25)}
+/* Label darkened from #1F9D4D (3.51:1 on white — below the 4.5:1 AA minimum
+   for this 16.32px bold text) to #188040 = 5.00:1. Same green hue family; the
+   white fill and the WhatsApp-green border/hover are untouched, so the pill
+   reads identically. */
+.mk .btn-ghost{background:#fff;color:#188040;border:2px solid rgba(37,211,102,.5);box-shadow:0 10px 24px -14px rgba(27,37,64,.25)}
 .mk .btn-ghost:hover{transform:translateY(-2px);border-color:#25D366}
 .mk .mini-pills{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .mk .mini-pills span{background:#fff;border:1px solid #E2E8F7;color:var(--mk-blue-deep);font-size:.82rem;font-weight:700;padding:7px 16px;border-radius:999px;box-shadow:0 6px 14px -10px rgba(27,37,64,.2)}
@@ -1042,31 +1095,59 @@ button, a { touch-action: manipulation; }
 .mk .cta svg.wave{position:absolute;top:-1px;right:0;left:0;width:100%;height:70px;display:block}
 .mk .cta h2{font-size:clamp(1.7rem,3.6vw,2.5rem);font-weight:900;margin-bottom:10px}
 .mk .cta p{color:#B9C6E8;max-width:34rem;margin:0 auto 28px}
-.mk .btn-gold{background:var(--mk-gold);color:#fff;box-shadow:0 16px 32px -12px rgba(201,154,46,.7)}
-.mk .btn-gold:hover{background:var(--mk-gold-deep);transform:translateY(-2px)}
+/* The primary gold CTA. White on --mk-gold is 2.58:1 — the worst contrast on
+   the site, against a 4.5:1 AA minimum. The gold is brand identity and is kept
+   EXACTLY as-is; only the ink changes, to the design's own primary ink
+   (--mk-ink #1B2540), which lands at 5.88:1.
+   Hover keeps the same gold rather than darkening to --mk-gold-deep: with navy
+   ink that darker gold drops to 4.05:1 and would fail again. The lift (and the
+   gold glow already on the button) carry the hover affordance, and no new gold
+   shade is introduced. */
+.mk .btn-gold{background:var(--mk-gold);color:var(--mk-ink);box-shadow:0 16px 32px -12px rgba(201,154,46,.7)}
+.mk .btn-gold:hover{transform:translateY(-2px);box-shadow:0 20px 38px -12px rgba(201,154,46,.85)}
 
 /* ---------- footer ---------- */
 .mk footer{background:#0C2453;color:#C9D4EE;padding:60px 0 0;position:relative;overflow:hidden}
 .mk footer .giant{position:absolute;bottom:-40px;left:0;font-size:11rem;opacity:.05;pointer-events:none}
-.mk .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-bottom:44px;position:relative}
+/* auto-fit keeps the mockup's two equal columns while the footer has two
+   children, and makes room for a third (owner contact) without the brand
+   column wrapping onto its own row. */
+.mk .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:40px;padding-bottom:44px;position:relative}
 .mk .fbrand{display:flex;gap:14px;align-items:center;margin-bottom:14px}
 .mk .fbrand b{color:#fff;font-size:1.1rem;display:block}
 .mk .fbrand small{font-size:.8rem}
 .mk .fabout{font-size:.9rem;max-width:26rem}
-.mk .flinks h4{color:#fff;margin-bottom:14px;font-size:1rem}
+.mk .flinks h2{color:#fff;margin-bottom:14px;font-size:1rem;font-weight:700}
 .mk .flinks a{display:block;padding:5px 0;font-size:.92rem}
 .mk .flinks a:hover{color:var(--mk-gold)}
 .mk .fsoc{display:flex;gap:10px;margin-top:16px}
 .mk .fsoc a{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:1rem;transition:.2s}
 .mk .fsoc a:hover{background:var(--mk-gold);transform:translateY(-2px)}
-.mk .copy{border-top:1px solid rgba(255,255,255,.1);padding:20px 0;text-align:center;font-size:.82rem;color:#8FA0C9;position:relative}
+.mk .copy{border-top:1px solid rgba(255,255,255,.1);padding:14px 0;font-size:.82rem;color:#8FA0C9;position:relative;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;text-align:center}
+/* Owner contact column: same rhythm as .flinks, with room for the icon. */
+.mk .fcontact a,.mk .fcontact p{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.92rem;margin:0}
+.mk .fcontact a:hover{color:var(--mk-gold)}
+.mk .fcontact .ic{width:16px;height:16px;flex:0 0 16px}
 
-/* ---------- mobile bottom nav ---------- */
-.mk .mnav{display:none;position:fixed;bottom:0;right:0;left:0;z-index:60;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border-top:1px solid rgba(27,37,64,.08);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
+/* ---------- mobile bottom nav ----------
+   SINGLE source of truth for `.mnav`. It MUST stay above the responsive media
+   queries below: media queries add no specificity, so a second base
+   `.mk .mnav{display:none}` placed after them would win the cascade and keep
+   the bar hidden at every width (that regression made the mobile bottom nav
+   dead on all viewports). Visibility is owned by the ≤960px query only. */
+.mk .mnav{display:none;position:fixed;bottom:0;right:0;left:0;z-index:60;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(27,37,64,.08);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
 .mk .mnav-in{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
-.mk .mnav a{font-size:.72rem;font-weight:700;color:var(--mk-muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px}
-.mk .mnav a .mic{width:22px;height:22px}
+.mk .mnav a{font-size:.72rem;font-weight:700;color:var(--mk-muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;min-height:48px;justify-content:center}
+.mk .mnav a .ic{width:22px;height:22px}
 .mk .mnav a.active{color:var(--mk-blue)}
+/* Reserve room for the fixed bar on exactly the widths that show it, so the
+   footer/last section is never hidden underneath. Kept next to `.mnav` (not as
+   a Tailwind `pb-16 md:pb-0` on the layout) because the two breakpoints MUST
+   match: `md` is 768px and the bar is visible to 960px, which left a 768–960px
+   band where the bar covered page content. */
+@media(max-width:960px){
+  .pub-shell{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+}
 
 /* ---------- responsive ---------- */
 @media(max-width:960px){
@@ -1090,12 +1171,12 @@ button, a { touch-action: manipulation; }
   .mk .about-grid{grid-template-columns:1fr;gap:36px}
   .mk .about-photo{max-width:380px;margin:0 auto}
   .mk .qgrid{grid-template-columns:1fr}
+  /* The mobile menu is the overlay Drawer (`nav#mobile-nav`), not a second
+     dropdown: the burger used to open BOTH, so the mockup's `.nav.open` panel
+     sat behind the drawer's scrim — invisible but still in the tab order.
+     `.nav` is now desktop-only and the `.nav.open` rules are gone with it. */
   .mk .nav{display:none}
   .mk .burger{display:block}
-  .mk .nav.open{display:flex;position:absolute;top:74px;right:12px;left:12px;background:#fff;flex-direction:column;gap:4px;padding:14px;border-radius:18px;box-shadow:var(--mk-shadow);z-index:70}
-  .mk .nav.open a{padding:12px 16px;border-radius:12px}
-  .mk .nav.open a.active{background:var(--mk-card-blue)}
-  .mk .nav.open a.active::after{display:none}
 }
 @media(max-width:600px){
   .mk .container{padding:0 16px}
@@ -1111,7 +1192,16 @@ button, a { touch-action: manipulation; }
   .mk .gcard{padding:30px 24px}
   .mk .badge{font-size:.75rem;padding:8px 12px;border-radius:13px}
   .mk .topbar .socials{display:none}
-  .mk body-pad{padding-bottom:70px}
+  /* `.btn{width:100%}` above is for section/hero CTAs. The topbar's compact
+     `.btn-sm` must stay intrinsically sized — stretching it blew the sticky
+     header past the viewport and (with overflow-x:hidden) clipped the burger
+     right out of the page. */
+  .mk .btn-sm{width:auto;padding:10px 18px}
+  /* Mockup topbar at phone widths is brand + burger. A 44px burger plus two
+     text CTAs cannot fit 320–414px in either locale, and the burger is the
+     ONLY way to open navigation here. Login/register stay reachable in the
+     drawer and in the bottom nav. */
+  .mk .topbar-actions .btn-sm{display:none}
   .mk .mnav{display:block}
 }
 /* Badge dot tints (CSP-safe, no inline styles) */
@@ -1131,9 +1221,3 @@ button, a { touch-action: manipulation; }
 .mk .topbar-actions{display:flex;gap:10px;align-items:center}
 .mk .ava-fallback{display:grid;place-items:center;font-weight:900;color:#1E56C8;background:#fff}
 .mk .btn-sm{padding:10px 22px;font-size:.9rem}
-/* Mobile bottom nav (mockup .mnav) — fixed, 4 items, visible ≤960px. */
-.mk .mnav{display:none;position:fixed;bottom:0;right:0;left:0;z-index:60;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(27,37,64,.08);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
-.mk .mnav-in{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
-.mk .mnav a{font-size:.72rem;font-weight:700;color:var(--mk-muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;min-height:48px;justify-content:center}
-.mk .mnav a .ic{width:22px;height:22px}
-.mk .mnav a.active{color:var(--mk-blue)}

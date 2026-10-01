@@ -1565,6 +1565,10 @@ export const ar = {
   footer: {
     rights: "جميع الحقوق محفوظة",
     contact: "تواصل معنا",
+    quickLinks: "روابط سريعة",
+    phone: "الهاتف",
+    email: "البريد الإلكتروني",
+    address: "العنوان",
   },
   nav: {
     toggleSidebar: "فتح/إغلاق القائمة الجانبية",

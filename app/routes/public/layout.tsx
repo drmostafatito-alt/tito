@@ -151,6 +151,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
 
   const idn = loaderData.identity;
   const hasContact = Boolean(idn.contactPhone || idn.contactEmail || idn.contactAddress.ar || idn.contactAddress.en);
+  const contactAddress = locale === "ar" ? idn.contactAddress.ar || idn.contactAddress.en : idn.contactAddress.en || idn.contactAddress.ar;
   const copyrightText = locale === "ar" ? idn.copyright.ar || idn.copyright.en : idn.copyright.en || idn.copyright.ar;
   const footerAbout = locale === "ar" ? idn.footerAbout.ar || idn.footerAbout.en : idn.footerAbout.en || idn.footerAbout.ar;
   // The public chrome reads LAYER A only (see app/app.css): same radius, shadow,
@@ -161,7 +162,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const navActiveCls = `${navLinkCls} bg-pub-surface font-bold text-pub-ink shadow-[inset_0_-2px_0_0_var(--color-pub-accent)]`;
 
   return (
-    <div className="pub-root flex min-h-dvh flex-col overflow-x-hidden pb-16 md:pb-0">
+    // Bottom padding that clears the fixed mobile bar lives in app.css next to
+    // `.mnav` itself — one breakpoint (≤960px) for both, instead of a Tailwind
+    // `md:` (768px) that disagreed with it.
+    <div className="pub-root pub-shell flex min-h-dvh flex-col overflow-x-hidden">
       <SkipLink locale={locale} />
       <div className="mk">
       <header data-testid="public-header" className="topbar" id="topbar">
@@ -181,8 +185,12 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               {tagline && <small>{tagline}</small>}
             </div>
           </Link>
+          {/* Desktop nav only. The burger opens the overlay Drawer below — it
+              used to toggle this panel open at the same time, so two menus
+              (and two identically-labelled nav landmarks) were open at once,
+              with this one stranded behind the drawer's scrim. */}
           {loaderData.header.length > 0 && (
-            <nav aria-label={t(locale, "common.navMain")} className={`nav${mobileOpen ? " open" : ""}`} id="nav">
+            <nav aria-label={t(locale, "common.navMain")} className="nav" id="nav">
               {loaderData.header.map((node) => (
                 <NavLink
                   key={node.id}
@@ -234,8 +242,13 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               type="button"
               className="burger"
               id="burger"
+              data-testid="public-menu"
               aria-label={t(locale, "common.menu")}
               aria-expanded={mobileOpen}
+              // Only point at the drawer while it exists: the Drawer unmounts
+              // when closed, and aria-controls must resolve to a real element.
+              aria-controls={mobileOpen ? "mobile-nav" : undefined}
+              aria-haspopup="menu"
               onClick={() => setMobileOpen((v) => !v)}
             >
               ☰
@@ -349,15 +362,47 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           </div>
           {loaderData.footer.length > 0 && (
             <div className="flinks">
-              <h4>{t(locale, "footer.quickLinks")}</h4>
+              <h2>{t(locale, "footer.quickLinks")}</h2>
               {loaderData.footer.map((node) => (
                 <NavLink key={node.id} item={node} locale={locale} />
               ))}
             </div>
           )}
+          {/* Owner contact details. The loader has always carried these and
+              `hasContact` was always computed, but the mockup transcription
+              left nothing rendering them — the configured phone number was
+              unreachable from the public site. Each line appears only when
+              the owner has filled it in; nothing here is invented. */}
+          {hasContact && (
+            <div className="flinks fcontact">
+              <h2>{t(locale, "footer.contact")}</h2>
+              {idn.contactPhone && (
+                <a href={`tel:${idn.contactPhone}`} aria-label={`${t(locale, "footer.phone")}: ${idn.contactPhone}`}>
+                  <Icon name="phone" size="sm" colorRole="default" className="ic" />
+                  <span dir="ltr">{idn.contactPhone}</span>
+                </a>
+              )}
+              {idn.contactEmail && (
+                <a href={`mailto:${idn.contactEmail}`} aria-label={`${t(locale, "footer.email")}: ${idn.contactEmail}`}>
+                  <Icon name="mail" size="sm" colorRole="default" className="ic" />
+                  <span dir="ltr">{idn.contactEmail}</span>
+                </a>
+              )}
+              {contactAddress && (
+                <p>
+                  <Icon name="map-pin" size="sm" colorRole="default" className="ic" />
+                  <span dir="auto">{contactAddress}</span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="copy">
-          {copyrightText || `\u00a9 ${new Date().getFullYear()} ${appName}`}
+          <span>{copyrightText || `\u00a9 ${new Date().getFullYear()} ${appName}`}</span>
+          {/* The platform is bilingual and the owner chooses which languages
+              are offered (Appearance → System), but the public chrome had no
+              switcher at all — `localeOptions` was computed and dropped. */}
+          <LanguageSwitcher locale={locale} options={localeOptions} tone="onDark" />
         </div>
       </footer>
       </div>

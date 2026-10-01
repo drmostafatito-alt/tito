@@ -17,6 +17,7 @@ export function LanguageSwitcher({
   locale,
   options,
   compact = false,
+  tone = "default",
 }: {
   locale: Locale;
   options?: Locale[];
@@ -26,6 +27,11 @@ export function LanguageSwitcher({
    * the brand, the login CTA or this button to fit.
    */
   compact?: boolean;
+  /**
+   * `onDark` for the public footer, which is the mockup's navy panel (#0C2453)
+   * — the default light-surface colours are unreadable there.
+   */
+  tone?: "default" | "onDark";
 }) {
   const location = useLocation();
   // Owner-controlled (Appearance → System). With a single offered language there
@@ -40,7 +46,11 @@ export function LanguageSwitcher({
       <input type="hidden" name="next" value={location.pathname + location.search} />
       <button
         type="submit"
-        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pub-pill px-2.5 text-pub-sm font-medium text-pub-muted transition-colors hover:bg-pub-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong ${compact ? "" : "sm:px-3"}`}
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pub-pill px-2.5 text-pub-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
+          tone === "onDark"
+            ? "text-[#C9D4EE] hover:bg-white/10 hover:text-white focus-visible:outline-white"
+            : "text-pub-muted hover:bg-pub-surface-2 focus-visible:outline-pub-accent-strong"
+        } ${compact ? "" : "sm:px-3"}`}
         aria-label={next === "ar" ? t("ar", "common.arabic") : t("en", "common.english")}
         data-locale-next={next}
       >

@@ -62,6 +62,54 @@ const ALIGN = {
   end: "items-end text-end",
 } as const;
 
+/** Tint class → the exact colour `.mk .sic-<tint>` paints (app.css). */
+const SIC_TINT_HEX: Record<string, string> = {
+  blue: "#1877f2",
+  green: "#25d366",
+  dark: "#111111",
+  red: "#ff0000",
+  gold: "#c99a2e",
+  teal: "#12a5a5",
+  navy: "#113274",
+};
+
+/**
+ * Legacy `iconBg` → the tint class that paints the same colour.
+ *
+ * `iconBg` was rendered as an inline `style` attribute, which the platform CSP
+ * (`style-src 'self'`, no unsafe-inline) blocks outright — it never actually
+ * coloured anything in production and only emitted console violations. Stored
+ * values are preserved and mapped onto the equivalent CSP-safe class; anything
+ * that is not one of the seven supported colours falls back to `tint`.
+ */
+function sicTintFor(tint: string, iconBg: string): string {
+  const want = iconBg.trim().toLowerCase();
+  if (!want) return tint;
+  const hit = Object.keys(SIC_TINT_HEX).find((k) => SIC_TINT_HEX[k] === want);
+  return hit ?? tint;
+}
+
+/**
+ * Controlled icon id for a social/contact card, CSP-safe.
+ *
+ * Snapshots published before this fix stored absolute
+ * `https://cdn.simpleicons.org/<network>/<colour>` URLs. `img-src 'self' …`
+ * blocks them, so every one of those cards rendered a BROKEN image. The
+ * network segment maps 1:1 onto the built-in inline-SVG set, so published
+ * pages heal without an edit, with no third-party request and no CSP change.
+ */
+function iconIdFromUrl(url: string): string {
+  const m = /^https?:\/\/cdn\.simpleicons\.org\/([a-z0-9-]+)/i.exec(url.trim());
+  return m ? socialIconName(m[1].toLowerCase()) : "";
+}
+
+/** True for a URL the CSP will actually load (same-origin / relative / data:). */
+function isRenderableImgSrc(url: string): boolean {
+  const u = url.trim();
+  if (!u) return false;
+  return u.startsWith("/") || u.startsWith("data:") || u.startsWith("blob:");
+}
+
 /**
  * Page-level navigation facts (which in-page anchors really exist, and the
  * resolved external Questions Platform URL). Provided once by `PageView` and read
@@ -539,6 +587,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               {photoSrc && (
                 <img
                   className="photo"
+                  // Marks the page's primary visual, same contract as
+                  // ThinkerPortrait's `heroVisual`. The mockup transcription
+                  // dropped it, so nothing identified the hero image anymore.
+                  data-hero-visual="true"
                   src={photoSrc}
                   alt={photoAlt}
                   loading="eager"
@@ -962,12 +1014,18 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const href = raw(card, "href");
             const iconUrl = raw(card, "iconUrl");
             const iconEmoji = str(card, "iconEmoji", L);
-            const tint = raw(card, "tint") || "blue";
-            const iconBg = raw(card, "iconBg");
+            const tint = sicTintFor(raw(card, "tint") || "blue", raw(card, "iconBg"));
+            // Icon source, in CSP-safe order: controlled icon id → an image the
+            // CSP can actually load → the legacy simpleicons URL healed into a
+            // built-in glyph → emoji. `.mk .sic svg` already sizes the inline
+            // SVG exactly like the <img> it replaces, so the card is unchanged.
+            const iconId = raw(card, "icon") || (iconUrl && !isRenderableImgSrc(iconUrl) ? iconIdFromUrl(iconUrl) : "");
             return (
               <SmartLink key={idx} href={href} ariaLabel={label} className="scard">
-                <span aria-hidden="true" className={`sic sic-${tint}`} style={iconBg ? { background: iconBg } : undefined}>
-                  {iconUrl ? (
+                <span aria-hidden="true" className={`sic sic-${tint}`}>
+                  {iconId ? (
+                    <Icon name={iconId} size="md" colorRole="invert" />
+                  ) : isRenderableImgSrc(iconUrl) ? (
                     <img src={iconUrl} alt="" loading="lazy" decoding="async" />
                   ) : (
                     <span>{iconEmoji || "🔗"}</span>

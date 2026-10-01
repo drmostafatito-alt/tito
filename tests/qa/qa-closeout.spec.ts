@@ -111,7 +111,7 @@ test.describe("QA closeout", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.locator("[data-hero-visual]")).toBeAttached();
-    const menu = page.locator('button[aria-controls="mobile-nav"]');
+    const menu = page.getByTestId("public-menu");
     await expect(menu).toBeVisible();
     await shot(page, "03-mobile-ar-rtl.png");
     await menu.click();

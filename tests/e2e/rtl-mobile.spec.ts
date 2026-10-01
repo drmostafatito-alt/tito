@@ -49,11 +49,23 @@ test.describe("student surfaces (RTL)", () => {
   });
 
   test("student mobile nav toggle is reachable with ARIA", async ({ page }) => {
+    // The toggle is `xl:hidden`, so it only exists as an interactive control
+    // below the xl breakpoint — same reason the admin case below pins a
+    // viewport before driving it.
+    await page.setViewportSize({ width: 390, height: 844 });
     await setLocale(page, "ar");
     await page.goto("/dashboard");
-    const toggle = page.locator('button[aria-controls="student-mobile-nav"]');
+    const toggle = page.getByTestId("student-menu");
     await expect(toggle).toBeAttached();
+    // Closed: expanded=false and NO aria-controls, because the drawer it would
+    // point at is unmounted and a dangling IDREF is invalid ARIA.
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).not.toHaveAttribute("aria-controls", /./);
+    // Open: the drawer exists, so the relationship is published.
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(toggle).toHaveAttribute("aria-controls", "student-mobile-nav");
+    await expect(page.locator("nav#student-mobile-nav")).toBeAttached();
   });
 
   test("lesson prev/next use RTL-flipped arrows", async ({ page }) => {
@@ -83,11 +95,13 @@ test.describe("admin surfaces (RTL + mobile)", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await setLocale(page, "ar");
     await page.goto("/admin");
-    const toggle = page.locator('button[aria-controls="admin-mobile-nav"]');
+    const toggle = page.getByTestId("admin-menu");
     await expect(toggle).toBeAttached();
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).not.toHaveAttribute("aria-controls", /./);
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(toggle).toHaveAttribute("aria-controls", "admin-mobile-nav");
     await expect(page.locator('nav#admin-mobile-nav')).toBeAttached();
     await expect(page.locator('nav#admin-mobile-nav a')).not.toHaveCount(0);
   });

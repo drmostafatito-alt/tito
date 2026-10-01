@@ -40,8 +40,13 @@ test("manual checkout → admin approval → entitlement unlocks the lesson", as
   await expect(student.locator("body")).toContainText(/under review|قيد المراجعة/i);
 
   // lesson still locked before approval (paid ≠ authorized without fulfillment)
+  // Asserted on the paywall card itself rather than one sentence of its copy:
+  // the gate is the contract, the wording is CMS/i18n-editable.
   await student.goto(`/learn/${FIXTURES.courseSlug}/${FIXTURES.lesson2Slug}`);
-  await expect(student.locator("body")).toContainText(/requires an access grant|يتطلب صلاحية وصول/i);
+  await expect(student.getByTestId("lesson-locked")).toBeVisible();
+  await expect(student.locator("body")).toContainText(
+    /for subscribers only|requires an access grant|للمشتركين فقط|يتطلب صلاحية وصول/i,
+  );
 
   // --- admin context (seeded super admin storage state) ---
   const adminCtx = await browser.newContext({ storageState: ADMIN_STATE });

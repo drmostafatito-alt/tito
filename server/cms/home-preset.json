@@ -323,12 +323,12 @@
          "en": "Psychology • 2nd grade"
         },
         "meta": {
-         "ar": "👁 12.4K مشاهدة • 🕐 منذ يومين",
-         "en": "12.4K views • 2 days ago"
+         "ar": "",
+         "en": ""
         },
         "href": "",
         "emoji": "🧠",
-        "duration": "24:15"
+        "duration": ""
        },
        {
         "title": {
@@ -340,12 +340,12 @@
          "en": "Philosophy • 1st grade"
         },
         "meta": {
-         "ar": "👁 9.1K مشاهدة • 🕐 منذ 5 أيام",
-         "en": "9.1K views • 5 days ago"
+         "ar": "",
+         "en": ""
         },
         "href": "",
         "emoji": "🏛️",
-        "duration": "31:40"
+        "duration": ""
        },
        {
         "title": {
@@ -357,12 +357,12 @@
          "en": "Revision • 2nd grade"
         },
         "meta": {
-         "ar": "👁 15.7K مشاهدة • 🕐 منذ أسبوع",
-         "en": "15.7K views • a week ago"
+         "ar": "",
+         "en": ""
         },
         "href": "",
         "emoji": "📝",
-        "duration": "18:05"
+        "duration": ""
        }
       ]
      }
@@ -566,13 +566,13 @@
          "en": "Message us directly"
         },
         "href": "whatsapp:",
-        "iconUrl": "https://cdn.simpleicons.org/whatsapp/white",
+        "icon": "whatsapp",
+        "iconUrl": "",
         "iconEmoji": {
          "ar": "",
          "en": ""
         },
-        "tint": "green",
-        "iconBg": "#25D366"
+        "tint": "green"
        },
        {
         "label": {
@@ -584,13 +584,13 @@
          "en": "Follow our page"
         },
         "href": "",
-        "iconUrl": "https://cdn.simpleicons.org/facebook/white",
+        "icon": "facebook",
+        "iconUrl": "",
         "iconEmoji": {
          "ar": "",
          "en": ""
         },
-        "tint": "blue",
-        "iconBg": "#1877F2"
+        "tint": "blue"
        },
        {
         "label": {
@@ -602,13 +602,13 @@
          "en": "Short videos"
         },
         "href": "",
-        "iconUrl": "https://cdn.simpleicons.org/tiktok/white",
+        "icon": "tiktok",
+        "iconUrl": "",
         "iconEmoji": {
          "ar": "",
          "en": ""
         },
-        "tint": "dark",
-        "iconBg": "#111111"
+        "tint": "dark"
        },
        {
         "label": {
@@ -620,13 +620,13 @@
          "en": "Subscribe to the channel"
         },
         "href": "",
-        "iconUrl": "https://cdn.simpleicons.org/youtube/white",
+        "icon": "youtube",
+        "iconUrl": "",
         "iconEmoji": {
          "ar": "",
          "en": ""
         },
-        "tint": "red",
-        "iconBg": "#FF0000"
+        "tint": "red"
        },
        {
         "label": {
@@ -638,6 +638,7 @@
          "en": "Start the courses"
         },
         "href": "/register",
+        "icon": "",
         "iconUrl": "",
         "iconEmoji": {
          "ar": "🔔",
@@ -655,6 +656,7 @@
          "en": "Test yourself"
         },
         "href": "exam:external",
+        "icon": "",
         "iconUrl": "",
         "iconEmoji": {
          "ar": "❓",

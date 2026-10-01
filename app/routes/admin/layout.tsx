@@ -10,6 +10,7 @@ import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import { rootMetaFrom } from "~/cms/seo";
 import { SkipLink } from "~/components/ui/SkipLink";
 import { t, type Locale } from "~/lib/i18n";
+import { useFocusTrap } from "~/lib/focus-trap";
 
 const COLLAPSE_KEY = "admin.sidebar.collapsed.v1";
 
@@ -181,6 +182,27 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname, location.search]);
+  const mobileNavRef = useRef<HTMLElement | null>(null);
+  // Same focus contract as the shared Drawer: trapped while open, restored to
+  // the toggle on close.
+  useFocusTrap(mobileNavRef, mobileOpen);
+  // Escape dismisses the drawer and the body stops scrolling behind the scrim,
+  // matching the shared Drawer used by the public and student headers. The
+  // admin console keeps its own dark-rail markup, so the behaviour has to be
+  // mirrored here rather than inherited.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   const { email, fullName } = loaderData.admin;
 
@@ -216,8 +238,13 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             <button
               type="button"
               className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 lg:hidden"
+              data-testid="admin-menu"
               aria-expanded={mobileOpen}
-              aria-controls="admin-mobile-nav"
+              // Same contract as the public/student headers: the drawer is
+              // unmounted while closed, so aria-controls is emitted only when
+              // the target element is really in the document.
+              aria-controls={mobileOpen ? "admin-mobile-nav" : undefined}
+              aria-haspopup="menu"
               aria-label={t(locale, "common.menu")}
               onClick={() => setMobileOpen((v) => !v)}
             >
@@ -280,14 +307,18 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
       {mobileOpen && (
         <div className="lg:hidden">
           <div
-            className="fixed inset-0 z-40 bg-slate-900/60"
+            className="animate-scrim-in fixed inset-0 z-40 bg-slate-900/60"
             aria-hidden="true"
             onClick={() => setMobileOpen(false)}
           />
           <nav
+            ref={mobileNavRef}
             id="admin-mobile-nav"
             aria-label={t(locale, "nav.menu")}
-            className="fixed inset-y-0 start-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-e border-slate-800 bg-slate-900 p-4 pt-safe"
+            // Physical left edge, same contract as the shared public/student
+            // Drawer — see the comment there. Logical `start-0` followed `dir`
+            // and opened this panel from the right in Arabic.
+            className="animate-drawer-in-left fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-slate-800 bg-slate-900 p-4 pt-safe"
           >
             <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
               <Brand appName={appName} locale={locale} />

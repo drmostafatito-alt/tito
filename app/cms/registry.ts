@@ -582,6 +582,11 @@ export const BLOCKS: Record<string, BlockDef> = {
           { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 60 },
           { name: "sub", kind: "ltext", labelKey: "cms.f.sub", max: 120 },
           { name: "href", kind: "link", labelKey: "cms.f.link" },
+          // Preferred icon source: a controlled id rendered as an inline SVG.
+          // `iconUrl` stays for already-published snapshots, but an absolute
+          // third-party URL is blocked by the platform CSP (`img-src 'self' …`)
+          // and renders as a broken image — see blocks.tsx `iconIdFromUrl`.
+          { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
           { name: "iconUrl", kind: "text", labelKey: "cms.f.iconUrl", max: 500 },
           { name: "iconEmoji", kind: "ltext", labelKey: "cms.f.iconEmoji", max: 10 },
           { name: "iconBg", kind: "text", labelKey: "cms.f.iconBg", max: 20 },
