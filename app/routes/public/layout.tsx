@@ -213,13 +213,22 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             {/* Mockup shows the anonymous topbar (no login button). Signed-in
                 users still need their dashboard/admin entry — the mockup does
                 not cover the signed-in state. */}
-            {loaderData.user && (
+            {loaderData.user ? (
               <Link
                 to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
                 className="btn btn-blue btn-sm"
               >
                 {loaderData.user.rank >= 3 ? t(locale, "common.admin") : t(locale, "common.dashboard")}
               </Link>
+            ) : (
+              <>
+                <Link to="/login" className="btn btn-blue btn-sm">
+                  {t(locale, "common.login")}
+                </Link>
+                <Link to="/register" className="btn btn-gold btn-sm">
+                  {t(locale, "common.register")}
+                </Link>
+              </>
             )}
             <button
               type="button"
