@@ -73,7 +73,7 @@ export const CHIP = "rounded-full bg-pub-surface px-2.5 py-1 text-pub-xs font-me
  * shadow, navy type. "Card" therefore means exactly one thing site-wide.
  */
 export const PUB_CARD =
-  "group relative flex flex-col overflow-hidden rounded-pub-xl border border-pub-line bg-pub-bg shadow-pub-card transition duration-200 hover:border-pub-line-strong hover:shadow-pub-md focus-within:border-pub-line-strong";
+  "group relative flex flex-col overflow-hidden rounded-pub-xl border border-pub-line bg-white shadow-pub-card transition duration-200 hover:border-pub-line-strong hover:shadow-pub-md focus-within:border-pub-line-strong";
 
 /**
  * The ONE dark band. Light-first means dark surfaces are rare and deliberate:

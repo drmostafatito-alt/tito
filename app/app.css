@@ -110,29 +110,34 @@
    * `leading-pub-snug` exist as real utilities — no per-component redefinition.
    * Semantic state colors are tokens too, so a warning can never become a
    * random amber/emerald/rose again. */
-  --color-pub-bg: #ffffff; /* default public surface — white */
-  --color-pub-surface: #f2f6fc; /* support: very light blue panel (navy-50) */
+  --color-pub-bg: #F5F7FD; /* default public canvas — very light blue (mockup) */
+  --color-pub-surface: #ECEEF4; /* support panel (mockup) */
   --color-pub-surface-2: #e3ecf8; /* support: one step deeper (navy-100) */
   --color-pub-tint: #d8e6f6; /* icon chips / pills on a light surface */
   --color-pub-line: #dbe6f4; /* hairlines on light surfaces */
   --color-pub-line-strong: #c6d9ef;
 
-  --color-pub-ink: #0f2342; /* primary ink = navy-900 */
+  --color-pub-ink: #1B2540; /* primary ink (mockup) */
   --color-pub-ink-strong: #08152b; /* display ink = navy-950 */
   --color-pub-ink-soft: #16305a; /* secondary ink = navy-800 */
-  --color-pub-muted: #2b518f; /* muted copy = navy-600 */
+  --color-pub-muted: #7D8495; /* muted copy (mockup) */
 
-  --color-pub-navy: #0f2342; /* the ONE dark band, rare by design */
-  --color-pub-navy-2: #16305a;
+  --color-pub-navy: #113274; /* the ONE dark band, rare by design (mockup) */
+  --color-pub-navy-2: #1947A4;
   --color-pub-on-navy: #e3ecf8; /* ink on a navy field */
   --color-pub-on-navy-soft: #c6d9ef;
   --color-pub-on-navy-muted: #9bb9e1;
 
-  --color-pub-accent: #c9932a; /* gold — minimal accent only */
-  --color-pub-accent-strong: #a9741f;
+  --color-pub-accent: #C99A2E; /* gold — minimal accent only (mockup) */
+  --color-pub-accent-strong: #A57E26;
   --color-pub-accent-soft: #dfae42;
-  --color-pub-accent-bg: #fdf9ed;
+  --color-pub-accent-bg: #F9F3E6;
   --color-pub-accent-line: #f2dda1;
+
+  /* mockup identity hues — public only, generated as bg-pub-blue etc. */
+  --color-pub-blue: #1E56C8;
+  --color-pub-blue-deep: #1947A4;
+  --color-pub-card: #E9EEFA;
 
   --color-pub-success: #065f46;
   --color-pub-success-bg: #e8f5ef;
@@ -153,7 +158,7 @@
   --radius-pub-sm: 0.5rem;
   --radius-pub-md: 0.75rem;
   --radius-pub-lg: 1rem;
-  --radius-pub-xl: 1.25rem;
+  --radius-pub-xl: 1.375rem;
   --radius-pub-2xl: 1.5rem;
   --radius-pub-pill: 999px;
   --radius-btn: 0.75rem; /* keeps ui/Button + admin rounded-[var(--radius-btn)] valid */
@@ -193,6 +198,9 @@
       transform: translateY(-8px);
     }
   }
+  /* Activates the float keyframes above as the `animate-float` utility
+     (mockup portrait/badges hover motion). */
+  --animate-float: float 6s ease-in-out infinite;
   @keyframes pulse-soft {
     0%,
     100% {
@@ -368,6 +376,14 @@
 }
 @utility pub-measure {
   max-width: var(--pub-measure);
+}
+/* Stagger offsets for the floating hero badge chips (kept as classes — the
+   production CSP has no 'unsafe-inline', so style="" attributes are out). */
+@utility anim-delay-1 {
+  animation-delay: 1.2s;
+}
+@utility anim-delay-2 {
+  animation-delay: 2.4s;
 }
 
 /* A real diamond (a filled square turned 45°). It used to be two crossing

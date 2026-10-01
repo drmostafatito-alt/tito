@@ -14,6 +14,7 @@ import { SkipLink } from "~/components/ui/SkipLink";
 import { Icon } from "~/cms/icons";
 import { siteEntitiesMeta } from "~/cms/seo";
 import { resolveSocialLinks, socialsFor, socialIconName } from "~/cms/social";
+import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
 import { DecorHairline } from "~/components/visuals/PhilosophyDecor";
 import { t, type Locale } from "~/lib/i18n";
 
@@ -39,7 +40,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     menuItemsFor(db, "footer"),
   ]);
   const idn = settings.identity;
-  const images = await resolvePublicImageUrls(db, [idn.logoFileId].filter(Boolean));
+  const fileIds = [idn.logoFileId, idn.ownerPhotoFileId].filter((x): x is string => Boolean(x));
+  const images = await resolvePublicImageUrls(db, fileIds);
   const waUrl = settings.platform.whatsapp ? `https://wa.me/${settings.platform.whatsapp.replace(/[^\d]/g, "")}` : "";
   const socialAll = resolveSocialLinks(idn, waUrl);
 
@@ -54,6 +56,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     maintenance,
     url: request.url,
     user: auth ? { fullName: auth.user.fullName, rank: auth.user.rank, roleId: auth.user.roleId } : null,
+    questionPlatformUrl: resolveQuestionPlatformUrl(settings.platform),
     header: tree(header.topLevel.filter((i) => i.visible).map(toItem), header.items),
     footer: tree(footer.topLevel.filter((i) => i.visible).map(toItem), footer.items),
     socialUrls: socialAll.map((s) => s.url),
@@ -61,6 +64,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       platformName: { ar: settings.platform.nameAr, en: settings.platform.nameEn },
       tagline: { ar: settings.platform.taglineAr, en: settings.platform.taglineEn },
       logoUrl: idn.logoFileId ? (images[idn.logoFileId] ?? null) : null,
+      ownerPhotoUrl: idn.ownerPhotoFileId ? (images[idn.ownerPhotoFileId] ?? null) : null,
       contactPhone: idn.contactPhone,
       contactEmail: idn.contactEmail,
       contactAddress: { ar: idn.contactAddressAr, en: idn.contactAddressEn },
@@ -114,6 +118,36 @@ function NavLink({ item, locale, className, onNavigate }: { item: MenuLink; loca
   );
 }
 
+/** Mobile bottom-nav item: icon over a small bold label, mockup .mnav grammar. */
+function BottomNavItem({
+  to,
+  icon,
+  label,
+  active,
+  ariaLabel,
+}: {
+  to: string;
+  icon: string;
+  label: string;
+  active: boolean;
+  ariaLabel?: string;
+}) {
+  const cls = `flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 text-[0.72rem] font-bold transition-colors ${
+    active ? "text-pub-blue" : "text-pub-muted hover:text-pub-ink"
+  }`;
+  const inner = (
+    <>
+      <Icon name={icon} size="md" colorRole="default" className="h-[22px] w-[22px] text-current" />
+      <span className="leading-tight">{label}</span>
+    </>
+  );
+  return (
+    <Link to={to} className={cls} aria-label={ariaLabel ?? label} aria-current={active ? "page" : undefined}>
+      {inner}
+    </Link>
+  );
+}
+
 export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as RootLoaderData;
   const locale = root?.locale ?? "ar";
@@ -145,7 +179,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const navActiveCls = `${navLinkCls} bg-pub-surface font-bold text-pub-ink shadow-[inset_0_-2px_0_0_var(--color-pub-accent)]`;
 
   return (
-    <div className="pub-root flex min-h-dvh flex-col overflow-x-hidden">
+    <div className="pub-root flex min-h-dvh flex-col overflow-x-hidden pb-16 md:pb-0">
       <SkipLink locale={locale} />
       <header
         data-testid="public-header"
@@ -155,12 +189,23 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
             brand (the wordmark itself hides below sm inside BrandMark), and a
             fixed action cluster. No secondary text competes for that space. */}
         <div className="mx-auto flex h-14 w-full max-w-[var(--pub-maxw)] min-w-0 items-center justify-between gap-2 px-3 sm:h-[4.25rem] sm:gap-3 sm:px-4">
-          <Link to="/" aria-label={appName} className="inline-flex min-h-11 min-w-0 shrink items-center">
-            {idn.logoUrl ? (
-              <img src={idn.logoUrl} alt={appName} className="h-10 w-auto object-contain" />
+          {/* Brand: owner avatar (gold ring) + platform name + tagline — mockup topbar. */}
+          <Link to="/" aria-label={appName} className="inline-flex min-h-11 min-w-0 shrink items-center gap-2.5">
+            {idn.ownerPhotoUrl ? (
+              <img
+                src={idn.ownerPhotoUrl}
+                alt=""
+                className="h-11 w-11 shrink-0 rounded-full border-2 border-pub-accent object-cover shadow-pub-sm"
+              />
+            ) : idn.logoUrl ? (
+              <img src={idn.logoUrl} alt={appName} className="h-10 w-auto shrink-0 object-contain" />
             ) : (
               <BrandMark name={appName} />
             )}
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="truncate text-pub-base font-extrabold text-pub-navy">{appName}</span>
+              {tagline && <span className="truncate text-pub-xs font-medium text-pub-muted">{tagline}</span>}
+            </span>
           </Link>
 
           {/* Desktop navigation (admin menu builder). It switches on at `xl`,
@@ -358,10 +403,23 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
         <div className="mx-auto grid w-full max-w-[var(--pub-maxw)] gap-8 px-[var(--pub-pad-x)] py-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
           <div className="flex flex-col gap-3">
-            <Link to="/" aria-label={appName} className="inline-flex items-center">
-              {idn.logoUrl ? <img src={idn.logoUrl} alt={appName} className="h-9 w-auto object-contain" /> : <BrandMark name={appName} tone="onDark" />}
+            <Link to="/" aria-label={appName} className="inline-flex items-center gap-3">
+              {idn.ownerPhotoUrl ? (
+                <img
+                  src={idn.ownerPhotoUrl}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-full border-2 border-pub-accent object-cover"
+                />
+              ) : idn.logoUrl ? (
+                <img src={idn.logoUrl} alt={appName} className="h-9 w-auto shrink-0 object-contain" />
+              ) : (
+                <BrandMark name={appName} tone="onDark" />
+              )}
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className="truncate text-pub-base font-extrabold text-pub-accent">{appName}</span>
+                {tagline && <span className="truncate text-pub-xs text-pub-on-navy-soft">{tagline}</span>}
+              </span>
             </Link>
-            {tagline && <p className="max-w-sm text-pub-sm leading-pub-normal text-pub-on-navy-soft">{tagline}</p>}
             {idn.socialsFooter.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {idn.socialsFooter.map((s) => (
@@ -432,6 +490,46 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
         </div>
       </footer>
       )}
+      {/* Mobile bottom nav — mockup .mnav: 4 items, question-platform entry only
+          when configured (loader resolves it to null otherwise). z-40 keeps it
+          under the mobile drawer overlay (z-50) and the sticky header. */}
+      <nav
+        aria-label={t(locale, "common.navMain")}
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-pub-line bg-pub-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+      >
+        <div className={`grid ${loaderData.questionPlatformUrl ? "grid-cols-4" : "grid-cols-3"}`}>
+          <BottomNavItem
+            to="/"
+            icon="book-open"
+            label={t(locale, "common.home")}
+            active={location.pathname === "/"}
+          />
+          <BottomNavItem
+            to="/study"
+            icon="play-circle"
+            label={t(locale, "content.lessons")}
+            active={location.pathname === "/study" || location.pathname.startsWith("/study/")}
+          />
+          <BottomNavItem
+            to="/register"
+            icon="sparkles"
+            label={t(locale, "study.subscribeCta")}
+            active={location.pathname === "/register"}
+          />
+          {loaderData.questionPlatformUrl && (
+            <a
+              href={loaderData.questionPlatformUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t(locale, "questionPlatform.navAria")}
+              className="flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 text-[0.72rem] font-bold text-pub-muted transition-colors hover:text-pub-ink"
+            >
+              <Icon name="help-circle" size="md" colorRole="default" className="h-[22px] w-[22px] text-current" />
+              <span className="leading-tight">{t(locale, "questionPlatform.navLabel")}</span>
+            </a>
+          )}
+        </div>
+      </nav>
     </div>
   );
 }

@@ -38,37 +38,37 @@
           "visible": true,
           "props": {
             "eyebrow": {
-              "ar": "فلسفة ومنطق · علم النفس",
-              "en": "Philosophy & Logic · Psychology"
+              "ar": "🎓 العام الدراسي 2026 / 2027",
+              "en": "🎓 2026/2027 school year"
             },
             "heading": {
-              "ar": "تعلّم الفلسفة والمنطق وعلم النفس بطريقة أبسط",
-              "en": "Learn philosophy, logic and psychology the simple way"
+              "ar": "مستر مصطفى تيتو",
+              "en": "Mr. Mostafa Tito"
             },
             "subtitle": {
-              "ar": "<p>كل ما يخصّ مادتك في مكان واحد: <strong>شرح مرتّب</strong> للدروس، <strong>فيديوهات</strong>، <strong>كتب ومذكرات</strong>، و<strong>تدريبات وامتحانات</strong>. تختار السنة والصف والمادة، وتصل إلى الدرس مباشرة.</p>",
-              "en": "<p>Everything your subject needs in one place: structured <strong>explanations</strong>, <strong>videos</strong>, <strong>books &amp; notes</strong>, and <strong>drills &amp; exams</strong>. Pick the year, grade and subject, and land on the lesson itself.</p>"
+              "ar": "<p>اتعلّم <strong>الفلسفة والمنطق</strong> و<strong>علم النفس</strong> بالفيديو — شرح مبسّط من الصفر، مذكرات PDF، وامتحانات تدريبية بعد كل درس. أهلاً بيكم يا أبطال ❤️</p>",
+              "en": "<p>Learn <strong>philosophy, logic</strong> and <strong>psychology</strong> by video — simple explanations from scratch, PDF notes, and practice exams after every lesson.</p>"
             },
             "ctas": [
               {
                 "label": {
-                  "ar": "المحتوى التعليمي",
-                  "en": "Learning content"
+                  "ar": "تصفّح الكورسات",
+                  "en": "Browse courses"
                 },
-                "href": "/study",
+                "href": "#grades",
                 "target": "_self",
                 "variant": "primary",
-                "icon": "book-open"
+                "icon": ""
               },
               {
                 "label": {
-                  "ar": "إنشاء حساب",
-                  "en": "Create an account"
+                  "ar": "تواصل معنا",
+                  "en": "Contact us"
                 },
-                "href": "/register",
+                "href": "#contact",
                 "target": "_self",
                 "variant": "secondary",
-                "icon": "user"
+                "icon": ""
               }
             ],
             "videoLabel": {
@@ -80,7 +80,41 @@
               "ar": "",
               "en": ""
             },
-            "badges": [],
+            "badges": [
+              {
+                "icon": "check-circle",
+                "title": {
+                  "ar": "شرح مبسّط",
+                  "en": "Simple explanations"
+                },
+                "text": {
+                  "ar": "",
+                  "en": ""
+                }
+              },
+              {
+                "icon": "target",
+                "title": {
+                  "ar": "طريقك نحو التفوق",
+                  "en": "Your path to excellence"
+                },
+                "text": {
+                  "ar": "",
+                  "en": ""
+                }
+              },
+              {
+                "icon": "play-circle",
+                "title": {
+                  "ar": "فيديوهات + تدريب",
+                  "en": "Videos + practice"
+                },
+                "text": {
+                  "ar": "",
+                  "en": ""
+                }
+              }
+            ],
             "useIdentity": true,
             "ctaShape": "pill"
           }
@@ -93,12 +127,12 @@
       "visible": true,
       "props": {
         "heading": {
-          "ar": "اختر صفّك",
-          "en": "Choose your grade"
+          "ar": "اختر صفك للبدء",
+          "en": ""
         },
         "subheading": {
-          "ar": "نبدأ من السنة والصف: كل ما هو منشور لصفّك — المواد، الشرح، الفيديوهات، الملفات والامتحانات — تجده في المحتوى التعليمي.",
-          "en": "Start from the year and the grade. Everything published for it — subjects, explanations, videos, files and exams — is in the learning content."
+          "ar": "كورسات فيديو كاملة لكل صف — شرح، مذكرات، وتدريب مستمر لحد ليلة الامتحان",
+          "en": ""
         },
         "bg": "surface",
         "padding": "md",
@@ -108,7 +142,7 @@
         "align": "start",
         "hideMobile": false,
         "bgImage": "",
-        "anchor": ""
+        "anchor": "grades"
       },
       "children": [
         {
@@ -130,17 +164,63 @@
       ]
     },
     {
+      "id": "586136c8-b071-534d-a576-27f5d7f00359",
+      "type": "section",
+      "visible": true,
+      "props": {
+        "heading": {
+          "ar": "أحدث الدروس",
+          "en": ""
+        },
+        "subheading": {
+          "ar": "تابع أجدد فيديوهات الشرح أول بأول",
+          "en": ""
+        },
+        "bg": "surface",
+        "padding": "md",
+        "container": "normal",
+        "columns": "1",
+        "gap": "md",
+        "align": "start",
+        "hideMobile": false,
+        "bgImage": "",
+        "anchor": "videos"
+      },
+      "children": [
+        {
+          "id": "2f32424e-4386-5b7f-aea8-72566b42f889",
+          "type": "video_showcase",
+          "visible": true,
+          "props": {
+            "heading": {
+              "ar": "",
+              "en": ""
+            },
+            "subheading": {
+              "ar": "",
+              "en": ""
+            },
+            "limit": 6,
+            "ctaLabel": {
+              "ar": "كل الفيديوهات",
+              "en": "All videos"
+            }
+          }
+        }
+      ]
+    },
+    {
       "id": "acacd121-bb48-504e-9dbb-9cfdab500d87",
       "type": "section",
       "visible": true,
       "props": {
         "heading": {
           "ar": "المحتوى التعليمي",
-          "en": "Learning content"
+          "en": ""
         },
         "subheading": {
-          "ar": "المواد والمجالات المتاحة على المنصّة. ادخل إلى مادتك لتجد كل شرح أو فيديو أو ملف أو امتحان مرتبط بها.",
-          "en": "The subjects and fields available on the platform. Open a subject to find every lesson, video, file and exam attached to it."
+          "ar": "المواد والمجالات المتاحة على المنصّة — ادخل مادتك وهتلاقي كل دروسها",
+          "en": ""
         },
         "bg": "default",
         "padding": "md",
@@ -184,12 +264,12 @@
       "visible": true,
       "props": {
         "heading": {
-          "ar": "ماذا ستجد على المنصّة؟",
-          "en": "What the platform gives you"
+          "ar": "لماذا منصة tito؟",
+          "en": ""
         },
         "subheading": {
-          "ar": "أربعة أشياء، لكنها الكاملة: شرح، فيديو، ملفات، وامتحانات — لكل مادة وما هو منشور لها فعلًا.",
-          "en": "Four things, and they are the ones that matter: explanations, video, files and exams — per subject, only what is actually published."
+          "ar": "كل اللي محتاجه عشان تتفوق — في مكان واحد",
+          "en": ""
         },
         "bg": "surface",
         "padding": "md",
@@ -209,72 +289,72 @@
           "props": {
             "items": [
               {
-                "icon": "book-open",
+                "icon": "play-circle",
                 "title": {
-                  "ar": "شرح مرتّب",
-                  "en": "Structured explanation"
+                  "ar": "شرح بالفيديو",
+                  "en": "Video lessons"
                 },
                 "text": {
-                  "ar": "محتوى مكتوب لكل درس، مرتّب داخل وحدات ومقرّرات حسب السنة الدراسية.",
-                  "en": "Written content for every lesson, ordered into units and courses by academic year."
+                  "ar": "دروس فيديو مبسطة من الصفر — تشوف الدرس وتفهمه من أول مرة.",
+                  "en": "Simplified video lessons from scratch."
                 },
                 "ctaLabel": {
                   "ar": "",
                   "en": ""
                 },
                 "href": "",
-                "tint": "default"
+                "tint": "brand"
               },
               {
-                "icon": "video",
+                "icon": "target",
                 "title": {
-                  "ar": "فيديوهات الشرح",
-                  "en": "Explainer videos"
+                  "ar": "امتحانات تدريبية",
+                  "en": "Practice exams"
                 },
                 "text": {
-                  "ar": "فيديوهات مرفقة بالدرس نفسه، تُفتح من صفحة المادة مباشرة.",
-                  "en": "Videos attached to the lesson itself, opened straight from the subject page."
+                  "ar": "اختبر نفسك بعد كل درس بأسئلة على نظام الامتحان.",
+                  "en": "Test yourself after every lesson."
                 },
                 "ctaLabel": {
                   "ar": "",
                   "en": ""
                 },
                 "href": "",
-                "tint": "default"
+                "tint": "accent"
               },
               {
                 "icon": "file-text",
                 "title": {
-                  "ar": "كتب ومذكرات",
-                  "en": "Books & notes"
+                  "ar": "مذكرات PDF",
+                  "en": "PDF notes"
                 },
                 "text": {
-                  "ar": "ملفات ومذكرات جاهزة للتحميل والمذاكرة، مرتّبة حسب المادة والمرحلة.",
-                  "en": "Books and notes ready to download and study, organised by subject and stage."
+                  "ar": "ملخصات ومذكرات جاهزة للتحميل والطباعة لكل درس.",
+                  "en": "Ready-to-print summaries for every lesson."
                 },
                 "ctaLabel": {
                   "ar": "",
                   "en": ""
                 },
                 "href": "",
-                "tint": "default"
+                "tint": "success"
               },
               {
-                "icon": "check-circle",
+                "icon": "smartphone",
                 "title": {
-                  "ar": "تدريبات وامتحانات",
-                  "en": "Drills & exams"
+                  "ar": "من أي جهاز",
+                  "en": "Any device"
                 },
                 "text": {
-                  "ar": "أسئلة وتدريبات على نمط الامتحان، على منصّة الامتحانات الخاصة بالمدرّس.",
-                  "en": "Questions and exam-style drills, on the teacher's own exam platform."
+                  "ar": "اتعلم من الموبايل أو التابلت أو الكمبيوتر — في أي وقت.",
+                  "en": "Learn from phone, tablet or computer."
                 },
                 "ctaLabel": {
                   "ar": "",
                   "en": ""
                 },
                 "href": "",
-                "tint": "default"
+                "tint": "muted"
               }
             ]
           }
@@ -288,11 +368,11 @@
       "props": {
         "heading": {
           "ar": "ابدأ مجانًا",
-          "en": "Start for free"
+          "en": ""
         },
         "subheading": {
-          "ar": "دروس منشورة ومفتوحة لكل الطلاب — جرّب أسلوب الشرح قبل أي شيء آخر.",
-          "en": "Published open lessons for every student — try the teaching style before anything else."
+          "ar": "دروس منشورة ومفتوحة لكل الطلاب — جرّب أسلوب الشرح قبل أي حاجة",
+          "en": ""
         },
         "bg": "default",
         "padding": "md",
@@ -320,63 +400,17 @@
       ]
     },
     {
-      "id": "586136c8-b071-534d-a576-27f5d7f00359",
-      "type": "section",
-      "visible": true,
-      "props": {
-        "heading": {
-          "ar": "شرح بالصورة",
-          "en": "Explained on video"
-        },
-        "subheading": {
-          "ar": "",
-          "en": ""
-        },
-        "bg": "surface",
-        "padding": "md",
-        "container": "normal",
-        "columns": "1",
-        "gap": "md",
-        "align": "start",
-        "hideMobile": false,
-        "bgImage": "",
-        "anchor": "videos"
-      },
-      "children": [
-        {
-          "id": "2f32424e-4386-5b7f-aea8-72566b42f889",
-          "type": "video_showcase",
-          "visible": true,
-          "props": {
-            "heading": {
-              "ar": "",
-              "en": ""
-            },
-            "subheading": {
-              "ar": "",
-              "en": ""
-            },
-            "limit": 6,
-            "ctaLabel": {
-              "ar": "كل الفيديوهات",
-              "en": "All videos"
-            }
-          }
-        }
-      ]
-    },
-    {
       "id": "462f7c58-925e-5cad-8da5-0a6c9e301f36",
       "type": "section",
       "visible": true,
       "props": {
         "heading": {
           "ar": "ملفات ومذكرات",
-          "en": "Files & notebooks"
+          "en": ""
         },
         "subheading": {
-          "ar": "ما يُنشر للطلاب من كتب ومذكرات وملفات — تظهر هنا تلقائيًا حسب ما هو منشور فعلًا.",
-          "en": "Books, notebooks and files published for students — listed automatically from what is actually published."
+          "ar": "كتب ومذكرات وملفات قابلة للتحميل — بتظهر هنا تلقائيًا",
+          "en": ""
         },
         "bg": "default",
         "padding": "md",
@@ -437,20 +471,20 @@
           "visible": true,
           "props": {
             "heading": {
-              "ar": "تدريبات وامتحانات على منصّة الامتحانات",
-              "en": "Drills and exams on the exam platform"
+              "ar": "منصة الأسئلة",
+              "en": "Questions platform"
             },
             "text": {
-              "ar": "بنك الأسئلة والامتحانات يعمل على منصّة الامتحانات الخاصة بالمدرّس؛ تفتح بحسابك نفسه بعد الدخول.",
-              "en": "The question bank runs on the teacher's exam platform and opens with the same account, once you are signed in."
+              "ar": "اختبر نفسك بامتحانات إلكترونية تفاعلية — تصحيح فوري ومراجعة للإجابات، عشان تدخل الامتحان وانت مطمن.",
+              "en": "Test yourself with interactive electronic exams — instant correction and answer review."
             },
             "ctaLabel": {
-              "ar": "افتح منصّة الامتحانات",
-              "en": "Open the exam platform"
+              "ar": "ادخل منصة الأسئلة",
+              "en": "Enter the platform"
             },
             "note": {
-              "ar": "الأسئلة والتصحيح داخل منصّة الامتحانات — الدفع والتفعيل لا يمرّان من هذه الصفحة.",
-              "en": "Questions and marking live in the exam platform — payments and activation never pass through this page."
+              "ar": "تُفتح في تبويب جديد",
+              "en": "Opens in a new tab"
             }
           }
         }
@@ -463,10 +497,10 @@
       "props": {
         "heading": {
           "ar": "كيف تبدأ؟",
-          "en": "How do you start?"
+          "en": ""
         },
         "subheading": {
-          "ar": "",
+          "ar": "أربع خطوات وتكون جوه أول درس",
           "en": ""
         },
         "bg": "surface",
@@ -545,12 +579,12 @@
       "visible": true,
       "props": {
         "heading": {
-          "ar": "نبذة عن المدرّس",
-          "en": "About the teacher"
+          "ar": "نبذة عن المعلم",
+          "en": ""
         },
         "subheading": {
-          "ar": "نبذة المدرّس الكاملة وصورته على صفحة «عن المنصّة».",
-          "en": "The teacher's full biography and picture live on the About page."
+          "ar": "اتعرف على مدرسك — اللي هيكون معاك لحد ليلة الامتحان",
+          "en": ""
         },
         "bg": "default",
         "padding": "md",
@@ -582,7 +616,7 @@
               "ar": "",
               "en": ""
             },
-            "showPhoto": false,
+            "showPhoto": true,
             "watermark": "marx"
           }
         }
@@ -595,11 +629,11 @@
       "props": {
         "heading": {
           "ar": "تواصل معنا",
-          "en": "Get in touch"
+          "en": ""
         },
         "subheading": {
-          "ar": "للاستفسار عن المحتوى أو الاشتراك، تواصل مباشرة — واتساب أو بريد.",
-          "en": "For anything about the content or enrolment, reach out directly — WhatsApp or email."
+          "ar": "اختار الطريقة المناسبة ليك — بنرد بسرعة",
+          "en": ""
         },
         "bg": "surface",
         "padding": "md",
@@ -609,7 +643,7 @@
         "align": "start",
         "hideMobile": false,
         "bgImage": "",
-        "anchor": ""
+        "anchor": "contact"
       },
       "children": [
         {
@@ -632,7 +666,13 @@
           "visible": true,
           "props": {
             "style": "buttons",
-            "items": []
+            "items": [],
+            "showSubscribe": true,
+            "subscribeLabel": {
+              "ar": "اشترك الآن",
+              "en": "Subscribe now"
+            },
+            "showExam": true
           }
         }
       ]
@@ -667,36 +707,26 @@
           "visible": true,
           "props": {
             "heading": {
-              "ar": "جاهز تبدأ؟",
-              "en": "Ready to start?"
+              "ar": "جاهز تبدأ رحلتك؟",
+              "en": "Ready to start your journey?"
             },
             "text": {
-              "ar": "افتح المحتوى التعليمي واختر مادتك — الدروس والفيديوهات والملفات في انتظارك.",
-              "en": "Open the learning content and pick your subject — lessons, videos and files are waiting."
+              "ar": "اختار صفك وابدأ أول درس فيديو النهاردة — التفوق قرار.",
+              "en": "Pick your grade and start your first video lesson today."
             },
             "note": {
-              "ar": "تسجيل حساب الطالب يتم من المنصّة؛ الدفع والتفعيل لا يمرّان عبر هذه الصفحة.",
-              "en": "Student accounts are created on the platform; payment and activation never go through this page."
+              "ar": "",
+              "en": ""
             },
             "ctas": [
               {
                 "label": {
-                  "ar": "افتح المحتوى التعليمي",
-                  "en": "Open the learning content"
+                  "ar": "تصفّح الكورسات",
+                  "en": "Browse courses"
                 },
-                "href": "/study",
+                "href": "#grades",
                 "target": "_self",
                 "variant": "gold",
-                "icon": "arrow-right"
-              },
-              {
-                "label": {
-                  "ar": "إنشاء حساب",
-                  "en": "Create an account"
-                },
-                "href": "/register",
-                "target": "_self",
-                "variant": "outline",
                 "icon": ""
               }
             ],
