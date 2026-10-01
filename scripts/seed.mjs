@@ -75,7 +75,12 @@ await exec(
 
 // default settings groups (mirrors server/settings/schema.ts defaults)
 const defaults = {
-  platform: { nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito", taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null },
+  // `questionPlatform*`: the questions/exams engine is a SEPARATE external
+  // platform (never rebuilt inside Tito). Tito only renders a clearly-labelled
+  // entry point, gated by these two owner settings; `resolveQuestionPlatformUrl`
+  // still re-validates the value as absolute https before any href is emitted.
+  // Owner-confirmed destination — change it in Admin → Appearance → System.
+  platform: { nameAr: "د/ مصطفى تيتو", nameEn: "Dr mostafa tito", taglineAr: "الفلسفة وعلم النفس", taglineEn: "Philosophy & Psychology", maintenance: false, supportEmail: null, supportPhone: null, whatsapp: null, questionPlatformEnabled: true, questionPlatformUrl: "https://exams.mansa-eg.workers.dev/" },
   // Owner identity (content/branding integration). ONLY owner-confirmed fields
   // are set here; the Facebook page is scrape-blocked (HTTP 403), so title /
   // bio / specialty / photo / other links stay empty until the owner provides
