@@ -161,7 +161,10 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const navActiveCls = `${navLinkCls} bg-pub-surface font-bold text-pub-ink shadow-[inset_0_-2px_0_0_var(--color-pub-accent)]`;
 
   return (
-    <div className="pub-root flex min-h-dvh flex-col overflow-x-hidden pb-16 md:pb-0">
+    // Bottom padding that clears the fixed mobile bar lives in app.css next to
+    // `.mnav` itself — one breakpoint (≤960px) for both, instead of a Tailwind
+    // `md:` (768px) that disagreed with it.
+    <div className="pub-root pub-shell flex min-h-dvh flex-col overflow-x-hidden">
       <SkipLink locale={locale} />
       <div className="mk">
       <header data-testid="public-header" className="topbar" id="topbar">
