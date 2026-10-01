@@ -1034,6 +1034,7 @@ button, a { touch-action: manipulation; }
 .mk .q::before{content:"❝";position:absolute;top:14px;left:20px;font-size:2.4rem;color:var(--mk-gold);opacity:.35}
 .mk .q p{font-size:1rem;font-weight:500;margin-bottom:14px}
 .mk .q b{color:var(--mk-gold-deep);font-size:.9rem}
+.mk .qfig{width:72px;height:72px;border-radius:50%;object-fit:cover;margin:0 auto 14px;display:block;background:linear-gradient(135deg,#E9E2D2,#D8CDAF);box-shadow:0 8px 18px -8px rgba(27,37,64,.35);border:3px solid #fff}
 .mk .q b::before{content:"";display:inline-block;width:26px;height:3px;background:var(--mk-gold);border-radius:3px;margin-left:8px;vertical-align:middle}
 
 /* ---------- final CTA ---------- */

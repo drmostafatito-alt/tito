@@ -1387,17 +1387,26 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
 
     case "quote_cards": {
       // Mockup-faithful quotes (mockup_v5.html #quotes — "أقوال مأثورة").
-      // Each quote: text + author — all CMS props, fully editable.
+      // Each quote: text + author + optional thinker portrait — all CMS props.
+      // `figure` is a thinker id (socrates, plato, ...) resolving to the
+      // platform's own illustration in /visuals/thinkers/.
       const quotes = arr(p, "quotes").filter((q) => str(q, "text", L));
       if (!quotes.length) return null;
       return (
         <div className="qgrid">
-          {quotes.map((q, idx) => (
-            <div key={idx} className="q">
-              <p dir="auto">{str(q, "text", L)}</p>
-              {str(q, "author", L) && <b dir="auto">{str(q, "author", L)}</b>}
-            </div>
-          ))}
+          {quotes.map((q, idx) => {
+            const figure = raw(q, "figure");
+            const figSrc = figure ? `/visuals/thinkers/${figure}.webp` : "";
+            return (
+              <div key={idx} className="q">
+                {figSrc && (
+                  <img src={figSrc} alt="" aria-hidden="true" loading="lazy" decoding="async" className="qfig" />
+                )}
+                <p dir="auto">{str(q, "text", L)}</p>
+                {str(q, "author", L) && <b dir="auto">{str(q, "author", L)}</b>}
+              </div>
+            );
+          })}
         </div>
       );
     }

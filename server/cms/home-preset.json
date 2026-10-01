@@ -707,7 +707,8 @@
         "author": {
          "ar": "سقراط",
          "en": "Socrates"
-        }
+        },
+        "figure": "socrates"
        },
        {
         "text": {
@@ -717,7 +718,8 @@
         "author": {
          "ar": "أرسطو",
          "en": "Aristotle"
-        }
+        },
+        "figure": "aristotle"
        },
        {
         "text": {
@@ -727,7 +729,8 @@
         "author": {
          "ar": "أفلاطون",
          "en": "Plato"
-        }
+        },
+        "figure": "plato"
        }
       ]
      }
