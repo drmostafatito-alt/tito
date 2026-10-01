@@ -1053,7 +1053,10 @@ button, a { touch-action: manipulation; }
 /* ---------- footer ---------- */
 .mk footer{background:#0C2453;color:#C9D4EE;padding:60px 0 0;position:relative;overflow:hidden}
 .mk footer .giant{position:absolute;bottom:-40px;left:0;font-size:11rem;opacity:.05;pointer-events:none}
-.mk .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-bottom:44px;position:relative}
+/* auto-fit keeps the mockup's two equal columns while the footer has two
+   children, and makes room for a third (owner contact) without the brand
+   column wrapping onto its own row. */
+.mk .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:40px;padding-bottom:44px;position:relative}
 .mk .fbrand{display:flex;gap:14px;align-items:center;margin-bottom:14px}
 .mk .fbrand b{color:#fff;font-size:1.1rem;display:block}
 .mk .fbrand small{font-size:.8rem}
@@ -1064,7 +1067,11 @@ button, a { touch-action: manipulation; }
 .mk .fsoc{display:flex;gap:10px;margin-top:16px}
 .mk .fsoc a{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:1rem;transition:.2s}
 .mk .fsoc a:hover{background:var(--mk-gold);transform:translateY(-2px)}
-.mk .copy{border-top:1px solid rgba(255,255,255,.1);padding:20px 0;text-align:center;font-size:.82rem;color:#8FA0C9;position:relative}
+.mk .copy{border-top:1px solid rgba(255,255,255,.1);padding:14px 0;font-size:.82rem;color:#8FA0C9;position:relative;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;text-align:center}
+/* Owner contact column: same rhythm as .flinks, with room for the icon. */
+.mk .fcontact a,.mk .fcontact p{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.92rem;margin:0}
+.mk .fcontact a:hover{color:var(--mk-gold)}
+.mk .fcontact .ic{width:16px;height:16px;flex:0 0 16px}
 
 /* ---------- mobile bottom nav ----------
    SINGLE source of truth for `.mnav`. It MUST stay above the responsive media

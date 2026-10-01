@@ -1565,6 +1565,10 @@ export const en: Dictionary = {
   footer: {
     rights: "All rights reserved",
     contact: "Contact us",
+    quickLinks: "Quick links",
+    phone: "Phone",
+    email: "Email",
+    address: "Address",
   },
   nav: {
     toggleSidebar: "Open / close sidebar",

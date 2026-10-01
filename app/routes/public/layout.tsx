@@ -151,6 +151,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
 
   const idn = loaderData.identity;
   const hasContact = Boolean(idn.contactPhone || idn.contactEmail || idn.contactAddress.ar || idn.contactAddress.en);
+  const contactAddress = locale === "ar" ? idn.contactAddress.ar || idn.contactAddress.en : idn.contactAddress.en || idn.contactAddress.ar;
   const copyrightText = locale === "ar" ? idn.copyright.ar || idn.copyright.en : idn.copyright.en || idn.copyright.ar;
   const footerAbout = locale === "ar" ? idn.footerAbout.ar || idn.footerAbout.en : idn.footerAbout.en || idn.footerAbout.ar;
   // The public chrome reads LAYER A only (see app/app.css): same radius, shadow,
@@ -367,9 +368,41 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               ))}
             </div>
           )}
+          {/* Owner contact details. The loader has always carried these and
+              `hasContact` was always computed, but the mockup transcription
+              left nothing rendering them — the configured phone number was
+              unreachable from the public site. Each line appears only when
+              the owner has filled it in; nothing here is invented. */}
+          {hasContact && (
+            <div className="flinks fcontact">
+              <h4>{t(locale, "footer.contact")}</h4>
+              {idn.contactPhone && (
+                <a href={`tel:${idn.contactPhone}`} aria-label={`${t(locale, "footer.phone")}: ${idn.contactPhone}`}>
+                  <Icon name="phone" size="sm" colorRole="default" className="ic" />
+                  <span dir="ltr">{idn.contactPhone}</span>
+                </a>
+              )}
+              {idn.contactEmail && (
+                <a href={`mailto:${idn.contactEmail}`} aria-label={`${t(locale, "footer.email")}: ${idn.contactEmail}`}>
+                  <Icon name="mail" size="sm" colorRole="default" className="ic" />
+                  <span dir="ltr">{idn.contactEmail}</span>
+                </a>
+              )}
+              {contactAddress && (
+                <p>
+                  <Icon name="map-pin" size="sm" colorRole="default" className="ic" />
+                  <span dir="auto">{contactAddress}</span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="copy">
-          {copyrightText || `\u00a9 ${new Date().getFullYear()} ${appName}`}
+          <span>{copyrightText || `\u00a9 ${new Date().getFullYear()} ${appName}`}</span>
+          {/* The platform is bilingual and the owner chooses which languages
+              are offered (Appearance → System), but the public chrome had no
+              switcher at all — `localeOptions` was computed and dropped. */}
+          <LanguageSwitcher locale={locale} options={localeOptions} tone="onDark" />
         </div>
       </footer>
       </div>
