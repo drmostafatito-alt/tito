@@ -1051,6 +1051,7 @@ button, a { touch-action: manipulation; }
 .mk .fbrand{display:flex;gap:14px;align-items:center;margin-bottom:14px}
 .mk .fbrand b{color:#fff;font-size:1.1rem;display:block}
 .mk .fbrand small{font-size:.8rem}
+.mk .fabout{font-size:.9rem;max-width:26rem}
 .mk .flinks h4{color:#fff;margin-bottom:14px;font-size:1rem}
 .mk .flinks a{display:block;padding:5px 0;font-size:.92rem}
 .mk .flinks a:hover{color:var(--mk-gold)}
@@ -1068,6 +1069,8 @@ button, a { touch-action: manipulation; }
 
 /* ---------- responsive ---------- */
 @media(max-width:960px){
+  .mk .mnav{display:block}
+  .mk .topbar .socials{display:none}
   .mk .hero-grid{grid-template-columns:1fr;gap:10px}
   .mk .hero{text-align:center;padding:44px 0 64px}
   .mk .hero .lede{margin-inline:auto}
@@ -1127,3 +1130,9 @@ button, a { touch-action: manipulation; }
 .mk .topbar-actions{display:flex;gap:10px;align-items:center}
 .mk .ava-fallback{display:grid;place-items:center;font-weight:900;color:#1E56C8;background:#fff}
 .mk .btn-sm{padding:10px 22px;font-size:.9rem}
+/* Mobile bottom nav (mockup .mnav) — fixed, 4 items, visible ≤960px. */
+.mk .mnav{display:none;position:fixed;bottom:0;right:0;left:0;z-index:60;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(27,37,64,.08);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
+.mk .mnav-in{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
+.mk .mnav a{font-size:.72rem;font-weight:700;color:var(--mk-muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;min-height:48px;justify-content:center}
+.mk .mnav a .ic{width:22px;height:22px}
+.mk .mnav a.active{color:var(--mk-blue)}

@@ -166,6 +166,7 @@ describe("readPropsFromForm (descriptor-driven form reader)", () => {
     fd.set("f.columns", "2");
     fd.set("f.gap", "md");
     fd.set("f.align", "center");
+    fd.set("f.sectionStyle", "vids");
     // toggle absent → false
 
     const props = readPropsFromForm(fd, BLOCKS.section.fields);

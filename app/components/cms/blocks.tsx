@@ -1090,6 +1090,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             meta: (r.chips ?? []).map((c) => ls(c, L)).filter(Boolean).join(" • "),
             href: r.href,
             thumb: r.imageUrl || (r.image && ctx.images[r.image] ? ctx.images[r.image] : null),
+            emoji: "",
+            duration: "",
           }))
         : staticVids.map((v) => ({
             title: str(v, "title", L),
@@ -1097,6 +1099,8 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             meta: str(v, "meta", L),
             href: raw(v, "href"),
             thumb: null,
+            emoji: str(v, "emoji", L),
+            duration: raw(v, "duration"),
           }));
       if (!vids.length) return null;
       const thumbTones = ["t1", "t2", "t3"];
@@ -1108,9 +1112,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 {vid.thumb ? (
                   <img src={vid.thumb} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
-                  <span aria-hidden="true" className="big">🎬</span>
+                  <span aria-hidden="true" className="big">{vid.emoji || "🎬"}</span>
                 )}
                 <div aria-hidden="true" className="play">▶</div>
+                {vid.duration && <span className="dur">{vid.duration}</span>}
               </div>
               <div className="vbody">
                 {vid.tag && <span dir="auto" className="tag">{vid.tag}</span>}
@@ -1589,7 +1594,11 @@ export function PageView({ sections, ctx, main = true }: { sections: RenderBlock
   // Resolve link destinations once per page. The provider renders no DOM element,
   // so the emitted markup (and therefore the layout) is unchanged.
   const nav = useMemo<CmsHrefContext>(
-    () => ({ anchors: renderedAnchorIds(sections, ctx), questionPlatformUrl: ctx.questionPlatformUrl ?? null }),
+    () => ({
+      anchors: renderedAnchorIds(sections, ctx),
+      questionPlatformUrl: ctx.questionPlatformUrl ?? null,
+      whatsappNumber: ctx.identity.whatsapp || null,
+    }),
     [sections, ctx],
   );
   return (

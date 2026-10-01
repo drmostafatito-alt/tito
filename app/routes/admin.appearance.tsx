@@ -109,6 +109,7 @@ export async function action({ context, request }: Route.ActionArgs) {
       await updateSettingsGroup(db, "platform", {
         nameAr: str("nameAr"), nameEn: str("nameEn"),
         taglineAr: str("taglineAr"), taglineEn: str("taglineEn"),
+        footerAboutAr: str("footerAboutAr"), footerAboutEn: str("footerAboutEn"),
         supportEmail: nullable("supportEmail"), supportPhone: nullable("supportPhone"),
         whatsapp: nullable("whatsapp"), maintenance: on("maintenance"),
         whatsappFloating: on("whatsappFloating"), whatsappMessage: str("whatsappMessage"),
@@ -628,6 +629,8 @@ export default function AdminAppearance({ loaderData }: Route.ComponentProps) {
                 <Input label={L("cms.f.platformNameEn")} name="nameEn" defaultValue={plat.nameEn} dir="ltr" />
                 <Input label={L("cms.f.taglineAr")} name="taglineAr" defaultValue={plat.taglineAr} dir="rtl" />
                 <Input label={L("cms.f.taglineEn")} name="taglineEn" defaultValue={plat.taglineEn} dir="ltr" />
+                <Input label={L("cms.f.footerAboutAr")} name="footerAboutAr" defaultValue={plat.footerAboutAr} dir="rtl" />
+                <Input label={L("cms.f.footerAboutEn")} name="footerAboutEn" defaultValue={plat.footerAboutEn} dir="ltr" />
                 <Input label={L("cms.f.supportEmail")} name="supportEmail" defaultValue={plat.supportEmail ?? ""} dir="ltr" />
                 <Input label={L("cms.f.supportPhone")} name="supportPhone" defaultValue={plat.supportPhone ?? ""} dir="ltr" />
                 <Input label={L("cms.f.whatsapp")} name="whatsapp" defaultValue={plat.whatsapp ?? ""} dir="ltr" />

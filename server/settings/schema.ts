@@ -32,6 +32,9 @@ export const platformSettingsSchema = z.object({
   nameEn: z.string().min(1).max(120).default("Dr mostafa tito"),
   taglineAr: z.string().max(200).default("الفلسفة وعلم النفس"),
   taglineEn: z.string().max(200).default("Philosophy & Psychology"),
+  /** Footer about paragraph (mockup footer). Owner-editable; empty → omitted. */
+  footerAboutAr: z.string().max(500).default("منصة تعليمية متخصصة في الفلسفة والمنطق وعلم النفس — فيديوهات شرح، مذكرات، وامتحانات تدريبية."),
+  footerAboutEn: z.string().max(500).default("An educational platform for philosophy, logic and psychology — explanation videos, notes, and practice exams."),
   maintenance: z.boolean().default(false),
   supportEmail: z.string().email().nullish().default(null),
   supportPhone: z.string().max(32).nullish().default(null),

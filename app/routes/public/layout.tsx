@@ -69,6 +69,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       contactEmail: idn.contactEmail,
       contactAddress: { ar: idn.contactAddressAr, en: idn.contactAddressEn },
       copyright: { ar: idn.copyrightAr, en: idn.copyrightEn },
+      footerAbout: { ar: settings.platform.footerAboutAr, en: settings.platform.footerAboutEn },
       socialsHeader: socialsFor(socialAll, "header").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: s.labelAr, labelEn: s.labelEn })),
       socialsFooter: socialsFor(socialAll, "footer").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: s.labelAr, labelEn: s.labelEn })),
     },
@@ -118,32 +119,12 @@ function NavLink({ item, locale, className, onNavigate }: { item: MenuLink; loca
   );
 }
 
-/** Mobile bottom-nav item: icon over a small bold label, mockup .mnav grammar. */
-function BottomNavItem({
-  to,
-  icon,
-  label,
-  active,
-  ariaLabel,
-}: {
-  to: string;
-  icon: string;
-  label: string;
-  active: boolean;
-  ariaLabel?: string;
-}) {
-  const cls = `flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 text-[0.72rem] font-bold transition-colors ${
-    active ? "text-pub-blue" : "text-pub-muted hover:text-pub-ink"
-  }`;
-  const inner = (
-    <>
-      <Icon name={icon} size="md" colorRole="default" className="h-[22px] w-[22px] text-current" />
-      <span className="leading-tight">{label}</span>
-    </>
-  );
+/** Mockup .mnav item: icon over a small bold label, styled by .mk CSS. */
+function MnavLink({ to, icon, label, active }: { to: string; icon: string; label: string; active: boolean }) {
   return (
-    <Link to={to} className={cls} aria-label={ariaLabel ?? label} aria-current={active ? "page" : undefined}>
-      {inner}
+    <Link to={to} className={active ? "active" : undefined} aria-current={active ? "page" : undefined}>
+      <Icon name={icon} size="md" colorRole="default" className="ic" />
+      {label}
     </Link>
   );
 }
@@ -171,6 +152,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const idn = loaderData.identity;
   const hasContact = Boolean(idn.contactPhone || idn.contactEmail || idn.contactAddress.ar || idn.contactAddress.en);
   const copyrightText = locale === "ar" ? idn.copyright.ar || idn.copyright.en : idn.copyright.en || idn.copyright.ar;
+  const footerAbout = locale === "ar" ? idn.footerAbout.ar || idn.footerAbout.en : idn.footerAbout.en || idn.footerAbout.ar;
   // The public chrome reads LAYER A only (see app/app.css): same radius, shadow,
   // type and focus ring as every other public surface, so the header can never
   // look like a different product than the page below it. All targets ≥44px.
@@ -228,16 +210,15 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 ))}
               </div>
             )}
-            {loaderData.user ? (
+            {/* Mockup shows the anonymous topbar (no login button). Signed-in
+                users still need their dashboard/admin entry — the mockup does
+                not cover the signed-in state. */}
+            {loaderData.user && (
               <Link
                 to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
                 className="btn btn-blue btn-sm"
               >
                 {loaderData.user.rank >= 3 ? t(locale, "common.admin") : t(locale, "common.dashboard")}
-              </Link>
-            ) : (
-              <Link to="/login" className="btn btn-blue btn-sm">
-                {t(locale, "common.login")}
               </Link>
             )}
             <button
@@ -340,6 +321,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                 {tagline && <small>{tagline}</small>}
               </div>
             </div>
+            {footerAbout && <p dir="auto" className="fabout">{footerAbout}</p>}
             {idn.socialsFooter.length > 0 && (
               <div className="fsoc">
                 {idn.socialsFooter.map((s) => (
@@ -372,45 +354,25 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
       </div>
       )}
       {/* Mobile bottom nav — mockup .mnav: 4 items, question-platform entry only
-          when configured (loader resolves it to null otherwise). z-40 keeps it
-          under the mobile drawer overlay (z-50) and the sticky header. */}
-      <nav
-        aria-label={t(locale, "common.navMain")}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-pub-line bg-pub-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
-      >
-        <div className={`grid ${loaderData.questionPlatformUrl ? "grid-cols-4" : "grid-cols-3"}`}>
-          <BottomNavItem
-            to="/"
-            icon="book-open"
-            label={t(locale, "common.home")}
-            active={location.pathname === "/"}
-          />
-          <BottomNavItem
-            to="/study"
-            icon="play-circle"
-            label={t(locale, "content.lessons")}
-            active={location.pathname === "/study" || location.pathname.startsWith("/study/")}
-          />
-          <BottomNavItem
-            to="/register"
-            icon="sparkles"
-            label={t(locale, "study.subscribeCta")}
-            active={location.pathname === "/register"}
-          />
-          {loaderData.questionPlatformUrl && (
-            <a
-              href={loaderData.questionPlatformUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t(locale, "questionPlatform.navAria")}
-              className="flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 text-[0.72rem] font-bold text-pub-muted transition-colors hover:text-pub-ink"
-            >
-              <Icon name="help-circle" size="md" colorRole="default" className="h-[22px] w-[22px] text-current" />
-              <span className="leading-tight">{t(locale, "questionPlatform.navLabel")}</span>
-            </a>
-          )}
-        </div>
-      </nav>
+          when configured (loader resolves it to null otherwise). Styled by the
+          .mk layer in app.css (visible ≤960px). */}
+      <div className="mk">
+        <nav aria-label={t(locale, "common.navMain")} className="mnav">
+          <div className="mnav-in">
+            <MnavLink to="/" icon="compass" label={locale === "ar" ? "الرئيسية" : "Home"} active={location.pathname === "/"} />
+            <MnavLink to="/#vids" icon="play-circle" label={locale === "ar" ? "الدروس" : "Lessons"} active={false} />
+            <MnavLink to="/register" icon="sparkles" label={locale === "ar" ? "اشترك الآن" : "Subscribe"} active={location.pathname === "/register"} />
+            {loaderData.questionPlatformUrl ? (
+              <a href={loaderData.questionPlatformUrl} target="_blank" rel="noopener noreferrer" aria-label={t(locale, "questionPlatform.navAria")}>
+                <Icon name="help-circle" size="md" colorRole="default" className="ic" />
+                {t(locale, "questionPlatform.navLabel")}
+              </a>
+            ) : (
+              <MnavLink to="/login" icon="user" label={locale === "ar" ? "دخول" : "Log in"} active={location.pathname === "/login"} />
+            )}
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }

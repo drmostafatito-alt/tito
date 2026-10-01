@@ -90,9 +90,11 @@ describe("recommended homepage preset — mockup v5 composition", () => {
   });
 
   it("never hardcodes the question-platform URL — it comes from settings", () => {
-    // The preset must not contain exam:external or a hardcoded exams URL.
-    // The question-platform entry is resolved from settings at render time.
-    expect(presetRaw).not.toContain("exam:external");
+    // The preset must not contain a hardcoded exams URL. `exam:external` is
+    // allowed: it is a stored placeholder that resolveCmsHref replaces with
+    // the admin-configured questionPlatformUrl at render time (or renders no
+    // link while unconfigured) — the URL lives in settings only.
+    expect(presetRaw).not.toMatch(/https?:\/\/[^\s"]*exam/i);
   });
 
   it("sends CTAs to real destinations, never to /courses", () => {

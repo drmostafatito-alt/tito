@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   EXAM_PLATFORM_HREF,
+  WHATSAPP_HREF,
   fragmentId,
   isExternalHref,
   resolveCmsHref,
@@ -31,6 +32,10 @@ describe("safeHref", () => {
 
   it("accepts the reserved external-Questions-Platform token", () => {
     expect(safeHref(EXAM_PLATFORM_HREF)).toBe(true);
+  });
+
+  it("accepts the reserved WhatsApp token", () => {
+    expect(safeHref(WHATSAPP_HREF)).toBe(true);
   });
 
   it("still rejects unsafe schemes and protocol-relative hosts", () => {
@@ -98,6 +103,23 @@ describe("resolveCmsHref — external Questions Platform token", () => {
     expect(isExternalHref(resolved)).toBe(true);
     expect(resolved.startsWith("/")).toBe(false);
     expect(fragmentId(resolved)).toBeNull();
+  });
+});
+
+describe("resolveCmsHref — WhatsApp token", () => {
+  it("resolves to a wa.me link from the configured number", () => {
+    expect(resolveCmsHref(WHATSAPP_HREF, { whatsappNumber: "201012345678" })).toBe("https://wa.me/201012345678");
+  });
+
+  it("strips non-digit characters from the number", () => {
+    expect(resolveCmsHref(WHATSAPP_HREF, { whatsappNumber: "+20 101 234 5678" })).toBe("https://wa.me/201012345678");
+  });
+
+  it("resolves to no link while the number is unconfigured", () => {
+    expect(resolveCmsHref(WHATSAPP_HREF, { whatsappNumber: null })).toBe("");
+    expect(resolveCmsHref(WHATSAPP_HREF, { whatsappNumber: "" })).toBe("");
+    expect(resolveCmsHref(WHATSAPP_HREF, {})).toBe("");
+    expect(resolveCmsHref(WHATSAPP_HREF)).toBe("");
   });
 });
 

@@ -16,6 +16,16 @@
  */
 export const EXAM_PLATFORM_HREF = "exam:external";
 
+/**
+ * Reserved CMS link value meaning "the admin-configured WhatsApp number"
+ * (Appearance → Identity: `whatsapp`).
+ *
+ * Same stored-placeholder pattern as EXAM_PLATFORM_HREF: `resolveCmsHref`
+ * replaces it with `https://wa.me/<digits>`, or with "" (render no link at
+ * all) while the number is unconfigured.
+ */
+export const WHATSAPP_HREF = "whatsapp:";
+
 /** In-page fragment targets ("#videos"). Same pattern as the section anchor id. */
 const FRAGMENT_RE = /^#([A-Za-z0-9_-]{1,40})$/;
 
@@ -25,6 +35,7 @@ export const ANCHOR_ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 export function safeHref(href: string): boolean {
   if (href === "") return true; // empty = no link
   if (href === EXAM_PLATFORM_HREF) return true; // resolved at render time (see above)
+  if (href === WHATSAPP_HREF) return true; // resolved at render time (see above)
   // In-page fragment (e.g. "#videos"): same-document navigation only — cannot
   // execute script, cannot leave the origin. Pattern is deliberately tiny.
   if (FRAGMENT_RE.test(href)) return true;
@@ -71,6 +82,11 @@ export interface CmsHrefContext {
    * Same value the signed-in entry uses — one gate, one source of truth.
    */
   questionPlatformUrl?: string | null;
+  /**
+   * Admin-configured WhatsApp number (digits only) or null. Resolves the
+   * `whatsapp:` placeholder to https://wa.me/<digits>.
+   */
+  whatsappNumber?: string | null;
 }
 
 /**
@@ -88,6 +104,12 @@ export function resolveCmsHref(href: string, ctx: CmsHrefContext = {}): string {
     const url = ctx.questionPlatformUrl ?? null;
     // Only ever emit the resolved https URL; while it is missing, no link.
     return url && isExternalHref(url) ? url : "";
+  }
+
+  if (href === WHATSAPP_HREF) {
+    const digits = (ctx.whatsappNumber ?? "").replace(/[^\d]/g, "");
+    // Only ever emit a wa.me link; while the number is missing, no link.
+    return digits ? `https://wa.me/${digits}` : "";
   }
 
   const id = fragmentId(href);
