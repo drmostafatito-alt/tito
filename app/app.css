@@ -221,6 +221,34 @@
   /* Activates the float keyframes above as the `animate-float` utility
      (mockup portrait/badges hover motion). */
   --animate-float: float 6s ease-in-out infinite;
+  /* Mobile navigation drawer. The panel is anchored to the PHYSICAL left edge
+     on every surface, in both reading directions, so the motion is always
+     "in from the left" — it is deliberately not a logical (start/end)
+     property, which would follow `dir` and put the drawer on the right in
+     Arabic. Only the panel's position and motion are physical; everything
+     inside it still inherits the document's RTL direction.
+     The drawer unmounts when closed, so there is no exit animation to define:
+     closed means fully absent, which is past the left edge by definition.
+     The global prefers-reduced-motion rule below already collapses both of
+     these to ~0ms. */
+  @keyframes drawer-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  --animate-drawer-in-left: drawer-in-left 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  @keyframes scrim-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  --animate-scrim-in: scrim-in 220ms ease-out;
   @keyframes pulse-soft {
     0%,
     100% {
