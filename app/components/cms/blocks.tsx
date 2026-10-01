@@ -465,206 +465,108 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       );
     }
     case "hero_showcase": {
+      // Mockup-faithful hero (mockup_v5.html). Every string, link, pill and
+      // badge comes from CMS props — no hardcoded copy. Photo resolves from
+      // the explicit `image` prop, else the owner's identity photo.
+      const watermark = str(p, "watermark", L);
+      const scribble1 = str(p, "scribble1", L);
+      const scribble2 = str(p, "scribble2", L);
       const eyebrow = str(p, "eyebrow", L);
       const heading = str(p, "heading", L);
-      const subtitleHtml = str(p, "subtitle", L);
+      const docLine = str(p, "docLine", L);
+      const ledeHtml = str(p, "lede", L);
       const ctas = arr(p, "ctas").filter((i) => str(i, "label", L) || raw(i, "href"));
-      const videoLabel = str(p, "videoLabel", L);
-      const videoId = raw(p, "videoId");
+      const pills = arr(p, "pills").map((x) => str(x, "text", L)).filter(Boolean);
+      const badges = arr(p, "badges").filter((b) => str(b, "text", L)).slice(0, 3);
+      const signScript = str(p, "signScript", L);
+      const signSmall = str(p, "signSmall", L);
       const imageId = raw(p, "image");
       const cmsSrc = imageId && ctx.images[imageId] ? ctx.images[imageId] : null;
-      const badges = arr(p, "badges").filter((b) => raw(b, "icon") || str(b, "title", L) || str(b, "text", L));
-      // Identity plate: the owner's own name/photo, straight from Settings →
-      // Identity, resolved through the same R2 file registry as every other
-      // image. Nothing here invents or substitutes a picture: with no owner
-      // photo the visual slot stays honestly empty, never a stand-in.
       const idn = ctx.identity;
       const ownerName = idn ? ls(idn.ownerName, L) : "";
-      const ownerTitle = idn ? ls(idn.ownerTitle, L) : "";
-      const ownerPhoto = idn?.ownerPhoto ?? null;
-      const showIdentity = p.useIdentity !== false && Boolean(ownerName || ownerPhoto);
-      const platePhoto = showIdentity ? ownerPhoto : null;
-      const tagline = idn ? ls(idn.tagline, L) : "";
-      if (!eyebrow && !heading && !subtitleHtml && !ctas.length && !videoId && !cmsSrc && !showIdentity) return null;
-      const imageAlt = str(p, "imageAlt", L) || heading;
-      // Floating badge chips cycle three corner slots over the visual.
-      const badgeSlots = ["top-[4%] end-0", "anim-delay-1 top-[42%] start-0", "anim-delay-2 bottom-[12%] end-[6%]"];
-      const visualBadges = badges.slice(0, 3).filter((b) => str(b, "title", L) || str(b, "text", L));
-      const [heroFrameStart, heroFrameEnd] = heroFrameThinkers();
-      const visual = cmsSrc ? (
-        <div className="relative overflow-hidden rounded-pub-2xl border border-pub-line bg-white shadow-pub-md">
-          <img
-            data-hero-visual="true"
-            src={cmsSrc}
-            alt={imageAlt}
-            width={900}
-            height={675}
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-            className="aspect-[4/3] w-full object-cover"
-          />
-        </div>
-      ) : (
-        /* The owner's reference stage (owner brief §14–§19): one organic brand
-           blob with semi-transparent philosophers standing behind it, and the
-           teacher's own picture floating with its gold ring. With no published
-           photo the reserved slot stays honestly empty — nothing stands in for
-           the teacher — while the stage keeps exactly one eager hero visual
-           (the frame's start figure) for LCP discipline. */
-        <div className="relative mx-auto flex w-full max-w-[34rem] flex-col items-center">
-          <div className={`relative isolate flex w-full items-end justify-center pb-2 ${platePhoto ? "min-h-[24rem] sm:min-h-[28rem]" : "min-h-[14rem] sm:min-h-[16rem]"}`}>
-            <span aria-hidden="true" className="hero-blob absolute inset-x-2 bottom-6 top-0 -z-20 sm:inset-x-6" />
-            <span aria-hidden="true" className="absolute -start-1 top-10 h-11 w-11 rounded-full bg-pub-accent opacity-90" />
-            <span aria-hidden="true" className="absolute start-12 top-3 h-5 w-5 rounded-full bg-pub-tint" />
-            <span aria-hidden="true" className="hero-orbit absolute -end-3 top-14 h-24 w-24 rounded-full opacity-60 sm:h-28 sm:w-28" />
-            {heroFrameStart && (
-              <ThinkerPortrait
-                thinker={heroFrameStart}
-                presentation="statue"
-                eager={!platePhoto}
-                heroVisual={!platePhoto}
-                className="absolute -start-4 bottom-4 -z-10 h-[58%] w-auto sm:-start-8 sm:h-[64%]"
-              />
-            )}
-            {heroFrameEnd && (
-              <ThinkerPortrait
-                thinker={heroFrameEnd}
-                presentation="statue"
-                className="absolute bottom-14 end-0 -z-10 h-[36%] w-auto sm:end-2 sm:h-[40%]"
-              />
-            )}
-            {platePhoto && (
-              <img
-                src={platePhoto}
-                alt={ownerName || ""}
-                width={640}
-                height={640}
-                data-hero-visual="true"
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-                className="animate-float relative z-[1] aspect-square w-full max-w-[25rem] rounded-full border-4 border-white object-cover shadow-pub-lg ring-4 ring-pub-accent"
-              />
-            )}
-          </div>
-          {(ownerName || ownerTitle) && (
-            <div className="z-[1] -mt-9 flex max-w-full flex-col items-center gap-0.5 rounded-pub-xl border border-pub-line bg-white/95 px-6 py-3 text-center shadow-pub-md">
-              {ownerName && (
-                <span dir="auto" className="text-pub-base font-black text-pub-ink [overflow-wrap:anywhere]">
-                  {ownerName}
-                </span>
-              )}
-              {ownerTitle && (
-                <span dir="auto" className="text-pub-sm font-bold text-pub-accent-strong">
-                  {ownerTitle}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      );
+      const photoSrc = cmsSrc || idn?.ownerPhoto || null;
+      const photoAlt = str(p, "imageAlt", L) || ownerName || heading;
+      const hasContent = eyebrow || heading || docLine || ledeHtml || ctas.length > 0 || photoSrc;
+      if (!hasContent) return null;
+      const badgePos = ["b1", "b2", "b3"];
       return (
-        <div className="relative overflow-hidden">
-          <div className="pub-section pub-container grid items-center gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-12">
-            <div className="flex min-w-0 flex-col items-start gap-5">
-              {eyebrow && (
-                <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-pub-accent-line bg-pub-accent-bg px-5 py-2 text-pub-sm font-extrabold text-pub-accent-strong">
-                  {eyebrow}
-                </span>
-              )}
-              {heading && (
-                <h1 className="max-w-[34ch] text-pub-2xl font-black leading-[1.45] text-pub-ink [overflow-wrap:anywhere]">
-                  {heading}
-                </h1>
-              )}
-              {/* The owner's title/nickname as the gold line under the name. */}
-              {showIdentity && ownerTitle && (
-                <p dir="auto" className="-mt-3 text-pub-lg font-extrabold text-pub-accent-strong">
-                  {ownerTitle}
-                </p>
-              )}
-              {subtitleHtml && <RichText html={subtitleHtml} className="pub-measure text-pub-base leading-pub-normal text-pub-muted" />}
-              {(ctas.length > 0 || (videoLabel && videoId)) && (
-                <div className="flex w-full flex-wrap items-center gap-3 max-sm:flex-col max-sm:items-stretch [&>*]:max-sm:w-full">
+        <section className="hero" aria-label={heading || undefined}>
+          {watermark && (
+            <div aria-hidden="true" className="watermark">{watermark}</div>
+          )}
+          {scribble1 && <span aria-hidden="true" className="scribble s1">{scribble1}</span>}
+          {scribble2 && <span aria-hidden="true" className="scribble s2">{scribble2}</span>}
+          <div className="container hero-grid">
+            <div>
+              {eyebrow && <span className="eyebrow">{eyebrow}</span>}
+              {heading && <h1 dir="auto">{heading}</h1>}
+              {docLine && <div dir="auto" className="doc-line">{docLine}</div>}
+              {ledeHtml && <RichText html={ledeHtml} className="lede" />}
+              {ctas.length > 0 && (
+                <div className="hero-cta">
                   {ctas.map((cta, idx) => {
-                    const variant = raw(cta, "variant");
                     const label = str(cta, "label", L);
                     const href = raw(cta, "href");
-                    const target = raw(cta, "target");
-                    const icon = raw(cta, "icon");
-                    // An explicit CMS variant keeps the system button grammar;
-                    // otherwise the mockup's blue-primary / quiet-secondary pair.
-                    if (variant) {
-                      return (
-                        <CtaButton key={idx} label={label} href={href} target={target} variant={variant} icon={icon} shape={raw(p, "ctaShape") || "pill"} />
-                      );
-                    }
-                    const primary = idx === 0;
+                    const variant = raw(cta, "variant") === "ghost" ? "btn-ghost" : "btn-blue";
+                    const icon = str(cta, "icon", L);
                     return (
-                      <SmartLink
-                        key={idx}
-                        href={href}
-                        ariaLabel={label}
-                        className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-pub-pill px-8 py-3.5 text-pub-base font-extrabold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong ${
-                          primary
-                            ? "bg-pub-blue text-white shadow-pub-md hover:-translate-y-0.5 hover:bg-pub-blue-deep"
-                            : "border-2 border-pub-line-strong bg-white text-pub-ink hover:-translate-y-0.5 hover:border-pub-blue hover:text-pub-blue"
-                        }`}
-                      >
-                        {icon && <Icon name={icon} size="sm" colorRole="default" className="text-current" />}
+                      <SmartLink key={idx} href={href} ariaLabel={label} className={`btn ${variant}`}>
+                        {icon ? <span aria-hidden="true">{icon}</span> : <span aria-hidden="true">←</span>}
                         {label}
                       </SmartLink>
                     );
                   })}
-                  {videoLabel && videoId && <VideoCta videoId={videoId} label={videoLabel} />}
                 </div>
               )}
-              {/* Badges with no visual to float over become quiet pills. */}
-              {!visual && badges.length > 0 && (
-                <ul className="flex flex-wrap gap-2.5">
-                  {badges.map((b, idx) => {
-                    const chip = str(b, "title", L) || str(b, "text", L);
-                    if (!chip) return null;
-                    return (
-                      <li key={idx} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-pub-line bg-white px-4 py-1.5 text-pub-xs font-bold text-pub-ink-soft shadow-pub-sm">
-                        {raw(b, "icon") && <Icon name={raw(b, "icon")} size="sm" colorRole="default" className="text-pub-accent-strong" />}
-                        <span dir="auto">{chip}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
+              {pills.length > 0 && (
+                <div className="mini-pills">
+                  {pills.map((pill, idx) => (
+                    <span key={idx} dir="auto">{pill}</span>
+                  ))}
+                </div>
               )}
             </div>
-            {(visual || tagline) && (
-              <div className="relative mx-auto w-full max-w-[27rem]">
-                {visual}
-                {/* Floating chips over the visual (mockup badges). */}
-                {visual && visualBadges.length > 0 && (
-                  <div className="pointer-events-none absolute inset-0 z-[2]">
-                    {visualBadges.map((b, idx) => (
-                      <span key={idx} className={`animate-float absolute ${badgeSlots[idx % badgeSlots.length]}`}>
-                        <span dir="auto" className="flex max-w-[10rem] items-center gap-2 rounded-2xl border border-white bg-white/85 px-3.5 py-2.5 text-pub-xs font-extrabold text-pub-ink shadow-pub-md backdrop-blur">
-                          {raw(b, "icon") ? (
-                            <Icon name={raw(b, "icon")} size="sm" colorRole="default" className="shrink-0 text-pub-accent-strong" />
-                          ) : (
-                            <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pub-success-bg text-pub-xs font-black text-pub-success">✓</span>
-                          )}
-                          {str(b, "title", L) || str(b, "text", L)}
-                        </span>
+            <div className="photo-wrap">
+              <div aria-hidden="true" className="blob" />
+              <svg aria-hidden="true" className="doodle d1" viewBox="0 0 64 64">
+                <path d="M32 4c1.6 14.5 5.2 19.5 20.5 22.5C37.2 29.5 33.6 34.5 32 49c-1.6-14.5-5.2-19.5-20.5-22.5C26.8 23.5 30.4 18.5 32 4z" fill="#C99A2E" />
+                <circle cx="53" cy="13" r="4.5" fill="#1E56C8" opacity=".5" />
+              </svg>
+              <svg aria-hidden="true" className="doodle d2" viewBox="0 0 80 40">
+                <path d="M5 28c10-17 18 9 28-7s18 9 28-7" fill="none" stroke="#1E56C8" strokeWidth="5.5" strokeLinecap="round" opacity=".45" />
+                <circle cx="70" cy="30" r="5" fill="#C99A2E" opacity=".7" />
+              </svg>
+              {photoSrc && (
+                <img
+                  className="photo"
+                  src={photoSrc}
+                  alt={photoAlt}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
+              )}
+              {badges.length > 0 && (
+                <div className="fbadges">
+                  {badges.map((b, idx) => (
+                    <div key={idx} className={`badge ${badgePos[idx % badgePos.length]}`}>
+                      <span aria-hidden="true" className={`dot dot-${raw(b, "dotTint") || "green"}`}>
+                        {str(b, "icon", L) || "✓"}
                       </span>
-                    ))}
-                  </div>
-                )}
-                {tagline && !platePhoto && (
-                  <p dir="auto" className="mx-auto mt-4 max-w-[24rem] text-center text-pub-md font-bold leading-pub-normal text-pub-ink-soft">
-                    {tagline}
-                  </p>
-                )}
-              </div>
-            )}
+                      <span dir="auto">{str(b, "text", L)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(signScript || signSmall) && (
+                <div className="sign">
+                  {signScript && <div dir="auto" className="script">{signScript}</div>}
+                  {signSmall && <small dir="auto">{signSmall}</small>}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </section>
       );
     }
 
@@ -797,43 +699,21 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       );
     }
     case "feature_cards": {
+      // Mockup-faithful features (mockup_v5.html #feats).
+      // Every card: icon (emoji/text), title, text, tint — all CMS props.
       const items = arr(p, "items").filter((i) => str(i, "title", L) || str(i, "text", L));
       if (!items.length) return null;
-      const cols = items.length >= 5 ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : items.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3";
-      // Mockup icon tiles: the CMS color roles land on the brand palette.
-      const tileByTint: Record<string, string> = {
-        default: "bg-pub-card text-pub-blue",
-        brand: "bg-pub-card text-pub-blue",
-        accent: "bg-pub-accent-bg text-pub-accent-strong",
-        success: "bg-pub-success-bg text-pub-success",
-        warning: "bg-pub-warning-bg text-pub-warning",
-        error: "bg-pub-danger-bg text-pub-danger",
-        muted: "bg-pub-surface text-pub-muted",
-      };
       return (
-        <div className={`grid w-full gap-6 ${cols}`}>
+        <div className="feats">
           {items.map((item, idx) => {
-            const tint = tileByTint[raw(item, "tint") ?? ""] ?? tileByTint.default;
-            const href = raw(item, "href");
-            const cta = str(item, "ctaLabel", L);
-            const title = str(item, "title", L);
-            const text = str(item, "text", L);
+            const tint = raw(item, "tint");
+            const tintCls = tint === "cream" ? "tint-cream" : tint === "mint" ? "tint-mint" : "tint-blue";
             return (
-              <article key={idx} className="group relative flex h-full flex-col items-start rounded-[1.375rem] border border-pub-line bg-white p-6 text-start shadow-pub-card transition duration-200 hover:-translate-y-1.5 hover:border-pub-line-strong hover:shadow-pub-md sm:p-7">
-                {raw(item, "icon") && (
-                  <span className={`mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${tint}`}>
-                    <Icon name={raw(item, "icon")} size="lg" colorRole="default" className="text-current" />
-                  </span>
-                )}
-                {title && <h3 className="text-pub-base font-extrabold leading-pub-normal text-pub-ink [overflow-wrap:anywhere]">{title}</h3>}
-                {text && <p className="mt-2 text-pub-sm leading-pub-normal text-pub-muted">{text}</p>}
-                {href && (
-                  <SmartLink href={href} ariaLabel={cta || title || text} className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-4 text-pub-sm font-extrabold text-pub-blue transition-colors hover:text-pub-navy-2">
-                    <span>{cta || title}</span>
-                    <span aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5 rtl:rotate-180">→</span>
-                  </SmartLink>
-                )}
-              </article>
+              <div key={idx} className="feat">
+                <div aria-hidden="true" className={`ic ${tintCls}`}>{str(item, "icon", L) || "✨"}</div>
+                <h3 dir="auto">{str(item, "title", L)}</h3>
+                {str(item, "text", L) && <p dir="auto">{str(item, "text", L)}</p>}
+              </div>
             );
           })}
         </div>
@@ -1023,74 +903,34 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "countdown":
       return <Countdown props={p} ctx={ctx} />;
     case "teacher_profile": {
+      // Mockup-faithful about (mockup_v5.html #about).
+      // Photo from identity (ownerPhotoFileId) or explicit image prop.
+      // Script line, heading, paragraphs, stamp — all CMS props.
+      const scriptLine = str(p, "scriptLine", L);
+      const heading = str(p, "heading", L);
+      const paragraphs = arr(p, "paragraphs").map((x) => str(x, "text", L)).filter(Boolean);
+      const stamp = str(p, "stamp", L);
+      const imageId = raw(p, "image");
+      const cmsSrc = imageId && ctx.images[imageId] ? ctx.images[imageId] : null;
       const idn = ctx.identity;
-      const name = bool(p, "useIdentity") ? ls(idn.ownerName, L) : str(p, "name", L);
-      const title = bool(p, "useIdentity") ? ls(idn.ownerTitle, L) : str(p, "title", L);
-      const photoUrl = bool(p, "useIdentity") ? idn.ownerPhoto : (raw(p, "photo") ? ctx.images[raw(p, "photo")] ?? null : null);
-      const bio = str(p, "bio", L);
-      if (!name && !photoUrl && !bio) return null;
-      // `showPhoto: false` keeps the picture for ONE place per page: the homepage
-      // hero already frames it, so the about block here stays text-only while the
-      // /about page keeps the framed photo. Unset means show (older snapshots).
-      const framed = photoUrl && p.showPhoto !== false;
-      // Owner-chosen corner portrait for the text-only fallback (Marx for a
-      // knowledge/about surface, per the site identity). `none`/unknown id →
-      // no portrait at all.
-      const wmId = raw(p, "watermark");
-      const watermark = wmId && wmId !== "none" ? thinkerById(wmId) : null;
-      const tagline = ctx.identity ? ls(ctx.identity.tagline, L) : "";
-      const lines = (
-        <>
-          {name && <h3 className="text-pub-h2 font-bold text-pub-ink">{name}</h3>}
-          {title && <p className="text-pub-md font-medium text-pub-ink-soft">{title}</p>}
-          {!title && tagline && <p className="text-pub-md font-medium text-pub-ink-soft">{tagline}</p>}
-          {bio && <RichText html={bio} className={`${CARD_BODY} pub-measure`} />}
-        </>
-      );
-      if (!framed) {
-        return (
-          /* Without a picture the block owns its own surface: a white card, with
-             the thinker engraving clipped inside it. A portrait that floats
-             outside a container reads as a rendering artifact. */
-          <div className="relative isolate flex min-h-[8.5rem] overflow-hidden rounded-pub-2xl border border-pub-line bg-white p-5 shadow-pub-md sm:min-h-[9.5rem] sm:p-6">
-            {watermark && (
-              /* The face sits in the upper third of the crop, which is exactly
-                 where the mask keeps it dense: it dissolves downward into the
-                 surface instead of being faded to nothing. */
-              <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 end-0 z-0 block w-24 opacity-[0.4] sm:w-40">
-                <ThinkerPortrait thinker={watermark} presentation="engrave" />
-              </span>
-            )}
-            <div className={`relative z-[1] flex min-w-0 flex-col justify-center gap-2 ${watermark ? "sm:pe-[8rem]" : ""}`}>{lines}</div>
-          </div>
-        );
-      }
-      // Photo variant: the mockup "about" — floating portrait with a gold title
-      // stamp, name and bio beside it. The picture is the owner's own upload,
-      // never re-cropped, never filtered, never substituted.
+      const ownerName = idn ? ls(idn.ownerName, L) : "";
+      const photoSrc = cmsSrc || idn?.ownerPhoto || null;
+      const photoAlt = str(p, "imageAlt", L) || ownerName || heading;
+      if (!heading && !paragraphs.length && !photoSrc) return null;
       return (
-        <div className="grid items-center gap-10 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-          <div className="relative mx-auto flex w-full max-w-[20rem] flex-col items-center">
-            {photoUrl && (
-              <img
-                src={photoUrl}
-                alt={name}
-                loading="lazy"
-                decoding="async"
-                className="animate-float aspect-square w-full rounded-full border-4 border-white object-cover shadow-pub-lg ring-4 ring-pub-accent"
-              />
+        <div className="about-grid">
+          <div className="about-photo">
+            {photoSrc && (
+              <img className="about-avatar" src={photoSrc} alt={photoAlt} loading="lazy" decoding="async" />
             )}
-            {title && (
-              <span dir="auto" className="z-[1] -mt-7 inline-flex max-w-full items-center justify-center gap-2 rounded-full bg-pub-accent px-6 py-2.5 text-center text-pub-base font-extrabold text-white shadow-pub-md">
-                <span aria-hidden="true">🏅</span>
-                {title}
-              </span>
-            )}
+            {stamp && <span dir="auto" className="stamp">{stamp}</span>}
           </div>
-          <div className="flex min-w-0 flex-col items-start gap-3 text-start">
-            {name && <h2 className="text-pub-xl font-black leading-pub-tight text-pub-ink [overflow-wrap:anywhere]">{name}</h2>}
-            {!title && tagline && <p className="text-pub-md font-extrabold text-pub-accent-strong">{tagline}</p>}
-            {bio && <RichText html={bio} className="pub-measure text-pub-base leading-pub-normal text-pub-muted" />}
+          <div className="about-txt">
+            {scriptLine && <div dir="auto" className="script">{scriptLine}</div>}
+            {heading && <h2 dir="auto">{heading}</h2>}
+            {paragraphs.map((para, idx) => (
+              <p key={idx} dir="auto">{para}</p>
+            ))}
           </div>
         </div>
       );
@@ -1108,95 +948,35 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       );
     }
     case "social_links": {
-      const items = arr(p, "items").filter((i) => raw(i, "url"));
-      const asButtons = raw(p, "style") === "buttons";
-      // Brand-circle backgrounds for the mockup .scard rows, keyed by the
-      // network icon id (the `network` field already stores an icon id).
-      const NETWORK_BG: Record<string, string> = {
-        whatsapp: "bg-pub-whatsapp",
-        facebook: "bg-[#1877F2]",
-        youtube: "bg-[#FF0000]",
-        instagram: "bg-[#E1306C]",
-        tiktok: "bg-[#141414]",
-        telegram: "bg-[#229ED9]",
-        linkedin: "bg-[#0A66C2]",
-        twitter: "bg-[#141414]",
-      };
-      if (asButtons) {
-        // The old centered pill row (kept for pages that set style=buttons).
-        if (!items.length) return null;
-        return (
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {items.map((item, idx) => {
-              const network = raw(item, "network");
-              const label = str(item, "label", L);
-              return (
-                <a
-                  key={idx}
-                  href={raw(item, "url")}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="inline-flex min-h-11 items-center gap-2 rounded-pub-md border border-pub-line-strong bg-white px-4 py-2.5 text-pub-sm font-medium text-pub-ink-soft transition-colors hover:bg-pub-surface"
-                >
-                  <Icon name={network} size="sm" colorRole="default" className="text-current" />
-                  {label || network}
-                </a>
-              );
-            })}
-          </div>
-        );
-      }
-      // Card grid (mockup .scard): optional Subscribe card and the configured
-      // external exam platform, kept as cards alongside the CMS channels.
-      type Entry = { key: string; label: string; href: string; icon: string; bg: string };
-      const entries: Entry[] = [];
-      if (bool(p, "showSubscribe")) {
-        entries.push({
-          key: "subscribe",
-          label: str(p, "subscribeLabel", L) || (L === "en" ? "Subscribe now" : "اشترك الآن"),
-          href: "/register",
-          icon: "sparkles",
-          bg: "bg-pub-blue",
-        });
-      }
-      const examUrl = ctx.questionPlatformUrl;
-      if (bool(p, "showExam") && examUrl) {
-        entries.push({
-          key: "exam",
-          label: t(L, "questionPlatform.navLabel"),
-          href: examUrl,
-          icon: "help-circle",
-          bg: "bg-[#0E7C86]",
-        });
-      }
-      for (const [idx, item] of items.entries()) {
-        const url = raw(item, "url");
-        const network = raw(item, "network");
-        const label = str(item, "label", L) || network;
-        entries.push({
-          key: `${idx}-${network}`,
-          label,
-          href: url,
-          icon: network || "link",
-          bg: NETWORK_BG[network] ?? "bg-pub-navy",
-        });
-      }
-      if (!entries.length) return null;
+      // Mockup-faithful contact grid (mockup_v5.html #contact).
+      // Each card: icon (image URL or emoji), label, sub, href, tint — CMS props.
+      // Special hrefs: `whatsapp:` resolves from settings, `exam:external`
+      // resolves from questionPlatformUrl (hidden when unconfigured).
+      const cards = arr(p, "cards").filter((c) => str(c, "label", L) || raw(c, "href"));
+      if (!cards.length) return null;
       return (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {entries.map((entry) => (
-            <SmartLink
-              key={entry.key}
-              href={entry.href}
-              ariaLabel={entry.label}
-              className="group flex min-h-16 items-center gap-3.5 rounded-[1.375rem] border border-pub-line bg-white p-4 shadow-pub-card transition duration-200 hover:-translate-y-1.5 hover:border-pub-line-strong hover:shadow-pub-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong"
-            >
-              <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${entry.bg} text-white transition duration-200 group-hover:scale-110`}>
-                <Icon name={entry.icon} size="md" colorRole="default" className="text-current" />
-              </span>
-              <span dir="auto" className="min-w-0 flex-1 text-pub-sm font-extrabold leading-pub-tight text-pub-ink [overflow-wrap:anywhere]">{entry.label}</span>
-            </SmartLink>
-          ))}
+        <div className="contact-grid">
+          {cards.map((card, idx) => {
+            const label = str(card, "label", L);
+            const sub = str(card, "sub", L);
+            const href = raw(card, "href");
+            const iconUrl = raw(card, "iconUrl");
+            const iconEmoji = str(card, "iconEmoji", L);
+            const tint = raw(card, "tint") || "blue";
+            return (
+              <SmartLink key={idx} href={href} ariaLabel={label} className="scard">
+                <span aria-hidden="true" className={`sic sic-${tint}`}>
+                  {iconUrl ? (
+                    <img src={iconUrl} alt="" loading="lazy" decoding="async" />
+                  ) : (
+                    <span>{iconEmoji || "🔗"}</span>
+                  )}
+                </span>
+                <b dir="auto">{label}</b>
+                {sub && <small dir="auto">{sub}</small>}
+              </SmartLink>
+            );
+          })}
         </div>
       );
     }
@@ -1299,10 +1079,49 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "free_content":
     case "latest_lessons":
     case "video_showcase": {
-      const rows = ctx.dynamic[block.id] ?? [];
-      return <CardGrid rows={rows} ctx={ctx} showPlay />;
+      // Mockup-faithful video cards (mockup_v5.html #vids).
+      // Dynamic rows from ctx.dynamic; static `videos` prop as CMS fallback.
+      const rows = (ctx.dynamic[block.id] ?? []).filter((r) => ls(r.title, L));
+      const staticVids = arr(p, "videos").filter((v) => str(v, "title", L));
+      const vids = rows.length > 0
+        ? rows.map((r) => ({
+            title: ls(r.title, L),
+            tag: ls(r.badge, L) || "",
+            meta: (r.chips ?? []).map((c) => ls(c, L)).filter(Boolean).join(" • "),
+            href: r.href,
+            thumb: r.imageUrl || (r.image && ctx.images[r.image] ? ctx.images[r.image] : null),
+          }))
+        : staticVids.map((v) => ({
+            title: str(v, "title", L),
+            tag: str(v, "tag", L),
+            meta: str(v, "meta", L),
+            href: raw(v, "href"),
+            thumb: null,
+          }));
+      if (!vids.length) return null;
+      const thumbTones = ["t1", "t2", "t3"];
+      return (
+        <div className="vids">
+          {vids.map((vid, idx) => (
+            <div key={idx} className="vcard">
+              <div className={`thumb ${thumbTones[idx % thumbTones.length]}`}>
+                {vid.thumb ? (
+                  <img src={vid.thumb} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <span aria-hidden="true" className="big">🎬</span>
+                )}
+                <div aria-hidden="true" className="play">▶</div>
+              </div>
+              <div className="vbody">
+                {vid.tag && <span dir="auto" className="tag">{vid.tag}</span>}
+                <h3 dir="auto">{vid.href ? <SmartLink href={vid.href}>{vid.title}</SmartLink> : vid.title}</h3>
+                {vid.meta && <div dir="auto" className="meta"><span>{vid.meta}</span></div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     }
-
 
     case "study_subjects": {
       const rows = ctx.dynamic[block.id] ?? [];
@@ -1368,50 +1187,57 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     }
 
     case "grade_cards": {
+      // Mockup-faithful grade cards (mockup_v5.html #grades).
+      // Rows come from ctx.dynamic (CMS-driven grades); static fallback cards
+      // from props keep the section editable even without dynamic data.
       const rows = (ctx.dynamic[block.id] ?? []).filter((r) => ls(r.title, L));
-      if (!rows.length) return null;
+      const staticCards = arr(p, "cards").filter((c) => str(c, "title", L));
+      const cards = rows.length > 0
+        ? rows.map((r) => ({
+            title: ls(r.title, L),
+            sub: ls(r.desc, L),
+            icon: ls(r.badge, L) || "🏛️",
+            pills: (r.chips ?? []).map((c) => ls(c, L)).filter(Boolean),
+            ctaLabel: (r.cta && ls(r.cta, L)) || "",
+            href: r.href,
+          }))
+        : staticCards.map((c) => ({
+            title: str(c, "title", L),
+            sub: str(c, "sub", L),
+            icon: str(c, "icon", L) || "🏛️",
+            pills: arr(c, "pills").map((x) => str(x, "text", L)).filter(Boolean),
+            ctaLabel: str(c, "ctaLabel", L),
+            href: raw(c, "href"),
+          }));
+      if (!cards.length) return null;
       return (
-        <div className="grid w-full gap-6 sm:grid-cols-2">
-          {rows.map((row, idx) => {
-            // Odd/even color rhythm: blue / cream, exactly the mockup .gcard.
-            const cream = idx % 2 === 1;
-            const surface = cream ? "bg-pub-accent-bg" : "bg-pub-card";
-            const ctaCls = cream
-              ? "bg-pub-accent hover:bg-pub-accent-strong text-white"
-              : "bg-pub-blue hover:bg-pub-blue-deep text-white";
-            const title = ls(row.title, L);
-            const badge = row.badge ? ls(row.badge, L) : "";
-            const desc = ls(row.desc, L);
-            const chips = (row.chips ?? []).map((c) => ls(c, L)).filter(Boolean);
-            const ctaLabel = (row.cta && ls(row.cta, L)) || title;
+        <div className="grades">
+          {cards.map((card, idx) => {
+            const tone = idx % 2 === 1 ? "blue" : "cream";
             return (
-              <article key={row.id} className={`group relative flex h-full flex-col items-center gap-4 rounded-pub-2xl ${surface} p-8 text-center shadow-pub-card transition duration-200 hover:-translate-y-1.5 hover:shadow-pub-md sm:p-10`}>
-                {badge && (
-                  <span className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/80 px-4 py-1.5 text-pub-sm font-extrabold text-pub-accent-strong ring-1 ring-pub-accent-line">
-                    <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded-full bg-pub-accent text-pub-xs font-black text-white">✓</span>
-                    {badge}
-                  </span>
-                )}
-                <h3 className="text-pub-xl font-black leading-pub-tight text-pub-ink [overflow-wrap:anywhere]">{title}</h3>
-                {desc && <p className="text-pub-base leading-pub-normal text-pub-ink-soft">{desc}</p>}
-                {chips.length > 0 && (
-                  <ul className="flex flex-wrap items-center justify-center gap-2.5">
-                    {chips.map((chip) => (
-                      <li key={chip} className="rounded-full bg-white/75 px-4 py-1.5 text-pub-xs font-bold text-pub-ink-soft">
-                        {chip}
-                      </li>
+              <div key={idx} className={`gcard ${tone}`}>
+                <div aria-hidden="true" className="giant">{card.icon}</div>
+                <div aria-hidden="true" className="medal">{card.icon}</div>
+                <h3 dir="auto">{card.title}</h3>
+                {card.sub && <div dir="auto" className="sub">{card.sub}</div>}
+                {card.pills.length > 0 && (
+                  <div className="stat-pills">
+                    {card.pills.map((pill, pi) => (
+                      <span key={pi} dir="auto">{pill}</span>
                     ))}
-                  </ul>
+                  </div>
                 )}
-                <SmartLink
-                  href={row.href}
-                  ariaLabel={`${ctaLabel} — ${title}`}
-                  className={`mt-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-pub-pill px-8 py-3 text-pub-base font-extrabold shadow-pub-md transition-all hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong ${ctaCls}`}
-                >
-                  {ctaLabel}
-                  <span aria-hidden="true" className="rtl:rotate-180">→</span>
-                </SmartLink>
-              </article>
+                {(card.ctaLabel || card.href) && (
+                  <SmartLink
+                    href={card.href || "#grades"}
+                    ariaLabel={card.ctaLabel || card.title}
+                    className={`btn ${tone === "blue" ? "btn-blue" : "btn-gold"}`}
+                  >
+                    <span aria-hidden="true">←</span>
+                    {card.ctaLabel || card.title}
+                  </SmartLink>
+                )}
+              </div>
             );
           })}
         </div>
@@ -1515,46 +1341,30 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       );
     }
     case "cta_banner": {
-      const headingText = str(p, "heading", L);
+      // Mockup-faithful final CTA (mockup_v5.html .cta).
+      // Navy band with cream wave, heading, text, gold button — CMS props.
+      const heading = str(p, "heading", L);
       const text = str(p, "text", L);
-      const note = str(p, "note", L);
-      const ctas = arr(p, "ctas").filter((i) => str(i, "label", L) || raw(i, "href"));
-      if (!headingText && !text && !ctas.length) return null;
+      const ctaLabel = str(p, "ctaLabel", L);
+      const ctaHref = raw(p, "ctaHref");
+      const ctaIcon = str(p, "ctaIcon", L);
+      if (!heading && !text && !ctaLabel) return null;
       return (
-        <div className={`${PUB_BAND} relative overflow-hidden rounded-pub-2xl px-6 py-12 text-center sm:px-10 sm:py-16`}>
-          {headingText && (
-            <h2 className="mx-auto max-w-[26ch] text-pub-2xl font-black leading-[1.5] text-white [overflow-wrap:anywhere]">{headingText}</h2>
-          )}
-          {text && <p className="pub-measure mx-auto mt-3 text-pub-base leading-pub-normal text-pub-on-dark">{text}</p>}
-          {ctas.length > 0 && (
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 max-sm:flex-col max-sm:items-stretch">
-              {ctas.map((cta, idx) => (
-                <CtaButton
-                  key={idx}
-                  label={str(cta, "label", L)}
-                  href={raw(cta, "href")}
-                  target={raw(cta, "target")}
-                  // On the dark band the system's own variants are used: the first
-                  // CTA is the single gold accent, the rest are the dark secondary.
-                  // The band is navy, so the variants are resolved FOR a dark
-                  // surface: `outline`/`ghost` (built for white) would render an
-                  // invisible label. One mapping, at the band that needs it.
-                  variant={((): string => {
-                    const want = raw(cta, "variant");
-                    if (!want) return idx === 0 ? "gold" : "onDark";
-                    if (want === "outline" || want === "ghost" || want === "secondary") return "onDark";
-                    if (want === "primary") return idx === 0 ? "gold" : "onDark";
-                    return want;
-                  })()}
-                  icon={raw(cta, "icon")}
-                  shape={raw(p, "ctaShape") || "pill"}
-                  className="max-sm:w-full"
-                />
-              ))}
-            </div>
-          )}
-          {note && <p className="mx-auto mt-5 text-pub-xs text-pub-on-dark">{note}</p>}
-        </div>
+        <section className="cta" aria-label={heading || undefined}>
+          <svg aria-hidden="true" className="wave" viewBox="0 0 1440 70" preserveAspectRatio="none">
+            <path d="M0,0 C360,70 1080,70 1440,0 L1440,0 L0,0 Z" fill="#F9F3E6" />
+          </svg>
+          <div className="container">
+            {heading && <h2 dir="auto">{heading}</h2>}
+            {text && <p dir="auto">{text}</p>}
+            {ctaLabel && (
+              <SmartLink href={ctaHref || "#grades"} ariaLabel={ctaLabel} className="btn btn-gold">
+                <span aria-hidden="true">{ctaIcon || "←"}</span>
+                {ctaLabel}
+              </SmartLink>
+            )}
+          </div>
+        </section>
       );
     }
 
@@ -1567,6 +1377,23 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
     case "spacer": {
       const size = { sm: "h-4", md: "h-8", lg: "h-14", xl: "h-24" }[raw(p, "size")] ?? "h-8";
       return <div className={size} aria-hidden="true" />;
+    }
+
+    case "quote_cards": {
+      // Mockup-faithful quotes (mockup_v5.html #quotes — "أقوال مأثورة").
+      // Each quote: text + author — all CMS props, fully editable.
+      const quotes = arr(p, "quotes").filter((q) => str(q, "text", L));
+      if (!quotes.length) return null;
+      return (
+        <div className="qgrid">
+          {quotes.map((q, idx) => (
+            <div key={idx} className="q">
+              <p dir="auto">{str(q, "text", L)}</p>
+              {str(q, "author", L) && <b dir="auto">{str(q, "author", L)}</b>}
+            </div>
+          ))}
+        </div>
+      );
     }
     default:
       return null; // unknown/legacy type → skipped, never crashes the page
@@ -1631,12 +1458,27 @@ export interface RenderBlock { id: string; type: string; props: P; visible: bool
  */
 const DATA_DRIVEN_BLOCKS = new Set([
   "study_subjects", "course_cards", "subject_cards", "program_cards", "free_content",
-  "featured_content", "latest_lessons", "video_showcase", "product_cards", "grade_cards",
+  "featured_content", "latest_lessons", "product_cards",
 ]);
+// grade_cards / video_showcase: dynamic rows OR static CMS cards (mockup fallback).
+// They collapse only when BOTH are empty — see the explicit checks below.
 
 function blockIsEmpty(block: RenderBlock, ctx: CmsRenderCtx): boolean {
   const type = block.type;
   if (DATA_DRIVEN_BLOCKS.has(type)) return (ctx.dynamic[block.id] ?? []).length === 0;
+  if (type === "grade_cards") {
+    const hasDynamic = (ctx.dynamic[block.id] ?? []).some((r) => ls(r.title, ctx.locale));
+    const hasStatic = arr(block.props, "cards").some((c) => str(c, "title", ctx.locale));
+    return !hasDynamic && !hasStatic;
+  }
+  if (type === "video_showcase") {
+    const hasDynamic = (ctx.dynamic[block.id] ?? []).some((r) => ls(r.title, ctx.locale));
+    const hasStatic = arr(block.props, "videos").some((v) => str(v, "title", ctx.locale));
+    return !hasDynamic && !hasStatic;
+  }
+  if (type === "quote_cards") {
+    return !arr(block.props, "quotes").some((q) => str(q, "text", ctx.locale));
+  }
   // External exams entry: hidden while the platform is disabled/unconfigured.
   if (type === "exam_platform") return !ctx.questionPlatformUrl;
   /**
@@ -1657,22 +1499,14 @@ function blockIsEmpty(block: RenderBlock, ctx: CmsRenderCtx): boolean {
   }
   if (type === "social_links") {
     const p = block.props;
-    // The optional subscribe/exam cards count as content too — otherwise a
-    // section holding only those would collapse while the block renders.
-    if (bool(p, "showSubscribe")) return false;
-    if (bool(p, "showExam") && ctx.questionPlatformUrl) return false;
-    return !arr(p, "items").some((i) => raw(i, "url"));
+    return !arr(p, "cards").some((c) => str(c, "label", ctx.locale) || raw(c, "href"));
   }
   if (type === "teacher_profile") {
     const p = block.props;
-    if (bool(p, "useIdentity") && ctx.identity) {
-      if (ls(ctx.identity.ownerName, ctx.locale) || ctx.identity.ownerPhoto) return false;
-    }
-    return !(
-      str(p, "name", ctx.locale) ||
-      str(p, "bio", ctx.locale) ||
-      (raw(p, "photo") && ctx.images[raw(p, "photo")])
-    );
+    if (str(p, "heading", ctx.locale) || arr(p, "paragraphs").some((x) => str(x, "text", ctx.locale))) return false;
+    if (raw(p, "image") && ctx.images[raw(p, "image")]) return false;
+    if (ctx.identity?.ownerPhoto) return false;
+    return true;
   }
   return false;
 }
@@ -1698,6 +1532,10 @@ function renderedAnchorIds(sections: RenderBlock[], ctx: CmsRenderCtx): Set<stri
   return ids;
 }
 
+// Blocks that render a COMPLETE mockup <section> themselves (hero, final CTA).
+// SectionView passes them through without adding another wrapper.
+const FULL_SECTION_BLOCKS = new Set(["hero_showcase", "cta_banner"]);
+
 export function SectionView({ section, ctx, index = 0 }: { section: RenderBlock; ctx: CmsRenderCtx; index?: number }) {
   const p = section.props;
   const L = ctx.locale;
@@ -1705,73 +1543,41 @@ export function SectionView({ section, ctx, index = 0 }: { section: RenderBlock;
   const children = (section.children ?? []).filter((c) => c.visible);
   // Section collapse rule (see DATA_DRIVEN_BLOCKS above).
   if (children.length > 0 && children.every((c) => blockIsEmpty(c, ctx))) return null;
+  // Full-section blocks (hero / final CTA) render their own <section>.
+  if (children.length === 1 && FULL_SECTION_BLOCKS.has(children[0].type)) {
+    return (
+      <div className="mk">
+        <BlockBody block={children[0]} ctx={ctx} />
+      </div>
+    );
+  }
   const heading = str(p, "heading", L);
   const subheading = str(p, "subheading", L);
-  const bg = raw(p, "bg") || "default";
-  // Mockup rhythm: unstyled sections alternate white / transparent over the
-  // page canvas; an explicit saved bg (surface/muted/brand/dark/image) wins.
-  const bgCls = bg === "default" ? (index % 2 === 1 ? "bg-white" : "bg-transparent") : (SECTION_BG[bg] ?? "bg-pub-bg");
-  const bgImageId = bg === "image" ? raw(p, "bgImage") : "";
-  const hasBgImage = Boolean(bgImageId && ctx.images[bgImageId]);
-  const align = raw(p, "align") || "start";
-  const columns = raw(p, "columns") || "1";
-  const onDark = bg === "brand" || bg === "dark";
-  // ONE figure per surface (owner brief §14–§16): blocks that already carry a
-  // thinker (hero, teacher card, subject/course cards) keep their own face, so
-  // only the remaining sections get the transparent backdrop philosopher.
-  const sectionHasThinker = children.some((c) => THINKER_BLOCK_TYPES.has(c.type));
-  // Mockup section heading: a short gold tick above a bold h2, then the
-  // subheading. Alignment and dark-band colors keep the editor's settings.
-  const headingEl = heading || subheading ? (
-    <div className={`mb-10 sm:mb-12 flex flex-col gap-2 ${align === "center" ? "items-center text-center" : align === "end" ? "items-end text-end" : "items-start text-start"}`}>
-      <span aria-hidden="true" className="mb-2 block h-1.5 w-14 rounded-full bg-pub-accent" />
-      {heading && (
-        <h2 className={`text-pub-xl font-black leading-pub-tight tracking-tight ${onDark ? "text-pub-on-navy" : "text-pub-ink"} [overflow-wrap:anywhere]`}>
-          {heading}
-        </h2>
-      )}
-      {subheading && (
-        <p className={`pub-measure text-pub-sm leading-pub-normal ${onDark ? "text-pub-on-navy-soft" : "text-pub-muted"}`}>{subheading}</p>
-      )}
-    </div>
-  ) : null;
-
+  // Mockup section variants: `sectionStyle` prop selects the mockup treatment.
+  // `quotes` → cream background; `about` → muted surface; `vids` → white.
+  const sectionStyle = raw(p, "sectionStyle") || "default";
+  const styleCls = sectionStyle === "quotes" ? "quotes" : sectionStyle === "about" ? "about" : sectionStyle === "vids" ? "sec-white" : "";
   // Owner-supplied anchor id — strict pattern + length, never arbitrary text.
   const rawAnchor = raw(p, "anchor");
   const anchorId = /^[A-Za-z0-9_-]{1,40}$/.test(rawAnchor) ? rawAnchor : undefined;
+  const headingEl = (heading || subheading) ? (
+    <div className="sec-head">
+      <div aria-hidden="true" className="tick" />
+      {heading && <h2 dir="auto">{heading}</h2>}
+      {subheading && <p dir="auto">{subheading}</p>}
+    </div>
+  ) : null;
   return (
-    <section
-      id={anchorId}
-      className={`cms-section relative isolate scroll-mt-24 overflow-hidden ${bgCls} ${SECTION_PAD[raw(p, "padding") || "md"] ?? SECTION_PAD.md} ${bool(p, "hideMobile") ? "max-md:hidden" : ""}`}
-    >
-      {(bg === "dark" || bg === "brand") && <SectionDecor variant="band" />}
-      {(bg === "default" || bg === "surface") && <span aria-hidden="true" className="decor-wash pointer-events-none absolute inset-0 -z-10 opacity-60" />}
-      {/* The transparent philosopher behind every section that carries no
-          figure of its own (owner request, 2026-09): bottom-corner anchored and
-          masked away from the copy, so headings/cards/CTAs always sit on clean
-          surface. Deterministic per section id → SSR and client agree. */}
-      {!hasBgImage && !sectionHasThinker && (
-        <ThinkerWash seed={`section:${section.id}`} surface={onDark ? "navy" : "light"} />
-      )}
-      {hasBgImage && (
-        <>
-          <img src={ctx.images[bgImageId]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-pub-navy/70" aria-hidden="true" />
-        </>
-      )}
-      <div className={`relative mx-auto w-full px-[var(--pub-pad-x)] ${SECTION_CONTAINER[raw(p, "container") || "normal"] ?? SECTION_CONTAINER.normal}`}>
-        {hasBgImage && !SECTION_BG[bg] ? <div className="text-pub-bg">{headingEl}</div> : headingEl}
-        {children.length > 0 && (
-          <div className={`grid ${SECTION_GRID[columns] ?? SECTION_GRID["1"]} ${SECTION_GAP[raw(p, "gap") || "md"] ?? SECTION_GAP.md} ${align === "center" ? "justify-items-center" : ""} ${columns === "1" && align === "center" ? "[&>*]:mx-auto" : ""}`}>
-            {children.map((child) => (
-              <div key={child.id} className="w-full min-w-0">
-                <BlockBody block={child} ctx={ctx} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+    <div className="mk">
+      <section id={anchorId} className={`sec ${styleCls}`}>
+        <div className="container">
+          {headingEl}
+          {children.map((child) => (
+            <BlockBody key={child.id} block={child} ctx={ctx} />
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 

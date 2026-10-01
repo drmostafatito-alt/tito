@@ -181,85 +181,40 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   return (
     <div className="pub-root flex min-h-dvh flex-col overflow-x-hidden pb-16 md:pb-0">
       <SkipLink locale={locale} />
-      <header
-        data-testid="public-header"
-        className="sticky top-0 z-40 border-b border-pub-line bg-pub-bg/97 pt-safe backdrop-blur-md"
-      >
-        {/* 320px is the design width, not an afterthought: one row, a shrinking
-            brand (the wordmark itself hides below sm inside BrandMark), and a
-            fixed action cluster. No secondary text competes for that space. */}
-        <div className="mx-auto flex h-14 w-full max-w-[var(--pub-maxw)] min-w-0 items-center justify-between gap-2 px-3 sm:h-[4.25rem] sm:gap-3 sm:px-4">
-          {/* Brand: owner avatar (gold ring) + platform name + tagline — mockup topbar. */}
-          <Link to="/" aria-label={appName} className="inline-flex min-h-11 min-w-0 shrink items-center gap-2.5">
+      <div className="mk">
+      <header data-testid="public-header" className="topbar" id="topbar">
+        <div className="container topbar-in">
+          <Link to="/" aria-label={appName} className="brand">
             {idn.ownerPhotoUrl ? (
-              <img
-                src={idn.ownerPhotoUrl}
-                alt=""
-                className="h-11 w-11 shrink-0 rounded-full border-2 border-pub-accent object-cover shadow-pub-sm"
-              />
+              <img src={idn.ownerPhotoUrl} alt={appName} className="ava" />
             ) : idn.logoUrl ? (
-              <img src={idn.logoUrl} alt={appName} className="h-10 w-auto shrink-0 object-contain" />
+              <img src={idn.logoUrl} alt={appName} className="ava" />
             ) : (
-              <BrandMark name={appName} />
+              <span className="ava ava-fallback" aria-hidden="true">
+                {appName.charAt(0)}
+              </span>
             )}
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="truncate text-pub-base font-extrabold text-pub-navy">{appName}</span>
-              {tagline && <span className="truncate text-pub-xs font-medium text-pub-muted">{tagline}</span>}
-            </span>
+            <div>
+              <b>{appName}</b>
+              {tagline && <small>{tagline}</small>}
+            </div>
           </Link>
-
-          {/* Desktop navigation (admin menu builder). It switches on at `xl`,
-              not `lg`: with six owner-authored items the 1024px row cannot hold
-              brand + nav + login/register + language + menu at 44px each, so the
-              drawer carries navigation until there is real room. One nav grammar,
-              no clipped header. */}
           {loaderData.header.length > 0 && (
-            <nav aria-label={t(locale, "common.navMain")} className="hidden items-center gap-0.5 xl:flex">
-              {loaderData.header.slice(0, 5).map((node) =>
-                node.children.length === 0 ? (
-                  <NavLink key={node.id} item={node} locale={locale} className={node.href === "/" ? navActiveCls : navLinkCls} />
-                ) : (
-                  <details key={node.id} className="group relative">
-                    <summary className={`${navLinkCls} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                      {node.icon && <Icon name={node.icon} size="sm" colorRole="default" className="text-current" />}
-                      <span>{locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}</span>
-                      <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
-                    </summary>
-                    <div className="absolute top-full z-50 mt-1 min-w-44 rounded-pub-xl border border-pub-line bg-pub-bg p-1.5 shadow-pub-lg ltr:left-0 rtl:right-0">
-                      {node.href && (
-                        <NavLink item={node} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-pub-md px-3 py-2 text-pub-sm font-semibold text-pub-ink hover:bg-pub-surface-2" />
-                      )}
-                      {node.children.map((child) => (
-                        <NavLink key={child.id} item={child} locale={locale} className="flex min-h-11 w-full items-center gap-1.5 rounded-pub-md px-3 py-2 text-pub-sm text-pub-ink-soft hover:bg-pub-surface-2" />
-                      ))}
-                    </div>
-                  </details>
-                )
-              )}
-              {loaderData.header.length > 5 && (
-                <details className="group relative">
-                  <summary className={`${navLinkCls} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                    <span>{t(locale, "common.more")}</span>
-                    <Icon name="chevron-down" size="sm" colorRole="muted" className="transition-transform group-open:rotate-180" />
-                  </summary>
-                  <div className="absolute top-full z-50 mt-1 min-w-44 rounded-pub-xl border border-pub-line bg-pub-bg p-1.5 shadow-pub-lg ltr:left-0 rtl:right-0">
-                    {loaderData.header.slice(5).map((node) => (
-                      <NavLink
-                        key={node.id}
-                        item={node}
-                        locale={locale}
-                        className="flex min-h-11 w-full items-center gap-1.5 rounded-pub-md px-3 py-2 text-pub-sm text-pub-ink-soft hover:bg-pub-surface-2"
-                      />
-                    ))}
-                  </div>
-                </details>
-              )}
+            <nav aria-label={t(locale, "common.navMain")} className={`nav${mobileOpen ? " open" : ""}`} id="nav">
+              {loaderData.header.map((node) => (
+                <NavLink
+                  key={node.id}
+                  item={node}
+                  locale={locale}
+                  className={node.href === "/" || location.pathname === node.href ? "active" : undefined}
+                  onNavigate={() => setMobileOpen(false)}
+                />
+              ))}
             </nav>
           )}
-
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="topbar-actions">
             {idn.socialsHeader.length > 0 && (
-              <div className="hidden items-center gap-1 sm:flex">
+              <div className="socials">
                 {idn.socialsHeader.map((s) => (
                   <a
                     key={s.network + s.url}
@@ -267,67 +222,38 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                     aria-label={locale === "ar" ? s.labelAr || s.network : s.labelEn || s.network}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full text-pub-muted transition-colors hover:bg-pub-surface hover:text-pub-navy"
                   >
-                    <Icon name={s.network} size="sm" colorRole="default" className="text-current" />
+                    <Icon name={s.network} size="sm" colorRole="default" className="ic" />
                   </a>
                 ))}
               </div>
             )}
-            <LanguageSwitcher locale={locale} options={localeOptions} compact />
             {loaderData.user ? (
-              <>
-                {/* Primary student destination: المحتوى التعليمي (year → grade →
-                    subject → term → lesson). The legacy /courses catalog stays
-                    reachable for SEO but is no longer the student's front door. */}
-                <Link to="/study" className="hidden min-h-11 items-center rounded-pub-pill px-3.5 text-pub-sm font-medium text-pub-muted transition-colors hover:bg-pub-surface hover:text-pub-ink md:inline-flex" data-testid="nav-study">
-                  {t(locale, "study.navTitle")}
-                </Link>
-                <Link
-                  to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
-                  className="inline-flex min-h-11 items-center rounded-pub-pill bg-pub-navy px-4 text-pub-sm font-bold text-pub-bg transition-colors hover:bg-pub-navy-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong"
-                >
-                  {loaderData.user.rank >= 3 ? t(locale, "common.admin") : t(locale, "common.dashboard")}
-                </Link>
-              </>
-            ) : (
-              <>
-                {/* Login stays reachable at 320 — the single most important action
-                    for a visitor — but its icon and padding give way so the row
-                    never clips. Register moves into the menu below `sm`. */}
-                <Link
-                  to="/login"
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-pub-pill border border-pub-line-strong bg-pub-bg px-3 text-pub-sm font-semibold text-pub-ink transition-colors hover:border-pub-line-strong hover:bg-pub-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong sm:px-4"
-                >
-                  <Icon name="user" size="sm" colorRole="default" className="hidden text-current sm:inline" />
-                  {t(locale, "common.login")}
-                </Link>
-                <Link
-                  to="/register"
-                  className="hidden min-h-11 items-center gap-1.5 rounded-pub-pill bg-pub-navy px-5 text-pub-sm font-bold text-pub-bg transition-colors hover:bg-pub-navy-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong sm:inline-flex"
-                >
-                  <Icon name="user" size="sm" colorRole="invert" className="text-pub-bg" />
-                  {t(locale, "common.register")}
-                </Link>
-              </>
-            )}
-            {(loaderData.header.length > 0 || !loaderData.user) && (
-              <button
-                type="button"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-pub-pill text-pub-ink transition-colors hover:bg-pub-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pub-accent-strong xl:hidden"
-                aria-expanded={mobileOpen}
-                aria-controls="mobile-nav"
-                aria-label={t(locale, "common.menu")}
-                data-testid="public-menu"
-                onClick={() => setMobileOpen((v) => !v)}
+              <Link
+                to={loaderData.user.rank >= 3 ? "/admin" : "/dashboard"}
+                className="btn btn-blue btn-sm"
               >
-                <Icon name={mobileOpen ? "close" : "menu"} size="md" colorRole="default" />
-              </button>
+                {loaderData.user.rank >= 3 ? t(locale, "common.admin") : t(locale, "common.dashboard")}
+              </Link>
+            ) : (
+              <Link to="/login" className="btn btn-blue btn-sm">
+                {t(locale, "common.login")}
+              </Link>
             )}
+            <button
+              type="button"
+              className="burger"
+              id="burger"
+              aria-label={t(locale, "common.menu")}
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((v) => !v)}
+            >
+              ☰
+            </button>
           </div>
         </div>
-
       </header>
+      </div>
 
       <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} id="mobile-nav" label={t(locale, "common.navMain")}>
         <div className="mb-3 flex items-center justify-between border-b border-pub-line pb-3">
@@ -398,97 +324,52 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
         </div>
       </footer>
       ) : (
-      <footer className="relative border-t border-pub-navy bg-pub-navy pb-safe text-pub-on-navy-soft">
-        <DecorHairline className="mx-auto max-w-7xl px-4 text-pub-accent opacity-60" />
-        <div className="mx-auto grid w-full max-w-[var(--pub-maxw)] gap-8 px-[var(--pub-pad-x)] py-10 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Brand column */}
-          <div className="flex flex-col gap-3">
-            <Link to="/" aria-label={appName} className="inline-flex items-center gap-3">
+      <div className="mk">
+      <footer>
+        <div aria-hidden="true" className="giant">🏛️</div>
+        <div className="container fgrid">
+          <div>
+            <div className="fbrand">
               {idn.ownerPhotoUrl ? (
-                <img
-                  src={idn.ownerPhotoUrl}
-                  alt=""
-                  className="h-12 w-12 shrink-0 rounded-full border-2 border-pub-accent object-cover"
-                />
+                <img src={idn.ownerPhotoUrl} alt={appName} className="fava" />
               ) : idn.logoUrl ? (
-                <img src={idn.logoUrl} alt={appName} className="h-9 w-auto shrink-0 object-contain" />
-              ) : (
-                <BrandMark name={appName} tone="onDark" />
-              )}
-              <span className="flex min-w-0 flex-col leading-tight">
-                <span className="truncate text-pub-base font-extrabold text-pub-accent">{appName}</span>
-                {tagline && <span className="truncate text-pub-xs text-pub-on-navy-soft">{tagline}</span>}
-              </span>
-            </Link>
+                <img src={idn.logoUrl} alt={appName} className="fava" />
+              ) : null}
+              <div>
+                <b>{appName}</b>
+                {tagline && <small>{tagline}</small>}
+              </div>
+            </div>
             {idn.socialsFooter.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="fsoc">
                 {idn.socialsFooter.map((s) => (
                   <a
-                    key={s.network}
+                    key={s.network + s.url}
                     href={s.url}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    aria-label={s.network}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-pub-pill border border-pub-on-navy/20 text-pub-on-navy-soft transition-colors hover:border-pub-accent-soft hover:text-pub-accent-soft"
+                    aria-label={locale === "ar" ? s.labelAr || s.network : s.labelEn || s.network}
                   >
-                    <Icon name={s.network} size="md" colorRole="invert" className="text-current" />
+                    <Icon name={s.network} size="sm" colorRole="default" />
                   </a>
                 ))}
               </div>
             )}
           </div>
-
-          {/* Footer menu columns (admin navigation builder) */}
-          {loaderData.footer.map((node) => (
-            <nav key={node.id} aria-label={locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr} className="flex flex-col gap-1">
-              {node.children.length > 0 ? (
-                <>
-                  <p className="mb-1 text-pub-sm font-bold text-pub-on-navy">
-                    {locale === "ar" ? node.labelAr || node.labelEn : node.labelEn || node.labelAr}
-                  </p>
-                  {node.href && <NavLink item={node} locale={locale} className="inline-flex min-h-11 items-center text-pub-sm text-pub-on-navy-soft transition-colors hover:text-pub-accent-soft" />}
-                  {node.children.map((child) => (
-                    <NavLink key={child.id} item={child} locale={locale} className="inline-flex min-h-11 items-center text-pub-sm text-pub-on-navy-soft transition-colors hover:text-pub-accent-soft" />
-                  ))}
-                </>
-              ) : (
-                <NavLink item={node} locale={locale} className="inline-flex min-h-11 w-fit items-center text-pub-sm text-pub-on-navy-soft transition-colors hover:text-pub-accent-soft" />
-              )}
-            </nav>
-          ))}
-
-          {/* Contact column — only when configured (empty-first) */}
-          {hasContact && (
-            <div className="flex flex-col gap-2">
-              <p className="mb-1 text-pub-sm font-bold text-pub-on-navy">{t(locale, "footer.contact")}</p>
-              {idn.contactPhone && (
-                <a href={`tel:${idn.contactPhone}`} className="inline-flex min-h-11 items-center gap-2 text-pub-sm text-pub-on-navy-soft transition-colors hover:text-pub-accent-soft" dir="ltr">
-                  <Icon name="phone" size="sm" colorRole="accent" /> {idn.contactPhone}
-                </a>
-              )}
-              {idn.contactEmail && (
-                <a href={`mailto:${idn.contactEmail}`} className="inline-flex min-h-11 items-center gap-2 text-pub-sm text-pub-on-navy-soft transition-colors hover:text-pub-accent-soft">
-                  <Icon name="mail" size="sm" colorRole="accent" /> {idn.contactEmail}
-                </a>
-              )}
-              {(idn.contactAddress.ar || idn.contactAddress.en) && (
-                <p className="flex items-start gap-2 text-pub-sm text-pub-line-strong">
-                  <Icon name="map-pin" size="sm" colorRole="accent" className="mt-0.5" />
-                  <span>{locale === "ar" ? idn.contactAddress.ar || idn.contactAddress.en : idn.contactAddress.en || idn.contactAddress.ar}</span>
-                </p>
-              )}
+          {loaderData.footer.length > 0 && (
+            <div className="flinks">
+              <h4>{t(locale, "footer.quickLinks")}</h4>
+              {loaderData.footer.map((node) => (
+                <NavLink key={node.id} item={node} locale={locale} />
+              ))}
             </div>
           )}
         </div>
-
-        <div className="border-t border-pub-on-navy/15">
-          <div className="mx-auto mx-auto flex w-full max-w-[var(--pub-maxw)] flex-col items-center justify-between gap-2 px-[var(--pub-pad-x)] py-5 text-pub-sm text-pub-on-navy-muted sm:flex-row">
-            <span>
-              {copyrightText || `© ${new Date().getFullYear()} ${appName} — ${t(locale, "footer.rights")}`}
-            </span>
-          </div>
+        <div className="copy">
+          {copyrightText || `\u00a9 ${new Date().getFullYear()} ${appName}`}
         </div>
       </footer>
+      </div>
       )}
       {/* Mobile bottom nav — mockup .mnav: 4 items, question-platform entry only
           when configured (loader resolves it to null otherwise). z-40 keeps it

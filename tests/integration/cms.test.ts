@@ -278,15 +278,20 @@ describe("homepage composition (philosophy & psychology redesign)", () => {
     const heroSection = await addBlock(db, { pageId: page.id, parentId: null, type: "section" }, actor);
     const hero = await addBlock(db, { pageId: page.id, parentId: heroSection.id, type: "hero_showcase" }, actor);
     await updateBlockProps(db, hero.id, {
-      eyebrow: { ar: "الفلسفة وعلم النفس", en: "Philosophy & Psychology" },
-      heading: { ar: "أهلاً بيكم في منصتكم!", en: "Welcome to your platform!" },
-      subtitle: { ar: "<p>مقدمة</p>", en: "<p>Intro</p>" },
-      ctas: [{ label: { ar: "ابدأ", en: "Start" }, href: "/courses", target: "_self", variant: "primary", icon: "" }],
-      videoLabel: { ar: "", en: "" },
-      videoId: "",
+      watermark: "TITO",
+      scribble1: { ar: "خُلُقٌ", en: "Character" },
+      scribble2: { ar: "فلسفة", en: "Philosophy" },
+      eyebrow: { ar: "نرحب بك", en: "Welcome" },
+      heading: { ar: "مستر مصطفى تيتو", en: "Mr. Mostafa Tito" },
+      docLine: { ar: "دكتور السعادة", en: "Doctor of Happiness" },
+      lede: { ar: "<p>مقدمة</p>", en: "<p>Intro</p>" },
+      ctas: [{ label: { ar: "الكورسات", en: "Courses" }, href: "#grades", variant: "blue", icon: "🎓" }],
+      pills: [{ text: { ar: "شرح مبسط", en: "Simple" } }],
       image: "",
       imageAlt: { ar: "", en: "" },
-      badges: [{ icon: "brain", title: { ar: "علم النفس", en: "Psychology" }, text: { ar: "", en: "" }, position: "top-start" }],
+      badges: [{ icon: "🎓", text: { ar: "فلسفة", en: "Philosophy" }, dotTint: "green" }],
+      signScript: { ar: "معكم دائمًا", en: "Always" },
+      signSmall: { ar: "مستر مصطفى", en: "Mr. Mostafa" },
     }, actor);
 
     // Statistics bar
@@ -305,7 +310,7 @@ describe("homepage composition (philosophy & psychology redesign)", () => {
     const features = await addBlock(db, { pageId: page.id, parentId: featuresSection.id, type: "feature_cards" }, actor);
     await updateBlockProps(db, features.id, {
       items: [
-        { icon: "brain", title: { ar: "علم النفس", en: "Psychology" }, text: { ar: "دروس", en: "Lessons" }, ctaLabel: { ar: "", en: "" }, href: "", tint: "accent" },
+        { icon: "🎥", title: { ar: "علم النفس", en: "Psychology" }, text: { ar: "دروس", en: "Lessons" }, tint: "blue" },
       ],
     }, actor);
 
@@ -339,10 +344,10 @@ describe("homepage composition (philosophy & psychology redesign)", () => {
     await updateBlockProps(db, hero.id, {
       eyebrow: { ar: "", en: "" },
       heading: { ar: "عنوان", en: "Title" },
-      subtitle: { ar: "", en: "" },
+      docLine: { ar: "", en: "" },
+      lede: { ar: "", en: "" },
       ctas: [],
-      videoLabel: { ar: "", en: "" },
-      videoId: "",
+      pills: [],
       image: fileId,
       imageAlt: { ar: "تكوين", en: "Visual" },
       badges: [],
@@ -366,10 +371,10 @@ describe("homepage composition (philosophy & psychology redesign)", () => {
     await updateBlockProps(db, hero.id, {
       eyebrow: { ar: "", en: "" },
       heading: { ar: "عنوان", en: "Title" },
-      subtitle: { ar: "", en: "" },
+      docLine: { ar: "", en: "" },
+      lede: { ar: "", en: "" },
       ctas: [],
-      videoLabel: { ar: "", en: "" },
-      videoId: "",
+      pills: [],
       image: "",
       imageAlt: { ar: "", en: "" },
       badges: [],

@@ -89,26 +89,30 @@ describe("block registry", () => {
     expect(seoSchema.safeParse({ robots: "hacked" }).success).toBe(false);
   });
 
-  it("hero_showcase: full premium hero round-trips, video/image are uuid refs, badges constrained", () => {
+  it("hero_showcase: mockup hero round-trips, badges constrained", () => {
     const schema = zodForBlock("hero_showcase")!;
     const ok = schema.safeParse({
-      eyebrow: { ar: "الفلسفة وعلم النفس", en: "Philosophy & Psychology" },
-      heading: { ar: "أهلاً بيكم!", en: "Welcome!" },
-      subtitle: { ar: "<p>مقدمة</p>", en: "<p>Intro</p>" },
-      ctas: [{ label: { ar: "ابدأ", en: "Start" }, href: "/courses", target: "_self", variant: "primary", icon: "" }],
-      videoLabel: { ar: "شاهد", en: "Watch" },
-      videoId: "00000000-0000-4000-8000-0000000000aa",
+      watermark: "TITO",
+      scribble1: { ar: "خُلُقٌ", en: "Character" },
+      scribble2: { ar: "فلسفة", en: "Philosophy" },
+      eyebrow: { ar: "نرحب بك", en: "Welcome" },
+      heading: { ar: "مستر مصطفى تيتو", en: "Mr. Mostafa Tito" },
+      docLine: { ar: "دكتور السعادة", en: "Doctor of Happiness" },
+      lede: { ar: "<p>مقدمة</p>", en: "<p>Intro</p>" },
+      ctas: [{ label: { ar: "الكورسات", en: "Courses" }, href: "#grades", variant: "blue", icon: "🎓" }],
+      pills: [{ text: { ar: "شرح مبسط", en: "Simple" } }],
       image: "00000000-0000-4000-8000-0000000000bb",
       imageAlt: { ar: "صورة", en: "Image" },
-      badges: [{ icon: "brain", title: { ar: "ت", en: "T" }, text: { ar: "", en: "" }, position: "top-start" }],
+      badges: [{ icon: "🎓", text: { ar: "فلسفة", en: "Philosophy" }, dotTint: "green" }],
+      signScript: { ar: "معكم دائمًا", en: "Always" },
+      signSmall: { ar: "مستر مصطفى", en: "Mr. Mostafa" },
     });
     expect(ok.success).toBe(true);
 
-    // invalid icon id and unsafe link are rejected
-    expect(schema.safeParse({ badges: [{ icon: "<svg>", title: { ar: "", en: "" }, text: { ar: "", en: "" }, position: "top-start" }] }).success).toBe(false);
-    expect(schema.safeParse({ ctas: [{ label: { ar: "", en: "" }, href: "javascript:x", target: "_self", variant: "primary", icon: "" }] }).success).toBe(false);
-    // videoId must be a uuid (or empty) — never an arbitrary URL
-    expect(schema.safeParse({ videoId: "https://youtube.com/x" }).success).toBe(false);
+    // unsafe link is rejected
+    expect(schema.safeParse({ ctas: [{ label: { ar: "", en: "" }, href: "javascript:x", variant: "blue", icon: "" }] }).success).toBe(false);
+    // invalid dotTint is rejected
+    expect(schema.safeParse({ badges: [{ icon: "🎓", text: { ar: "", en: "" }, dotTint: "hotpink" }] }).success).toBe(false);
   });
 
   it("statistics: bar/cards styles, optional per-item link, value is localized (legacy string coerced)", () => {
@@ -129,10 +133,22 @@ describe("block registry", () => {
     expect(schema.safeParse({ style: "bar", items: [{ value: "x", label: { ar: "", en: "" }, icon: "book-open", href: "javascript:x" }] }).success).toBe(false);
   });
 
-  it("feature_cards: per-item tint is constrained to the color-role enum", () => {
+  it("feature_cards: per-item tint is constrained to mockup tints", () => {
     const schema = zodForBlock("feature_cards")!;
-    expect(schema.safeParse({ items: [{ icon: "brain", title: { ar: "", en: "" }, text: { ar: "", en: "" }, ctaLabel: { ar: "", en: "" }, href: "", tint: "brand" }] }).success).toBe(true);
-    expect(schema.safeParse({ items: [{ icon: "brain", title: { ar: "", en: "" }, text: { ar: "", en: "" }, ctaLabel: { ar: "", en: "" }, href: "", tint: "hotpink" }] }).success).toBe(false);
+    expect(schema.safeParse({ items: [{ icon: "🎥", title: { ar: "", en: "" }, text: { ar: "", en: "" }, tint: "blue" }] }).success).toBe(true);
+    expect(schema.safeParse({ items: [{ icon: "🎥", title: { ar: "", en: "" }, text: { ar: "", en: "" }, tint: "cream" }] }).success).toBe(true);
+    expect(schema.safeParse({ items: [{ icon: "🎥", title: { ar: "", en: "" }, text: { ar: "", en: "" }, tint: "hotpink" }] }).success).toBe(false);
+  });
+
+  it("quote_cards: quotes round-trip with text and author", () => {
+    const schema = zodForBlock("quote_cards")!;
+    const ok = schema.safeParse({
+      quotes: [
+        { text: { ar: "قول حكيم", en: "Wise saying" }, author: { ar: "مستر مصطفى", en: "Mr. Mostafa" } },
+      ],
+    });
+    expect(ok.success).toBe(true);
+    expect(schema.safeParse({ quotes: [] }).success).toBe(true);
   });
 });
 

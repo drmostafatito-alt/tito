@@ -237,43 +237,48 @@ export const BLOCKS: Record<string, BlockDef> = {
   hero_showcase: {
     labelKey: "cms.blocks.hero_showcase", group: "content",
     fields: [
+      { name: "watermark", kind: "text", labelKey: "cms.f.watermark", max: 20 },
+      { name: "scribble1", kind: "ltext", labelKey: "cms.f.scribble1", max: 80 },
+      { name: "scribble2", kind: "ltext", labelKey: "cms.f.scribble2", max: 80 },
       { name: "eyebrow", kind: "ltext", labelKey: "cms.f.eyebrow", max: 120 },
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
-      { name: "subtitle", kind: "lrichtext", labelKey: "cms.f.subtitle", max: 4000 },
+      { name: "docLine", kind: "ltext", labelKey: "cms.f.docLine", max: 120 },
+      { name: "lede", kind: "lrichtext", labelKey: "cms.f.lede", max: 4000 },
       {
         name: "ctas", kind: "repeater", labelKey: "cms.f.ctas", itemLabelKey: "cms.f.ctaItem", maxItems: 3,
         items: [
           { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 80 },
           { name: "href", kind: "link", labelKey: "cms.f.link" },
-          { name: "target", kind: "select", labelKey: "cms.f.target", options: targetOpts },
-          { name: "variant", kind: "select", labelKey: "cms.f.variant", options: variantOpts },
-          { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+          { name: "variant", kind: "select", labelKey: "cms.f.variant", options: [
+            { value: "blue", labelKey: "cms.heroVariant.blue" },
+            { value: "ghost", labelKey: "cms.heroVariant.ghost" },
+          ] },
+          { name: "icon", kind: "ltext", labelKey: "cms.f.iconEmoji", max: 10 },
         ],
       },
-      { name: "videoLabel", kind: "ltext", labelKey: "cms.f.videoLabel", max: 80 },
-      { name: "videoId", kind: "videoRef", labelKey: "cms.f.video" },
+      {
+        name: "pills", kind: "repeater", labelKey: "cms.f.pills", itemLabelKey: "cms.f.pillItem", maxItems: 6,
+        items: [
+          { name: "text", kind: "ltext", labelKey: "cms.f.text", max: 60 },
+        ],
+      },
       { name: "image", kind: "image", labelKey: "cms.f.image" },
       { name: "imageAlt", kind: "ltext", labelKey: "cms.f.alt", max: 200 },
       {
-        name: "badges", kind: "repeater", labelKey: "cms.f.badges", itemLabelKey: "cms.f.badgeItem", maxItems: 4,
+        name: "badges", kind: "repeater", labelKey: "cms.f.badges", itemLabelKey: "cms.f.badgeItem", maxItems: 3,
         items: [
-          { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
-          { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 80 },
-          { name: "text", kind: "ltext", labelKey: "cms.f.text", max: 160 },
-          { name: "position", kind: "select", labelKey: "cms.f.badgePos", options: badgePosOpts },
+          { name: "icon", kind: "ltext", labelKey: "cms.f.iconEmoji", max: 10 },
+          { name: "text", kind: "ltext", labelKey: "cms.f.text", max: 80 },
+          { name: "dotTint", kind: "select", labelKey: "cms.f.dotTint", options: [
+            { value: "green", labelKey: "cms.dotTint.green" },
+            { value: "blue", labelKey: "cms.dotTint.blue" },
+            { value: "gold", labelKey: "cms.dotTint.gold" },
+            { value: "teal", labelKey: "cms.dotTint.teal" },
+          ] },
         ],
       },
-      {
-        // One shape knob for CTA rows (the radius itself stays a system token).
-        name: "ctaShape", kind: "select", labelKey: "cms.f.ctaShape",
-        options: ["rounded", "soft", "pill"].map((v) => ({ value: v, labelKey: `cms.ctaShape.${v}` })),
-      },
-      {
-        // The identity plate: the owner's own name/title/photo from Settings →
-        // Identity. A real switch the renderer honours (hero_showcase reads it),
-        // so turning the personal panel off is an option — not a hidden default.
-        name: "useIdentity", kind: "toggle", labelKey: "cms.f.useIdentity",
-      },
+      { name: "signScript", kind: "ltext", labelKey: "cms.f.signScript", max: 120 },
+      { name: "signSmall", kind: "ltext", labelKey: "cms.f.signSmall", max: 120 },
     ],
   },
 
@@ -455,12 +460,14 @@ export const BLOCKS: Record<string, BlockDef> = {
     fields: [{
       name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.card", maxItems: 9,
       items: [
-        { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+        { name: "icon", kind: "ltext", labelKey: "cms.f.iconEmoji", max: 10 },
         { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 120 },
         { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 400 },
-        { name: "ctaLabel", kind: "ltext", labelKey: "cms.f.ctaLabel", max: 60 },
-        { name: "href", kind: "link", labelKey: "cms.f.link" },
-        { name: "tint", kind: "select", labelKey: "cms.f.iconColor", options: colorRoleOpts },
+        { name: "tint", kind: "select", labelKey: "cms.f.tint", options: [
+          { value: "blue", labelKey: "cms.tint.blue" },
+          { value: "cream", labelKey: "cms.tint.cream" },
+          { value: "mint", labelKey: "cms.tint.mint" },
+        ] },
       ],
     }],
   },
@@ -516,13 +523,17 @@ export const BLOCKS: Record<string, BlockDef> = {
   teacher_profile: {
     labelKey: "cms.blocks.teacher_profile", group: "content",
     fields: [
-      { name: "useIdentity", kind: "toggle", labelKey: "cms.f.useIdentity" },
-      { name: "showPhoto", kind: "toggle", labelKey: "cms.f.showPhoto" },
-      { name: "watermark", kind: "select", labelKey: "cms.f.watermark", options: thinkerOpts },
-      { name: "name", kind: "ltext", labelKey: "cms.f.name", max: 120 },
-      { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 120 },
-      { name: "photo", kind: "image", labelKey: "cms.f.photo" },
-      { name: "bio", kind: "lrichtext", labelKey: "cms.f.bio", max: 10000 },
+      { name: "scriptLine", kind: "ltext", labelKey: "cms.f.scriptLine", max: 120 },
+      { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
+      {
+        name: "paragraphs", kind: "repeater", labelKey: "cms.f.paragraphs", itemLabelKey: "cms.f.paragraph", maxItems: 6,
+        items: [
+          { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 2000 },
+        ],
+      },
+      { name: "image", kind: "image", labelKey: "cms.f.photo" },
+      { name: "imageAlt", kind: "ltext", labelKey: "cms.f.alt", max: 200 },
+      { name: "stamp", kind: "ltext", labelKey: "cms.f.stamp", max: 120 },
     ],
   },
   login_cta: {
@@ -562,18 +573,25 @@ export const BLOCKS: Record<string, BlockDef> = {
   social_links: {
     labelKey: "cms.blocks.social_links", group: "social",
     fields: [
-      { name: "style", kind: "select", labelKey: "cms.f.style", options: ["icons", "buttons"].map((v) => ({ value: v, labelKey: `cms.style.${v}` })) },
       {
-        name: "items", kind: "repeater", labelKey: "cms.f.items", itemLabelKey: "cms.f.socialItem", maxItems: 10,
+        name: "cards", kind: "repeater", labelKey: "cms.f.cards", itemLabelKey: "cms.f.card", maxItems: 12,
         items: [
-          { name: "network", kind: "icon", labelKey: "cms.f.network" },
-          { name: "url", kind: "link", labelKey: "cms.f.url" },
           { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 60 },
+          { name: "sub", kind: "ltext", labelKey: "cms.f.sub", max: 120 },
+          { name: "href", kind: "link", labelKey: "cms.f.link" },
+          { name: "iconUrl", kind: "text", labelKey: "cms.f.iconUrl", max: 500 },
+          { name: "iconEmoji", kind: "ltext", labelKey: "cms.f.iconEmoji", max: 10 },
+          { name: "tint", kind: "select", labelKey: "cms.f.tint", options: [
+            { value: "blue", labelKey: "cms.tint.blue" },
+            { value: "green", labelKey: "cms.tint.green" },
+            { value: "dark", labelKey: "cms.tint.dark" },
+            { value: "red", labelKey: "cms.tint.red" },
+            { value: "gold", labelKey: "cms.tint.gold" },
+            { value: "teal", labelKey: "cms.tint.teal" },
+            { value: "navy", labelKey: "cms.tint.navy" },
+          ] },
         ],
       },
-      { name: "showSubscribe", kind: "toggle", labelKey: "cms.f.showSubscribe" },
-      { name: "subscribeLabel", kind: "ltext", labelKey: "cms.f.subscribeLabel", max: 60 },
-      { name: "showExam", kind: "toggle", labelKey: "cms.f.showExam" },
     ],
   },
   contact_info: {
@@ -689,6 +707,15 @@ export const BLOCKS: Record<string, BlockDef> = {
       { name: "courseIds", kind: "refPicker", labelKey: "cms.f.filterCourses", picker: "course" },
       { name: "limit", kind: "number", labelKey: "cms.f.limit", min: 1, max: 12 },
       { name: "ctaLabel", kind: "ltext", labelKey: "cms.f.ctaLabelOverride", max: 60 },
+      {
+        name: "videos", kind: "repeater", labelKey: "cms.f.videos", itemLabelKey: "cms.f.videoItem", maxItems: 12,
+        items: [
+          { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 200 },
+          { name: "tag", kind: "ltext", labelKey: "cms.f.tag", max: 60 },
+          { name: "meta", kind: "ltext", labelKey: "cms.f.meta", max: 120 },
+          { name: "href", kind: "link", labelKey: "cms.f.link" },
+        ],
+      },
     ],
   },
   product_cards: {
@@ -727,6 +754,22 @@ export const BLOCKS: Record<string, BlockDef> = {
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
       { name: "subheading", kind: "ltextarea", labelKey: "cms.f.subheading", max: 400 },
       { name: "limit", kind: "number", labelKey: "cms.f.limit", min: 1, max: 12 },
+      {
+        name: "cards", kind: "repeater", labelKey: "cms.f.cards", itemLabelKey: "cms.f.card", maxItems: 12,
+        items: [
+          { name: "title", kind: "ltext", labelKey: "cms.f.title", max: 120 },
+          { name: "sub", kind: "ltext", labelKey: "cms.f.sub", max: 120 },
+          { name: "icon", kind: "ltext", labelKey: "cms.f.iconEmoji", max: 10 },
+          { name: "href", kind: "link", labelKey: "cms.f.link" },
+          { name: "ctaLabel", kind: "ltext", labelKey: "cms.f.ctaLabel", max: 60 },
+          {
+            name: "pills", kind: "repeater", labelKey: "cms.f.pills", itemLabelKey: "cms.f.pillItem", maxItems: 6,
+            items: [
+              { name: "text", kind: "ltext", labelKey: "cms.f.text", max: 60 },
+            ],
+          },
+        ],
+      },
     ],
   },
   // External Questions & Exams platform entry (admin-configured URL). Renders
@@ -772,21 +815,21 @@ export const BLOCKS: Record<string, BlockDef> = {
     fields: [
       { name: "heading", kind: "ltext", labelKey: "cms.f.heading", max: 200 },
       { name: "text", kind: "ltextarea", labelKey: "cms.f.text", max: 600 },
-      { name: "note", kind: "ltext", labelKey: "cms.f.note", max: 160 },
+      { name: "ctaLabel", kind: "ltext", labelKey: "cms.f.ctaLabel", max: 80 },
+      { name: "ctaHref", kind: "link", labelKey: "cms.f.link" },
+      { name: "ctaIcon", kind: "ltext", labelKey: "cms.f.iconEmoji", max: 10 },
+    ],
+  },
+
+  quote_cards: {
+    labelKey: "cms.blocks.quote_cards", group: "content",
+    fields: [
       {
-        name: "ctas", kind: "repeater", labelKey: "cms.f.ctas", itemLabelKey: "cms.f.ctaItem", maxItems: 3,
+        name: "quotes", kind: "repeater", labelKey: "cms.f.quotes", itemLabelKey: "cms.f.quoteItem", maxItems: 12,
         items: [
-          { name: "label", kind: "ltext", labelKey: "cms.f.label", max: 80 },
-          { name: "href", kind: "link", labelKey: "cms.f.link" },
-          { name: "target", kind: "select", labelKey: "cms.f.target", options: targetOpts },
-          { name: "variant", kind: "select", labelKey: "cms.f.variant", options: variantOpts },
-          { name: "icon", kind: "icon", labelKey: "cms.f.icon" },
+          { name: "text", kind: "ltextarea", labelKey: "cms.f.quote", max: 600 },
+          { name: "author", kind: "ltext", labelKey: "cms.f.author", max: 120 },
         ],
-      },
-      {
-        // One shape knob for CTA rows (the radius itself stays a system token).
-        name: "ctaShape", kind: "select", labelKey: "cms.f.ctaShape",
-        options: ["rounded", "soft", "pill"].map((v) => ({ value: v, labelKey: `cms.ctaShape.${v}` })),
       },
     ],
   },
@@ -1330,6 +1373,53 @@ export const CMS_LABELS: Record<string, { ar: string; en: string }> = {
 };
 
 /* Thinker names for the builder — derived, never a second hand-maintained list. */
+Object.assign(CMS_LABELS, {
+  // quote_cards + mockup field labels
+  "cms.blocks.quote_cards": { ar: "أقوال مأثورة", en: "Quotes" },
+  "cms.f.quotes": { ar: "الأقوال", en: "Quotes" },
+  "cms.f.quoteItem": { ar: "قول", en: "Quote" },
+  "cms.f.quote": { ar: "نص القول", en: "Quote text" },
+  "cms.f.author": { ar: "الكاتب", en: "Author" },
+  "cms.f.docLine": { ar: "سطر التعريف", en: "Definition line" },
+  "cms.f.lede": { ar: "المقدمة", en: "Lead" },
+  "cms.f.scribble1": { ar: "خربشة ١", en: "Scribble 1" },
+  "cms.f.scribble2": { ar: "خربشة ٢", en: "Scribble 2" },
+  "cms.f.watermark": { ar: "العلامة المائية", en: "Watermark" },
+  "cms.f.pills": { ar: "الحبوب", en: "Pills" },
+  "cms.f.pillItem": { ar: "حبة", en: "Pill" },
+  "cms.f.signScript": { ar: "التوقيع الزخرفي", en: "Script signature" },
+  "cms.f.signSmall": { ar: "التوقيع الصغير", en: "Small signature" },
+  "cms.f.iconEmoji": { ar: "أيقونة (إيموجي)", en: "Icon (emoji)" },
+  "cms.f.dotTint": { ar: "لون النقطة", en: "Dot tint" },
+  "cms.dotTint.green": { ar: "أخضر", en: "Green" },
+  "cms.dotTint.blue": { ar: "أزرق", en: "Blue" },
+  "cms.dotTint.gold": { ar: "ذهبي", en: "Gold" },
+  "cms.dotTint.teal": { ar: "تركواز", en: "Teal" },
+  "cms.f.scriptLine": { ar: "السطر الزخرفي", en: "Script line" },
+  "cms.f.paragraphs": { ar: "الفقرات", en: "Paragraphs" },
+  "cms.f.paragraph": { ar: "فقرة", en: "Paragraph" },
+  "cms.f.stamp": { ar: "الختم", en: "Stamp" },
+  "cms.f.cards": { ar: "الكروت", en: "Cards" },
+  "cms.f.card": { ar: "كارت", en: "Card" },
+  "cms.f.videos": { ar: "الفيديوهات", en: "Videos" },
+  "cms.f.videoItem": { ar: "فيديو", en: "Video" },
+  "cms.f.tag": { ar: "الوسم", en: "Tag" },
+  "cms.f.meta": { ar: "البيانات الوصفية", en: "Meta" },
+  "cms.f.sub": { ar: "الوصف الفرعي", en: "Subtitle" },
+  "cms.f.tint": { ar: "اللون", en: "Tint" },
+  "cms.tint.blue": { ar: "أزرق", en: "Blue" },
+  "cms.tint.cream": { ar: "كريمي", en: "Cream" },
+  "cms.tint.mint": { ar: "نعناعي", en: "Mint" },
+  "cms.tint.green": { ar: "أخضر", en: "Green" },
+  "cms.tint.dark": { ar: "داكن", en: "Dark" },
+  "cms.tint.red": { ar: "أحمر", en: "Red" },
+  "cms.tint.gold": { ar: "ذهبي", en: "Gold" },
+  "cms.tint.teal": { ar: "تركواز", en: "Teal" },
+  "cms.tint.navy": { ar: "كحلي", en: "Navy" },
+  "cms.heroVariant.blue": { ar: "أزرق", en: "Blue" },
+  "cms.heroVariant.ghost": { ar: "شفاف", en: "Ghost" },
+  "cms.f.iconUrl": { ar: "رابط الأيقونة", en: "Icon URL" },
+});
 Object.assign(CMS_LABELS, {
   "cms.thinker.none": { ar: "بدون صورة", en: "No portrait" },
   ...Object.fromEntries(THINKERS.map((t) => [`cms.thinker.${t.id}`, { ar: t.nameAr, en: t.nameEn }])),

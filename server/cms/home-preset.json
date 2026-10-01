@@ -1,6 +1,6 @@
 {
-  "$comment": "APPROVED PUBLIC HOMEPAGE COMPOSITION (v3) — mobile-first, white-dominant, built only from blocks that already exist in the CMS registry. Order follows the owner brief: teacher hero → choose your grade → the learning content (subjects and fields) → what the platform gives you → free lessons → video → files and notebooks → exams → how to start → about the teacher → contact → CTA. Rules: ONE card grammar and ONE button grammar (app/lib/publicStyles.ts), light surfaces with navy + soft blue and gold as the only accent, no gradients, no invented content (every data-driven block collapses when its table is empty, and the identity/contact blocks collapse while the owner has not filled them in), and every destination is /study, /p/contact, /register or a real in-page anchor. The legacy catalog (/courses…) stays reachable for existing links and SEO but is never advertised here. The teacher photo is never stored in this file: it comes from Settings -> Identity (identity.ownerPhotoFileId -> R2 -> /files/:id).",
-  "v": 3,
+  "$comment": "APPROVED PUBLIC HOMEPAGE (mockup v5) — blue/gold identity (Tajawal + Aref Ruqaa), RTL, mobile-first. Order: hero → grades → latest lessons → features → about → contact → quotes → final CTA. All copy is CMS-editable; renderers contain no hardcoded marketing text. Teacher photo comes from Settings → Identity (identity.ownerPhotoFileId). Question-platform entry uses the admin-configured questionPlatformUrl only.",
+  "v": 4,
   "page": {
     "slug": "home",
     "titleAr": "الرئيسية",
@@ -9,7 +9,7 @@
   },
   "sections": [
     {
-      "id": "2727d1e2-f43c-533c-b2f9-8b198b70e329",
+      "id": "4515056c-ea87-416f-bd50-c33ee832945b",
       "type": "section",
       "visible": true,
       "props": {
@@ -33,328 +33,276 @@
       },
       "children": [
         {
-          "id": "ab767941-41d9-51cc-b12c-843e10b3cccc",
+          "id": "c5246b96-1d81-476f-bea3-93ef2f57a9f9",
           "type": "hero_showcase",
           "visible": true,
           "props": {
+            "watermark": "TITO",
+            "scribble1": {
+              "ar": "خُلُقٌ",
+              "en": "Character"
+            },
+            "scribble2": {
+              "ar": "فلسفة",
+              "en": "Philosophy"
+            },
             "eyebrow": {
-              "ar": "🎓 العام الدراسي 2026 / 2027",
-              "en": "🎓 2026/2027 school year"
+              "ar": "نرحب بك في رحلتك التعليمية ✦",
+              "en": "Welcome to your learning journey"
             },
             "heading": {
               "ar": "مستر مصطفى تيتو",
               "en": "Mr. Mostafa Tito"
             },
-            "subtitle": {
-              "ar": "<p>اتعلّم <strong>الفلسفة والمنطق</strong> و<strong>علم النفس</strong> بالفيديو — شرح مبسّط من الصفر، مذكرات PDF، وامتحانات تدريبية بعد كل درس. أهلاً بيكم يا أبطال ❤️</p>",
-              "en": "<p>Learn <strong>philosophy, logic</strong> and <strong>psychology</strong> by video — simple explanations from scratch, PDF notes, and practice exams after every lesson.</p>"
+            "docLine": {
+              "ar": "دكتور السعادة",
+              "en": "Doctor of Happiness"
+            },
+            "lede": {
+              "ar": "رحلتك نحو التفوق تبدأ من هنا. انضم لآلاف الطلاب اللي غيّروا علاقتهم بالفلسفة وعلم النفس. الشرح أسهل، والمذاكرة أمتع، والنجاح مضمون بإذن الله.",
+              "en": "Your journey to excellence starts here."
             },
             "ctas": [
               {
                 "label": {
-                  "ar": "تصفّح الكورسات",
-                  "en": "Browse courses"
+                  "ar": "🎓 الكورسات",
+                  "en": "Courses"
                 },
                 "href": "#grades",
-                "target": "_self",
-                "variant": "primary",
-                "icon": ""
+                "variant": "blue",
+                "icon": "🎓"
               },
               {
                 "label": {
-                  "ar": "تواصل معنا",
-                  "en": "Contact us"
+                  "ar": "واتساب",
+                  "en": "WhatsApp"
                 },
-                "href": "#contact",
-                "target": "_self",
-                "variant": "secondary",
-                "icon": ""
+                "href": "https://wa.me/",
+                "variant": "ghost",
+                "icon": "💬"
               }
             ],
-            "videoLabel": {
-              "ar": "",
-              "en": ""
+            "pills": [
+              {
+                "text": {
+                  "ar": "✨ شرح مبسط",
+                  "en": "Simple explanations"
+                }
+              },
+              {
+                "text": {
+                  "ar": "📝 ملخصات",
+                  "en": "Summaries"
+                }
+              },
+              {
+                "text": {
+                  "ar": "🎯 امتحانات",
+                  "en": "Exams"
+                }
+              }
+            ],
+            "badges": [
+              {
+                "icon": "🎓",
+                "text": {
+                  "ar": "فلسفة",
+                  "en": "Philosophy"
+                },
+                "dotTint": "green"
+              },
+              {
+                "icon": "🧠",
+                "text": {
+                  "ar": "علم نفس",
+                  "en": "Psychology"
+                },
+                "dotTint": "blue"
+              },
+              {
+                "icon": "✨",
+                "text": {
+                  "ar": "منطق",
+                  "en": "Logic"
+                },
+                "dotTint": "gold"
+              }
+            ],
+            "signScript": {
+              "ar": "معكم دائمًا… دكتور السعادة",
+              "en": "Always with you"
+            },
+            "signSmall": {
+              "ar": "مستر مصطفى تيتو",
+              "en": "Mr. Mostafa Tito"
             },
             "image": "",
             "imageAlt": {
-              "ar": "",
-              "en": ""
-            },
-            "badges": [
-              {
-                "icon": "check-circle",
-                "title": {
-                  "ar": "شرح مبسّط",
-                  "en": "Simple explanations"
-                },
-                "text": {
-                  "ar": "",
-                  "en": ""
-                }
-              },
-              {
-                "icon": "target",
-                "title": {
-                  "ar": "طريقك نحو التفوق",
-                  "en": "Your path to excellence"
-                },
-                "text": {
-                  "ar": "",
-                  "en": ""
-                }
-              },
-              {
-                "icon": "play-circle",
-                "title": {
-                  "ar": "فيديوهات + تدريب",
-                  "en": "Videos + practice"
-                },
-                "text": {
-                  "ar": "",
-                  "en": ""
-                }
-              }
-            ],
-            "useIdentity": true,
-            "ctaShape": "pill"
-          }
-        }
-      ]
-    },
-    {
-      "id": "826ab9da-0b78-5c03-a773-f047c8d46413",
-      "type": "section",
-      "visible": true,
-      "props": {
-        "heading": {
-          "ar": "اختر صفك للبدء",
-          "en": ""
-        },
-        "subheading": {
-          "ar": "كورسات فيديو كاملة لكل صف — شرح، مذكرات، وتدريب مستمر لحد ليلة الامتحان",
-          "en": ""
-        },
-        "bg": "surface",
-        "padding": "md",
-        "container": "normal",
-        "columns": "1",
-        "gap": "md",
-        "align": "start",
-        "hideMobile": false,
-        "bgImage": "",
-        "anchor": "grades"
-      },
-      "children": [
-        {
-          "id": "eabc1b46-a8f8-5eb8-bb77-0dbdf7259ca3",
-          "type": "grade_cards",
-          "visible": true,
-          "props": {
-            "heading": {
-              "ar": "",
-              "en": ""
-            },
-            "subheading": {
-              "ar": "",
-              "en": ""
-            },
-            "limit": 8
-          }
-        }
-      ]
-    },
-    {
-      "id": "586136c8-b071-534d-a576-27f5d7f00359",
-      "type": "section",
-      "visible": true,
-      "props": {
-        "heading": {
-          "ar": "أحدث الدروس",
-          "en": ""
-        },
-        "subheading": {
-          "ar": "تابع أجدد فيديوهات الشرح أول بأول",
-          "en": ""
-        },
-        "bg": "surface",
-        "padding": "md",
-        "container": "normal",
-        "columns": "1",
-        "gap": "md",
-        "align": "start",
-        "hideMobile": false,
-        "bgImage": "",
-        "anchor": "videos"
-      },
-      "children": [
-        {
-          "id": "2f32424e-4386-5b7f-aea8-72566b42f889",
-          "type": "video_showcase",
-          "visible": true,
-          "props": {
-            "heading": {
-              "ar": "",
-              "en": ""
-            },
-            "subheading": {
-              "ar": "",
-              "en": ""
-            },
-            "limit": 6,
-            "ctaLabel": {
-              "ar": "كل الفيديوهات",
-              "en": "All videos"
+              "ar": "مستر مصطفى تيتو",
+              "en": "Mr. Mostafa Tito"
             }
           }
         }
       ]
     },
     {
-      "id": "acacd121-bb48-504e-9dbb-9cfdab500d87",
+      "id": "25adf423-0a28-426d-92fc-621cd931dac9",
       "type": "section",
       "visible": true,
       "props": {
         "heading": {
-          "ar": "المحتوى التعليمي",
+          "ar": "",
           "en": ""
         },
         "subheading": {
-          "ar": "المواد والمجالات المتاحة على المنصّة — ادخل مادتك وهتلاقي كل دروسها",
+          "ar": "",
           "en": ""
         },
         "bg": "default",
         "padding": "md",
-        "container": "normal",
+        "container": "wide",
         "columns": "1",
         "gap": "md",
         "align": "start",
         "hideMobile": false,
         "bgImage": "",
-        "anchor": ""
+        "anchor": "grades",
+        "style": "default"
       },
       "children": [
         {
-          "id": "4d094601-b4c0-5299-9680-8c61e344b2e5",
-          "type": "study_subjects",
+          "id": "4ad438e1-8ddf-43bd-b2f5-613389e8cbaa",
+          "type": "grade_cards",
           "visible": true,
           "props": {
             "heading": {
-              "ar": "",
-              "en": ""
+              "ar": "اختر صفك للبدء",
+              "en": "Choose your grade"
             },
             "subheading": {
-              "ar": "",
-              "en": ""
+              "ar": "اختر صفك الدراسي للوصول إلى كورساتك وموادك",
+              "en": "Choose your grade to access your courses"
             },
-            "limit": 8,
-            "columns": "2",
-            "showJourney": true,
-            "allLabel": {
-              "ar": "كل المواد",
-              "en": "All subjects"
-            },
-            "allHref": "/study"
+            "limit": 12,
+            "cards": []
           }
         }
       ]
     },
     {
-      "id": "d9c0bcb1-c02d-56c3-9f76-1613b020924d",
+      "id": "a20c8717-898f-4205-b10e-7d14461bc078",
       "type": "section",
       "visible": true,
       "props": {
         "heading": {
-          "ar": "لماذا منصة tito؟",
+          "ar": "",
           "en": ""
         },
         "subheading": {
-          "ar": "كل اللي محتاجه عشان تتفوق — في مكان واحد",
+          "ar": "",
           "en": ""
         },
-        "bg": "surface",
+        "bg": "default",
         "padding": "md",
-        "container": "normal",
+        "container": "wide",
         "columns": "1",
         "gap": "md",
         "align": "start",
         "hideMobile": false,
         "bgImage": "",
-        "anchor": ""
+        "anchor": "videos",
+        "style": "vids"
       },
       "children": [
         {
-          "id": "2c03ca5e-52db-55e3-a316-08068aa8dbbc",
+          "id": "6f9db0cb-942d-4458-863f-ab562581afc4",
+          "type": "video_showcase",
+          "visible": true,
+          "props": {
+            "heading": {
+              "ar": "أحدث الدروس",
+              "en": "Latest lessons"
+            },
+            "subheading": {
+              "ar": "شاهد أحدث الدروس والشروحات",
+              "en": "Watch the latest lessons"
+            },
+            "limit": 6,
+            "ctaLabel": {
+              "ar": "",
+              "en": ""
+            },
+            "videos": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "0e674b27-cae7-464d-8e97-67f24e884ae4",
+      "type": "section",
+      "visible": true,
+      "props": {
+        "heading": {
+          "ar": "",
+          "en": ""
+        },
+        "subheading": {
+          "ar": "",
+          "en": ""
+        },
+        "bg": "default",
+        "padding": "md",
+        "container": "wide",
+        "columns": "1",
+        "gap": "md",
+        "align": "start",
+        "hideMobile": false,
+        "bgImage": "",
+        "anchor": "features",
+        "style": "default"
+      },
+      "children": [
+        {
+          "id": "a957ea96-164e-4a9c-9a7f-fb68751c23ef",
           "type": "feature_cards",
           "visible": true,
           "props": {
             "items": [
               {
-                "icon": "play-circle",
+                "icon": "🎥",
                 "title": {
                   "ar": "شرح بالفيديو",
-                  "en": "Video lessons"
+                  "en": "Video explanations"
                 },
                 "text": {
-                  "ar": "دروس فيديو مبسطة من الصفر — تشوف الدرس وتفهمه من أول مرة.",
-                  "en": "Simplified video lessons from scratch."
+                  "ar": "شروحات فيديو مبسطة لكل درس — افهم من أول مرة.",
+                  "en": "Simple video explanations for every lesson."
                 },
-                "ctaLabel": {
-                  "ar": "",
-                  "en": ""
-                },
-                "href": "",
-                "tint": "brand"
+                "tint": "blue"
               },
               {
-                "icon": "target",
+                "icon": "📝",
+                "title": {
+                  "ar": "ملخصات وملفات",
+                  "en": "Summaries & files"
+                },
+                "text": {
+                  "ar": "ملخصات وملفات PDF لكل وحدة — ذاكر بذكاء.",
+                  "en": "Summaries and PDF files for every unit."
+                },
+                "tint": "cream"
+              },
+              {
+                "icon": "🎯",
                 "title": {
                   "ar": "امتحانات تدريبية",
                   "en": "Practice exams"
                 },
                 "text": {
-                  "ar": "اختبر نفسك بعد كل درس بأسئلة على نظام الامتحان.",
-                  "en": "Test yourself after every lesson."
+                  "ar": "اختبر نفسك بامتحانات تحاكي الواقع — واستعد بثقة.",
+                  "en": "Test yourself with realistic exams."
                 },
-                "ctaLabel": {
-                  "ar": "",
-                  "en": ""
-                },
-                "href": "",
-                "tint": "accent"
-              },
-              {
-                "icon": "file-text",
-                "title": {
-                  "ar": "مذكرات PDF",
-                  "en": "PDF notes"
-                },
-                "text": {
-                  "ar": "ملخصات ومذكرات جاهزة للتحميل والطباعة لكل درس.",
-                  "en": "Ready-to-print summaries for every lesson."
-                },
-                "ctaLabel": {
-                  "ar": "",
-                  "en": ""
-                },
-                "href": "",
-                "tint": "success"
-              },
-              {
-                "icon": "smartphone",
-                "title": {
-                  "ar": "من أي جهاز",
-                  "en": "Any device"
-                },
-                "text": {
-                  "ar": "اتعلم من الموبايل أو التابلت أو الكمبيوتر — في أي وقت.",
-                  "en": "Learn from phone, tablet or computer."
-                },
-                "ctaLabel": {
-                  "ar": "",
-                  "en": ""
-                },
-                "href": "",
-                "tint": "muted"
+                "tint": "mint"
               }
             ]
           }
@@ -362,87 +310,7 @@
       ]
     },
     {
-      "id": "42b17857-85bb-5eac-9642-f216a97dca35",
-      "type": "section",
-      "visible": true,
-      "props": {
-        "heading": {
-          "ar": "ابدأ مجانًا",
-          "en": ""
-        },
-        "subheading": {
-          "ar": "دروس منشورة ومفتوحة لكل الطلاب — جرّب أسلوب الشرح قبل أي حاجة",
-          "en": ""
-        },
-        "bg": "default",
-        "padding": "md",
-        "container": "normal",
-        "columns": "1",
-        "gap": "md",
-        "align": "start",
-        "hideMobile": false,
-        "bgImage": "",
-        "anchor": ""
-      },
-      "children": [
-        {
-          "id": "9f7054dc-0671-5245-83be-e0240e6bdbe3",
-          "type": "free_content",
-          "visible": true,
-          "props": {
-            "heading": {
-              "ar": "",
-              "en": ""
-            },
-            "limit": 6
-          }
-        }
-      ]
-    },
-    {
-      "id": "462f7c58-925e-5cad-8da5-0a6c9e301f36",
-      "type": "section",
-      "visible": true,
-      "props": {
-        "heading": {
-          "ar": "ملفات ومذكرات",
-          "en": ""
-        },
-        "subheading": {
-          "ar": "كتب ومذكرات وملفات قابلة للتحميل — بتظهر هنا تلقائيًا",
-          "en": ""
-        },
-        "bg": "default",
-        "padding": "md",
-        "container": "normal",
-        "columns": "1",
-        "gap": "md",
-        "align": "start",
-        "hideMobile": false,
-        "bgImage": "",
-        "anchor": "books"
-      },
-      "children": [
-        {
-          "id": "79437686-85ee-5fd1-9ade-34ab92ec2953",
-          "type": "product_cards",
-          "visible": true,
-          "props": {
-            "heading": {
-              "ar": "",
-              "en": ""
-            },
-            "subheading": {
-              "ar": "",
-              "en": ""
-            },
-            "limit": 6
-          }
-        }
-      ]
-    },
-    {
-      "id": "d82a9ac4-85e7-504c-ab33-2a4b359aa226",
+      "id": "13eba5fa-1870-431b-9d46-57210a9df91a",
       "type": "section",
       "visible": true,
       "props": {
@@ -456,229 +324,216 @@
         },
         "bg": "default",
         "padding": "md",
-        "container": "normal",
+        "container": "wide",
         "columns": "1",
         "gap": "md",
         "align": "start",
         "hideMobile": false,
         "bgImage": "",
-        "anchor": "exams"
+        "anchor": "about",
+        "style": "about"
       },
       "children": [
         {
-          "id": "314f052a-cac2-5bf7-bb92-0e1fdd5b2404",
-          "type": "exam_platform",
-          "visible": true,
-          "props": {
-            "heading": {
-              "ar": "منصة الأسئلة",
-              "en": "Questions platform"
-            },
-            "text": {
-              "ar": "اختبر نفسك بامتحانات إلكترونية تفاعلية — تصحيح فوري ومراجعة للإجابات، عشان تدخل الامتحان وانت مطمن.",
-              "en": "Test yourself with interactive electronic exams — instant correction and answer review."
-            },
-            "ctaLabel": {
-              "ar": "ادخل منصة الأسئلة",
-              "en": "Enter the platform"
-            },
-            "note": {
-              "ar": "تُفتح في تبويب جديد",
-              "en": "Opens in a new tab"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "ed6012fc-d9d7-583f-9ec4-73ab8aa37762",
-      "type": "section",
-      "visible": true,
-      "props": {
-        "heading": {
-          "ar": "كيف تبدأ؟",
-          "en": ""
-        },
-        "subheading": {
-          "ar": "أربع خطوات وتكون جوه أول درس",
-          "en": ""
-        },
-        "bg": "surface",
-        "padding": "md",
-        "container": "normal",
-        "columns": "1",
-        "gap": "md",
-        "align": "start",
-        "hideMobile": false,
-        "bgImage": "",
-        "anchor": ""
-      },
-      "children": [
-        {
-          "id": "71069e9e-79fe-54f4-928f-f680e723c5f1",
-          "type": "journey_steps",
-          "visible": true,
-          "props": {
-            "items": [
-              {
-                "icon": "graduation-cap",
-                "title": {
-                  "ar": "اختر صفّك",
-                  "en": "Pick your grade"
-                },
-                "text": {
-                  "ar": "من المحتوى التعليمي، أو من كروت الصف في الأعلى.",
-                  "en": "From the learning content, or from the grade cards above."
-                },
-                "href": "/study"
-              },
-              {
-                "icon": "book-open",
-                "title": {
-                  "ar": "ادخل مادتك",
-                  "en": "Open your subject"
-                },
-                "text": {
-                  "ar": "كل مادة تعرض شرحها ووحداتها والملفات المرتبطة بها.",
-                  "en": "Each subject shows its lessons, units and attached files."
-                },
-                "href": ""
-              },
-              {
-                "icon": "play-circle",
-                "title": {
-                  "ar": "شاهد وذاكر",
-                  "en": "Watch and study"
-                },
-                "text": {
-                  "ar": "الفيديو والدروس والملفات في مكان واحد، بلا تنقّل بين تطبيقات.",
-                  "en": "Video, lessons and files in one place, no app-hopping."
-                },
-                "href": ""
-              },
-              {
-                "icon": "check-circle",
-                "title": {
-                  "ar": "اختبر نفسك",
-                  "en": "Test yourself"
-                },
-                "text": {
-                  "ar": "تدريبات وامتحانات على نمط الورقة الامتحانية.",
-                  "en": "Drills and exams in the shape of the real paper."
-                },
-                "href": ""
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "cc0877bf-d744-5dc6-8317-c4a50421a63d",
-      "type": "section",
-      "visible": true,
-      "props": {
-        "heading": {
-          "ar": "نبذة عن المعلم",
-          "en": ""
-        },
-        "subheading": {
-          "ar": "اتعرف على مدرسك — اللي هيكون معاك لحد ليلة الامتحان",
-          "en": ""
-        },
-        "bg": "default",
-        "padding": "md",
-        "container": "normal",
-        "columns": "1",
-        "gap": "md",
-        "align": "start",
-        "hideMobile": false,
-        "bgImage": "",
-        "anchor": ""
-      },
-      "children": [
-        {
-          "id": "a58fc736-68e5-5c53-ab33-d098b575d264",
+          "id": "e33b090a-ea20-4bc0-b421-6a1f7e1867e0",
           "type": "teacher_profile",
           "visible": true,
           "props": {
-            "useIdentity": true,
-            "name": {
-              "ar": "",
-              "en": ""
+            "scriptLine": {
+              "ar": "تعرّف عليّ",
+              "en": "Meet me"
             },
-            "title": {
-              "ar": "",
-              "en": ""
+            "heading": {
+              "ar": "نبذة عن المعلم",
+              "en": "About the teacher"
             },
-            "photo": "",
-            "bio": {
-              "ar": "",
-              "en": ""
+            "paragraphs": [
+              {
+                "text": {
+                  "ar": "أهلاً بيكم يا أبطال! أنا مستر مصطفى تيتو، مدرس الفلسفة والمنطق وعلم النفس، ولقبي اللي بحبه \"دكتور السعادة\".",
+                  "en": "Hello heroes! I'm Mr. Mostafa Tito."
+                }
+              },
+              {
+                "text": {
+                  "ar": "هدفي إن الفلسفة تبقى أسهل مادة عندك — بالشرح المبسط، والأمثلة من حياتنا، والمتابعة المستمرة لحد ما توصل لهدفك.",
+                  "en": "My goal is to make philosophy your easiest subject."
+                }
+              }
+            ],
+            "image": "",
+            "imageAlt": {
+              "ar": "مستر مصطفى تيتو",
+              "en": "Mr. Mostafa Tito"
             },
-            "showPhoto": true,
-            "watermark": "marx"
+            "stamp": {
+              "ar": "دكتور السعادة",
+              "en": "Doctor of Happiness"
+            }
           }
         }
       ]
     },
     {
-      "id": "ff2a8a40-c904-5418-82a8-54808d7af342",
+      "id": "ba53d486-8744-4b4b-a76a-d484e2b41b4e",
       "type": "section",
       "visible": true,
       "props": {
         "heading": {
-          "ar": "تواصل معنا",
+          "ar": "",
           "en": ""
         },
         "subheading": {
-          "ar": "اختار الطريقة المناسبة ليك — بنرد بسرعة",
+          "ar": "",
           "en": ""
         },
-        "bg": "surface",
+        "bg": "default",
         "padding": "md",
-        "container": "normal",
-        "columns": "2",
+        "container": "wide",
+        "columns": "1",
         "gap": "md",
         "align": "start",
         "hideMobile": false,
         "bgImage": "",
-        "anchor": "contact"
+        "anchor": "contact",
+        "style": "default"
       },
       "children": [
         {
-          "id": "fc41821a-4c33-5701-9879-6358380cbdcd",
-          "type": "contact_info",
-          "visible": true,
-          "props": {
-            "showPhone": true,
-            "showEmail": true,
-            "showAddress": false,
-            "addressOverride": {
-              "ar": "",
-              "en": ""
-            }
-          }
-        },
-        {
-          "id": "76739558-88a9-57ea-a864-8f5e0a6274cd",
+          "id": "d78c9fb5-0374-4e5b-be35-7552c2c26f69",
           "type": "social_links",
           "visible": true,
           "props": {
-            "style": "buttons",
-            "items": [],
-            "showSubscribe": true,
-            "subscribeLabel": {
-              "ar": "اشترك الآن",
-              "en": "Subscribe now"
-            },
-            "showExam": true
+            "cards": [
+              {
+                "label": {
+                  "ar": "تيليجرام",
+                  "en": "Telegram"
+                },
+                "sub": {
+                  "ar": "قناة الدروس",
+                  "en": "Lessons channel"
+                },
+                "href": "",
+                "iconUrl": "",
+                "iconEmoji": "✈️",
+                "tint": "blue"
+              },
+              {
+                "label": {
+                  "ar": "واتساب",
+                  "en": "WhatsApp"
+                },
+                "sub": {
+                  "ar": "تواصل مباشر",
+                  "en": "Direct contact"
+                },
+                "href": "",
+                "iconUrl": "",
+                "iconEmoji": "💬",
+                "tint": "green"
+              },
+              {
+                "label": {
+                  "ar": "فيسبوك",
+                  "en": "Facebook"
+                },
+                "sub": {
+                  "ar": "تابعنا",
+                  "en": "Follow us"
+                },
+                "href": "",
+                "iconUrl": "",
+                "iconEmoji": "📘",
+                "tint": "dark"
+              },
+              {
+                "label": {
+                  "ar": "يوتيوب",
+                  "en": "YouTube"
+                },
+                "sub": {
+                  "ar": "دروس مجانية",
+                  "en": "Free lessons"
+                },
+                "href": "",
+                "iconUrl": "",
+                "iconEmoji": "▶️",
+                "tint": "red"
+              }
+            ]
           }
         }
       ]
     },
     {
-      "id": "dc368a9e-55e4-5a3a-83ee-415e3aec9c99",
+      "id": "88c94a11-8744-4e21-9413-5423bceb15ee",
+      "type": "section",
+      "visible": true,
+      "props": {
+        "heading": {
+          "ar": "",
+          "en": ""
+        },
+        "subheading": {
+          "ar": "",
+          "en": ""
+        },
+        "bg": "default",
+        "padding": "md",
+        "container": "wide",
+        "columns": "1",
+        "gap": "md",
+        "align": "start",
+        "hideMobile": false,
+        "bgImage": "",
+        "anchor": "quotes",
+        "style": "quotes"
+      },
+      "children": [
+        {
+          "id": "5f52171f-ecda-4440-af72-3d882e45d9a3",
+          "type": "quote_cards",
+          "visible": true,
+          "props": {
+            "quotes": [
+              {
+                "text": {
+                  "ar": "\"الفلسفة هي حب الحكمة — ومن أحب الحكمة أحب الحياة.\"",
+                  "en": "\"Philosophy is the love of wisdom.\""
+                },
+                "author": {
+                  "ar": "مستر مصطفى تيتو",
+                  "en": "Mr. Mostafa Tito"
+                }
+              },
+              {
+                "text": {
+                  "ar": "\"النجاح مش حظ — النجاح عادة يومية.\"",
+                  "en": "\"Success is not luck — it's a daily habit.\""
+                },
+                "author": {
+                  "ar": "مستر مصطفى تيتو",
+                  "en": "Mr. Mostafa Tito"
+                }
+              },
+              {
+                "text": {
+                  "ar": "\"كل سؤال صعب هو فرصة عشان تبقى أقوى.\"",
+                  "en": "\"Every hard question is a chance to grow stronger.\""
+                },
+                "author": {
+                  "ar": "مستر مصطفى تيتو",
+                  "en": "Mr. Mostafa Tito"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "4029ca1b-c41f-45d7-9752-79df10e4be82",
       "type": "section",
       "visible": true,
       "props": {
@@ -702,35 +557,24 @@
       },
       "children": [
         {
-          "id": "1d396f8e-0a8e-564d-bd2e-d31b84c287ed",
+          "id": "e8553743-f63d-4192-9eef-7f54aecd5065",
           "type": "cta_banner",
           "visible": true,
           "props": {
             "heading": {
-              "ar": "جاهز تبدأ رحلتك؟",
+              "ar": "جاهز تبدأ رحلة التفوق؟",
               "en": "Ready to start your journey?"
             },
             "text": {
-              "ar": "اختار صفك وابدأ أول درس فيديو النهاردة — التفوق قرار.",
-              "en": "Pick your grade and start your first video lesson today."
+              "ar": "انضم لآلاف الطلاب اللي بيذاكروا معانا وحقق حلمك.",
+              "en": "Join thousands of students studying with us."
             },
-            "note": {
-              "ar": "",
-              "en": ""
+            "ctaLabel": {
+              "ar": "🚀 اشترك دلوقتي",
+              "en": "Subscribe now"
             },
-            "ctas": [
-              {
-                "label": {
-                  "ar": "تصفّح الكورسات",
-                  "en": "Browse courses"
-                },
-                "href": "#grades",
-                "target": "_self",
-                "variant": "gold",
-                "icon": ""
-              }
-            ],
-            "ctaShape": "pill"
+            "ctaHref": "/register",
+            "ctaIcon": "🚀"
           }
         }
       ]
