@@ -362,7 +362,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           </div>
           {loaderData.footer.length > 0 && (
             <div className="flinks">
-              <h4>{t(locale, "footer.quickLinks")}</h4>
+              <h2>{t(locale, "footer.quickLinks")}</h2>
               {loaderData.footer.map((node) => (
                 <NavLink key={node.id} item={node} locale={locale} />
               ))}
@@ -375,7 +375,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               the owner has filled it in; nothing here is invented. */}
           {hasContact && (
             <div className="flinks fcontact">
-              <h4>{t(locale, "footer.contact")}</h4>
+              <h2>{t(locale, "footer.contact")}</h2>
               {idn.contactPhone && (
                 <a href={`tel:${idn.contactPhone}`} aria-label={`${t(locale, "footer.phone")}: ${idn.contactPhone}`}>
                   <Icon name="phone" size="sm" colorRole="default" className="ic" />

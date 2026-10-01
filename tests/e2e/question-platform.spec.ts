@@ -209,7 +209,12 @@ test.describe.serial("External Questions Platform entry", () => {
           await expect(mobileLink).toBeVisible();
           const mb = await mobileLink.boundingBox();
           expect(mb!.height).toBeGreaterThanOrEqual(44);
-          expect(mb!.width).toBeGreaterThan(w - 48);
+          // Full-width *inside the drawer*, which is an 88vw overlay panel, not
+          // a full-bleed sheet: measuring against the viewport asked the link to
+          // be wider than the panel containing it (360px viewport -> 316.8px
+          // drawer -> 284.8px content box, vs an expected >312).
+          const drawerBox = await page.locator("nav#student-mobile-nav").boundingBox();
+          expect(mb!.width).toBeGreaterThan(drawerBox!.width - 48);
           const drawerOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
           expect(drawerOverflow, `${locale} ${w}: drawer horizontal overflow`).toBeLessThanOrEqual(1);
         } else {
@@ -264,14 +269,16 @@ test.describe.serial("External Questions Platform entry", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     // Anchors whose sections DO render must still be real same-document links —
-    // the guard must not neutralise every fragment. (The demo seed publishes a
-    // video and a product, so the videos/books sections render here.)
-    await expect(page.locator("#videos")).toHaveCount(1);
-    await expect(page.locator("#books")).toHaveCount(1);
-    const videosLink = page.locator('a[href="#videos"]').first();
-    await expect(videosLink).toBeVisible();
+    // the guard must not neutralise every fragment. The approved composition
+    // anchors its sections `grades`, `vids`, `feats`, `about` and `contact`
+    // (the older `videos`/`books` sections this used to name are not part of
+    // it), and the hero/CTA copy links to #grades and #contact.
+    await expect(page.locator("#grades")).toHaveCount(1);
+    await expect(page.locator("#contact")).toHaveCount(1);
+    const gradesLink = page.locator('a[href="#grades"]').first();
+    await expect(gradesLink).toBeVisible();
     // A fragment is a same-document jump: never opened in a second tab.
-    expect(await videosLink.getAttribute("target")).toBeNull();
+    expect(await gradesLink.getAttribute("target")).toBeNull();
 
     // The "اختبر نفسك" journey step has no destination while unconfigured.
     expect(await page.locator(`a[href="${EXTERNAL_URL}"]`).count()).toBe(0);

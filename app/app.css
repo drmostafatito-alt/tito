@@ -52,6 +52,18 @@
   --font-sans: "Tajawal", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-script: "Aref Ruqaa", "Tajawal", serif;
 
+  /* Tailwind's stock slate-500 (#62748E) is the muted-label colour across the
+     admin and student consoles, and it fails WCAG 2.1 AA 1.4.3 for body text
+     on the surfaces it actually sits on: 4.11:1 on --color-pub-surface and
+     4.45:1 on --color-pub-bg, against a 4.5:1 minimum. Overriding the palette
+     entry fixes all 287 call sites at once instead of editing ~50 files, and
+     it is safe to do here because the scale is used ONLY as `text-slate-500`
+     (zero bg-/border-/ring-/fill- uses), so nothing but text colour moves.
+     #55637A is the nearest darker slate that clears 4.5:1 on white, #FDFDFE,
+     --color-pub-surface and --color-pub-bg, and still clears it (4.78:1) where
+     the console renders these labels at ~90% alpha over a near-white card. */
+  --color-slate-500: #55637A;
+
   /* LAYER B · Brand: violet / indigo — CONSOLE ONLY (never a public surface) */
   --color-brand-50: #f5f3ff;
   --color-brand-100: #ede9fe;
@@ -892,7 +904,11 @@ button, a { touch-action: manipulation; }
   --mk-gold-deep: #A57E26;
   --mk-cream: #F9F3E6;
   --mk-ink: var(--color-pub-ink);
-  --mk-muted: #7D8495;
+  /* Same AA correction as --color-pub-muted in Layer A: the mockup's #7D8495
+     is 3.50:1 on the page canvas, below the 4.5:1 body-text minimum. #656B7C
+     is the same hue/saturation at the first AA-passing lightness. Used by
+     .lede, .sec-head p, .gcard .sub, .brand small, .sign small … all body copy. */
+  --mk-muted: #656B7C;
   --mk-faint: #A2A7B5;
   --mk-card-blue: #E9EEFA;
   --mk-mint: #DFF7E8;
@@ -1061,7 +1077,7 @@ button, a { touch-action: manipulation; }
 .mk .fbrand b{color:#fff;font-size:1.1rem;display:block}
 .mk .fbrand small{font-size:.8rem}
 .mk .fabout{font-size:.9rem;max-width:26rem}
-.mk .flinks h4{color:#fff;margin-bottom:14px;font-size:1rem}
+.mk .flinks h2{color:#fff;margin-bottom:14px;font-size:1rem;font-weight:700}
 .mk .flinks a{display:block;padding:5px 0;font-size:.92rem}
 .mk .flinks a:hover{color:var(--mk-gold)}
 .mk .fsoc{display:flex;gap:10px;margin-top:16px}

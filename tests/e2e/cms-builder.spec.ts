@@ -64,24 +64,40 @@ async function expandBlock(page: Page, index: number) {
  * often have an empty heading (the section is a layout container), so the first
  * block in the document is not necessarily one whose text a visitor can read.
  */
+/**
+ * A block whose Arabic heading is UNIQUE across the page.
+ *
+ * Callers use the heading as a marker to prove a block did (or did not) reach
+ * the public page, which only works if no other block renders the same string.
+ * The seeded homepage breaks that assumption: `hero_showcase` and
+ * `teacher_profile` both legitimately head their section with the teacher's
+ * name, so hiding the hero left the name on screen via the profile and the
+ * assertion failed against perfectly correct behaviour.
+ */
 async function firstBlockWithHeading(page: Page) {
   const forms = blockForms(page);
   const n = await forms.count();
+  const found: { index: number; value: string; en: string; id: string }[] = [];
   for (let i = 0; i < n; i++) {
     const ar = forms.nth(i).locator('input[name="f.heading.ar"]').first();
     if (!(await ar.count())) continue;
     await expandBlock(page, i);
     const value = (await ar.inputValue()).trim();
-    if (value) {
-      return {
-        index: i,
-        value,
-        en: (await forms.nth(i).locator('input[name="f.heading.en"]').first().inputValue()).trim(),
-        id: await forms.nth(i).locator('input[name="blockId"]').first().inputValue(),
-      };
-    }
+    if (!value) continue;
+    found.push({
+      index: i,
+      value,
+      en: (await forms.nth(i).locator('input[name="f.heading.en"]').first().inputValue()).trim(),
+      id: await forms.nth(i).locator('input[name="blockId"]').first().inputValue(),
+    });
   }
-  throw new Error("no block on the homepage has an Arabic heading");
+  const counts = new Map<string, number>();
+  for (const f of found) counts.set(f.value, (counts.get(f.value) ?? 0) + 1);
+  const unique = found.find((f) => counts.get(f.value) === 1);
+  if (unique) return unique;
+  throw new Error(
+    `no block on the homepage has a UNIQUE Arabic heading (saw: ${found.map((f) => f.value).join(" | ")})`,
+  );
 }
 
 /**

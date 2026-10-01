@@ -75,18 +75,23 @@ test.describe("homepage public chrome", () => {
     // Asserted on strings the composition itself owns (CMS copy + identity
     // tagline), so the test follows the approved public vocabulary instead of
     // pinning one marketing sentence.
+    // Pinned to a heading the approved composition actually owns in BOTH
+    // locales ("كتب ومذكرات" belonged to an earlier homepage and is not in it),
+    // so this stays a locale test rather than a marketing-copy test.
+    const AR_COPY = "اختر صفك للبدء";
+    const EN_COPY = /Choose your grade to start/i;
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-    await expect(page.locator("body")).toContainText("كتب ومذكرات");
+    await expect(page.locator("body")).toContainText(AR_COPY);
     await page.getByRole("button", { name: /english/i }).click();
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     const cookies = await page.context().cookies(BASE);
     expect(cookies.find((c) => c.name === "edu_locale")?.value).toBe("en");
-    await expect(page.locator("body")).toContainText(/Books & notes/);
+    await expect(page.locator("body")).toContainText(EN_COPY);
     await expect(page.locator("body")).toContainText(/Philosophy & Psychology/);
-    await expect(page.locator("body")).not.toContainText("كتب ومذكرات");
+    await expect(page.locator("body")).not.toContainText(AR_COPY);
     await expect(page.getByRole("button", { name: /عربي|arabic/i })).toBeVisible();
   });
 
