@@ -184,8 +184,12 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               {tagline && <small>{tagline}</small>}
             </div>
           </Link>
+          {/* Desktop nav only. The burger opens the overlay Drawer below — it
+              used to toggle this panel open at the same time, so two menus
+              (and two identically-labelled nav landmarks) were open at once,
+              with this one stranded behind the drawer's scrim. */}
           {loaderData.header.length > 0 && (
-            <nav aria-label={t(locale, "common.navMain")} className={`nav${mobileOpen ? " open" : ""}`} id="nav">
+            <nav aria-label={t(locale, "common.navMain")} className="nav" id="nav">
               {loaderData.header.map((node) => (
                 <NavLink
                   key={node.id}
@@ -237,8 +241,13 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
               type="button"
               className="burger"
               id="burger"
+              data-testid="public-menu"
               aria-label={t(locale, "common.menu")}
               aria-expanded={mobileOpen}
+              // Only point at the drawer while it exists: the Drawer unmounts
+              // when closed, and aria-controls must resolve to a real element.
+              aria-controls={mobileOpen ? "mobile-nav" : undefined}
+              aria-haspopup="menu"
               onClick={() => setMobileOpen((v) => !v)}
             >
               ☰

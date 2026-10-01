@@ -587,6 +587,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               {photoSrc && (
                 <img
                   className="photo"
+                  // Marks the page's primary visual, same contract as
+                  // ThinkerPortrait's `heroVisual`. The mockup transcription
+                  // dropped it, so nothing identified the hero image anymore.
+                  data-hero-visual="true"
                   src={photoSrc}
                   alt={photoAlt}
                   loading="eager"

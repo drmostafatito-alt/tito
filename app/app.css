@@ -123,7 +123,12 @@
   --color-pub-ink: #1B2540; /* primary ink (mockup) */
   --color-pub-ink-strong: #08152b; /* display ink = navy-950 */
   --color-pub-ink-soft: #16305a; /* secondary ink = navy-800 */
-  --color-pub-muted: #7D8495; /* muted copy (mockup) */
+  /* Muted copy. The mockup's #7D8495 fails WCAG 2.1 AA 1.4.3 on every public
+     canvas it is used on (3.75:1 on #fff, 3.50:1 on --color-pub-bg, 3.23:1 on
+     --color-pub-surface; AA needs 4.5:1 for body text). Darkened to the first
+     value that clears 4.5:1 on all three, keeping the mockup's hue (222.5deg)
+     and saturation (10.2%) exactly — 5.32 / 4.97 / 4.59. */
+  --color-pub-muted: #656B7C; /* muted copy (mockup hue, AA-corrected) */
 
   --color-pub-navy: #113274; /* the ONE dark band, rare by design (mockup) */
   --color-pub-navy-2: #1947A4;
@@ -1103,12 +1108,12 @@ button, a { touch-action: manipulation; }
   .mk .about-grid{grid-template-columns:1fr;gap:36px}
   .mk .about-photo{max-width:380px;margin:0 auto}
   .mk .qgrid{grid-template-columns:1fr}
+  /* The mobile menu is the overlay Drawer (`nav#mobile-nav`), not a second
+     dropdown: the burger used to open BOTH, so the mockup's `.nav.open` panel
+     sat behind the drawer's scrim — invisible but still in the tab order.
+     `.nav` is now desktop-only and the `.nav.open` rules are gone with it. */
   .mk .nav{display:none}
   .mk .burger{display:block}
-  .mk .nav.open{display:flex;position:absolute;top:74px;right:12px;left:12px;background:#fff;flex-direction:column;gap:4px;padding:14px;border-radius:18px;box-shadow:var(--mk-shadow);z-index:70}
-  .mk .nav.open a{padding:12px 16px;border-radius:12px}
-  .mk .nav.open a.active{background:var(--mk-card-blue)}
-  .mk .nav.open a.active::after{display:none}
 }
 @media(max-width:600px){
   .mk .container{padding:0 16px}
