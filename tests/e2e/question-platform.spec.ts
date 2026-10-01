@@ -126,7 +126,7 @@ test.describe.serial("External Questions Platform entry", () => {
     {
       const { ctx, page: sp } = await studentContext(browser, "ar", true);
       await sp.goto("/dashboard");
-      await sp.locator('button[aria-controls="student-mobile-nav"]').click();
+      await sp.getByTestId("student-menu").click();
       const mobileLink = sp.getByTestId("nav-question-platform-mobile");
       await expect(mobileLink).toBeVisible();
       await expect(mobileLink).toHaveAttribute("href", EXTERNAL_URL);
@@ -202,7 +202,7 @@ test.describe.serial("External Questions Platform entry", () => {
         // invariants below — zero overflow, no clipping, tap targets — are the
         // engine-agnostic gate.)
         const desktopPill = page.getByTestId("nav-question-platform-desktop");
-        const hamburger = page.locator('button[aria-controls="student-mobile-nav"]');
+        const hamburger = page.getByTestId("student-menu");
         if (w < 1280) {
           await hamburger.click();
           const mobileLink = page.getByTestId("nav-question-platform-mobile");

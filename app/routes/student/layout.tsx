@@ -186,8 +186,14 @@ export default function StudentLayout({ loaderData }: Route.ComponentProps) {
             <button
               type="button"
               className="inline-flex h-11 w-11 items-center justify-center rounded-pub-pill text-pub-ink hover:bg-pub-surface xl:hidden"
+              data-testid="student-menu"
               aria-expanded={mobileOpen}
-              aria-controls="student-mobile-nav"
+              // The Drawer unmounts when closed, so only point at it while it
+              // actually exists — a dangling IDREF is invalid ARIA. Matches the
+              // public header; target this button via data-testid, not the
+              // state-dependent aria-controls.
+              aria-controls={mobileOpen ? "student-mobile-nav" : undefined}
+              aria-haspopup="menu"
               aria-label={t(locale, "common.menu")}
               onClick={() => setMobileOpen((v) => !v)}
             >

@@ -100,9 +100,11 @@ test.describe("homepage public chrome", () => {
     await page.goto("/");
     await expect(page.locator("[data-hero-visual]")).toBeAttached();
     await expect(page.locator("h1").first()).toBeAttached();
-    const menu = page.locator('button[aria-controls="mobile-nav"]');
+    const menu = page.getByTestId("public-menu");
     await expect(menu).toBeAttached();
+    await expect(menu).toHaveAttribute("aria-expanded", "false");
     await menu.click();
+    await expect(menu).toHaveAttribute("aria-controls", "mobile-nav");
     await expect(page.locator("nav#mobile-nav")).toBeAttached();
   });
 

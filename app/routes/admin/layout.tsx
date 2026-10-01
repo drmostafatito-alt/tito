@@ -181,6 +181,23 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname, location.search]);
+  // Escape dismisses the drawer and the body stops scrolling behind the scrim,
+  // matching the shared Drawer used by the public and student headers. The
+  // admin console keeps its own dark-rail markup, so the behaviour has to be
+  // mirrored here rather than inherited.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   const { email, fullName } = loaderData.admin;
 
@@ -216,8 +233,13 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             <button
               type="button"
               className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 lg:hidden"
+              data-testid="admin-menu"
               aria-expanded={mobileOpen}
-              aria-controls="admin-mobile-nav"
+              // Same contract as the public/student headers: the drawer is
+              // unmounted while closed, so aria-controls is emitted only when
+              // the target element is really in the document.
+              aria-controls={mobileOpen ? "admin-mobile-nav" : undefined}
+              aria-haspopup="menu"
               aria-label={t(locale, "common.menu")}
               onClick={() => setMobileOpen((v) => !v)}
             >
