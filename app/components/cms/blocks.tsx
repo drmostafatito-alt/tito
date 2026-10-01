@@ -963,9 +963,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const iconUrl = raw(card, "iconUrl");
             const iconEmoji = str(card, "iconEmoji", L);
             const tint = raw(card, "tint") || "blue";
+            const iconBg = raw(card, "iconBg");
             return (
               <SmartLink key={idx} href={href} ariaLabel={label} className="scard">
-                <span aria-hidden="true" className={`sic sic-${tint}`}>
+                <span aria-hidden="true" className={`sic sic-${tint}`} style={iconBg ? { background: iconBg } : undefined}>
                   {iconUrl ? (
                     <img src={iconUrl} alt="" loading="lazy" decoding="async" />
                   ) : (

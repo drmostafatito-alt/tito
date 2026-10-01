@@ -584,6 +584,7 @@ export const BLOCKS: Record<string, BlockDef> = {
           { name: "href", kind: "link", labelKey: "cms.f.link" },
           { name: "iconUrl", kind: "text", labelKey: "cms.f.iconUrl", max: 500 },
           { name: "iconEmoji", kind: "ltext", labelKey: "cms.f.iconEmoji", max: 10 },
+          { name: "iconBg", kind: "text", labelKey: "cms.f.iconBg", max: 20 },
           { name: "tint", kind: "select", labelKey: "cms.f.tint", options: [
             { value: "blue", labelKey: "cms.tint.blue" },
             { value: "green", labelKey: "cms.tint.green" },
@@ -1432,6 +1433,7 @@ Object.assign(CMS_LABELS, {
   "cms.heroVariant.blue": { ar: "أزرق", en: "Blue" },
   "cms.heroVariant.ghost": { ar: "شفاف", en: "Ghost" },
   "cms.f.iconUrl": { ar: "رابط الأيقونة", en: "Icon URL" },
+  "cms.f.iconBg": { ar: "لون خلفية الأيقونة", en: "Icon background color" },
 });
 Object.assign(CMS_LABELS, {
   "cms.thinker.none": { ar: "بدون صورة", en: "No portrait" },

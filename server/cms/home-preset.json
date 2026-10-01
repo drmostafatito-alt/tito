@@ -566,12 +566,13 @@
          "en": "Message us directly"
         },
         "href": "whatsapp:",
-        "iconUrl": "",
+        "iconUrl": "https://cdn.simpleicons.org/whatsapp/white",
         "iconEmoji": {
-         "ar": "💬",
-         "en": "💬"
+         "ar": "",
+         "en": ""
         },
-        "tint": "green"
+        "tint": "green",
+        "iconBg": "#25D366"
        },
        {
         "label": {
@@ -583,12 +584,13 @@
          "en": "Follow our page"
         },
         "href": "",
-        "iconUrl": "",
+        "iconUrl": "https://cdn.simpleicons.org/facebook/white",
         "iconEmoji": {
-         "ar": "📘",
-         "en": "📘"
+         "ar": "",
+         "en": ""
         },
-        "tint": "blue"
+        "tint": "blue",
+        "iconBg": "#1877F2"
        },
        {
         "label": {
@@ -600,12 +602,13 @@
          "en": "Short videos"
         },
         "href": "",
-        "iconUrl": "",
+        "iconUrl": "https://cdn.simpleicons.org/tiktok/white",
         "iconEmoji": {
-         "ar": "🎵",
-         "en": "🎵"
+         "ar": "",
+         "en": ""
         },
-        "tint": "dark"
+        "tint": "dark",
+        "iconBg": "#111111"
        },
        {
         "label": {
@@ -617,12 +620,13 @@
          "en": "Subscribe to the channel"
         },
         "href": "",
-        "iconUrl": "",
+        "iconUrl": "https://cdn.simpleicons.org/youtube/white",
         "iconEmoji": {
-         "ar": "▶️",
-         "en": "▶️"
+         "ar": "",
+         "en": ""
         },
-        "tint": "red"
+        "tint": "red",
+        "iconBg": "#FF0000"
        },
        {
         "label": {
