@@ -87,7 +87,7 @@ test.describe("QA closeout", () => {
     await expect(page.locator("body")).toContainText(/الفلسفة/);
     await expect(page.locator("body")).toContainText(/علم النفس/);
     await expect(page.locator("body")).toContainText(/مصطفى تيتو/);
-    await expect(page.locator("[data-hero-visual]")).toBeAttached();
+    await expect(page.locator("section.hero")).toBeAttached();
     await expect(page.locator("h1").first()).toBeVisible();
     await shot(page, "01-desktop-ar-rtl.png");
   });
@@ -110,7 +110,7 @@ test.describe("QA closeout", () => {
     await page.goto("/", { waitUntil: "load" });
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await expect(page.locator("[data-hero-visual]")).toBeAttached();
+    await expect(page.locator("section.hero")).toBeAttached();
     const menu = page.getByTestId("public-menu");
     await expect(menu).toBeVisible();
     await shot(page, "03-mobile-ar-rtl.png");
@@ -145,19 +145,19 @@ test.describe("QA closeout", () => {
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     const cookiesEn = await page.context().cookies(BASE);
     expect(cookiesEn.find((c) => c.name === "edu_locale")?.value).toBe("en");
-    await expect(page.locator("body")).toContainText(/Lessons & revision/);
-    await expect(page.locator("body")).not.toContainText("دروس ومراجعات");
+    await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
+    await expect(page.locator('[data-testid="public-header"]')).not.toContainText("تسجيل الدخول");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-    await expect(page.locator("body")).toContainText(/Lessons & revision/);
+    await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
 
     await page.getByRole("button", { name: /عربي|arabic/i }).click();
     await page.waitForURL("**/*");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await expect(page.locator("body")).toContainText("دروس ومراجعات");
+    await expect(page.locator('[data-testid="public-header"]')).toContainText("تسجيل الدخول");
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -259,7 +259,9 @@ test.describe("QA closeout", () => {
     expect(cssText).toMatch(/0f766e/i);
 
     await page.goto("/");
-    await expect(page.locator("header img, header svg").first()).toBeVisible();
+    const brand = page.locator('[data-testid="public-header"] a[href="/"]').first();
+    await expect(brand).toBeVisible();
+    await expect(brand.locator("img, .ava-fallback").first()).toBeVisible();
     await expect(page.locator("footer a[href*='youtube.com']").first()).toBeAttached();
 
     // --- CMS builder on FAQ: add/duplicate/reorder/delete, rich text, publish, preview, restore ---

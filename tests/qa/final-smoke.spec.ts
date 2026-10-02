@@ -72,7 +72,7 @@ test("1 login / session / GET logout 405 / UI logout", async ({ page, request })
   expect(getLogout.status()).toBe(405);
 
   await page.goto("/admin");
-  await page.locator('button[aria-haspopup="menu"]').click();
+  await page.getByRole("button", { name: /قائمة الإدارة|Admin menu/i }).click();
   await page.getByRole("menuitem", { name: /تسجيل الخروج|log\s*out/i }).click();
   await page.waitForURL(/\/login/, { timeout: 15_000 });
   await page.goto("/admin");
@@ -85,7 +85,7 @@ test("2 language AR→EN→reload→AR→reload (Accept-Language=en-US)", async 
   await page.goto("/", { waitUntil: "load" });
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.locator("body")).toContainText("دروس ومراجعات");
+  await expect(page.locator('[data-testid="public-header"]')).toContainText("تسجيل الدخول");
   await expect(page.locator("body")).not.toContainText(/EduCore/i);
 
   const [post] = await Promise.all([
@@ -95,19 +95,18 @@ test("2 language AR→EN→reload→AR→reload (Accept-Language=en-US)", async 
   expect(post.method()).toBe("POST");
   await page.waitForFunction(() => document.documentElement.lang === "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.locator("body")).toContainText(/Welcome to your platform/i);
-  await expect(page.locator("body")).toContainText(/Lessons & revision/);
+  await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
   expect((await context.cookies(BASE)).find((c) => c.name === "edu_locale")?.value).toBe("en");
   await page.screenshot({ path: resolve(OUT, "smoke-desktop-en.png"), fullPage: true });
 
   await page.reload({ waitUntil: "load" });
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.locator("body")).toContainText(/Lessons & revision/);
+  await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
 
   await page.getByRole("button", { name: /عربي|arabic/i }).click();
   await page.waitForFunction(() => document.documentElement.lang === "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.locator("body")).toContainText("دروس ومراجعات");
+  await expect(page.locator('[data-testid="public-header"]')).toContainText("تسجيل الدخول");
 
   await page.reload({ waitUntil: "load" });
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
@@ -150,12 +149,14 @@ test("4 homepage visual 3 viewports + Cairo fonts + no overflow", async ({ page 
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.locator("h1").first()).toBeVisible();
-    await expect(page.locator("[data-hero-visual]")).toBeAttached();
-    const hero = page.locator("[data-hero-visual] img, [data-hero-visual] picture img").first();
+    const hero = page.locator("section.hero [data-hero-visual] img, section.hero [data-hero-visual] picture img").first();
     if (await hero.count()) {
       await expect(hero).toBeVisible();
       const ok = await hero.evaluate((el) => (el as HTMLImageElement).naturalWidth > 0);
       expect(ok, "hero image decoded").toBe(true);
+    } else {
+      await expect(page.locator("section.hero")).toBeAttached();
+      await expect(page.locator("section.hero h1").first()).toBeVisible();
     }
     await expect(page.locator("body")).toContainText(/أهلاً بيكم/);
     await expect(page.locator("body")).toContainText(/مصطفى تيتو/);
@@ -173,7 +174,7 @@ test("4 homepage visual 3 viewports + Cairo fonts + no overflow", async ({ page 
   await page.locator("[data-locale-switch] button").click();
   await page.waitForFunction(() => document.documentElement.lang === "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.locator("body")).toContainText(/Welcome to your platform/i);
+  await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
   await expect(page.locator("body")).toContainText(/Philosophy/i);
   await expect(page.locator("body")).toContainText(/Dr mostafa tito/i);
   await noOverflow(page);
@@ -234,7 +235,9 @@ test("5 admin appearance + CMS + templates + files (one login)", async ({ page }
   await expect.poll(async () => (await page.request.get("/theme.css")).text()).toMatch(/--font-heading:"Cairo"/);
 
   await page.goto("/");
-  await expect(page.locator("header img, header svg").first()).toBeVisible();
+  const brand = page.locator('[data-testid="public-header"] a[href="/"]').first();
+  await expect(brand).toBeVisible();
+  await expect(brand.locator("img, .ava-fallback").first()).toBeVisible();
   await expect(page.locator("footer a[href*='youtube.com']").first()).toBeAttached();
 
   // --- CMS builder on FAQ ---

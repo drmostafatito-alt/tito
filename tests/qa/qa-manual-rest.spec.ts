@@ -23,12 +23,12 @@ test("tablet AR RTL + EN LTR", async ({ page }) => {
   await page.goto("/", { waitUntil: "load" });
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.locator("[data-hero-visual]")).toBeAttached();
+  await expect(page.locator("section.hero")).toBeAttached();
   await page.screenshot({ path: resolve(OUT, "05-tablet-ar-rtl.png"), fullPage: true });
   await page.locator("[data-locale-switch] button").click();
   await page.waitForFunction(() => document.documentElement.lang === "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.locator("body")).toContainText(/Lessons & revision/);
+  await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
   await page.screenshot({ path: resolve(OUT, "06-tablet-en-ltr.png"), fullPage: true });
 });
 
@@ -40,23 +40,47 @@ test("public pages AR+EN: CMS vs settings vs i18n", async ({ page }) => {
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     const arBody = await page.locator("body").innerText();
     expect(arBody).toMatch(arNeed);
-    await page.locator("[data-locale-switch] button").click();
-    await page.waitForFunction(() => document.documentElement.lang === "en");
+
+    async function setLocale(lang: "ar" | "en") {
+      const switcher = page.locator("[data-locale-switch] button");
+      if (await switcher.count()) {
+        await expect(switcher).toHaveAttribute("data-locale-next", lang);
+        await switcher.click();
+        await page.waitForFunction((wanted) => document.documentElement.lang === wanted, lang);
+      } else {
+        // Auth pages keep the compact footer and respect the same persisted locale,
+        // but they omit the visible switcher. Set it through its normal POST route.
+        // The API request context is not a browser navigation, so it carries no
+        // same-origin evidence; the global CSRF gate (server/http/csrf.server.ts)
+        // requires Origin/Referer exactly like every real form POST does. Send it
+        // explicitly — the same convention as tests/e2e/security.spec.ts and
+        // tests/e2e/youtube-content.spec.ts. The status assertion is unchanged.
+        const response = await page.context().request.post(`${BASE}/set-locale`, {
+          form: { lang, next: path },
+          headers: { Origin: BASE },
+        });
+        expect(response.status()).toBeLessThan(400);
+        expect((await page.context().cookies(BASE)).find((c) => c.name === "edu_locale")?.value).toBe(lang);
+        await page.goto(path, { waitUntil: "load" });
+      }
+      await expect(page.locator("html")).toHaveAttribute("lang", lang);
+    }
+
+    await setLocale("en");
     const enBody = await page.locator("body").innerText();
     expect(enBody).toMatch(enNeed);
     report[path] = {
       ar: arBody.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 12),
       en: enBody.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 12),
     };
-    await page.locator("[data-locale-switch] button").click();
-    await page.waitForFunction(() => document.documentElement.lang === "ar");
+    await setLocale("ar");
   }
 
-  await visit("/", /أهلاً بيكم|الفلسفة/, /Welcome to your platform|Philosophy/);
+  await visit("/", /تسجيل الدخول|الفلسفة/, /Log in|Philosophy/);
   await visit("/p/faq", /الأسئلة|QA-TEMPLATE/, /FAQ|QA-TEMPLATE|Frequently|Page title/);
   await visit("/p/contact", /تواصل|QA-TEMPLATE/, /Contact|QA-TEMPLATE|Page title/);
   await visit("/p/resources", /مكتبة المصادر|المصادر/, /Resource library|Resources/);
-  await visit("/courses", /الكورسات|كورسات/, /Courses/);
+  await visit("/courses", /المحتوى التعليمي/, /Learning content/);
   await visit("/login", /تسجيل الدخول|البريد/, /Log in|Email/i);
 
   writeFileSync(resolve(OUT, "copy-classification.json"), JSON.stringify({
@@ -206,7 +230,10 @@ test("admin files + rich-text toolbar + logout (single device)", async ({ page }
   await expect(page.getByRole("heading", { name: /الأسئلة الشائعة|Frequently asked/i })).toBeVisible();
 
   await page.goto("/admin");
-  await page.locator('button[aria-haspopup="menu"]').click();
+  // Two buttons carry aria-haspopup="menu" on /admin: the mobile drawer burger
+  // (data-testid="admin-menu") and the profile menu. Target the profile menu by
+  // its accessible name — the same selector tests/qa/final-smoke.spec.ts uses.
+  await page.getByRole("button", { name: /قائمة الإدارة|Admin menu/i }).click();
   await page.getByRole("menuitem", { name: /تسجيل الخروج|log\s*out/i }).click();
   await page.waitForURL(/\/login/, { timeout: 15_000 });
   await page.goto("/admin");

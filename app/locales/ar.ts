@@ -256,6 +256,7 @@ export const ar = {
     done_role: "تم تحديث الدور.",
     done_force: "تم إنهاء جميع الجلسات.",
     done_devices: "تم تصفير قائمة الأجهزة.",
+    done_reactivate_device: "تمت إعادة تفعيل الجهاز بنجاح.",
     done_session: "تم إنهاء الجلسة.",
     done_entitlement: "تم سحب الصلاحية.",
     err_denied: "ليست لديك صلاحية لهذا الإجراء.",
@@ -301,6 +302,7 @@ export const ar = {
     attempt_cancelled: "ملغى",
     devActive: "نشط",
     devRevoked: "ملغى",
+    reactivateDevice: "إعادة تفعيل",
   },
   analyticsAdmin: {
     title: "التحليلات",

@@ -191,7 +191,7 @@ export async function login(
       .where(eq(users.id, user.id));
   }
 
-  const device = await resolveDevice(db, env, { request, userId: user.id, policy: settings.devices, ipHash });
+  const device = await resolveDevice(db, env, { request, userId: user.id, userRole: user.roleId, policy: settings.devices, ipHash });
   if (!device.ok) return { ok: false, code: device.errorCode! };
 
   const session = await createSession(db, env, {

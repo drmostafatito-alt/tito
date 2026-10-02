@@ -18,6 +18,8 @@ import {
   duplicateNode,
   getNode,
   itemsForLesson,
+  listAcademicYears,
+  listTerms,
   moveNode,
   prerequisitesForCourse,
   setCoursePrerequisites,
@@ -100,8 +102,14 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
   // Course prerequisites: current set + the candidate pool (every other course).
   let prereqs: Array<{ courseId: string; slug: string; titleAr: string; titleEn: string }> = [];
   let prereqCandidates: Array<{ courseId: string; slug: string; titleAr: string; titleEn: string }> = [];
+  let academicYears: Awaited<ReturnType<typeof listAcademicYears>> = [];
+  let terms: Awaited<ReturnType<typeof listTerms>> = [];
   if (type === "course") {
-    prereqs = await prerequisitesForCourse(db, params.id);
+    [prereqs, academicYears, terms] = await Promise.all([
+      prerequisitesForCourse(db, params.id),
+      listAcademicYears(db),
+      listTerms(db),
+    ]);
     const rows = await db
       .select({ id: courses.id, slug: courses.slug, titleAr: courses.titleAr, titleEn: courses.titleEn })
       .from(courses)
@@ -169,6 +177,8 @@ export async function loader({ context, request, params }: Route.LoaderArgs) {
     })),
     prereqs,
     prereqCandidates,
+    academicYears,
+    terms,
   };
 }
 
@@ -207,6 +217,10 @@ export async function action({ context, request, params }: Route.ActionArgs) {
         for (const k of ["titleAr", "titleEn", "descriptionAr", "descriptionEn", "status", "visibility", "accessLevel", "slug"]) {
           const v = S(k);
           if (v !== undefined) patch[k] = v;
+        }
+        if (type === "course") {
+          patch.academicYearId = str(form, "academicYearId");
+          patch.termId = str(form, "termId");
         }
         const so = num(form, "sortOrder");
         if (so !== null) patch.sortOrder = so;
@@ -350,7 +364,7 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
   const [params] = useSearchParams();
-  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, outline, publicUrl, prereqs, prereqCandidates } = loaderData;
+  const { type, node, childRows, childAction, imageFiles, allFiles, allVideos, lessonItems, outline, publicUrl, prereqs, prereqCandidates, academicYears, terms } = loaderData;
   const label = locale === "ar" ? String(node.titleAr ?? node.id) : String(node.titleEn ?? node.id);
 
   const input = "rounded-lg border border-slate-300 px-3 py-2";
@@ -459,6 +473,24 @@ export default function NodeEditor({ loaderData }: Route.ComponentProps) {
             )}
             {isCourse && (
               <>
+                <label className="grid gap-1 text-sm">
+                  <span>{t(locale, "content.academicYear")}</span>
+                  <select name="academicYearId" defaultValue={String(node.academicYearId ?? "")} className={input} data-testid="course-academic-year">
+                    <option value="">—</option>
+                    {academicYears.map((year) => (
+                      <option key={year.id} value={year.id}>{locale === "ar" ? year.titleAr : year.titleEn}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>{t(locale, "content.term")}</span>
+                  <select name="termId" defaultValue={String(node.termId ?? "")} className={input} data-testid="course-term">
+                    <option value="">—</option>
+                    {terms.map((term) => (
+                      <option key={term.id} value={term.id}>{locale === "ar" ? term.titleAr : term.titleEn}</option>
+                    ))}
+                  </select>
+                </label>
                 <label className="grid gap-1 text-sm">
                   <span>{t(locale, "content.visibility")}</span>
                   <select name="visibility" defaultValue={String(node.visibility ?? "catalog")} className={input}>

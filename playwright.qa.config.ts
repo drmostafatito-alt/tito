@@ -9,9 +9,15 @@ import { resolve } from "node:path";
  * as the hermetic E2E config is used when no Playwright registry browser exists.
  */
 function registryChromiumPresent(): boolean {
-  const root = process.env.PLAYWRIGHT_BROWSERS_PATH ?? resolve(homedir(), ".cache", "ms-playwright");
+  // Both Playwright browsers-path conventions: XDG (~/.cache) and Windows %LOCALAPPDATA%.
+  const roots = [
+    process.env.PLAYWRIGHT_BROWSERS_PATH ?? resolve(homedir(), ".cache", "ms-playwright"),
+    process.env.LOCALAPPDATA ? resolve(process.env.LOCALAPPDATA, "ms-playwright") : null,
+  ].filter((p): p is string => Boolean(p));
   try {
-    return existsSync(root) && readdirSync(root).some((entry) => /^chromium(_headless_shell)?-\d+/.test(entry));
+    return roots.some(
+      (root) => existsSync(root) && readdirSync(root).some((entry) => /^chromium(_headless_shell)?-\d+/.test(entry))
+    );
   } catch {
     return false;
   }

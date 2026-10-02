@@ -39,6 +39,7 @@ export async function resolveDevice(
   opts: {
     request: Request;
     userId: string;
+    userRole?: string;
     policy: DeviceSettings;
     ipHash?: string | null;
   }
@@ -46,6 +47,7 @@ export async function resolveDevice(
   const cookies = parseCookieHeader(opts.request.headers.get("cookie"));
   const existingKey = cookies.get(DEVICE_COOKIE) ?? readEmbedHeader(opts.request, EMBED_DEVICE_HEADER, env);
   const now = Date.now();
+  const isAdmin = opts.userRole === "admin" || opts.userRole === "super_admin";
 
   if (existingKey) {
     const keyHash = await sha256Hex(existingKey, env.SESSION_PEPPER ?? "dk");
@@ -58,6 +60,23 @@ export async function resolveDevice(
     if (found[0]) {
       const device = found[0];
       if (device.status === "revoked") {
+        if (isAdmin) {
+          // Admin safe self-recovery on authenticated login:
+          // An admin logging in with valid credentials can safely re-activate their enrolled device
+          // that was evicted by LRU or test runs.
+          await db
+            .update(devices)
+            .set({ status: "active", revokedAt: null, lastSeenAt: now })
+            .where(eq(devices.id, device.id));
+          await logSecurityEvent(db, {
+            userId: opts.userId,
+            type: "device_added",
+            ipHash: opts.ipHash ?? null,
+            metadata: { deviceId: device.id, reauthorized: true, role: opts.userRole },
+          });
+          return { ok: true, deviceId: device.id };
+        }
+
         await logSecurityEvent(db, {
           userId: opts.userId,
           type: "device_revoked_login",
@@ -77,9 +96,12 @@ export async function resolveDevice(
     .from(devices)
     .where(and(eq(devices.userId, opts.userId), eq(devices.status, "active")));
 
-  if (opts.policy.changeLimitPer30d > 0) {
+  // Admin devices are not subject to student-sharing limit
+  const maxDevices = isAdmin ? 10 : opts.policy.maxPerStudent;
+
+  if (!isAdmin && opts.policy.changeLimitPer30d > 0) {
     const addedLast30d = active.filter((d) => now - d.firstSeenAt < 30 * 86_400_000).length;
-    if (addedLast30d >= opts.policy.changeLimitPer30d && active.length >= opts.policy.maxPerStudent) {
+    if (addedLast30d >= opts.policy.changeLimitPer30d && active.length >= maxDevices) {
       await logSecurityEvent(db, {
         userId: opts.userId,
         type: "device_change_limit_block",
@@ -90,8 +112,8 @@ export async function resolveDevice(
     }
   }
 
-  if (active.length >= opts.policy.maxPerStudent) {
-    if (opts.policy.onLimit === "replace_oldest") {
+  if (active.length >= maxDevices) {
+    if (opts.policy.onLimit === "replace_oldest" || isAdmin) {
       const oldest = active.slice().sort((a, b) => a.firstSeenAt - b.firstSeenAt)[0];
       await db
         .update(devices)
@@ -110,7 +132,7 @@ export async function resolveDevice(
         userId: opts.userId,
         type: "device_limit_block",
         ipHash: opts.ipHash ?? null,
-        metadata: { activeDevices: active.length, max: opts.policy.maxPerStudent },
+        metadata: { activeDevices: active.length, max: maxDevices },
       });
       return { ok: false, errorCode: "device_limit" };
     }

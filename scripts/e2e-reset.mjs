@@ -29,7 +29,9 @@ export const E2E_ADMIN_PASSWORD = "E2e-Admin-2026!";
 const ROOT = resolve(process.cwd());
 
 function run(cmd, args) {
-  const r = spawnSync(cmd, args, { stdio: "inherit", cwd: ROOT, env: process.env });
+  // Windows: npm/npx are .cmd shims — spawn requires a shell there (static args only).
+  const shell = process.platform === "win32";
+  const r = spawnSync(cmd, args, { stdio: "inherit", cwd: ROOT, env: process.env, shell });
   if (r.status !== 0) {
     console.error(`✗ ${cmd} ${args.join(" ")} failed (exit ${r.status})`);
     process.exit(r.status ?? 1);

@@ -400,6 +400,49 @@ export async function resetUserDevices(db: DB, targetId: string, actor: Actor, n
   return { ok: true, changed: res.meta.changes ?? 0 };
 }
 
+/** Re-activate a revoked device (support/admin recovery path). */
+export async function reactivateUserDevice(
+  db: DB,
+  targetId: string,
+  deviceId: string,
+  actor: Actor,
+  nowMs: number = Date.now()
+): Promise<AdminActionResult> {
+  const target = await loadTarget(db, targetId);
+  if (!target || target.deletedAt) return { ok: false, error: "not_found" };
+  const denied = rankGuard(actor, target.roleId);
+  if (denied) return { ok: false, error: denied };
+
+  const devRows = await db
+    .select({ id: devices.id, status: devices.status })
+    .from(devices)
+    .where(and(eq(devices.id, deviceId), eq(devices.userId, targetId)))
+    .limit(1);
+  const d = devRows[0];
+  if (!d) return { ok: false, error: "not_found" };
+  if (d.status === "active") return { ok: true, changed: 0 };
+
+  await db
+    .update(devices)
+    .set({ status: "active", revokedAt: null, lastSeenAt: nowMs })
+    .where(eq(devices.id, deviceId));
+
+  await logSecurityEvent(db, {
+    userId: targetId,
+    type: "device_added",
+    metadata: { deviceId, reactivatedBy: actor.userId },
+  });
+  await logAudit(db, {
+    actorUserId: actor.userId,
+    actorRole: actor.role,
+    action: "users.device_reactivate",
+    entityType: "device",
+    entityId: deviceId,
+    after: { status: "active", reactivatedBy: actor.userId },
+  });
+  return { ok: true, changed: 1 };
+}
+
 /** Revoke ONE session from the security center (P7 §7 — "revoke sessions/devices if architecture supports"). */
 export async function revokeSessionAdmin(db: DB, sessionId: string, actor: Actor): Promise<AdminActionResult> {
   const rows = await db

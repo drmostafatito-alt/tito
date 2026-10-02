@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Form, Link, useActionData, useNavigation, useSearchParams } from "react-router";
 import { redirect } from "react-router";
 import { getEnv, getWaitUntil } from "~server/cf.server";
+import { getDb } from "~server/db/client.server";
 import { login, registerUser } from "~server/auth/service.server";
-import { applyAuthCookies } from "~server/auth/session.server";
+import { applyAuthCookies, resolveAuth } from "~server/auth/session.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
@@ -15,7 +16,14 @@ import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
 
 /** Auth pages never index: unique branded title + noindex (no duplicate brand titles). */
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
+  const env = getEnv(context);
+  const db = getDb(env);
+  const { auth } = await resolveAuth(db, env, request);
+  if (auth) {
+    const isAdmin = auth.user.roleId === "admin" || auth.user.roleId === "super_admin";
+    return redirect(isAdmin ? "/admin" : "/dashboard");
+  }
   return { url: request.url };
 }
 

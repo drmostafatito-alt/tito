@@ -257,6 +257,7 @@ export const en: Dictionary = {
     done_role: "Role updated.",
     done_force: "All sessions ended.",
     done_devices: "Device list reset.",
+    done_reactivate_device: "Device re-activated successfully.",
     done_session: "Session revoked.",
     done_entitlement: "Entitlement revoked.",
     err_denied: "You do not have permission for this action.",
@@ -302,6 +303,7 @@ export const en: Dictionary = {
     attempt_cancelled: "Cancelled",
     devActive: "Active",
     devRevoked: "Revoked",
+    reactivateDevice: "Re-activate",
   },
   analyticsAdmin: {
     title: "Analytics",

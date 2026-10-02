@@ -9,6 +9,18 @@ import { ADMIN_STATE, STUDENT_EMAIL } from "./helpers";
 test.describe("admin platform", () => {
   test.use({ storageState: ADMIN_STATE });
 
+  test("course editor exposes editable academic year and term assignments", async ({ page }) => {
+    await page.goto("/admin/content");
+    const link = page.locator('a[href^="/admin/content/course/"]').first();
+    await expect(link).toBeVisible({ timeout: 20_000 });
+    const editorHref = await link.getAttribute("href");
+    expect(editorHref).toBeTruthy();
+
+    await page.goto(editorHref!);
+    await expect(page.locator('select[name="academicYearId"]')).toBeVisible();
+    await expect(page.locator('select[name="termId"]')).toBeVisible();
+  });
+
   test("dashboard renders real metrics from D1", async ({ page }) => {
     await page.goto("/admin");
     await expect(page.locator('[data-testid^="home-metric-"]').first()).toBeVisible({ timeout: 20_000 });

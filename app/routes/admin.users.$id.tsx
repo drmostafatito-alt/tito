@@ -6,6 +6,7 @@ import { getEnv } from "~server/cf.server";
 import { canPlatform } from "~server/auth/permissions.server";
 import {
   forceLogoutUser,
+  reactivateUserDevice,
   resetUserDevices,
   revokeSessionAdmin,
   setUserRole,
@@ -67,6 +68,11 @@ export async function action({ context, request, params }: Route.ActionArgs) {
   if (intent === "reset-devices") {
     const res = await resetUserDevices(db, params.id, actor);
     return res.ok ? { done: "devices" } : { error: res.error };
+  }
+  if (intent === "reactivate-device") {
+    const deviceId = String(form.get("deviceId") ?? "");
+    const res = await reactivateUserDevice(db, params.id, deviceId, actor);
+    return res.ok ? { done: "reactivate_device" } : { error: res.error };
   }
   if (intent === "revoke-session") {
     const res = await revokeSessionAdmin(db, String(form.get("sessionId") ?? ""), actor);
@@ -324,6 +330,13 @@ export default function AdminUserDetail({ loaderData }: Route.ComponentProps) {
                 <span className="flex items-center gap-2">
                   <Badge tone={d.status === "active" ? "success" : "danger"}>{d.status === "active" ? t(locale, "adminUsers.devActive") : t(locale, "adminUsers.devRevoked")}</Badge>
                   <span className="text-xs text-slate-500">{formatDate(locale, d.lastSeenAt)}</span>
+                  {d.status === "revoked" && perms.manage && !isSelf && (
+                    <Form method="post" className="inline">
+                      <input type="hidden" name="_action" value="reactivate-device" />
+                      <input type="hidden" name="deviceId" value={d.id} />
+                      <SubmitButton variant="secondary" size="sm">{t(locale, "adminUsers.reactivateDevice")}</SubmitButton>
+                    </Form>
+                  )}
                 </span>
               </div>
             ))}

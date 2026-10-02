@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "educore",
+  "name": "dr-mostafa-tito",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-04-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -8,19 +8,32 @@
     "directory": "./build/client"
   },
   "observability": { "enabled": true },
-  // Local development uses miniflare-simulated resources.
-  // Production values (database_id, bucket names) are set at deploy time — see docs/DEPLOYMENT.md.
+  // Production resources created in Dr. Mostafa Tito's Cloudflare account
+  // (account id 0ba7f865f65bf6c685dcced9afda147a) exactly as docs/DEPLOYMENT.md §2 prescribes.
+  // Local development keeps using miniflare-simulated resources through `wrangler dev`
+  // overrides (tests/e2e/test.env + --local D1); these are the real remote bindings.
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "educore-dev",
-      "database_id": "local",
+      "database_name": "tito-prod",
+      "database_id": "7000f1a0-d35f-4d03-ba8b-c24bf2e9389a",
       "migrations_dir": "migrations"
     }
   ],
   "r2_buckets": [
-    { "binding": "PUBLIC_ASSETS", "bucket_name": "educore-public-assets-local" },
-    { "binding": "PRIVATE_FILES", "bucket_name": "educore-private-files-local" },
-    { "binding": "VIDEO_MASTERS", "bucket_name": "educore-video-masters-local" }
-  ]
+    { "binding": "PUBLIC_ASSETS", "bucket_name": "tito-public-assets-prod" },
+    { "binding": "PRIVATE_FILES", "bucket_name": "tito-private-files-prod" },
+    { "binding": "VIDEO_MASTERS", "bucket_name": "tito-video-masters-prod" }
+  ],
+  // Non-secret production variables only. EMAIL_FROM (verified Resend sender) and
+  // MUX_PLAYBACK_RESTRICTION_ID (owner's Mux account) are deliberately absent until
+  // the owner supplies them — `npm run check:deploy-config` fails closed without them.
+  "vars": {
+    "ENVIRONMENT": "production",
+    "APP_ORIGIN": "https://dr-mostafa-tito.drmostafatito.workers.dev",
+    "EMAIL_PROVIDER": "resend",
+    "AUTH_PBKDF2_ITERATIONS": "100000",
+    "EMAIL_FROM": "Dr Mostafa Tito <onboarding@resend.dev>",
+    "MUX_PLAYBACK_RESTRICTION_ID": "J00FgsjZvOEsS8y3L1nY8H1TFUrFWL00GXbpU5C5AEDq8"
+  }
 }

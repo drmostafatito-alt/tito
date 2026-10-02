@@ -2,9 +2,10 @@ import type { Route } from "./+types/login";
 import { Form, Link, useActionData, useNavigation, useSearchParams } from "react-router";
 import { redirect } from "react-router";
 import { getEnv } from "~server/cf.server";
+import { getDb } from "~server/db/client.server";
 import { safeLocalRedirect } from "~server/http/redirect.server";
 import { login } from "~server/auth/service.server";
-import { applyAuthCookies } from "~server/auth/session.server";
+import { applyAuthCookies, resolveAuth } from "~server/auth/session.server";
 import { Input } from "~/components/ui/Input";
 import { SubmitButton } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
@@ -15,7 +16,18 @@ import { authPageMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { useRouteLoaderData } from "react-router";
 
 /** Auth pages never index: unique branded title + noindex (no duplicate brand titles). */
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
+  const env = getEnv(context);
+  const db = getDb(env);
+  const { auth } = await resolveAuth(db, env, request);
+  if (auth) {
+    const url = new URL(request.url);
+    const nextInput = url.searchParams.get("next");
+    const next = nextInput ? safeLocalRedirect(nextInput, "") || null : null;
+    const isAdmin = auth.user.roleId === "admin" || auth.user.roleId === "super_admin";
+    const dest = isAdmin ? next ?? "/admin" : next ?? "/dashboard";
+    return redirect(dest);
+  }
   return { url: request.url };
 }
 

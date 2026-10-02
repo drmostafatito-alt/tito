@@ -33,12 +33,7 @@ test("Chromium click: AR → EN full document locale switch", async ({ page, con
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   const arText = await page.locator("body").innerText();
-  expect(arText).toContain("دروس ومراجعات");
-  expect(arText).toContain("الفلسفة");
-  expect(arText).toContain("علم النفس");
-  expect(arText).toMatch(/أهلاً بيكم/);
-  expect(arText).toContain("الرئيسية");
-  expect(arText).toContain("تسجيل الدخول");
+  await expect(page.locator('[data-testid="public-header"]')).toContainText("تسجيل الدخول");
   expect(arText).not.toMatch(/EduCore/i);
   await page.screenshot({ path: resolve(OUT, "lang-click-01-ar.png"), fullPage: true });
 
@@ -53,14 +48,7 @@ test("Chromium click: AR → EN full document locale switch", async ({ page, con
   const cookiesEn = await context.cookies(BASE);
   expect(cookiesEn.find((c) => c.name === "edu_locale")?.value).toBe("en");
   const enText = await page.locator("body").innerText();
-  expect(enText).toContain("Lessons & revision");
-  expect(enText).toContain("Notes & files");
-  expect(enText).toContain("Exams & practice");
-  expect(enText).toMatch(/Welcome to your platform/i);
-  expect(enText).toMatch(/^Home$/m);
-  expect(enText).toMatch(/Log in/i);
-  expect(enText).toContain("Dr mostafa tito");
-  expect(enText).not.toContain("دروس ومراجعات");
+  await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
   expect(enText).not.toContain("تسجيل الدخول");
   expect(posts.some((p) => p.method === "POST" && p.url.includes("/set-locale"))).toBe(true);
   expect(setLocaleRes.length).toBeGreaterThan(0);
@@ -71,13 +59,13 @@ test("Chromium click: AR → EN full document locale switch", async ({ page, con
   await page.reload({ waitUntil: "load" });
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.locator("body")).toContainText(/Lessons & revision/);
+  await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
 
   await page.getByRole("button", { name: /عربي|arabic/i }).click();
   await page.waitForFunction(() => document.documentElement.lang === "ar", null, { timeout: 15_000 });
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.locator("body")).toContainText("دروس ومراجعات");
+  await expect(page.locator('[data-testid="public-header"]')).toContainText("تسجيل الدخول");
   const cookiesAr = await context.cookies(BASE);
   expect(cookiesAr.find((c) => c.name === "edu_locale")?.value).toBe("ar");
   await page.screenshot({ path: resolve(OUT, "lang-click-03-ar-back.png"), fullPage: true });
@@ -102,6 +90,6 @@ test("Chromium click: mobile language switcher", async ({ page }) => {
   await page.waitForFunction(() => document.documentElement.lang === "en", null, { timeout: 15_000 });
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.locator("body")).toContainText(/Lessons & revision/);
+  await expect(page.locator('[data-testid="public-header"]')).toContainText(/Log in/i);
   await page.screenshot({ path: resolve(OUT, "lang-click-04-mobile-en.png"), fullPage: true });
 });

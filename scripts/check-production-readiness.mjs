@@ -16,6 +16,22 @@
  */
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
+
+/**
+ * Resolve wrangler's JS entry from its own package.json `bin` map (the same
+ * portable approach as scripts/nw.mjs). Spawning `npx wrangler` needs a shell
+ * on Windows, and a shell re-splits SQL containing spaces/parentheses into
+ * separate argv entries — which broke every --remote query on win32. Running
+ * the JS entry with this Node takes static argv and needs no shell at all.
+ */
+function wranglerBin() {
+  const pkgDir = resolve("node_modules", "wrangler");
+  const json = JSON.parse(readFileSync(resolve(pkgDir, "package.json"), "utf8"));
+  const rel = typeof json.bin === "string" ? json.bin : json.bin.wrangler;
+  if (!rel) throw new Error("wrangler package has no bin entry");
+  return resolve(pkgDir, rel);
+}
 
 function stripJsonComments(input) {
   let output = "";
@@ -57,7 +73,7 @@ if (REMOTE) {
     process.exit(2);
   }
   const run = (sql) => {
-    const res = spawnSync("npx", ["wrangler", "d1", "execute", dbName, "--remote", "--json", "--command", sql], {
+    const res = spawnSync(process.execPath, [wranglerBin(), "d1", "execute", dbName, "--remote", "--json", "--command", sql], {
       encoding: "utf8",
       maxBuffer: 32 * 1024 * 1024,
     });

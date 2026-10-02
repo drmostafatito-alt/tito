@@ -27,11 +27,18 @@ chromium.setGraphicsMode = false;
 const PACKAGED_CHROMIUM = resolve(__dirname, ".e2e/browser/chromium");
 const PACKAGED_LIBDIR = resolve(tmpdir(), "al2023", "lib");
 
-/** Registry Chromium present? (a chromium-N or chromium_headless_shell-N dir under the Playwright browsers path) */
+/** Registry Chromium present? (a chromium-N or chromium_headless_shell-N dir under the Playwright browsers path)
+ *  Checks the default browsers path on BOTH layout conventions: XDG-style
+ *  (~/.cache/ms-playwright — Linux/macOS) and %LOCALAPPDATA%\ms-playwright (Windows). */
 function registryChromiumPresent(): boolean {
-  const root = process.env.PLAYWRIGHT_BROWSERS_PATH ?? resolve(homedir(), ".cache", "ms-playwright");
+  const roots = [
+    process.env.PLAYWRIGHT_BROWSERS_PATH ?? resolve(homedir(), ".cache", "ms-playwright"),
+    process.env.LOCALAPPDATA ? resolve(process.env.LOCALAPPDATA, "ms-playwright") : null,
+  ].filter((p): p is string => Boolean(p));
   try {
-    return existsSync(root) && readdirSync(root).some((d) => /^chromium(_headless_shell)?-\d+/.test(d));
+    return roots.some(
+      (root) => existsSync(root) && readdirSync(root).some((d) => /^chromium(_headless_shell)?-\d+/.test(d))
+    );
   } catch {
     return false;
   }

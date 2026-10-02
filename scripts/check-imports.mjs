@@ -6,14 +6,14 @@
  * except routes must stay client-safe.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 
 const errors = [];
 function walk(dir, fn) {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) walk(full, fn);
-    else if (/\.(ts|tsx)$/.test(entry)) fn(full);
+    else if (/\.(ts|tsx)$/.test(entry)) fn(full.replace(/\\/g, "/"));
   }
 }
 

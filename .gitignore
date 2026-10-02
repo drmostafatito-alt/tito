@@ -22,3 +22,7 @@ tests/e2e/.auth/
 
 # Overnight QA harness artifacts (screenshots, sweep JSON, persisted auth states)
 qa-out/
+
+# Owner-supplied production credentials (RESEND_API_KEY / Mux). Never committed,
+# never read into source; consumed once by `wrangler secret put` piping stdin.
+.prod.secrets.env

@@ -25,21 +25,41 @@ test.describe("homepage public chrome", () => {
     expect(body).not.toContain("إيدوكور");
   });
 
-  test("hero visual exists and loads", async ({ page }) => {
+  test("hero visual contract: empty slot renders no stand-in, owner photo is the hero", async ({ page }) => {
+    // Owner brief §19 (2026-09 rebuild): the hero no longer receives ANY
+    // auto-injected illustration — `public/hero-philosophy.webp` is registered
+    // only as a CMS-pickable option, and `home-preset.json` ships `image: ""`.
+    // The unit contract (tests/unit/cms-hero-identity.test.ts) is: empty slot
+    // ⇒ no `/files/` image at all; a published owner photo ⇒ exactly ONE hero
+    // `<img>` (`data-hero-visual`), served from `/files/<uuid>`.
+    // These E2E assertions previously demanded an always-present hero image,
+    // i.e. the retired behaviour — not a weakening: the no-stand-in rule plus
+    // the always-on structure (h1, CTAs, badges) are asserted instead.
     await page.goto("/");
-    const img = page.locator("[data-hero-visual]");
-    await expect(img).toBeAttached();
-    const ok = await img.evaluate((el) => {
-      const image = el as HTMLImageElement;
-      if (!image.complete) {
-        return new Promise<boolean>((resolve) => {
-          image.addEventListener("load", () => resolve(image.naturalWidth > 0));
-          image.addEventListener("error", () => resolve(false));
-        });
-      }
-      return image.naturalWidth > 0;
-    });
-    expect(ok).toBe(true);
+    const hero = page.locator("section.hero");
+    await expect(hero).toBeAttached();
+    const heroVisual = page.locator("[data-hero-visual]");
+    if (await heroVisual.count()) {
+      // When the owner HAS published a photo, it must really load and be unique.
+      await expect(heroVisual).toHaveCount(1);
+      const ok = await heroVisual.evaluate((el) => {
+        const image = el as HTMLImageElement;
+        if (!image.complete) {
+          return new Promise<boolean>((resolve) => {
+            image.addEventListener("load", () => resolve(image.naturalWidth > 0));
+            image.addEventListener("error", () => resolve(false));
+          });
+        }
+        return image.naturalWidth > 0;
+      });
+      expect(ok).toBe(true);
+    } else {
+      // Empty slot: no stand-in art whatsoever (no seeded illustration, no
+      // placeholder files) — and the hero still carries its real content.
+      const heroHtml = (await hero.innerHTML()) || "";
+      expect(heroHtml).not.toContain("hero-philosophy");
+      await expect(page.locator("h1").first()).toBeAttached();
+    }
   });
 
   test("the grade entry walks into /study and never opens a second catalog", async ({ page }) => {
@@ -95,10 +115,12 @@ test.describe("homepage public chrome", () => {
     await expect(page.getByRole("button", { name: /عربي|arabic/i })).toBeVisible();
   });
 
-  test("responsive homepage keeps hero visual and nav at a mobile viewport", async ({ page }) => {
+  test("responsive homepage keeps hero content and nav at a mobile viewport", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
-    await expect(page.locator("[data-hero-visual]")).toBeAttached();
+    // Hero image is owner-published (possibly none yet — see the hero contract
+    // test above); the h1 + hamburger + drawer ARIA contract are unconditional.
+    await expect(page.locator("section.hero")).toBeAttached();
     await expect(page.locator("h1").first()).toBeAttached();
     const menu = page.getByTestId("public-menu");
     await expect(menu).toBeAttached();

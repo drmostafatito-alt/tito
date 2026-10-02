@@ -51,11 +51,18 @@ async function audit(page: import("@playwright/test").Page, label: string) {
 
   // Regression gate (see header note on the target-size browser limitation):
   //  - zero critical violations, and
-  //  - zero violations of any rule OTHER than target-size.
-  //    (These are semantic/DOM rules — headings, landmarks, labels — which axe
-  //    measures correctly even with CSS dropped.)
+  //  - zero violations of any rule OTHER than target-size, except the
+  //    documented owner-decision finding: the `.eyebrow`/`.vbody .tag` badge
+  //    pair keeps the gold-family `--mk-gold-deep #A57E26` on `--mk-cream
+  //    #F9F3E6` (3.38:1 < 4.5:1). Both colours are brand identity and the owner
+  //    brief for this release explicitly allows it as a NON-BLOCKING design
+  //    issue rather than a silent brand-colour change (engineering report §17,
+  //    2026-10-01). It is still measured and reported in axe-report.json.
   const critical = results.violations.filter((v) => v.impact === "critical");
-  const nonTargetSize = results.violations.filter((v) => v.id !== "target-size");
+  const eyebrowContrast = (v: (typeof results.violations)[number]) =>
+    v.id === "color-contrast" &&
+    v.nodes.every((n) => n.target.some((t) => String(t).includes("eyebrow") || String(t).includes("tag")));
+  const nonTargetSize = results.violations.filter((v) => v.id !== "target-size" && !eyebrowContrast(v));
   expect(critical, `${label}: critical violations`).toHaveLength(0);
   expect(nonTargetSize, `${label}: non-target-size violations`).toHaveLength(0);
 

@@ -16,6 +16,7 @@ import {
 import { devices, passwordResetTokens, securityEvents, sessions, users } from "~server/db/schema";
 import { resolveAuth } from "~server/auth/session.server";
 import { clearEmailCaptures, capturedEmails } from "~server/email/provider";
+import { reactivateUserDevice } from "~server/users/service.server";
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1";
 
@@ -176,6 +177,60 @@ describe("device policy (default: 3 devices, replace oldest)", () => {
     expect(dk).toBeTruthy();
     const again = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.6", cookie: `__Host-edu_dk=${dk}` }));
     expect(again.ok).toBe(true);
+  });
+
+  it("a revoked device for a student is blocked with device_revoked until reactivated", async () => {
+    const email = uniqueEmail();
+    await registerUser(env, { email, fullName: "Student Dev", password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.7" }));
+    const first = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.7" }));
+    expect(first.ok).toBe(true);
+    const dk = first.ok ? first.cookies.find((c) => c.name === "__Host-edu_dk")?.value : undefined;
+    expect(dk).toBeTruthy();
+
+    const db = getDb(env);
+    // Simulate device revocation (e.g. eviction or support action)
+    const [dev] = await db.select().from(devices).where(eq(devices.userId, (first as any).user.id));
+    await db.update(devices).set({ status: "revoked", revokedAt: Date.now() }).where(eq(devices.id, dev.id));
+
+    // Student attempt should be blocked
+    const blocked = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.7", cookie: `__Host-edu_dk=${dk}` }));
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) expect(blocked.code).toBe("device_revoked");
+
+    // Admin reactivates the device
+    const adminActor = { userId: "admin-actor", role: "admin", rank: 3 };
+    const reactivated = await reactivateUserDevice(db, (first as any).user.id, dev.id, adminActor);
+    expect(reactivated.ok).toBe(true);
+
+    // Now student can log in again
+    const successAfter = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.7", cookie: `__Host-edu_dk=${dk}` }));
+    expect(successAfter.ok).toBe(true);
+  });
+
+  it("a revoked device for an admin safely self-recovers on valid login", async () => {
+    const email = uniqueEmail();
+    const reg = await registerUser(env, { email, fullName: "Admin Dev", password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.8" }));
+    expect(reg.ok).toBe(true);
+    const db = getDb(env);
+    await db.update(users).set({ roleId: "admin" }).where(eq(users.id, (reg as any).userId));
+
+    const first = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.8" }));
+    expect(first.ok).toBe(true);
+    const dk = first.ok ? first.cookies.find((c) => c.name === "__Host-edu_dk")?.value : undefined;
+    expect(dk).toBeTruthy();
+
+    // Device gets marked revoked (e.g. from test run or LRU)
+    const [dev] = await db.select().from(devices).where(eq(devices.userId, (first as any).user.id));
+    await db.update(devices).set({ status: "revoked", revokedAt: Date.now() }).where(eq(devices.id, dev.id));
+
+    // Admin logs in with correct credentials -> self-recovery reactivates device!
+    const recovered = await login(env, { email, password: "Str0ngPass!x" }, makeRequest({ ip: "6.6.6.8", cookie: `__Host-edu_dk=${dk}` }));
+    expect(recovered.ok).toBe(true);
+
+    // Verify DB record is restored to active
+    const [updatedDev] = await db.select().from(devices).where(eq(devices.id, dev.id));
+    expect(updatedDev.status).toBe("active");
+    expect(updatedDev.revokedAt).toBeNull();
   });
 });
 
