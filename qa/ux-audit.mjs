@@ -2,10 +2,9 @@
  * One-shot UX audit: screenshots + measurements for public/student/admin.
  * Local-dev only. Usage: node qa/ux-audit.mjs
  */
-import { chromium } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { BASE, ROOT, ensureAuth } from "./lib.mjs";
+import { BASE, ROOT, ensureAuth, launchBrowser } from "./lib.mjs";
 
 const OUT = resolve(ROOT, "qa-out/ux-audit");
 mkdirSync(OUT, { recursive: true });
@@ -152,7 +151,7 @@ async function shoot(page, who, vpName, path, extra = "") {
   return { who, viewport: vpName, path, extra, status, problems, ...m };
 }
 
-const browser = await chromium.launch({
+const browser = await launchBrowser({
   args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--use-gl=disabled"],
 });
 

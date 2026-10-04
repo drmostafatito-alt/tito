@@ -9,9 +9,6 @@ import { CARD_BODY, CARD_META, CHIP, pubBtnSm } from "~/lib/publicStyles";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
-import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
-import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
-import { thinkerAlternate, thinkerFor } from "~/lib/thinkers";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -58,7 +55,6 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
   const root = useRouteLoaderData("root") as { locale: Locale };
   const locale = root?.locale ?? "ar";
   const ar = locale === "ar";
-  const heroThinker = thinkerFor({ slot: "landing-hero", slug: "study-hub" });
   const ownerName = ar
     ? loaderData.ownerNameAr || loaderData.ownerNameEn
     : loaderData.ownerNameEn || loaderData.ownerNameAr;
@@ -71,7 +67,6 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
           portrait and the journey line. No dark hero, no stacked ornament. */}
       <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
-        <ThinkerWash seed="page:study" anchor="top" />
         <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
           <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
@@ -79,18 +74,6 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
             <span className="font-medium text-pub-navy-2">{t(locale, "study.title")}</span>
           </nav>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-5">
-            {!empty ? (
-              /* Subject identity sits BESIDE the title as a legible
-                 semi-transparent statue — a person, not an icon chip (owner
-                 reference design) — and never behind text, so a long
-                 description can never collide with it at phone widths. */
-              <ThinkerPortrait
-                thinker={heroThinker}
-                presentation="statue"
-                eager
-                className="h-24 w-20 shrink-0 sm:h-32 sm:w-28"
-              />
-            ) : null}
             <div className="min-w-0">
               <h1 className="text-pub-h2 font-extrabold tracking-tight text-pub-ink sm:text-pub-h1">
                 {t(locale, "study.title")}
@@ -124,12 +107,6 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
             className="relative isolate mt-1 overflow-hidden rounded-pub-2xl border border-pub-line bg-pub-bg p-6 shadow-pub-card sm:p-8"
             data-testid="study-empty"
           >
-            <ThinkerPortrait
-              thinker={heroThinker}
-              presentation="statue"
-              eager
-              className="thinker-statue--quiet absolute bottom-0 end-0 h-28 w-24 sm:h-36 sm:w-32"
-            />
             <div className="relative z-10 max-w-[var(--pub-measure)] sm:pe-24">
               <h2 className="text-pub-md font-extrabold text-pub-ink">{t(locale, "study.emptyTitle")}</h2>
               <p className="mt-2 text-pub-base leading-pub-normal text-pub-muted">{t(locale, "study.empty")}</p>
@@ -139,51 +116,50 @@ export default function StudyHubPage({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
         ) : (
-          <div className="grid gap-[var(--pub-gap)] sm:grid-cols-2" data-testid="study-subjects">
-            {loaderData.subjects.map((s, i) => {
-              const primary = thinkerFor({
-                slot: "subject-card",
-                slug: s.slug,
-                titleAr: s.titleAr,
-                titleEn: s.titleEn,
-                skip: i % 2 === 1,
-              });
-              const thinker = i === 1 ? thinkerAlternate(thinkerFor({ slot: "subject-card", slug: s.slug, titleAr: s.titleAr, titleEn: s.titleEn }), s.slug) : primary;
+          <div
+            // auto-fit, not a hard 2-up: with a single published subject a
+            // fixed two-column grid stranded the only card in the right half
+            // of the row and left the other half blank.
+            className="grid gap-[var(--pub-gap)] [grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr))]"
+            data-testid="study-subjects"
+          >
+            {loaderData.subjects.map((s) => {
               const year = ar ? s.yearTitleAr : s.yearTitleEn;
               const subjectKind = /نفس|psychology/i.test(`${s.titleAr} ${s.titleEn} ${s.slug}`) ? "psychology" : "philosophy";
               return (
                 <article key={s.slug} data-subject-kind={subjectKind} className="study-subject-block group relative isolate overflow-hidden border-b border-pub-line py-6 first:border-t sm:py-8">
                   <Link
                     to={`/study/${s.slug}`}
-                    className="relative z-10 flex min-h-[11rem] flex-col gap-2 p-5 sm:p-6"
+                    // Row layout: the copy keeps a readable measure on the start
+                    // side and the CTA sits at the end instead of leaving half a
+                    // 1120px row blank when only one subject is published.
+                    className="relative z-10 flex flex-col gap-4 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between lg:gap-8"
                     data-testid={`study-subject-${s.slug}`}
                   >
-                    <span className="flex min-w-0 items-start gap-3">
-                      {/* subject identity as a small standing figure */}
-                      <ThinkerPortrait thinker={thinker} presentation="statue" className="thinker-statue--quiet h-16 w-12 shrink-0 sm:h-20 sm:w-16" />
-                      <h2 className="min-w-0 flex-1 text-pub-lg font-bold leading-pub-snug text-pub-ink group-hover:text-pub-navy-2">
+                    <div className="flex min-w-0 max-w-[var(--pub-measure)] flex-col gap-2">
+                      <h2 className="min-w-0 text-pub-lg font-bold leading-pub-snug text-pub-ink group-hover:text-pub-navy-2">
                         {ar ? s.titleAr : s.titleEn}
                       </h2>
-                    </span>
-                    <p className={`text-pub-sm ${CARD_BODY}`}>
-                      {t(locale, "study.gradeLabel")}: {ar ? s.gradeTitleAr : s.gradeTitleEn}
-                      {s.programTitleAr || s.programTitleEn
-                        ? ` · ${t(locale, "study.programLabel")}: ${ar ? s.programTitleAr : s.programTitleEn}`
-                        : ""}
-                    </p>
-                    {year && (
-                      <p className={`text-pub-xs ${CARD_META}`} dir="ltr">
-                        {t(locale, "study.yearLabel")}: {year}
+                      <p className={`text-pub-sm ${CARD_BODY}`}>
+                        {t(locale, "study.gradeLabel")}: {ar ? s.gradeTitleAr : s.gradeTitleEn}
+                        {s.programTitleAr || s.programTitleEn
+                          ? ` · ${t(locale, "study.programLabel")}: ${ar ? s.programTitleAr : s.programTitleEn}`
+                          : ""}
                       </p>
-                    )}
-                    {(ar ? s.descriptionAr : s.descriptionEn) && (
-                      <p className={`line-clamp-2 text-pub-sm ${CARD_BODY}`}>{ar ? s.descriptionAr : s.descriptionEn}</p>
-                    )}
-                    <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
-                      <span className={CHIP}>{t(locale, "study.termsCount", { n: s.termCount })}</span>
-                      <span className={CHIP}>{t(locale, "study.lessonsCount", { n: s.lessonCount })}</span>
+                      {year && (
+                        <p className={`text-pub-xs ${CARD_META}`} dir="ltr">
+                          {t(locale, "study.yearLabel")}: {year}
+                        </p>
+                      )}
+                      {(ar ? s.descriptionAr : s.descriptionEn) && (
+                        <p className={`line-clamp-2 text-pub-sm ${CARD_BODY}`}>{ar ? s.descriptionAr : s.descriptionEn}</p>
+                      )}
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <span className={CHIP}>{t(locale, "study.termsCount", { n: s.termCount })}</span>
+                        <span className={CHIP}>{t(locale, "study.lessonsCount", { n: s.lessonCount })}</span>
+                      </div>
                     </div>
-                    <span className={pubBtnSm("primary", "mt-3 w-fit group-hover:bg-pub-navy-2")}>
+                    <span className={pubBtnSm("primary", "w-fit shrink-0 group-hover:bg-pub-navy-2")}>
                       {t(locale, "study.openSubject")}
                       <Icon name="arrow-right" size="sm" colorRole="invert" className="text-pub-bg rtl:rotate-180" />
                     </span>

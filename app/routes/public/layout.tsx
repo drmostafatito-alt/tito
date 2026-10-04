@@ -13,7 +13,7 @@ import { Drawer } from "~/components/ui/Drawer";
 import { SkipLink } from "~/components/ui/SkipLink";
 import { Icon } from "~/cms/icons";
 import { siteEntitiesMeta } from "~/cms/seo";
-import { resolveSocialLinks, socialsFor, socialIconName } from "~/cms/social";
+import { resolveSocialLinks, socialsFor, socialIconName, socialLabel } from "~/cms/social";
 import { resolveQuestionPlatformUrl } from "~/lib/question-platform";
 import { DecorHairline } from "~/components/visuals/PhilosophyDecor";
 import { t, type Locale } from "~/lib/i18n";
@@ -70,8 +70,10 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       contactAddress: { ar: idn.contactAddressAr, en: idn.contactAddressEn },
       copyright: { ar: idn.copyrightAr, en: idn.copyrightEn },
       footerAbout: { ar: settings.platform.footerAboutAr, en: settings.platform.footerAboutEn },
-      socialsHeader: socialsFor(socialAll, "header").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: s.labelAr, labelEn: s.labelEn })),
-      socialsFooter: socialsFor(socialAll, "footer").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: s.labelAr, labelEn: s.labelEn })),
+      // Icon-only links: the label is their ONLY accessible name, so resolve the
+      // owner override / known network name here rather than leaking the raw id.
+      socialsHeader: socialsFor(socialAll, "header").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: socialLabel(s, "ar"), labelEn: socialLabel(s, "en") })),
+      socialsFooter: socialsFor(socialAll, "footer").map((s) => ({ network: socialIconName(s.network), url: s.url, labelAr: socialLabel(s, "ar"), labelEn: socialLabel(s, "en") })),
     },
   };
 }
@@ -91,7 +93,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 interface RootLoaderData {
   locale: Locale;
   localeOptions?: Locale[];
-  platform: { nameAr: string; nameEn: string; maintenance: boolean };
+  platform: { nameAr: string; nameEn: string };
 }
 
 type MenuLink = { id: string; labelAr: string; labelEn: string; href: string; external: boolean; icon: string | null };

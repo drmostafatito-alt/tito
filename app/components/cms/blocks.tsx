@@ -17,21 +17,9 @@ import {
   PUB_BTN,
   PUB_CARD,
 } from "~/lib/publicStyles";
-import { heroFrameThinkers, thinkerById } from "~/lib/thinkers";
 import type { CardView, CmsRenderCtx, FormView } from "~/cms/render-types";
 
 const VideoPlayer = lazy(() => import("~/components/player/VideoPlayer").then((m) => ({ default: m.VideoPlayer })));
-
-/** Block types that render a thinker of their own — a section containing one
- *  of these keeps exactly that face and gets no backdrop philosopher. */
-const THINKER_BLOCK_TYPES = new Set([
-  "hero_showcase",
-  "teacher_profile",
-  "subject_cards",
-  "course_cards",
-  "program_cards",
-  "free_content",
-]);
 
 /**
  * CMS block renderers (Phase 3). STRUCTURE ONLY — every visible string, image,
@@ -101,6 +89,46 @@ function sicTintFor(tint: string, iconBg: string): string {
 function iconIdFromUrl(url: string): string {
   const m = /^https?:\/\/cdn\.simpleicons\.org\/([a-z0-9-]+)/i.exec(url.trim());
   return m ? socialIconName(m[1].toLowerCase()) : "";
+}
+
+/**
+ * CMS button labels are frequently authored with their own leading affordance
+ * ("← تصفّح الكورسات", "✆ تواصل عبر واتساب"). The mockup buttons ALSO render a
+ * decorative arrow, so the two stacked up: the homepage shipped
+ * "←← تصفّح الكورسات" and screen readers announced the arrow as part of the
+ * button name. Split the label once, here, and let the caller render exactly
+ * one mark.
+ */
+const LEADING_GLYPH_RE = /^\s*([^\p{L}\p{N}\s]{1,2})\s+(?=\S)/u;
+export function splitLeadingGlyph(label: string): { glyph: string; text: string } {
+  const m = LEADING_GLYPH_RE.exec(label);
+  if (!m) return { glyph: "", text: label.trim() };
+  return { glyph: m[1].trim(), text: label.slice(m[0].length).trim() };
+}
+
+/**
+ * True when a string is a short decorative mark (emoji, symbol) rather than a
+ * word. Grade cards receive `badge` from the CMS resolver, which is the
+ * PROGRAM TITLE for data-driven rows ("الثانوية العامة") and an emoji for
+ * hand-authored ones. Painting a program title at 9rem as a watermark and
+ * again inside a 66px medallion is what produced the unreadable grade card.
+ */
+function isGlyph(value: string): boolean {
+  const v = value.trim();
+  if (!v) return false;
+  if (/[\p{L}\p{N}]/u.test(v)) return false;
+  return [...v].length <= 4;
+}
+
+/** Owner-configured destination for a social network, or "" when unset. */
+function socialUrlFor(ctx: CmsRenderCtx, network: string): string {
+  const key = network.toLowerCase();
+  if (!key) return "";
+  const hit = ctx.identity.socials.find((s) => s.network.toLowerCase() === key && s.url);
+  if (hit) return hit.url;
+  if (key === "whatsapp" && ctx.identity.whatsapp) return `https://wa.me/${ctx.identity.whatsapp}`;
+  if (key === "telegram" && ctx.identity.telegram) return ctx.identity.telegram;
+  return "";
 }
 
 /** True for a URL the CSP will actually load (same-origin / relative / data:). */
@@ -544,7 +572,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
           )}
           {scribble1 && <span aria-hidden="true" className="scribble s1">{scribble1}</span>}
           {scribble2 && <span aria-hidden="true" className="scribble s2">{scribble2}</span>}
-          <div className="container hero-grid">
+          <div className={`container hero-grid${photoSrc ? "" : " hero-grid--solo"}`}>
             <div>
               {eyebrow && <span className="eyebrow">{eyebrow}</span>}
               {heading && <h1 dir="auto">{heading}</h1>}
@@ -553,14 +581,17 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               {ctas.length > 0 && (
                 <div className="hero-cta">
                   {ctas.map((cta, idx) => {
-                    const label = str(cta, "label", L);
                     const href = raw(cta, "href");
                     const variant = raw(cta, "variant") === "ghost" ? "btn-ghost" : "btn-blue";
                     const icon = str(cta, "icon", L);
+                    // ONE affordance: the explicit icon prop, else the glyph the
+                    // label already carries, else the default arrow. The visible
+                    // text is the accessible name (no redundant aria-label).
+                    const { glyph, text } = splitLeadingGlyph(str(cta, "label", L));
                     return (
-                      <SmartLink key={idx} href={href} ariaLabel={label} className={`btn ${variant}`}>
-                        {icon ? <span aria-hidden="true">{icon}</span> : <span aria-hidden="true">←</span>}
-                        {label}
+                      <SmartLink key={idx} href={href} className={`btn ${variant}`}>
+                        <span aria-hidden="true">{icon || glyph || "←"}</span>
+                        {text}
                       </SmartLink>
                     );
                   })}
@@ -574,6 +605,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 </div>
               )}
             </div>
+            {/* The decorative photo stage (blob + doodles + floating badges +
+                signature) only makes sense AROUND the teacher's portrait. With
+                no owner photo configured it rendered as a 420px empty blue
+                blob with badges and an unreadable signature floating over it,
+                so the whole column stands down instead. */}
+            {photoSrc && (
             <div className="photo-wrap">
               <div aria-hidden="true" className="blob" />
               <svg aria-hidden="true" className="doodle d1" viewBox="0 0 64 64">
@@ -617,6 +654,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                 </div>
               )}
             </div>
+            )}
           </div>
         </section>
       );
@@ -1004,14 +1042,28 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       // Each card: icon (image URL or emoji), label, sub, href, tint — CMS props.
       // Special hrefs: `whatsapp:` resolves from settings, `exam:external`
       // resolves from questionPlatformUrl (hidden when unconfigured).
-      const cards = arr(p, "cards").filter((c) => str(c, "label", L) || raw(c, "href"));
+      // A contact/social card with no destination is a dead icon: the stored
+      // preset shipped facebook/tiktok/youtube with href:"" even when the owner
+      // HAD configured the URL in Settings → Identity. Heal from identity
+      // first (same URL the footer uses, nothing invented), then drop whatever
+      // still has nowhere to go instead of rendering an inert card.
+      const cards = arr(p, "cards")
+        .map((c) => {
+          const stored = raw(c, "href");
+          const iconId = raw(c, "icon");
+          const resolved = resolveCmsHref(stored, {
+            questionPlatformUrl: ctx.questionPlatformUrl ?? null,
+            whatsappNumber: ctx.identity.whatsapp || null,
+          });
+          return { card: c, href: resolved || socialUrlFor(ctx, iconId) };
+        })
+        .filter((x) => x.href && (str(x.card, "label", L) || raw(x.card, "icon")));
       if (!cards.length) return null;
       return (
         <div className="contact-grid">
-          {cards.map((card, idx) => {
+          {cards.map(({ card, href }, idx) => {
             const label = str(card, "label", L);
             const sub = str(card, "sub", L);
-            const href = raw(card, "href");
             const iconUrl = raw(card, "iconUrl");
             const iconEmoji = str(card, "iconEmoji", L);
             const tint = sicTintFor(raw(card, "tint") || "blue", raw(card, "iconBg"));
@@ -1141,7 +1193,10 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       // Mockup-faithful video cards (mockup_v5.html #vids).
       // Dynamic rows from ctx.dynamic; static `videos` prop as CMS fallback.
       const rows = (ctx.dynamic[block.id] ?? []).filter((r) => ls(r.title, L));
-      const staticVids = arr(p, "videos").filter((v) => str(v, "title", L));
+      // A "latest lessons" card with a title but NO destination is an invented
+      // lesson: it names content the platform cannot open. Real published rows
+      // always carry an href, so the hand-authored fallback must too.
+      const staticVids = arr(p, "videos").filter((v) => str(v, "title", L) && raw(v, "href"));
       const vids = rows.length > 0
         ? rows.map((r) => ({
             title: ls(r.title, L),
@@ -1166,7 +1221,11 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       return (
         <div className="vids">
           {vids.map((vid, idx) => (
-            <div key={idx} className="vcard">
+            // The whole card is the target (the play button and the 16:9
+            // thumbnail look clickable, and on a phone they are the only
+            // comfortable hit area). `vcard-link` stretches the title link
+            // over the card instead of nesting interactive elements.
+            <div key={idx} className={`vcard${vid.href ? " vcard-link" : ""}`}>
               <div className={`thumb ${thumbTones[idx % thumbTones.length]}`}>
                 {vid.thumb ? (
                   <img src={vid.thumb} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
@@ -1178,7 +1237,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
               </div>
               <div className="vbody">
                 {vid.tag && <span dir="auto" className="tag">{vid.tag}</span>}
-                <h3 dir="auto">{vid.href ? <SmartLink href={vid.href}>{vid.title}</SmartLink> : vid.title}</h3>
+                <h3 dir="auto">{vid.href ? <SmartLink href={vid.href} className="vcard-a">{vid.title}</SmartLink> : vid.title}</h3>
                 {vid.meta && <div dir="auto" className="meta"><span>{vid.meta}</span></div>}
               </div>
             </div>
@@ -1256,11 +1315,16 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
       // from props keep the section editable even without dynamic data.
       const rows = (ctx.dynamic[block.id] ?? []).filter((r) => ls(r.title, L));
       const staticCards = arr(p, "cards").filter((c) => str(c, "title", L));
+      // `badge`/`icon` may be a decorative glyph OR a real text label (the
+      // program title). Only a glyph may become the oversized watermark and
+      // the medallion; a text label is shown as a readable eyebrow instead.
+      const split = (value: string) =>
+        isGlyph(value) ? { glyph: value, label: "" } : { glyph: "", label: value.trim() };
       const cards = rows.length > 0
         ? rows.map((r) => ({
             title: ls(r.title, L),
             sub: ls(r.desc, L),
-            icon: ls(r.badge, L) || "🏛️",
+            ...split(ls(r.badge, L)),
             pills: (r.chips ?? []).map((c) => ls(c, L)).filter(Boolean),
             ctaLabel: (r.cta && ls(r.cta, L)) || "",
             href: r.href,
@@ -1268,7 +1332,7 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
         : staticCards.map((c) => ({
             title: str(c, "title", L),
             sub: str(c, "sub", L),
-            icon: str(c, "icon", L) || "🏛️",
+            ...split(str(c, "icon", L)),
             pills: arr(c, "pills").map((x) => str(x, "text", L)).filter(Boolean),
             ctaLabel: str(c, "ctaLabel", L),
             href: raw(c, "href"),
@@ -1280,8 +1344,12 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
             const tone = idx % 2 === 1 ? "blue" : "cream";
             return (
               <div key={idx} className={`gcard ${tone}`}>
-                <div aria-hidden="true" className="giant">{card.icon}</div>
-                <div aria-hidden="true" className="medal">{card.icon}</div>
+                {card.glyph && <div aria-hidden="true" className="giant">{card.glyph}</div>}
+                {card.glyph
+                  ? <div aria-hidden="true" className="medal">{card.glyph}</div>
+                  : card.label
+                    ? <div dir="auto" className="gbadge">{card.label}</div>
+                    : null}
                 <h3 dir="auto">{card.title}</h3>
                 {card.sub && <div dir="auto" className="sub">{card.sub}</div>}
                 {card.pills.length > 0 && (
@@ -1291,16 +1359,19 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
                     ))}
                   </div>
                 )}
-                {(card.ctaLabel || card.href) && (
-                  <SmartLink
-                    href={card.href || "#grades"}
-                    ariaLabel={card.ctaLabel || card.title}
-                    className={`btn ${tone === "blue" ? "btn-blue" : "btn-gold"}`}
-                  >
-                    <span aria-hidden="true">←</span>
-                    {card.ctaLabel || card.title}
-                  </SmartLink>
-                )}
+                {(card.ctaLabel || card.href) && (() => {
+                  const { glyph, text } = splitLeadingGlyph(card.ctaLabel || card.title);
+                  return (
+                    <SmartLink
+                      href={card.href || "#grades"}
+                      ariaLabel={`${text} — ${card.title}`}
+                      className={`btn ${tone === "blue" ? "btn-blue" : "btn-gold"}`}
+                    >
+                      <span aria-hidden="true">{glyph || "←"}</span>
+                      {text}
+                    </SmartLink>
+                  );
+                })()}
               </div>
             );
           })}
@@ -1421,12 +1492,15 @@ function BlockBody({ block, ctx }: { block: { id: string; type: string; props: P
           <div className="container">
             {heading && <h2 dir="auto">{heading}</h2>}
             {text && <p dir="auto">{text}</p>}
-            {ctaLabel && (
-              <SmartLink href={ctaHref || "#grades"} ariaLabel={ctaLabel} className="btn btn-gold">
-                <span aria-hidden="true">{ctaIcon || "←"}</span>
-                {ctaLabel}
-              </SmartLink>
-            )}
+            {ctaLabel && (() => {
+              const { glyph, text } = splitLeadingGlyph(ctaLabel);
+              return (
+                <SmartLink href={ctaHref || "#grades"} className="btn btn-gold">
+                  <span aria-hidden="true">{ctaIcon || glyph || "←"}</span>
+                  {text}
+                </SmartLink>
+              );
+            })()}
           </div>
         </section>
       );

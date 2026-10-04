@@ -1,3 +1,5 @@
+import type { PluralForms } from "~/lib/plural";
+
 /** Arabic dictionary (default locale). Keys are the contract — `en` must match this shape. */
 export const ar = {
   common: {
@@ -456,9 +458,39 @@ export const ar = {
     expiresAt: "يظهر حتى",
   },
   home: {
-    chipSubjects: "{n} مواد",
-    chipCourses: "{n} محتوى تعليمي",
-    chipVideos: "{n} فيديو",
+    // Counts on the grade cards. They are real numbers from the database, so
+    // they have to be grammatical for every one of them: "1 مواد" / "11 مواد"
+    // was the old output. See app/lib/plural.ts.
+    chipSubjects: {
+      one: "مادة واحدة",
+      two: "مادتان",
+      few: "{n} مواد",
+      many: "{n} مادة",
+      other: "{n} مادة",
+    } as PluralForms,
+    /** Counts `courses` rows, which in this curriculum ARE the terms. */
+    chipTerms: {
+      one: "ترم واحد",
+      two: "ترمان",
+      few: "{n} ترمات",
+      many: "{n} ترمًا",
+      other: "{n} ترم",
+    } as PluralForms,
+    /** The number students actually care about — published lessons. */
+    chipLessons: {
+      one: "درس واحد",
+      two: "درسان",
+      few: "{n} دروس",
+      many: "{n} درسًا",
+      other: "{n} درس",
+    } as PluralForms,
+    chipVideos: {
+      one: "فيديو واحد",
+      two: "فيديوهان",
+      few: "{n} فيديوهات",
+      many: "{n} فيديو",
+      other: "{n} فيديو",
+    } as PluralForms,
     chipBooks: "كتب ومذكرات",
     chipExams: "تدريبات وامتحانات",
     gradeCta: "استعرض المحتوى",
@@ -1765,8 +1797,20 @@ export const ar = {
     emptyTitle: "سيظهر المحتوى هنا عند نشره",
     empty: "لم يُنشر أي صف أو مادة بعد. يمكنك إنشاء حساب والاستعداد للدروس.",
     subjectsTitle: "المواد",
-    termsCount: "{n} ترم",
-    lessonsCount: "{n} درس",
+    termsCount: {
+      one: "ترم واحد",
+      two: "ترمان",
+      few: "{n} ترمات",
+      many: "{n} ترمًا",
+      other: "{n} ترم",
+    } as PluralForms,
+    lessonsCount: {
+      one: "درس واحد",
+      two: "درسان",
+      few: "{n} دروس",
+      many: "{n} درسًا",
+      other: "{n} درس",
+    } as PluralForms,
     openSubject: "عرض الدروس",
     subjectTitle: "الدروس",
     yearLabel: "السنة الدراسية",

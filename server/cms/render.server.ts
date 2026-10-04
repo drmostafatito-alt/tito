@@ -455,6 +455,34 @@ async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean
     if (g) courseCount.set(g, (courseCount.get(g) ?? 0) + 1);
   }
 
+  /**
+   * Published lessons per grade. The grade card used to advertise only the
+   * COURSE count under the label "محتوى تعليمي", so a subject holding 24
+   * lessons rendered as "2 محتوى تعليمي" — technically a term count, read by
+   * students as a lesson count. The real lesson total is what makes the
+   * homepage a credible entry point into the 48 published lessons.
+   */
+  const lessonCountRows = subjectIds.length
+    ? await db
+        .select({ subjectId: courses.subjectId, n: sql<number>`count(distinct ${lessons.id})` })
+        .from(lessons)
+        .innerJoin(units, eq(lessons.unitId, units.id))
+        .innerJoin(courses, eq(units.courseId, courses.id))
+        .where(and(
+          inArray(courses.subjectId, subjectIds),
+          eq(lessons.status, "published"), isNull(lessons.deletedAt),
+          isNull(units.deletedAt),
+          eq(courses.status, "published"), isNull(courses.deletedAt),
+          inArray(courses.visibility, ["catalog", "featured"]),
+        ))
+        .groupBy(courses.subjectId)
+    : [];
+  const lessonCount = new Map<string, number>();
+  for (const r of lessonCountRows) {
+    const g = gradeBySubject.get(r.subjectId);
+    if (g) lessonCount.set(g, (lessonCount.get(g) ?? 0) + Number(r.n));
+  }
+
   const videoRows = subjectIds.length
     ? await db
         .select({ subjectId: courses.subjectId, n: sql<number>`count(distinct ${lessons.id})` })
@@ -506,9 +534,11 @@ async function resolveGradeCards(db: DB, limit: number, examsConfigured: boolean
     const chip = (key: string, n?: number) => chips.push({ ar: t("ar", key, n === undefined ? undefined : { n }), en: t("en", key, n === undefined ? undefined : { n }) });
     const subs = subjectCount.get(g.id) ?? 0;
     const crs = courseCount.get(g.id) ?? 0;
+    const lsns = lessonCount.get(g.id) ?? 0;
     const vids = videoCount.get(g.id) ?? 0;
     if (subs > 0) chip("home.chipSubjects", subs);
-    if (crs > 0) chip("home.chipCourses", crs);
+    if (crs > 0) chip("home.chipTerms", crs);
+    if (lsns > 0) chip("home.chipLessons", lsns);
     if (vids > 0) chip("home.chipVideos", vids);
     if (gradeWithProduct.has(g.id)) chip("home.chipBooks");
     if (examsConfigured) chip("home.chipExams");

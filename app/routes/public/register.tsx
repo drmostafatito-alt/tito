@@ -153,7 +153,7 @@ export default function Register() {
 
         <p className="mt-4 text-sm text-pub-muted">
           {t(locale, "auth.haveAccount")}{" "}
-          <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`} className="font-medium text-pub-ink-soft hover:underline">
+          <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(params.get("next")!)}` : ""}`} className="inline-flex min-h-11 items-center font-medium text-pub-ink-soft hover:underline">
             {t(locale, "common.login")}
           </Link>
         </p>

@@ -6,7 +6,6 @@ import { getEnv } from "~server/cf.server";
 import { catalogCourses } from "~server/content/service.server";
 import { programs, grades, subjects } from "~server/db/schema";
 import { CARD_BODY, CARD_META, CARD_TITLE, PUB_CARD, PUB_INNER, PUB_SECTION } from "~/lib/publicStyles";
-import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, webPageJsonLd } from "~/cms/jsonld";
@@ -135,7 +134,6 @@ export default function ProgramPage({ loaderData }: Route.ComponentProps) {
   // type and focus rules as /study) so the site never shows two visual languages.
   return (
     <section className={`relative isolate overflow-hidden ${PUB_SECTION} bg-pub-bg`}>
-      <ThinkerWash seed={`page:program:${program.slug}`} anchor="top" />
       <div className={`relative ${PUB_INNER}`}>
         <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
           <Link to="/programs" className="hover:text-pub-navy">{t(locale, "catalog.programs")}</Link>

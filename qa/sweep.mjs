@@ -7,10 +7,9 @@
  * Usage: node qa/sweep.mjs <routes.json> [--locale=ar] [--w=1440] [--h=900] [--tag=name] [--who=admin] [--clicks]
  * routes.json: [{ "path": "/admin", "clicks"?: [{"sel":"...","wait":300}] }]
  */
-import { chromium } from "@playwright/test";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { BASE, ROOT, ensureAuth } from "./lib.mjs";
+import { BASE, ROOT, ensureAuth, launchBrowser } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const specFile = args[0];
@@ -25,7 +24,7 @@ const who = flag("who", "admin");
 const tag = flag("tag", `${who}-${locale}-${w}x${h}`);
 const spec = JSON.parse(readFileSync(resolve(ROOT, specFile), "utf8"));
 
-const browser = await chromium.launch({ args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] });
+const browser = await launchBrowser({ args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] });
 const { page, ctx } = await ensureAuth(browser, who, { locale, viewport: { width: w, height: h } });
 await ctx.addCookies([{ name: "edu_locale", value: locale, url: BASE }]);
 

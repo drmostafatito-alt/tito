@@ -20,6 +20,33 @@ export interface SocialLink {
 
 const NAMED = ["facebook", "youtube", "instagram", "tiktok", "twitter", "linkedin", "telegram"] as const;
 
+/**
+ * Human names for the networks the platform knows about. Icon-only social
+ * links need an accessible name, and the fallback used to be the raw network
+ * id — screen readers announced the English slug "facebook" inside an Arabic
+ * page, and `aria-label="globe"` for anything unknown. The owner can still
+ * override both labels per link in Settings → Identity.
+ */
+const NETWORK_LABELS: Record<string, { ar: string; en: string }> = {
+  facebook: { ar: "فيسبوك", en: "Facebook" },
+  youtube: { ar: "يوتيوب", en: "YouTube" },
+  instagram: { ar: "إنستجرام", en: "Instagram" },
+  tiktok: { ar: "تيك توك", en: "TikTok" },
+  twitter: { ar: "إكس (تويتر)", en: "X (Twitter)" },
+  linkedin: { ar: "لينكدإن", en: "LinkedIn" },
+  telegram: { ar: "تليجرام", en: "Telegram" },
+  whatsapp: { ar: "واتساب", en: "WhatsApp" },
+};
+
+/** Display label for a social link: owner override first, then the known name. */
+export function socialLabel(link: Pick<SocialLink, "network" | "labelAr" | "labelEn">, locale: "ar" | "en"): string {
+  const own = locale === "ar" ? link.labelAr || link.labelEn : link.labelEn || link.labelAr;
+  const known = NETWORK_LABELS[link.network.toLowerCase()];
+  if (own && (!known || (own !== link.network))) return own;
+  if (known) return locale === "ar" ? known.ar : known.en;
+  return own || link.network;
+}
+
 export interface SocialIdentitySource {
   socialLinks?: SocialLink[] | null;
   facebook?: string;
@@ -58,7 +85,9 @@ function hydrateFromNamed(src: SocialIdentitySource, whatsappUrl = ""): SocialLi
     if (!url) continue;
     out.push({
       id: `legacy-${network}`, network, url,
-      labelAr: network, labelEn: network, enabled: true, sortOrder: order++,
+      labelAr: NETWORK_LABELS[network]?.ar ?? network,
+      labelEn: NETWORK_LABELS[network]?.en ?? network,
+      enabled: true, sortOrder: order++,
       showHeader: false, showFooter: true, showHome: true, showContact: true,
     });
   }

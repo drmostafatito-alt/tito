@@ -12,11 +12,9 @@ import { Badge } from "~/components/ui/Badge";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { breadcrumbJsonLd } from "~/cms/jsonld";
 import { DecorHairline, SectionDecor } from "~/components/visuals/PhilosophyDecor";
-import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { CARD_BODY, CARD_META, pubBtnSm } from "~/lib/publicStyles";
-import { ThinkerPortrait } from "~/components/visuals/ThinkerPortrait";
 import { ContentTypeChips } from "~/components/study/ContentTypeChips";
-import { thinkerAlternate, thinkerFor, type StudyItemKind } from "~/lib/thinkers";
+import { type StudyItemKind } from "~/lib/thinkers";
 import { t, type Locale } from "~/lib/i18n";
 
 /**
@@ -176,18 +174,10 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
     allTerms[0] ??
     null;
 
-  const heroThinker = thinkerFor({
-    slot: "subject-hero",
-    slug: loaderData.subject.slug,
-    titleAr: loaderData.subject.titleAr,
-    titleEn: loaderData.subject.titleEn,
-  });
-
   return (
     <div className="relative isolate overflow-x-hidden" data-subject-kind={subjectKind}>
       <section className="relative isolate overflow-hidden bg-pub-surface">
         <SectionDecor variant="page" />
-        <ThinkerWash seed={`page:study:${loaderData.subject.slug}`} anchor="top" />
         <div className="relative z-10 mx-auto w-full max-w-[var(--pub-maxw)] px-[var(--pub-pad-x)] py-8 sm:py-12">
           <nav className="mb-3 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
             <Link to="/" className="hover:underline">{t(locale, "study.breadcrumbHome")}</Link>
@@ -198,15 +188,6 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
           </nav>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-5">
-            {!loaderData.years.length ? null : (
-              /* Beside the title, never behind it (see /study for the rule). */
-              <ThinkerPortrait
-                thinker={heroThinker}
-                presentation="statue"
-                eager
-                className="h-24 w-20 shrink-0 sm:h-32 sm:w-28"
-              />
-            )}
             <div className="min-w-0">
               <h1 className="max-w-[26ch] text-pub-h2 font-extrabold tracking-tight text-pub-ink sm:text-pub-h1">
                 {ar ? loaderData.subject.titleAr : loaderData.subject.titleEn}
@@ -237,11 +218,21 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
           <div className="space-y-8">
             {loaderData.years.map((year, yi) => (
               <section key={year.id ?? `y-${yi}`} aria-labelledby={`year-${year.id ?? yi}`}>
-                {(year.titleAr || year.titleEn) && (
-                  <h2 id={`year-${year.id ?? yi}`} className="mb-3 text-pub-xs font-semibold uppercase tracking-wide text-pub-muted">
-                    {t(locale, "study.yearLabel")}: <span dir="ltr">{pick(year)}</span>
-                  </h2>
-                )}
+                {/* The year heading is ALWAYS emitted, visually hidden when the
+                    year has no title: skipping it took the document outline
+                    straight from h1 to the term h3 on subjects whose academic
+                    year is unnamed. */}
+                <h2
+                  id={`year-${year.id ?? yi}`}
+                  className={
+                    year.titleAr || year.titleEn
+                      ? "mb-3 text-pub-xs font-semibold uppercase tracking-wide text-pub-muted"
+                      : "sr-only"
+                  }
+                >
+                  {t(locale, "study.yearLabel")}
+                  {year.titleAr || year.titleEn ? <>: <span dir="ltr">{pick(year)}</span></> : null}
+                </h2>
 
                 {year.terms.length > 1 && (
                   <div className="mb-4" role="tablist" aria-label={t(locale, "study.chooseTerm")}>
@@ -275,17 +266,6 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                       </div>
                     );
                   }
-                  const panelThinker = thinkerFor({
-                    slot: "term-panel",
-                    slug: loaderData.subject.slug,
-                    titleAr: loaderData.subject.titleAr,
-                    titleEn: loaderData.subject.titleEn,
-                    skip: ti > 0,
-                    salt: term.slug,
-                  });
-                  const thinker = ti === 1
-                    ? thinkerAlternate(thinkerFor({ slot: "term-panel", slug: loaderData.subject.slug }), term.slug)
-                    : panelThinker;
                   return (
                     <div
                       key={term.id}
@@ -294,8 +274,6 @@ export default function SubjectStudyPage({ loaderData }: Route.ComponentProps) {
                     >
                       <div className="relative z-10 p-5 sm:p-6">
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                          {/* The term's philosopher as a small standing figure —
-                              legible identity, quiet enough to never fight the text. */}
                           <span className="study-term-heading flex min-w-0 items-center gap-3">
                             <span aria-hidden="true" className="study-term-index text-pub-xs font-bold tabular-nums text-pub-accent" dir="ltr">{String(ti + 1).padStart(2, "0")}</span>
                             <h3 className="text-pub-lg font-bold leading-pub-snug text-pub-ink">{pick(term)}</h3>

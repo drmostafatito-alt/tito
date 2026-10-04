@@ -67,7 +67,13 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     // the /set-locale guard so `locale.enabled` is an enforced setting, not
     // stored-but-ignored configuration.
     localeOptions: settings.locale.enabled,
-    platform: settings.platform,
+    // ONLY the display name — never the whole platform settings object.
+    // The root loader is serialised into the hydration payload of EVERY page,
+    // so returning `settings.platform` wholesale shipped the support email,
+    // the support phone, the WhatsApp number and the question-platform URL to
+    // every anonymous visitor, including while those features were switched
+    // off. Routes that need more read it from their own loader.
+    platform: { nameAr: settings.platform.nameAr, nameEn: settings.platform.nameEn },
     user: auth ? { fullName: auth.user.fullName, roleId: auth.user.roleId, rank: auth.user.rank } : null,
   };
 }
