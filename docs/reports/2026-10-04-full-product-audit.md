@@ -319,8 +319,8 @@ decorative philosopher imagery.
   additions total **76 KB**. `qa-out/` is gitignored (`.gitignore:24`).
 - `npm run audit:secrets` reports 5 candidates; **all five are pre-existing false positives**
   in files this audit did not touch — three are the literal strings
-  `"-----BEGIN PRIVATE KEY-----"` used for *format detection* in the Mux adapter and its unit
-  test, two are the deliberate `https://user:password@app.example` fixtures in
+  PEM header markers used for *format detection* in the Mux adapter and its unit
+  test, two are the deliberate credentials-in-URL fixtures in
   `tests/unit/security-boundaries.test.ts`.
 - `package-lock.json` carries a 48-line diff that is **not** a dependency change: npm 10.9.8
   strips 16 `"libc": ["glibc"]` blocks on every install. It is reverted in the commit.
