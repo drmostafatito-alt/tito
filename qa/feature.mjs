@@ -3,11 +3,10 @@
  * Usage: node qa/feature.mjs <feature-name>
  * Real browser interactions against the running dev server.
  */
-import { chromium } from "@playwright/test";
-import { BASE, ensureAuth } from "./lib.mjs";
+import { BASE, ensureAuth, launchBrowser } from "./lib.mjs";
 
 const feature = process.argv[2];
-const browser = await chromium.launch({ args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] });
+const browser = await launchBrowser({ args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] });
 const { page } = await ensureAuth(browser, "admin", { locale: "en", viewport: { width: 1440, height: 900 } });
 const problems = [];
 page.on("console", (m) => { if (m.type() === "error") problems.push(`console: ${m.text().slice(0, 160)}`); });

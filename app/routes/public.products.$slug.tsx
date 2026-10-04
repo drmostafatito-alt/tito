@@ -11,7 +11,6 @@ import { Card, CardBody } from "~/components/ui/Card";
 import { pubBtnSm } from "~/lib/publicStyles";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { t, type Locale } from "~/lib/i18n";
-import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 
 /**
  * Public product page (Phase 6): what's on offer, at which prices — server-read
@@ -97,7 +96,6 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="relative isolate mx-auto w-full max-w-[62rem] space-y-6 overflow-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <ThinkerWash seed={`page:product:${product.slug}`} anchor="top" />
       <nav className="text-pub-xs text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
         <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
         <span aria-hidden="true"> › </span>
@@ -171,7 +169,7 @@ export default function ProductPage({ loaderData }: Route.ComponentProps) {
           </div>
 
           <p className="text-pub-xs text-pub-muted">
-            <Link to="/activate" className="underline hover:text-pub-navy">{t(locale, "commerce.haveCode")}</Link>
+            <Link to="/activate" className="inline-flex min-h-11 items-center underline hover:text-pub-navy">{t(locale, "commerce.haveCode")}</Link>
           </p>
         </CardBody>
       </Card>

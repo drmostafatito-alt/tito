@@ -3,9 +3,8 @@
  * with admin detail pages auto-discovered from list links.
  * Run: node qa/axesweep.mjs   (requires dev server on :5173, fresh DB with seed)
  */
-import { chromium } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
-import { BASE, ensureAuth } from "./lib.mjs";
+import { BASE, ensureAuth, launchBrowser } from "./lib.mjs";
 
 const ADMIN_LIST_PAGES = [
   "/admin",
@@ -126,7 +125,7 @@ async function gotoStable(page, url, tries = 3) {
 }
 
 async function run() {
-  const browser = await chromium.launch({ args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const browser = await launchBrowser({ args: ["--no-sandbox", "--disable-dev-shm-usage"] });
   const results = [];
 
   // ---- admin session ----

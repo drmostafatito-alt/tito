@@ -1,9 +1,35 @@
 import { ar, type Dictionary } from "~/locales/ar";
 import { en } from "~/locales/en";
+import { isPluralForms, type PluralForms } from "~/lib/plural";
 
 export const dictionaries: Record<string, Dictionary> = { ar, en };
 export type Locale = "ar" | "en";
 export const LOCALES: Locale[] = ["ar", "en"];
+
+/**
+ * Plural-rule cache. `Intl.PluralRules` construction is not free and `t()` is
+ * called many times per render.
+ */
+const pluralRules = new Map<string, Intl.PluralRules>();
+function rulesFor(locale: Locale): Intl.PluralRules {
+  let r = pluralRules.get(locale);
+  if (!r) {
+    r = new Intl.PluralRules(locale);
+    pluralRules.set(locale, r);
+  }
+  return r;
+}
+
+/**
+ * Picks the grammatically correct form of a `PluralForms` entry.
+ * Falls back to `other` for any category the dictionary does not declare, and
+ * when the caller passed no numeric `n`.
+ */
+function selectPlural(locale: Locale, forms: PluralForms, n: unknown): string {
+  if (typeof n !== "number" || !Number.isFinite(n)) return forms.other;
+  const category = rulesFor(locale).select(n) as keyof PluralForms;
+  return forms[category] ?? forms.other;
+}
 
 /** Walks dot-paths like "auth.errors.invalid_credentials"; falls back ar→en→key. */
 export function t(locale: Locale, key: string, params?: Record<string, string | number>): string {
@@ -17,6 +43,9 @@ export function t(locale: Locale, key: string, params?: Record<string, string | 
 
   let value = pick(dictionaries[locale] ?? ar);
   if (value === undefined) value = pick(ar);
+  // Count-dependent copy: the dictionary stores every plural category and the
+  // caller supplies `{ n }` (see app/lib/plural.ts).
+  if (isPluralForms(value)) value = selectPlural(locale, value, params?.n);
   if (typeof value !== "string") return key;
 
   if (params) {

@@ -4,10 +4,9 @@
  * Logs in through the real UI (persisted device), captures console/page errors
  * + failed requests, saves a screenshot. Exits 1 if problems found.
  */
-import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { BASE, ROOT, ensureAuth } from "./lib.mjs";
+import { BASE, ROOT, ensureAuth, launchBrowser } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const urlPath = args[0] ?? "/";
@@ -22,7 +21,7 @@ const h = Number(flag("h", 900));
 const locale = flag("locale", "en");
 const full = flag("full", false);
 
-const browser = await chromium.launch({ args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] });
+const browser = await launchBrowser({ args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] });
 const problems = [];
 
 if (who === "anon") {

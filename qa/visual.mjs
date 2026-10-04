@@ -4,13 +4,12 @@
  * facts (font stacks, dir/lang, switcher presence) recorded to report.json.
  * Screenshots land in qa-out/visual/ as artifacts.
  */
-import { chromium } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { BASE, ensureAuth } from "./lib.mjs";
+import { BASE, ensureAuth, launchBrowser } from "./lib.mjs";
 
 const OUT = "qa-out/visual";
 mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch({ args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] });
+const browser = await launchBrowser({ args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"] });
 const report = { browser: await browser.version(), shots: {} };
 
 async function publicShot(name, locale, width, height) {

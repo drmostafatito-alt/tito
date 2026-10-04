@@ -29,9 +29,7 @@ import { Badge } from "~/components/ui/Badge";
 import { SubmitButton } from "~/components/ui/Button";
 import { ProgressBar } from "~/components/ProgressBar";
 import { Card, CardBody } from "~/components/ui/Card";
-import { ThinkerPortrait, ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { pubBtn } from "~/lib/publicStyles";
-import { thinkerFor } from "~/lib/thinkers";
 import { t, type Locale } from "~/lib/i18n";
 import { contentSeoMeta, rootMetaFrom } from "~/cms/seo";
 
@@ -268,17 +266,10 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const title = locale === "ar" ? lesson.titleAr : lesson.titleEn;
   const lessonCompleted = actionData?.completed ?? (progress?.lesson?.status === "completed" || false);
-  const thinker = thinkerFor({
-    slot: verdict.allowed ? "lesson-page" : "lesson-locked",
-    slug: study.subjectSlug ?? course.slug,
-    titleAr: study.subjectTitleAr,
-    titleEn: study.subjectTitleEn,
-  });
   const backHref = study.subjectSlug ? `/study/${study.subjectSlug}` : "/study";
 
   return (
     <main className="pub-root relative isolate mx-auto w-full max-w-[56rem] overflow-x-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <ThinkerWash seed={`page:lesson:${lessonId}`} />
       <nav className="mb-2 flex flex-wrap items-center gap-1 text-pub-sm text-pub-muted" aria-label={t(locale, "common.breadcrumb")} data-allow-small>
         <Link to="/study" className="hover:underline">{t(locale, "study.title")}</Link>
         {study.subjectSlug && (
@@ -315,11 +306,6 @@ export default function LessonPage({ loaderData }: Route.ComponentProps) {
 
       {!verdict.allowed ? (
         <Card data-testid="lesson-locked" className="relative isolate overflow-hidden border-pub-line">
-          <ThinkerPortrait
-            thinker={thinkerFor({ slot: "lesson-locked", slug: study.subjectSlug ?? "locked" })}
-            presentation="statue"
-            className="thinker-statue--quiet absolute bottom-0 end-2 h-24 w-20"
-          />
           <CardBody className="relative z-10 space-y-3">
             <div className="flex items-center gap-2">
               <span aria-hidden="true">🔒</span>

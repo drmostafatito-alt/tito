@@ -950,19 +950,25 @@ button, a { touch-action: manipulation; }
 .mk .topbar{position:sticky;top:0;z-index:50;background:rgba(245,247,253,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(27,37,64,.06);transition:box-shadow .25s}
 .mk .topbar.scrolled{box-shadow:0 8px 30px -12px rgba(27,37,64,.18)}
 .mk .topbar-in{display:flex;align-items:center;justify-content:space-between;gap:16px;height:74px}
-.mk .brand{display:flex;align-items:center;gap:12px}
+.mk .brand{display:flex;align-items:center;gap:12px;flex:0 0 auto;min-width:0}
 .mk .brand .ava{width:52px;height:52px;border-radius:50%;border:3px solid #fff;object-fit:cover;background:#fff;box-shadow:0 6px 16px -6px rgba(27,37,64,.35);animation:mk-avabob 3.4s ease-in-out infinite}
 .mk .fbrand .fava{width:58px;height:58px;border-radius:50%;border:3px solid #fff;object-fit:cover;animation:mk-avabob 3.4s ease-in-out infinite}
 @keyframes mk-avabob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @media (prefers-reduced-motion:reduce){.mk .brand .ava,.mk .fbrand .fava{animation:none}}
 .mk .brand b{font-size:1.05rem;font-weight:800;display:block;line-height:1.4}
 .mk .brand small{color:var(--mk-muted);font-size:.78rem}
-.mk .nav{display:flex;gap:28px;font-weight:700;font-size:.95rem}
-.mk .nav a{color:var(--mk-ink);padding:6px 2px;position:relative}
+/* The six-item nav plus brand plus two CTAs used to wrap every label onto a
+   second line at 1280–1440 (no nowrap, and a fixed 28px gap that could not
+   give). The gap now breathes with the viewport and nothing wraps. */
+/* FIXED gap, not a vw clamp: the container is capped at 1180px, so a gap
+   that grew with the viewport pushed "تواصل معنا" under the login button
+   from 1366px up while 1280px looked fine. */
+.mk .nav{display:flex;align-items:center;flex-wrap:nowrap;gap:16px;font-weight:700;font-size:.95rem;min-width:0}
+.mk .nav a{display:inline-flex;align-items:center;min-height:44px;color:var(--mk-ink);padding:6px 4px;position:relative;white-space:nowrap}
 .mk .nav a.active{color:var(--mk-blue)}
-.mk .nav a.active::after{content:"";position:absolute;bottom:-2px;right:0;left:0;height:3px;border-radius:3px;background:var(--mk-gold)}
+.mk .nav a.active::after{content:"";position:absolute;bottom:4px;right:0;left:0;height:3px;border-radius:3px;background:var(--mk-gold)}
 .mk .socials{display:flex;gap:10px}
-.mk .socials a{width:34px;height:34px;border-radius:50%;border:1.5px solid #D5DFF5;display:grid;place-items:center;background:#fff;transition:.2s}
+.mk .socials a{width:40px;height:40px;border-radius:50%;border:1.5px solid #D5DFF5;display:grid;place-items:center;background:#fff;transition:.2s;color:var(--mk-navy)}
 .mk .socials a:hover{transform:translateY(-2px);border-color:var(--mk-gold)}
 .mk .burger{display:none;flex:0 0 44px;border:0;background:#fff;width:44px;height:44px;border-radius:12px;font-size:1.3rem;box-shadow:var(--mk-shadow);cursor:pointer}
 .mk .socials img{width:16px;height:16px;display:block}
@@ -972,13 +978,18 @@ button, a { touch-action: manipulation; }
 .mk .hero{position:relative;overflow:hidden;padding:64px 0 84px}
 .mk .hero .watermark{position:absolute;top:6%;left:50%;transform:translateX(-50%);font-size:clamp(6rem,18vw,15rem);font-weight:900;color:transparent;-webkit-text-stroke:2px rgba(30,86,200,.07);letter-spacing:.1em;pointer-events:none;user-select:none;white-space:nowrap}
 .mk .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;position:relative}
+/* No owner photo configured → no empty photo stage, and the copy uses the
+   measure instead of half an empty grid. */
+.mk .hero-grid--solo{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center}
+.mk .hero-grid--solo .lede{max-width:40rem;margin-inline:auto}
+.mk .hero-grid--solo .hero-cta,.mk .hero-grid--solo .mini-pills{justify-content:center}
 .mk .eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--mk-cream);color:var(--mk-gold-deep);font-weight:800;font-size:.85rem;padding:9px 20px;border-radius:999px;margin-bottom:22px;border:1px solid rgba(201,154,46,.35)}
 .mk .hero h1{font-size:clamp(2.7rem,5.6vw,3.9rem);font-weight:900;line-height:1.45;color:var(--mk-ink)}
 .mk .hero .doc-line{font-family:"Aref Ruqaa",serif;font-size:clamp(1.5rem,3vw,2rem);color:var(--mk-gold-deep);margin:6px 0 4px}
 .mk .hero .lede{color:var(--mk-muted);font-size:1.08rem;max-width:34rem;margin:10px 0 6px}
 .mk .hero .lede b{color:var(--mk-blue)}
 .mk .hero-cta{display:flex;gap:14px;margin:24px 0 18px;flex-wrap:wrap}
-.mk .btn{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:1.02rem;padding:15px 34px;border-radius:999px;transition:.22s;cursor:pointer;border:0}
+.mk .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:1.02rem;line-height:1.25;padding:15px 34px;border-radius:999px;transition:.22s;cursor:pointer;border:0;white-space:nowrap;min-height:48px;text-align:center}
 .mk .btn-blue{background:var(--mk-blue);color:#fff;box-shadow:0 14px 28px -12px rgba(30,86,200,.55)}
 .mk .btn-blue:hover{background:var(--mk-blue-deep);transform:translateY(-2px)}
 /* Label darkened from #1F9D4D (3.51:1 on white — below the 4.5:1 AA minimum
@@ -990,8 +1001,12 @@ button, a { touch-action: manipulation; }
 .mk .mini-pills{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .mk .mini-pills span{background:#fff;border:1px solid #E2E8F7;color:var(--mk-blue-deep);font-size:.82rem;font-weight:700;padding:7px 16px;border-radius:999px;box-shadow:0 6px 14px -10px rgba(27,37,64,.2)}
 .mk .scribble{position:absolute;font-family:"Aref Ruqaa",serif;color:var(--mk-gold);font-size:1.15rem;opacity:.9;pointer-events:none}
-.mk .s1{top:6%;right:2%;transform:rotate(-7deg)}
-.mk .s2{bottom:24%;right:6%;transform:rotate(5deg)}
+/* Handwriting ornaments live in the page GUTTER. `right:6%` put the second
+   one straight through the primary CTA at 1280–1440; both now hug the
+   viewport edge and only appear where a gutter actually exists. */
+.mk .s1{top:5%;right:1.25rem;transform:rotate(-7deg)}
+.mk .s2{bottom:16%;right:1.25rem;transform:rotate(5deg)}
+@media(max-width:1279px){.mk .scribble{display:none}}
 .mk .photo-wrap{position:relative;display:flex;justify-content:center;min-height:420px}
 .mk .blob{position:absolute;width:min(430px,92%);aspect-ratio:1/1.06;top:4%;background:linear-gradient(135deg,#2f6ae0 0%,#1E56C8 45%,#7aa5f0 100%);border-radius:58% 42% 55% 45%/48% 55% 45% 52%;box-shadow:0 30px 60px -20px rgba(30,86,200,.45)}
 .mk .doodle{position:absolute;z-index:3;pointer-events:none}
@@ -1019,12 +1034,17 @@ button, a { touch-action: manipulation; }
 .mk .sec-head p{color:var(--mk-muted);max-width:38rem;margin:8px auto 0}
 
 /* ---------- grade cards ---------- */
-.mk .grades{display:grid;grid-template-columns:1fr 1fr;gap:26px}
-.mk .gcard{border-radius:28px;padding:38px 34px;position:relative;overflow:hidden;box-shadow:var(--mk-shadow);transition:.25s}
+/* auto-fit so a single published grade is not stranded in a half-empty row */
+.mk .grades{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),520px));gap:26px;justify-content:center}
+.mk .gcard{display:flex;flex-direction:column;align-items:flex-start;border-radius:28px;padding:38px 34px;position:relative;overflow:hidden;box-shadow:var(--mk-shadow);transition:.25s}
 .mk .gcard:hover{transform:translateY(-6px)}
 .mk .gcard.blue{background:linear-gradient(150deg,#E4EBFD,#D5DFF5)}
 .mk .gcard.cream{background:linear-gradient(150deg,#FBF4E3,#F5E9CF)}
-.mk .gcard .giant{position:absolute;bottom:-30px;left:-14px;font-size:9rem;opacity:.12;pointer-events:none;transform:rotate(-10deg)}
+/* Decorative watermark. Only ever a short glyph (see isGlyph in blocks.tsx):
+   a program title rendered here at 9rem swallowed the whole card. */
+.mk .gcard .giant{position:absolute;bottom:-30px;left:-14px;font-size:9rem;line-height:1;opacity:.1;pointer-events:none;transform:rotate(-10deg);max-width:60%;overflow:hidden;white-space:nowrap}
+/* Text badge (program title) — a legible eyebrow, not a watermark. */
+.mk .gcard .gbadge{display:inline-block;align-self:flex-start;background:rgba(255,255,255,.85);color:var(--mk-navy);font-size:.78rem;font-weight:800;letter-spacing:.01em;padding:7px 14px;border-radius:999px;margin-bottom:16px}
 .mk .gcard .medal{width:66px;height:66px;border-radius:20px;display:grid;place-items:center;font-size:1.9rem;background:#fff;box-shadow:0 10px 22px -10px rgba(27,37,64,.3);margin-bottom:18px}
 .mk .gcard h3{font-size:1.35rem;font-weight:900;margin-bottom:4px}
 .mk .gcard .sub{color:var(--mk-muted);font-size:.92rem;margin-bottom:18px}
@@ -1035,6 +1055,15 @@ button, a { touch-action: manipulation; }
 /* ---------- video cards ---------- */
 .mk .vids{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
 .mk .vcard{background:#fff;border-radius:var(--mk-r);overflow:hidden;box-shadow:var(--mk-shadow);transition:.25s}
+/* One link per card, stretched over the whole card: the 16:9 thumbnail and
+   the play button read as clickable, and a phone gets a full-card target
+   instead of a single line of text. */
+.mk .vcard-link{position:relative;isolation:isolate}
+.mk .vcard-link .vcard-a{color:inherit}
+.mk .vcard-link .vcard-a::after{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit}
+.mk .vcard-link:hover .vcard-a,.mk .vcard-link:focus-within .vcard-a{color:var(--mk-blue)}
+.mk .vcard-link:focus-within{outline:2px solid var(--mk-blue);outline-offset:3px}
+.mk .vcard-link .vcard-a:focus-visible{outline:none}
 .mk .vcard:hover{transform:translateY(-6px)}
 .mk .thumb{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1E56C8,#7aa5f0);display:grid;place-items:center;overflow:hidden}
 .mk .thumb.t2{background:linear-gradient(135deg,#A57E26,#E8C96A)}
@@ -1073,7 +1102,10 @@ button, a { touch-action: manipulation; }
 
 /* ---------- contact ---------- */
 .mk .contact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:920px;margin:0 auto}
-.mk .scard{background:#fff;border-radius:20px;padding:28px 16px;text-align:center;box-shadow:var(--mk-shadow);transition:.22s}
+/* Every contact card is now a real link (see the social_links block): give
+   it link affordances and a comfortable full-card target. */
+.mk .scard{display:block;background:#fff;border-radius:20px;padding:24px 14px;text-align:center;box-shadow:var(--mk-shadow);transition:.22s;color:inherit;min-height:148px}
+.mk a.scard:hover b{color:var(--mk-blue)}
 .mk .scard:hover{transform:translateY(-5px)}
 .mk .sic{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;box-shadow:0 12px 22px -10px rgba(27,37,64,.4)}
 .mk .sic img,.mk .sic svg{width:28px;height:28px;display:block}
@@ -1126,6 +1158,8 @@ button, a { touch-action: manipulation; }
 .mk .copy{border-top:1px solid rgba(255,255,255,.1);padding:14px 0;font-size:.82rem;color:#8FA0C9;position:relative;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;text-align:center}
 /* Owner contact column: same rhythm as .flinks, with room for the icon. */
 .mk .fcontact a,.mk .fcontact p{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.92rem;margin:0}
+.mk .fcontact a{min-height:44px}
+.mk .flinks a{min-height:44px;align-items:center;display:flex}
 .mk .fcontact a:hover{color:var(--mk-gold)}
 .mk .fcontact .ic{width:16px;height:16px;flex:0 0 16px}
 
@@ -1165,7 +1199,7 @@ button, a { touch-action: manipulation; }
   .mk .b1{top:3%;right:0}
   .mk .b2{top:44%;left:0}
   .mk .b3{bottom:13%;right:0}
-  .mk .grades{grid-template-columns:1fr}
+  .mk .grades{grid-template-columns:minmax(0,1fr)}
   .mk .vids{grid-template-columns:1fr 1fr}
   .mk .feats{grid-template-columns:1fr 1fr}
   .mk .about-grid{grid-template-columns:1fr;gap:36px}
@@ -1175,6 +1209,13 @@ button, a { touch-action: manipulation; }
      dropdown: the burger used to open BOTH, so the mockup's `.nav.open` panel
      sat behind the drawer's scrim — invisible but still in the tab order.
      `.nav` is now desktop-only and the `.nav.open` rules are gone with it. */
+  .mk .nav{display:none}
+  .mk .burger{display:block}
+}
+/* 961–1199px: no bottom bar yet, but the full nav cannot fit beside the brand
+   and the two auth CTAs — it used to slide under the "تسجيل الدخول" button.
+   The burger + overlay drawer carry navigation here. */
+@media(min-width:961px) and (max-width:1199px){
   .mk .nav{display:none}
   .mk .burger{display:block}
 }
@@ -1218,6 +1259,42 @@ button, a { touch-action: manipulation; }
 .mk .sic-teal{background:#12A5A5}
 .mk .sic-navy{background:#113274}
 .mk .sec-white{background:#fff}
-.mk .topbar-actions{display:flex;gap:10px;align-items:center}
+.mk .topbar-actions{display:flex;gap:10px;align-items:center;flex:0 0 auto}
 .mk .ava-fallback{display:grid;place-items:center;font-weight:900;color:#1E56C8;background:#fff}
-.mk .btn-sm{padding:10px 22px;font-size:.9rem}
+.mk .btn-sm{padding:10px 20px;font-size:.9rem;min-height:44px}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Pointer-target floor for the two consoles (WCAG 2.1 AA, 2.5.8 Target Size
+   Minimum = 24×24 CSS px).
+
+   The admin and student consoles are dense, table-heavy surfaces whose inline
+   text links were 16–22px tall. Rather than restyle forty call sites, the
+   floor is applied once here:
+
+   • `<button>`/`<summary>` are already inline-block, so a `min-block-size`
+     lifts them without any other change.
+   • Plain inline `<a>` gets vertical PADDING instead. Padding on an inline box
+     grows the pointer hit area but does NOT change the line box, so dense
+     tables, truncated cells and wrapped prose keep their exact layout — the
+     one property that let this be fixed globally without a visual regression.
+     Anchors that already opt into a box layout (flex/grid/block utilities, or
+     a button class) are excluded: they size themselves.
+   ─────────────────────────────────────────────────────────────────────────── */
+.console :is(button, summary):not([class*="h-"]):not([class*="min-h-"]),
+.pub-root :is(button, summary):not([class*="h-"]):not([class*="min-h-"]) {
+  min-block-size: 1.5rem;
+}
+.console a:not(:where([class*="flex"], [class*="grid"], [class*="block"], [class*="h-"], [class*="min-h"], [class*="py-"], [class*="p-"])),
+.pub-root a:not(:where([class*="flex"], [class*="grid"], [class*="block"], [class*="h-"], [class*="min-h"], [class*="py-"], [class*="p-"])) {
+  padding-block: 0.25rem;
+}
+
+/* Checkboxes and radios carry the 24px floor themselves. A wrapping <label>
+   is NOT a reliable fallback here: the bulk-select columns wrap the control in
+   a label whose only other content is sr-only text, so the label box is the
+   same 16px as the control. */
+.console input:is([type="checkbox"], [type="radio"]),
+.pub-root input:is([type="checkbox"], [type="radio"]) {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+}

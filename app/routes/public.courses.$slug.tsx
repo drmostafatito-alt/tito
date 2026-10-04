@@ -19,7 +19,6 @@ import { Icon } from "~/cms/icons";
 import { contentSeoMeta, rootMetaFrom, siteEntitiesMeta } from "~/cms/seo";
 import { absUrl, breadcrumbJsonLd, courseJsonLd, definedTermSetJsonLd, learningResourceJsonLd } from "~/cms/jsonld";
 import { t, type Locale } from "~/lib/i18n";
-import { ThinkerWash } from "~/components/visuals/ThinkerPortrait";
 import { extractSemanticKeywords } from "~server/seo/keywordClusters.server";
 
 /** Course page: units + lessons with access-aware rendering, teacher/duration meta and student progress. */
@@ -294,7 +293,6 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="relative isolate mx-auto w-full max-w-[62rem] overflow-hidden px-[var(--pub-pad-x)] py-[var(--pub-pad-y)]">
-      <ThinkerWash seed="page:course" anchor="top" />
       {/* Breadcrumbs */}
       <nav aria-label="breadcrumb" data-allow-small className="mb-3 text-pub-sm text-pub-muted">
         <Link to="/study" className="hover:text-pub-navy">{t(locale, "study.title")}</Link>
@@ -385,7 +383,7 @@ export default function CoursePage({ loaderData }: Route.ComponentProps) {
           <CardBody>
             <p className="text-pub-sm text-pub-muted">
               {verdict.reason === "anon" ? (
-                <Link to="/login" className="font-medium text-pub-navy hover:underline">
+                <Link to="/login" className="inline-flex min-h-11 items-center font-medium text-pub-navy hover:underline">
                   {t(locale, "content.loginToContinue")}
                 </Link>
               ) : (

@@ -6,6 +6,8 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { chromium } from "@playwright/test";
 
 export const BASE = process.env.QA_BASE ?? "http://127.0.0.1:5173";
 export const CREDS = {
@@ -65,4 +67,37 @@ export async function ensureAuth(browser, who, { locale = "en", viewport, bypass
     await saveAuth(ctx, who);
   }
   return { page, ctx };
+}
+
+/**
+ * Launch a real Chromium for the QA harness.
+ *
+ * Mirrors playwright.config.ts: the Playwright registry browser is used when it
+ * is installed, otherwise the npm-pinned self-contained binary prepared by
+ * `scripts/e2e-browser-setup.mjs` (set `E2E_CHROMIUM_PATH` to point at it, or
+ * at any other real Chromium). Without this the harness crashed with
+ * "Executable doesn't exist" on images that have no registry download.
+ */
+export async function launchBrowser(extra = {}) {
+  const override = process.env.E2E_CHROMIUM_PATH;
+  const args = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-gpu",
+    "--disable-software-rasterizer",
+    "--use-gl=disabled",
+    "--disable-dev-shm-usage",
+    ...(extra.args ?? []),
+  ];
+  const opts = { ...extra, args };
+  if (override) {
+    opts.executablePath = override;
+    opts.env = {
+      ...process.env,
+      LD_LIBRARY_PATH: [resolve(tmpdir(), "al2023", "lib"), process.env.LD_LIBRARY_PATH]
+        .filter(Boolean)
+        .join(":"),
+    };
+  }
+  return chromium.launch(opts);
 }

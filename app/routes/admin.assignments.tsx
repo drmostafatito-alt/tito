@@ -157,10 +157,12 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
             <CardBody className="space-y-3">
               <form method="get" className="grid gap-3 lg:grid-cols-12" role="search">
                 <div className="min-w-0 lg:col-span-4">
-                  <input name="q" defaultValue={q} placeholder={t(locale, "assignment.searchPlaceholder")} className={inputCls} />
+                  {/* Filter controls sit in a toolbar with no visible labels,
+                      so each one carries its own accessible name. */}
+                  <input name="q" defaultValue={q} aria-label={t(locale, "assignment.searchPlaceholder")} placeholder={t(locale, "assignment.searchPlaceholder")} className={inputCls} />
                 </div>
                 <div className="min-w-0 lg:col-span-3">
-                  <select name="status" defaultValue={status} className={selectCls}>
+                  <select name="status" defaultValue={status} aria-label={t(locale, "assignment.allStatuses")} className={selectCls}>
                     <option value="">{t(locale, "assignment.allStatuses")}</option>
                     <option value="draft">{t(locale, "assignment.status_draft")}</option>
                     <option value="published">{t(locale, "assignment.status_published")}</option>
@@ -168,7 +170,7 @@ export default function AdminAssignmentsPage({ loaderData }: Route.ComponentProp
                   </select>
                 </div>
                 <div className="min-w-0 lg:col-span-3">
-                  <select name="courseId" defaultValue={courseId} className={selectCls}>
+                  <select name="courseId" defaultValue={courseId} aria-label={t(locale, "assignment.allCourses")} className={selectCls}>
                     <option value="">{t(locale, "assignment.allCourses")}</option>
                     {courses.map((c) => (
                       <option key={c.id} value={c.id}>{locale === "ar" ? c.labelAr : c.labelEn}</option>

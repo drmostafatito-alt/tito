@@ -143,12 +143,12 @@ export default function Login() {
         </Form>
 
         <div className="mt-4 flex flex-col gap-2 text-sm">
-          <Link to="/forgot-password" className="text-pub-ink-soft hover:underline">
+          <Link to="/forgot-password" className="inline-flex min-h-11 items-center self-start text-pub-ink-soft hover:underline">
             {t(locale, "auth.forgotLink")}
           </Link>
           <p className="text-pub-muted">
             {t(locale, "auth.noAccount")}{" "}
-            <Link to="/register" className="font-medium text-pub-ink-soft hover:underline">
+            <Link to="/register" className="inline-flex min-h-11 items-center font-medium text-pub-ink-soft hover:underline">
               {t(locale, "common.register")}
             </Link>
           </p>
